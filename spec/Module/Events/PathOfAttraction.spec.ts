@@ -18,6 +18,7 @@
  *     any distance from the event end.
  */
 import { PathOfAttraction } from "../../../src/Module/Events/PathOfAttraction";
+import { Harem } from "../../../src/Module/harem/Harem";
 import { ConfigHelper } from "../../../src/Helper/ConfigHelper";
 import { TimeHelper } from "../../../src/Helper/TimeHelper";
 import { RewardHelper } from "../../../src/Helper/RewardHelper";
@@ -193,5 +194,49 @@ describe("PathOfAttraction -- #1846", () => {
             await PathOfAttraction.run();
             expect(collected()).toBe(false);
         });
+    });
+});
+
+// The game states its own gate on the locked page, measured 2026-09-09:
+// "You need to be at least on the Second World of your adventure and have at
+// least 10 girls in your Harem to participate in the Path of Attraction
+// event." Without the check the event counted as enabled for an account that
+// cannot enter it, and the run bounced onto that page every tick -- twelve of
+// eighteen samples in one measured session.
+describe("PathOfAttraction.isEnabled", function () {
+    const setWorld = (id_world: number) => {
+        unsafeWindow.shared!.Hero = { infos: { questing: { id_world } } } as never;
+    };
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it("is off below ten girls", function () {
+        jest.spyOn(Harem, 'getGirlCount').mockReturnValue(9);
+        setWorld(3);
+
+        expect(PathOfAttraction.isEnabled()).toBe(false);
+    });
+
+    it("is off in world 1 even with enough girls", function () {
+        jest.spyOn(Harem, 'getGirlCount').mockReturnValue(25);
+        setWorld(1);
+
+        expect(PathOfAttraction.isEnabled()).toBe(false);
+    });
+
+    it("is on at ten girls from world 2", function () {
+        jest.spyOn(Harem, 'getGirlCount').mockReturnValue(10);
+        setWorld(2);
+
+        expect(PathOfAttraction.isEnabled()).toBe(true);
+    });
+
+    it("is off on an account with no girls at all", function () {
+        jest.spyOn(Harem, 'getGirlCount').mockReturnValue(0);
+        setWorld(3);
+
+        expect(PathOfAttraction.isEnabled()).toBe(false);
     });
 });

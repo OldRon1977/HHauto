@@ -7,6 +7,28 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.8 - Path of Attraction is skipped while the account cannot enter it
+
+The event page states its own condition: "You need to be at least on the Second
+World of your adventure and have at least 10 girls in your Harem to participate
+in the Path of Attraction event." The script did not ask. Any account with the
+event in its list treated it as enabled, walked to the event page, found
+nothing to do and came back -- every tick. In one measured session twelve of
+eighteen samples sat on that page.
+
+The empty-id guard in EventModule does not catch this, and the measurement says
+why: on the locked page the tab is still rendered as
+`.event-title.active` with its own href, so `getDisplayedIdEventPage()` returns
+the event id rather than the empty string the guard tests for. Trying to spot
+the lock in the DOM instead does not work either -- the `nc-panel` that carries
+the notice is present on every event tab, playable ones included.
+
+`PathOfAttraction.isEnabled()` now checks ten girls and world 2, and
+`EventModule` asks it the way it already asks `SultryMysteries.isEnabled()`.
+A locked event stops being enabled, so it is neither visited nor parsed, and it
+comes back on its own the moment the tenth girl arrives. Same shape as
+`PlaceOfPower.isEnabled`, which guards the same kind of dead end.
+
 ### v8.12.7 - A stale page no longer switches off half the script
 
 The game does not serve a consistent hero snapshot. Measured on a live
