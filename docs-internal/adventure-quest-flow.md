@@ -30,6 +30,24 @@ gekennzeichnet. Kontokennungen und Spielernamen stehen nicht drin.
 | `end_play` | Quest zu Ende, danach Reward-Popup | - |
 | `skip-quest` | in Welt 1 gesehen, wechselte sich mit `free` ab | 0-1 Quest-Energie |
 
+### Was ein Schritt kostet
+
+Ueber 342 protokollierte `pay`-Schritte:
+
+| Welt | Schritte | Quest-Energie je Schritt |
+|---|---|---|
+| 1 | 4 | durchweg 1 |
+| 2 | 137 | durchweg 1 |
+| 3 | 201 | 1 bis 6, Schwerpunkt 2 bis 4 |
+
+Die Zuordnung Quest-ID zu Welt ist aus den beobachteten IDs **abgeleitet**
+(unter 200 Welt 1, unter 300 Welt 2, darueber Welt 3), nicht aus einem Feld
+gelesen. Gemessen ist die Kostenverteilung.
+
+Ab Welt 3 ist damit nicht mehr die Zahl der Schritte der Engpass, sondern die
+Quest-Energie -- und sobald ein Schritt einen Kampf verlangt, die Kampfenergie,
+die mit 1800 s je Punkt nachwaechst.
+
 `skip-quest` kommt im Quelltext nicht vor (grep, 0 Treffer) und faellt damit in
 den `else`-Zweig von `Quest.ts`, der `questRequirement=unknownQuestButton`
 setzt. **Nicht gemessen** ist, ob dabei gleichzeitig ein bekannter Knopf im
