@@ -10,6 +10,7 @@
 //
 import { getGoToClubChampionButton } from "../../Helper/ButtonHelper";
 import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { getHHVars } from "../../Helper/HHHelper";
 import { getTextForUI } from "../../Helper/LanguageHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
@@ -21,6 +22,7 @@ import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
+import { Harem } from "../harem/Harem";
 
 class PoaReward {
     tier=0;
@@ -35,6 +37,28 @@ class PoaReward {
 }
 
 export class PathOfAttraction {
+
+    /**
+     * The game's own gate, read off the locked page on 2026-09-09:
+     * "You need to be at least on the Second World of your adventure and
+     * have at least 10 girls in your Harem to participate in the Path of
+     * Attraction event."
+     *
+     * Without it the event counts as enabled for an account that cannot
+     * enter it, and the run cannot get away from the page. The locked tab
+     * still renders: `.event-title.active` carries the requested tab, so
+     * getDisplayedIdEventPage() returns the id and the empty-id guard in
+     * EventModule never fires. Measured in one session, twelve of eighteen
+     * samples sat on that page, going home and back every tick.
+     *
+     * Same shape as PlaceOfPower.isEnabled, which guards the same kind of
+     * dead end.
+     */
+    static isEnabled(): boolean {
+        const enoughGirls = Harem.getGirlCount() >= 10;
+        const enoughProgress = Number(getHHVars('Hero.infos.questing.id_world')) >= 2;
+        return enoughGirls && enoughProgress;
+    }
 
     static rewardPairTierPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-step-indicator";
     static freeSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-free-reward";
