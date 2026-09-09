@@ -17,10 +17,11 @@ page holds the fresh copy varies -- in one run it was `home.html`, in the next
 `hero.html`.
 
 A page that loads the low value keeps it for its whole lifetime, and
-`HeroHelper.getLevel()` feeds the `>= LEVEL_MIN_*` gate of Path of Valor (30),
-Path of Glory (30), League (20), Sultry Mysteries (15) and Double Penetration
-(40). At a true level of 36 a stale 17 switches the first three off silently:
-no error, no log line, three modules that simply do nothing.
+`HeroHelper.getLevel()` feeds the `>= LEVEL_MIN_*` gate of six modules:
+Pantheon (15), Sultry Mysteries (15), League (20), Path of Glory (30), Path of
+Valor (30) and Double Penetration (40). At a true level of 36 a stale 17
+switches League, Path of Glory and Path of Valor off silently: no error, no log
+line, three modules that simply do nothing.
 
 `getLevel()` now keeps the highest level it has seen, in
 `Temp_heroMaxLevel`. A level never decreases, so the maximum is always the

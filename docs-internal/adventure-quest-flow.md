@@ -158,8 +158,10 @@ Umstaenden einen Stand von vor Stunden. Eine Aussage ueber den Kontostand
 braucht mehr als eine Lesung.
 
 Fuer das Skript hat das Folgen: `HeroHelper.getLevel()` speist die
-`>= LEVEL_MIN_*`-Bedingungen von Path of Valor (30), Path of Glory (30),
-League (20), Sultry Mysteries (15) und Double Penetration (40). Bei einer Rate von 50 Prozent
+`>= LEVEL_MIN_*`-Bedingungen von sechs Modulen -- Pantheon (15), Sultry
+Mysteries (15), League (20), Path of Glory (30), Path of Valor (30) und
+Double Penetration (40). Pantheon prueft ueber `decideIsEnabled` statt mit
+einem direkten Vergleich; wer nur nach `getLevel() >=` sucht, uebersieht es. Bei einer Rate von 50 Prozent
 trifft es im Schnitt jede zweite Seitenladung; eine Seite, die zu niedrig
 ausliefert, behaelt diesen Wert fuer ihre gesamte Lebensdauer,
 und die betroffenen Module melden `isEnabled() === false`, ohne Fehler und ohne
@@ -170,6 +172,17 @@ Logzeile. Seit v8.12.7 merkt sich `getLevel` deshalb den Hoechststand
 eine bereits erledigte Quest, antwortet das Spiel mit "Something went wrong.
 Please try again." und laesst den Weiter-Knopf ausgegraut. Der Questpfad
 gehoert vor jedem Lauf frisch aus `Hero.infos.questing.current_url` gelesen.
+
+## Zwei Nebenbeobachtungen am Code
+
+- `Events/LoveRaidManager.ts:263`: die Levelpruefung ist auskommentiert
+  (`// && HeroHelper.getLevel() >= LEVEL_MIN_POG`). Love Raids haben damit
+  heute keine Levelschwelle. Ob das Absicht ist, steht nicht dabei.
+- `Events/DoublePenetration.ts:30`: der Kommentar nennt "And 10 girls", die
+  Bedingung wird aber nicht geprueft -- nur das Level. Dieselbe Bauart, die
+  bei Place of Power zur toten Seite gefuehrt hat, dort allerdings mit
+  vorhandener Pruefung. **Nicht gemessen**, was die DP-Seite auf einem Konto
+  unter zehn Maedchen ausliefert.
 
 ## Verweise
 
