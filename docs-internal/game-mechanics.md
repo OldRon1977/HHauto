@@ -435,6 +435,41 @@ Wichtige Eigenschaften:
 
 ---
 
+## 13a. Kobans: woher sie kommen (Stand 2026-09-09)
+
+Die Doku kannte bisher nur den *Ort* des Wertes
+(`Hero.currencies.hard_currency`, `HeroHelper.getKoban()`), nicht seine
+Quellen. Ohne die laesst sich kein Haushalt planen und kein Verlust einordnen.
+
+**Quellen** (Angabe des Maintainers, nicht selbst gemessen):
+
+- Aufgaben und Erfolge
+- Daily Goals
+- Gewinne in der Liga und vergleichbaren Wettbewerben
+
+**Keine Quelle sind Quests.** Gemessen ueber 342 protokollierte `pay`-Schritte:
+ein Questschritt kostet Quest-Energie oder Soft Currency, nie Kobans, und er
+schuettet keine aus.
+
+**Die Startkarte.** Ein neues Konto bekommt zeitlich begrenzt eine Silver Card
+geschenkt, die sonst echtes Geld kostet; sie schuettet Kobans aus. Wer den
+Kontostand beobachtet, ohne das zu wissen, schreibt den Zuwachs der falschen
+Ursache zu -- am 2026-09-09 genau so geschehen, als ein Anstieg von 105 auf 165
+waehrend eines Questlaufs als "Quests geben Kobans" gedeutet wurde. Falsch.
+
+`MonthlyCard.ts` sammelt uebrigens nichts ein: es passt nur
+`HHAuto_inputPattern` an, weil eine Karte die Energie-Maxima anhebt. Einziger
+Aufrufer ist `StartService`. Ob HHauto die taegliche Kartenausschuettung
+ueberhaupt abholt, ist **offen**.
+
+**Fuer die Modulwahl heisst das:** auf einem Konto, das Kobans erwirtschaften
+soll, sind `autoDailyGoals` + `autoDailyGoalsCollect` und `autoMission` +
+`autoMissionCollect` die Quelle, nicht `autoQuest`. Die Liga kommt hinzu,
+sobald Level (`LEVEL_MIN_LEAGUE` = 20) und ein tragfaehiges Team vorhanden
+sind.
+
+---
+
 ## 14. Cross-References
 
 | Thema | HHAuto-Doku |
@@ -443,6 +478,7 @@ Wichtige Eigenschaften:
 | Team-Auswahl-Algorithmus (League) | Code: `TeamBuilderService.ts` / `TeamScoringService.ts` |
 | availableGirls-Felder, Blessing-API | data-sources-team.md |
 | Storage-Keys fuer Settings (Boost-Filter, Threshold) | storage-keys.md |
+| Knopftypen und Dialoge der Questseite, Energiekosten | adventure-quest-flow.md |
 
 ---
 
