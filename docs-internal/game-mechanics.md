@@ -521,9 +521,37 @@ Die **+30 % sind konstant**, die Kosten nicht -- sie haengen am Maedchen.
 `upgrade_link` rueckt danach auf die naechste Questnummer.
 
 Gehaltssumme ueber `girlsDataList` auf `/home.html`: 51.600 vor dem ersten
-Grade, 116.600 nach zweien. **Nicht geklaert** ist das Verhaeltnis von
-`salary` (dort) zu der Anzeige *Income: N/h* auf der Maedchenseite -- das sind
-zwei verschiedene Groessen und duerfen nicht vermischt werden.
+Grade, 116.600 nach zweien.
+
+### `salary` ist keine Rate
+
+`salary` und die Anzeige *Income: N/h* sind zwei Groessen. Gemessen 2026-09-09
+ueber alle 13 Maedchen eines Kontos, `girls_data_list` auf `/waifu.html`:
+
+```
+salary_per_hour = salary / pay_time * 3600
+```
+
+exakt fuer jedes der 13 Maedchen. Dabei ist
+
+| Feld | Bedeutung |
+|---|---|
+| `salary` | Betrag **je Auszahlung** |
+| `pay_time` | Laenge eines Auszahlungszyklus in Sekunden |
+| `salary_per_hour` | daraus die Rate -- das ist *Income: N/h* |
+| `pay_in` | Sekunden bis zur naechsten Auszahlung |
+
+`pay_in` laeuft mit: zwei Lesungen 13 Sekunden auseinander ergaben 6503 und
+6490.
+
+**Die Zyklen sind nicht gleich lang.** Auf dem Konto kamen 1800, 5400 und
+16200 Sekunden vor. Eine Summe ueber `salary` mischt sie und ist deshalb keine
+Einnahme je Zeit: 451.125 als Summe der Auszahlungen stehen 210.250 pro Stunde
+gegenueber, und die zwei Maedchen mit 4,5-Stunden-Zyklus machen 70 % der
+`salary`-Summe aus, aber nur 33 % der Stundeneinnahme.
+
+Das Skript rechnet mit keinem der Felder: `HaremSalary` liest den Knopf und
+`salary_collect`. Die Unterscheidung betrifft also Berichte, nicht den Code.
 
 ### Wie viele Maedchen man hat
 
