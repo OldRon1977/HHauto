@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-07-13
-verified-against-version: HentaiHeroes BDSM (release 2021-07-21), v8.5.1 HHAuto
+last-verified: 2026-09-09
+verified-against-version: HentaiHeroes BDSM (release 2021-07-21), v8.12.11 HHAuto
 status: current
 sources:
   - INPUT/Your Performance Handbook!*.pdf (Slynia, 2021-11-20+)
@@ -527,12 +527,30 @@ zwei verschiedene Groessen und duerfen nicht vermischt werden.
 
 ### Wie viele Maedchen man hat
 
-`girlsDataList` ist **seitenabhaengig**: auf `/characters.html` stehen alle
-*bekannten* Maedchen mit vollen Datensaetzen, auf `/home.html` nur die
-*besessenen* mit `salary` und `pay_in`. `Harem.getGirlCount()` faellt auf
-`Object.values(girlsDataList).length` zurueck und liefert damit je nach Seite
-verschiedene Zahlen. Wer die 10-Maedchen-Bedingung darauf stuetzt, prueft auf
-der Harem-Seite etwas anderes als auf der Startseite.
+Vier Quellen, vier Bedeutungen. Gemessen 2026-09-09 auf einem Konto mit **9**
+besessenen Maedchen, jede Seite in einer eigenen Ladung:
+
+| Seite | Variable | Eintraege | was drinsteht |
+|---|---|---|---|
+| `/waifu.html` | `girls_data_list` | 9 | volle Datensaetze, alle `shards` = 100 |
+| `/characters.html` | `girlsDataList` | 24 | Katalogdaten aller *bekannten* Maedchen |
+| `/home.html` | `girlsDataList` | 9 | nur `salary` und `pay_in` |
+| `/teams.html` | keine | - | die Seite traegt keine Liste |
+| ueberall | `shared.GirlSalaryManager.girlsListSec` | 7 | zaehlt zu niedrig |
+
+Entscheidend fuer jede Zaehlung: die Datensaetze auf `/characters.html` tragen
+**kein** `shards`, `level` oder `graded` -- dort ist ein bekanntes Maedchen von
+einem besessenen nicht zu unterscheiden. Auf `/waifu.html` tragen sie beides,
+und `shards` = 100 markiert Besitz (dieselbe Schwelle benutzt
+`Troll.getTrollWithGirls`).
+
+Die Folge fuer `Harem.getGirlCount()`: die 24 der Harem-Seite als
+Maedchenzahl zu nehmen, setzte die 10-Maedchen-Bedingung von
+`PlaceOfPower.isEnabled()` und `PathOfAttraction.isEnabled()` auf einem Konto
+mit 9 Maedchen auf erfuellt. Seit v8.12.11 antworten nur noch die zwei Seiten
+mit vollstaendigen Besitz-Datensaetzen; sonst die Gehaltsliste, sonst 0.
+Zwischengespeichert wird die Zahl in `Temp_HaremSize`, geschrieben von
+`Harem.moduleHaremCountMax` auf genau diesen Seiten.
 
 `window.girl` traegt ausserdem `id_member` -- die Mitgliedsnummer. Wer das
 Objekt in einen Bericht kopiert, veroeffentlicht sie.
