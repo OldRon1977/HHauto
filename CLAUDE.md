@@ -95,5 +95,8 @@ npm run hooks:install    # setzt core.hooksPath auf .githooks
 Eine Sitzung pro Konto — der eigene Browser muss ausgeloggt sein. Die
 ausgeloggte Seite liefert einen Platzhalter-Hero mit 600 Kobans, gegen den jede
 Messung plausibel aussieht und Müll ist: vor jeder Messung `shared.Hero.infos.id`
-prüfen. Schreibende Prüfungen bleiben Handarbeit; ein Prüfer, der kauft oder
-speichert, ist ein Bot mit anderem Namen.
+prüfen. Auf dem Konto des Maintainers bleiben schreibende Prüfungen Handarbeit;
+ein Prüfer, der dort kauft oder speichert, ist ein Bot mit anderem Namen. Für das
+eigene Prüfkonto gilt das nicht mehr — siehe
+[ADR-011](docs/decisions/ADR-011-a-dedicated-account-may-write.md). Dessen
+Zugangsdaten liegen außerhalb des Repos in `~/.config/hhauto-claude/account/`.
