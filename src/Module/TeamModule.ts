@@ -471,7 +471,12 @@ export class TeamModule {
             return { id_girl: id, skill_tiers_info: g.skill_tiers_info, girl: g } as unknown as KKTeamGirl;
         }).filter((g): g is KKTeamGirl => g !== null);
 
-        if (girls.length != 7) {
+        // Same point as in getSelectedGirlsId: a short hexagon list is a team
+        // that is not full, not a broken read. What does mean a broken read
+        // here is an id the hexagons carry that availableGirls does not know,
+        // because that girl is dropped by the filter above -- so the two
+        // lengths are compared against each other rather than against seven.
+        if (girls.length === 0 || girls.length !== ids.length) {
             logHHAuto('Error: can\'t get all team members from the edit team page, cancel action');
             return [];
         }
