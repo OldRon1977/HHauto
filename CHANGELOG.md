@@ -30,9 +30,19 @@ Every consumer gave up on such a team:
 
 Both functions now answer with the girls the team actually holds and keep `[]`
 for a team with none. `equipAllGirls` undoes the button and the autoLoop switch
-on that path too. `manageSkillScrollTooltip` keeps its own seven-girl condition:
-whether its scroll arithmetic means anything for a partial team is not
-measured, so it stays as it was.
+on that path too.
+
+The edit-team page had the same fixed seven in
+`getGirlsFromEditTeamHexagons()`, which `getSelectedGirls()` routes to there.
+That one compares the girls it resolved against the ids the hexagons carry
+instead -- an id `availableGirls` does not know is dropped by the filter above
+it, and *that* is a broken read, unlike a team of three.
+
+`manageSkillScrollTooltip` keeps its own seven-girl condition: whether its
+scroll arithmetic means anything for a partial team is not measured, so it
+stays as it was. So does `saveTeamInPlace`, whose `< 7` guards a half-finished
+assignment in the middle of the unequip-pick-assign-save workflow, not a young
+account's team.
 
 ### v8.12.17 - Path of Attraction says when it cannot read its own timer
 
