@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.17
+// @version      8.12.18
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -26218,6 +26218,12 @@ class TeamModule {
             $("#EquipAll").attr('disabled', 'disabled');
             const girlIds = TeamModule.getSelectedGirlsId();
             if (girlIds.length == 0) {
+                // The button was disabled a line above and only the success
+                // path re-enabled it, so a run that found no girls left it
+                // grey until the next page load -- and autoLoop switched off
+                // with it. Both are undone here.
+                $("#EquipAll").removeAttr('disabled');
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                 return;
             }
             const currentPage = window.location.pathname + window.location.search;
@@ -26269,8 +26275,14 @@ class TeamModule {
             return [];
         }
         const girlIds = [...unsafeWindow.teams_data[selectedTeam].girls_ids];
-        if (girlIds.length != 7) {
-            logHHAuto('Error: can\'t get all team members, cancel action');
+        // `!= 7` read every team that is not full as unreadable. Measured
+        // 2026-09-09 on a live account: a three-girl team carries
+        // girls_ids [1, 4, 7] and three entries in girls, no nulls, next to
+        // its own max_team_size of 7 -- the game states capacity separately
+        // from occupancy, and the occupancy is the answer this function owes
+        // its callers. An empty team is the only case with nothing to give.
+        if (girlIds.length === 0) {
+            logHHAuto('Error: selected team has no girls, cancel action');
             return [];
         }
         logHHAuto('Selected team: ' + selectedTeam + ', Team members to equip: ' + girlIds.join(', '));
@@ -26290,8 +26302,9 @@ class TeamModule {
             return [];
         }
         const girls = [...unsafeWindow.teams_data[selectedTeam].girls];
-        if (girls.length != 7) {
-            logHHAuto('Error: can\'t get all team members, cancel action');
+        // Same as getSelectedGirlsId: the team's occupancy, not a fixed seven.
+        if (girls.length === 0) {
+            logHHAuto('Error: selected team has no girls, cancel action');
             return [];
         }
         logHHAuto('Selected team: ' + selectedTeam + ', Team members to equip: ' + girls.map(girl => girl.girl.name).join(', '));
