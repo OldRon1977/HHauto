@@ -3,6 +3,7 @@ import { ConfigHelper } from '../../../src/Helper/ConfigHelper';
 import * as PageHelper from '../../../src/Helper/PageHelper';
 import { HHStoredVarPrefixKey } from '../../../src/config/HHStoredVars';
 import { TK } from '../../../src/config/StorageKeys';
+import { getStoredJSON } from '../../../src/Helper/StorageHelper';
 
 /**
  * Harem.spec.ts -- first spec file for src/Module/harem/Harem.ts.
@@ -129,6 +130,73 @@ describe("Harem", function () {
             game().shared = { GirlSalaryManager: { girlsListSec: [1, 2, 3, 4, 5, 6, 7] } };
 
             expect(Harem.getGirlCount()).toBe(7);
+        });
+    });
+
+    /**
+     * The cache is what getGirlCount reads first, so a stale one keeps the
+     * ten-girl gate shut. Measured 2026-09-09: it held 3 from that morning
+     * while the waifu page in front of it listed 13 girls, and the daily
+     * timer would have kept it there until the next day.
+     */
+    describe("moduleHaremCountMax: when a grown harem reaches the cache", function () {
+        type GameWindow = { girls_data_list?: unknown; availableGirls?: unknown };
+        const game = () => unsafeWindow as unknown as GameWindow;
+        const girls = (n: number) =>
+            Object.fromEntries(Array.from({ length: n }, (_, i) => [String(i + 1), { id_girl: String(i + 1) }]));
+        const cached = () => getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count;
+
+        beforeEach(function () {
+            localStorage.clear();
+            sessionStorage.clear();
+            delete game().girls_data_list;
+            delete game().availableGirls;
+        });
+
+        afterEach(function () {
+            localStorage.clear();
+            sessionStorage.clear();
+            delete game().girls_data_list;
+            delete game().availableGirls;
+        });
+
+        it("takes a bigger count at once, without waiting out the timer", function () {
+            localStorage.setItem(HHStoredVarPrefixKey + TK.HaremSize,
+                JSON.stringify({ count: 3, count_date: Date.now() }));
+            game().girls_data_list = girls(13);
+
+            Harem.moduleHaremCountMax();
+
+            expect(cached()).toBe(13);
+        });
+
+        it("leaves a fresh snapshot alone when a shorter list turns up (issue #1864)", function () {
+            localStorage.setItem(HHStoredVarPrefixKey + TK.HaremSize,
+                JSON.stringify({ count: 13, count_date: Date.now() }));
+            game().availableGirls = girls(4);
+
+            Harem.moduleHaremCountMax();
+
+            expect(cached()).toBe(13);
+        });
+
+        it("still refreshes once the snapshot is a day old", function () {
+            localStorage.setItem(HHStoredVarPrefixKey + TK.HaremSize,
+                JSON.stringify({ count: 13, count_date: Date.now() - 25 * 60 * 60 * 1000 }));
+            game().girls_data_list = girls(4);
+
+            Harem.moduleHaremCountMax();
+
+            expect(cached()).toBe(4);
+        });
+
+        it("writes nothing when the page carries no list", function () {
+            localStorage.setItem(HHStoredVarPrefixKey + TK.HaremSize,
+                JSON.stringify({ count: 13, count_date: Date.now() - 25 * 60 * 60 * 1000 }));
+
+            Harem.moduleHaremCountMax();
+
+            expect(cached()).toBe(13);
         });
     });
 
