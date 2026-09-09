@@ -41,10 +41,18 @@ const config = JSON.parse(readFileSync(join(HERE, 'checks.json'), 'utf8'));
 const BASE = process.env.HHAUTO_BASE_URL || config.baseUrl;
 
 const results = [];
-const record = (state, id, detail) => {
-    results.push({ state, id, detail });
+const record = (state, id, detail, requires) => {
+    results.push({ state, id, detail, requires });
     const pad = { OK: '  OK   ', DRIFT: '  DRIFT', SKIP: '  SKIP ', ERROR: '  ERROR' }[state];
     console.log(`${pad} ${id.padEnd(24)} ${detail}`);
+    // A DRIFT on an account that never unlocked the feature is not a drift.
+    // Measured 2026-09-09 on a level-36 account in world 3: four checks
+    // reported DRIFT purely because Place of Power needs ten girls, the
+    // labyrinth was locked and no armour was owned. Printing the condition
+    // next to the miss saves the investigation that finding costs.
+    if (state === 'DRIFT' && requires) {
+        console.log(`         needs: ${requires}`);
+    }
 };
 
 /** Reads a dotted path off the page window, tolerating a missing segment. */
@@ -101,7 +109,7 @@ async function runSelector(page, check) {
         const min = a.min ?? 1;
         if (n < min) misses.push(`${a.selector} -> ${n} (expected >= ${min})`);
     }
-    if (misses.length) record('DRIFT', check.id, misses.join(' | '));
+    if (misses.length) record('DRIFT', check.id, misses.join(' | '), check.requires);
     else record('OK', check.id, `${check.assert.length} selectors present`);
 }
 
@@ -111,7 +119,7 @@ async function runGlobal(page, check) {
         const r = await page.evaluate(new Function('path', `return (${READ_GLOBAL})(path);`), path);
         if (!r.found) misses.push(`${path} missing`);
     }
-    if (misses.length) record('DRIFT', check.id, misses.join(' | '));
+    if (misses.length) record('DRIFT', check.id, misses.join(' | '), check.requires);
     else record('OK', check.id, `${check.globals.length} globals present`);
 }
 
@@ -127,7 +135,7 @@ async function runHarvest(page, check) {
     if (check.extract === 'value') {
         const allow = (check.allow || []).map((r) => new RegExp(r));
         const unknown = [...new Set(values)].filter((v) => !allow.some((r) => r.test(v)));
-        if (unknown.length) record('DRIFT', check.id, `unknown values: ${unknown.join(', ')}`);
+        if (unknown.length) record('DRIFT', check.id, `unknown values: ${unknown.join(', ')}`, check.requires);
         else record('OK', check.id, `${new Set(values).size} distinct values, all known`);
         return;
     }
