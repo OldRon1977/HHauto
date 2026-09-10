@@ -27,6 +27,10 @@ import * as LogUtils from "../../../src/Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../../src/config/HHStoredVars";
 import { SK, TK } from "../../../src/config/StorageKeys";
 import { MockHelper } from "../../testHelpers/MockHelpers";
+import { EventModule } from "../../../src/Module/Events/EventModule";
+import { getStaleEventIDs } from "../../../src/Service/Pipeline.config";
+import { getStoredValue, setStoredValue } from "../../../src/Helper/StorageHelper";
+import { HHEventData, HHEventList } from "../../../src/model/HHEvent";
 
 jest.mock("../../../src/Service/PageNavigationService", () => ({
     gotoPage: jest.fn().mockReturnValue(true),
@@ -45,7 +49,7 @@ const EVENT_PAGE = ConfigHelper.getHHScriptVars("pagesIDEvent");
  * The tape markup the module reads: a step indicator per tier plus a free and
  * a locked reward container, mirroring the live #nc-poa-tape-rewards.
  */
-function renderPoaPage(opts: { tiers: number; claimableFreeTier?: number; rewardType?: string; timerText?: string }) {
+function renderPoaPage(opts: { tiers: number; claimableFreeTier?: number; rewardType?: string; timerText?: string; omitTimer?: boolean }) {
     const rewardType = opts.rewardType ?? "energy_fight";
     let pairs = "";
     for (let tier = 1; tier <= opts.tiers; tier++) {
@@ -60,9 +64,16 @@ function renderPoaPage(opts: { tiers: number; claimableFreeTier?: number; reward
             </div>
         </div>`;
     }
+    // omitTimer drops the element entirely, which is not the same as an empty
+    // one: getRemainingTime only reports the miss when the node itself is
+    // absent, and an empty node routes through convertTimeToInt's failSafe
+    // branch to 15-17 min instead.
+    const timer = opts.omitTimer
+        ? ""
+        : `<div class="nc-panel-header"><div class="event-timer"><span rel="expires">${opts.timerText ?? "3h 10m"}</span></div></div>`;
     document.body.innerHTML = `<div id="hh_hentai" page="${EVENT_PAGE}">
         <div id="events">
-            <div class="nc-panel-header"><div class="event-timer"><span rel="expires">${opts.timerText ?? "3h 10m"}</span></div></div>
+            ${timer}
             <div id="poa-content"></div>
             <div id="nc-poa-tape-rewards">${pairs}</div>
         </div>
@@ -223,6 +234,109 @@ const EVENT_PAGE_WITHOUT_TIMER = `
   <div class="nc-panel-container"><div class="nc-panel"><div class="nc-panel-header">
   </div></div></div>
 </div>`;
+
+/**
+ * The registry entry parse() writes, followed to the step that consumes it.
+ *
+ * getSecondsLeft answers 0 for "no timer stored" as well as for "expired"
+ * (#1846), and parse() handed that 0 to seconds_before_end -- dating the entry
+ * to the moment it was written. The consumer is pruneExpiredEvents, called by
+ * getStaleEventIDs on every handleEventParsing precondition: it drops the
+ * entry as expired, checkEvent() then reports the id as unregistered, so
+ * parsePageForEventId puts it back into ctx.eventIDs and the same page is
+ * parsed again. That is issue #1738's loop, re-entered through a producer that
+ * can legitimately emit 0.
+ *
+ * Measured on a live account 2026-09-09: with "PoA end in {"days":0,...}" the
+ * pipeline logged 43 handleEventParsing runs in four minutes, one every 2 s,
+ * with a home<->event navigation round in between; with a readable timer, one.
+ *
+ * These tests therefore run parse -> getStaleEventIDs -> checkEvent rather
+ * than asserting on the field parse writes: the field alone was measured
+ * before and read as harmless.
+ */
+describe("PathOfAttraction.parse -- the entry that survives the next tick", function () {
+    const EVENT_ID = "path_event_110";
+    let restoreLocation: () => void;
+
+    beforeEach(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+        for (const name of Object.keys(Timers)) delete Timers[name];
+        restoreLocation = MockHelper.snapshotLocation();
+        MockHelper.mockDomain("www.hentaiheroes.com", "event.html", `tab=${EVENT_ID}`);
+        // getEvent() asks PathOfAttraction.isEnabled() whether the account can
+        // enter the event at all; without that, checkEvent short-circuits on
+        // isEnabled and the assertions below would hold for the wrong reason.
+        jest.spyOn(Harem, "getGirlCount").mockReturnValue(13);
+        unsafeWindow.shared!.Hero = { infos: { questing: { id_world: 4 } } } as never;
+        setSetting(SK.collectAllTimer, "12");
+        setSetting(SK.autoPoACollectAll, "false");
+    });
+
+    afterEach(() => {
+        document.body.innerHTML = "";
+        restoreLocation();
+        jest.restoreAllMocks();
+        localStorage.clear();
+        sessionStorage.clear();
+        for (const name of Object.keys(Timers)) delete Timers[name];
+    });
+
+    /** parse() as parseEventPage calls it, with the result persisted. */
+    function parseAndStore(): void {
+        const eventList: HHEventList = {};
+        PathOfAttraction.parse(EventModule.getEvent(EVENT_ID), eventList, {} as HHEventData);
+        setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
+    }
+
+    function storedEntry(): Record<string, unknown> | undefined {
+        return JSON.parse(getStoredValue(HHStoredVarPrefixKey + TK.eventsList) || "{}")[EVENT_ID];
+    }
+
+    it("is still in the registry after the next precondition prunes it", function () {
+        // 26 tiers with one claimable free reward: an empty tape would make
+        // isCompleted() true (0 >= 0), and checkEvent returns false for a
+        // completed event whatever the end date says.
+        renderPoaPage({ tiers: 26, claimableFreeTier: 3, omitTimer: true });
+
+        parseAndStore();
+        // The call handleEventParsing's precondition makes on every tick. It
+        // runs pruneExpiredEvents and persists the pruned shape.
+        getStaleEventIDs(Date.now() + 1000);
+
+        expect(storedEntry()).toBeDefined();
+        // ... and the id no longer reads as unregistered, which is what put it
+        // back into ctx.eventIDs and started the next parse 2 s later.
+        expect(EventModule.checkEvent(EVENT_ID)).toBe(false);
+    });
+
+    it("books a bounded stand-in for an unreadable timer, not an open end", function () {
+        renderPoaPage({ tiers: 26, claimableFreeTier: 3, omitTimer: true });
+
+        parseAndStore();
+
+        const entry = storedEntry()!;
+        const endsIn = Number(entry["seconds_before_end"]) - Date.now();
+        expect(endsIn).toBeGreaterThan(0);
+        expect(endsIn).toBeLessThanOrEqual(PathOfAttraction.unknownRemainingTimeSecs * 1000);
+        // Re-parsed before it is pruned, so a timer that becomes readable is
+        // picked up instead of the entry expiring into another parse round.
+        expect(Number(entry["next_refresh"])).toBeLessThan(Number(entry["seconds_before_end"]));
+    });
+
+    it("keeps the end the page states when the timer is readable", function () {
+        renderPoaPage({ tiers: 26, claimableFreeTier: 3, timerText: "2d 17h" });
+
+        parseAndStore();
+        getStaleEventIDs(Date.now() + 1000);
+
+        const entry = storedEntry();
+        expect(entry).toBeDefined();
+        expect(Number(entry!["seconds_before_end"]) - Date.now()).toBeGreaterThan(2 * 86400 * 1000);
+        expect(EventModule.checkEvent(EVENT_ID)).toBe(false);
+    });
+});
 
 describe("PathOfAttraction.getRemainingTime", function () {
     let logged: string[];

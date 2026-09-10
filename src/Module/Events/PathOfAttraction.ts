@@ -62,6 +62,16 @@ export class PathOfAttraction {
     static paidSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-locked-reward";
     static getRewardButtonPath = "#poa-content .objective .reward button.purple_button_L";
 
+    /**
+     * Stand-in remaining time for a PoA whose end is not readable, in seconds.
+     *
+     * Same value the other event modules fall back to when their timer element
+     * carries no text (DoublePenetration, LivelyScene, SultryMysteries). PoA
+     * had no fallback because it reads its timer through getSecondsLeft, which
+     * answers 0 for "no timer stored" as well as for "expired" (#1846).
+     */
+    static unknownRemainingTimeSecs = 3600;
+
     static getRemainingTime(){
         const poATimerRequest = '#events .nc-panel-header .event-timer span[rel=expires]';
         const poATimerNodes = $(poATimerRequest);
@@ -114,12 +124,30 @@ export class PathOfAttraction {
         if (poAEnd < Math.max(refreshTimerPoa, getLimitTimeBeforeEnd()) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
             refreshTimerPoa = Math.min(refreshTimerPoa, getLimitTimeBeforeEnd());
         }
+
+        // The 0 that getSecondsLeft returns for an unknown remaining time must
+        // not reach seconds_before_end: it dates the entry to the moment it is
+        // written, so pruneExpiredEvents drops it at the next precondition
+        // evaluation, checkEvent() reports the id as unregistered again, and
+        // handleEventParsing parses the same page once more. Measured on a live
+        // account 2026-09-09: 43 parses in four minutes, one every 2 s, with a
+        // home<->event navigation round in between -- the #1738 loop, re-entered
+        // through a producer that can legitimately emit 0. An unreadable timer
+        // therefore books the bounded fallback instead, and the next refresh is
+        // kept inside that window so the entry is re-parsed before it expires
+        // (the rule LivelyScene follows for the same reason, #1857).
+        const endIsKnown = poAEnd > 0;
+        const secondsBeforeEnd = endIsKnown ? poAEnd : PathOfAttraction.unknownRemainingTimeSecs;
+        if (!endIsKnown) {
+            logHHAuto("PoA end unknown, booking " + TimeHelper.debugDate(secondsBeforeEnd) + " until the timer can be read.");
+            refreshTimerPoa = Math.min(refreshTimerPoa, Math.max(Math.floor(secondsBeforeEnd / 2), 60));
+        }
         logHHAuto("PoA next refres in " + TimeHelper.debugDate(refreshTimerPoa));
 
         eventList[eventID] = {};
         eventList[eventID]["id"] = eventID;
         eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + poAEnd * 1000;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + secondsBeforeEnd * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimerPoa * 1000;
         eventList[eventID]["isCompleted"] = PathOfAttraction.isCompleted();
     }
