@@ -5,7 +5,9 @@ verified against the live game and **three suspected defects turned out to be
 measurement errors** -- one of them only after it had already been implemented
 and had to be reverted. Extended after the 8.13.x session, which produced the
 same outcome by a different route: three commits withdrawn because the
-mechanism they changed was read at the wrong step, not on the wrong page.
+mechanism they changed was read at the wrong step, not on the wrong page. And
+again at the end of that session, which added the quieter failure: a fix that
+is right, ships, and does not move the symptom it was written for.
 
 This document exists so the same mistakes are not repeated. It is not about
 jest; it is about the class of testing that jsdom cannot do: checking whether
@@ -140,6 +142,32 @@ Setting `autoTrollThreshold` to a huge value to observe "idle ticks" made the
 precondition fail, so the block was skipped entirely (1 start in 90s instead of
 the ~15/min seen in a real log). Different phenomenon, useless number.
 
+**A negative reading is not an outcome either.**
+The companion to "a successful click is not an effected outcome". A club join
+was clicked, confirmed, and `shared.Hero.infos.club` still read `false`
+afterwards -- while `/clubs.html?tab=members` said "My club, 45/50 members".
+The join had worked; the field was simply not the one that carries the answer.
+The dangerous part is that the run *before* it, which had navigated away
+without confirming the dialog and therefore changed nothing, produced the
+identical reading. *Guard:* before using a field as proof, show that it moves
+in the case where the action definitely succeeded. Where no such field is
+known, the page is the source.
+
+**A list that reorders between loads has no positional index.**
+The club list (`#clubs_list .data-row.body-row`) came back in a different order
+on two consecutive loads, and an index that hit a row on the first load was
+missing entirely on the second. Anything addressed by position there is a
+different row each time. *Guard:* address by content -- the page's own search
+field, or a match on the row text -- and treat a positional index as a
+debugging convenience, never as an access path.
+
+**A raw dump of a game object carries identifiers.**
+`player_inventory.booster` entries carry `id_member` beside the item data, so a
+probe that prints the object prints the account id -- into the terminal, the
+task log and any transcript of either. *Guard:* redact in the probe, before the
+value is printed, not in the report afterwards. `check:player-data` can also be
+given the identifiers to match on; see CLAUDE.md.
+
 **A single session at a time.**
 The game appears to allow one active session per account. A headless session
 and the maintainer's browser evict each other; cookies stay locally valid while
@@ -223,6 +251,15 @@ it.
   `shared.Hero` every 3s, and a mythic counter that aborts the whole run on any
   decrease. The brake fired correctly (kiss 20/20) and kobans came out net
   positive over the full-module sweep.
+- **Saying when a fix did not move the outcome.** The club-champions tab was
+  read 12 ms after the click that loads it, which is wrong on its own terms
+  and was fixed. Re-run: the gap became 264 ms and the wait reported the tab
+  settled -- and the reading did not change, because the walk on to the
+  champion page is decided one condition further along. The changelog entry
+  had been written as though the wait were what stood in the way; it was
+  corrected to say what was measured. A fix that closes a real defect without
+  moving the symptom is still worth having, and saying so is what keeps the
+  next reader from trusting the wrong cause.
 - **Refusing to fix what cannot be verified.** `.mega-tier.unclaimed` is the
   non-mega Seasonal selector and cannot be measured while a mega event runs;
   changing it "because it matches nothing today" would have repeated the
@@ -242,6 +279,7 @@ Before claiming a defect:
       produces it.
 - [ ] The same code shown to exist in `main`, and the file shown to be
       untouched by your own branch before that point.
+- [ ] The field used as proof shown to move when the action succeeds.
 
 Before shipping a fix:
 
@@ -249,6 +287,7 @@ Before shipping a fix:
 - [ ] Observable difference named in advance, then observed.
 - [ ] If the branch cannot be exercised live, say so explicitly rather than
       implying verification.
+- [ ] If the fix was exercised and the symptom did not move, say that too.
 
 ## Tooling
 
