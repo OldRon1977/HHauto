@@ -15,6 +15,11 @@ import { deleteStoredValue, getStoredValue, setStoredValue } from "../Helper/Sto
 import { TimeHelper, convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
 import { getSecondsLeft, setTimer } from "../Helper/TimerHelper";
 import { gotoPage } from "../Service/PageNavigationService";
+import {
+    AJAX_IDLE_SETTLE_MS,
+    AJAX_IDLE_TIMEOUT_MS,
+    waitForAjaxIdle,
+} from "../Service/AjaxTracker";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
@@ -187,6 +192,20 @@ export class ClubChampion {
             if (!onChampTab) {
                 logHHAuto('Click champions tab');
                 $("#club_champions_tab").trigger('click');
+                // The tab fetches its content; it is not merely hidden markup.
+                // Measured on a live account 2026-09-10: on the members tab the
+                // club page carries `div.club_champions_details_container` zero
+                // times -- querySelectorAll counts hidden nodes, so the
+                // container is absent, not invisible. The reads below used to
+                // follow the click in the same synchronous block, 12 ms later
+                // by the log's own timestamps, and found nothing: "on clubs,
+                // next timer:-1", a 16-minute timer, back to home, and around
+                // again -- while /club-champion.html carried a live
+                // `button[rel=perform]` the whole time.
+                const tabIdle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                if (!tabIdle) {
+                    logHHAuto('Club champion: champions tab still loading after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, reading it anyway');
+                }
             }
 
             const Started = $("div.club-champion-members-challenges .player-row").length === 1;
