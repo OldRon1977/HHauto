@@ -5729,6 +5729,12 @@ const CHUNK_BYTES = 128000;
 /** Flush thresholds: whichever is reached first. */
 const FLUSH_BYTES = 4000;
 const FLUSH_MS = 1000;
+/**
+ * Chunks the quota-recovery path sacrifices before it resorts to clearLog().
+ * Two are 256 KB, orders of magnitude more than the write that failed -- and
+ * the log a bug report is written from survives.
+ */
+const RECOVERY_DROP_CHUNKS = 2;
 // Both computed at call time, never at module scope: a top-level read of
 // the prefix crashes on a circular import (lesson zirkulaerer-import-tdz-crash).
 const idxKey = () => HHStoredVarPrefixKey + "Temp_LogIdx";
@@ -5915,6 +5921,30 @@ function readLogAsObject() {
     }
     return out;
 }
+/**
+ * Free room for somebody else's write by dropping the oldest chunks.
+ *
+ * The ring already gives ground when its *own* write is refused (writeChunk ->
+ * dropOldest). A quota error from another writer used to take the whole log
+ * instead, which is the one thing a bug report needs -- measured on a real
+ * session: a single quota error on an unrelated key at 09:34 left a log that
+ * began at 09:34, five hours short of the run it was meant to document.
+ *
+ * Returns how many chunks were actually dropped; 0 means the ring holds only
+ * the chunk being written to and the caller has to fall back to clearLog().
+ */
+function dropOldestChunks(count = RECOVERY_DROP_CHUNKS) {
+    const idx = readIndex();
+    let dropped = 0;
+    for (let i = 0; i < count; i++) {
+        if (!dropOldest(idx))
+            break;
+        dropped++;
+    }
+    if (dropped > 0)
+        writeIndex(idx);
+    return dropped;
+}
 /** Drop the whole log. Used by the quota-recovery path, which must not write. */
 function clearLog() {
     pending = [];
@@ -5989,11 +6019,39 @@ function importLegacyLog() {
  * Console.log still receives a one-line breadcrumb so the cleanup is
  * visible during debugging without touching storage.
  */
-function cleanLogsInStorage() {
+/**
+ * Make room after a storage write was refused.
+ *
+ * `full` is the caller's second attempt. The first one only sacrifices the
+ * oldest chunks of the log ring: the failing write is a few hundred bytes,
+ * two chunks are 256 KB, and the log is what a bug report is written from.
+ * Measured on a real session -- one quota error on an unrelated key at 09:34
+ * left a log that began at 09:34, five hours short of the run it documented.
+ * Only when that frees nothing, or when the retry fails as well, does the
+ * whole ring go.
+ */
+function cleanLogsInStorage(full = false) {
     const sizeBefore = getLocalStorageSize();
-    clearLog();
+    let what;
+    if (full) {
+        clearLog();
+        what = 'the whole log ring';
+    }
+    else {
+        const dropped = dropOldestChunks();
+        if (dropped > 0) {
+            what = `the ${dropped} oldest log chunk(s)`;
+        }
+        else {
+            // Only the chunk being written to is left, so there is nothing
+            // older to give: the partial path would free nothing and the
+            // caller's retry would fail for the same reason.
+            clearLog();
+            what = 'the whole log ring (nothing older to drop)';
+        }
+    }
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
-    console.log(`HHAuto: cleanLogsInStorage cleared the log ring and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
+    console.log(`HHAuto: cleanLogsInStorage cleared ${what} and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
 /**
  * Write a timestamped log entry to both the browser console and persistent
@@ -6066,6 +6124,11 @@ function saveHHDebugLog() {
     dataToSave['HHAuto_version'] = GM_info.script.version;
     dataToSave['HHAuto_HHSite'] = window.location.origin;
     dataToSave['HHAuto_storageSize'] = getLocalStorageSize();
+    // The line above sums both storages over every key, the game's included,
+    // under a name that reads like this script's own footprint. The breakdown
+    // says which part is whose, so a quota error is not pinned on HHAuto by
+    // default.
+    dataToSave['HHAuto_storageBreakdown'] = getStorageBreakdown();
     extractHHVars(dataToSave, true);
     const a = document.createElement('a');
     a.download = name;
@@ -6443,7 +6506,10 @@ function setStoredValue(inVarName, inValue, retry = false) {
         // catastrophic in the AutoLoop hot-loop where this runs >100x
         // per tick. Coerce to a string message instead.
         const message = (e instanceof Error) ? e.message : String(e);
-        cleanLogsInStorage();
+        // First attempt: give up the oldest log chunks only. The retry (retry
+        // === true) is the one that clears the ring, so a single quota error
+        // no longer costs the whole log.
+        cleanLogsInStorage(retry);
         logHHAuto(`ERROR: Can't save value in storage for ${inVarName} (${message}), ${retry ? 'user storage need to be cleaned' : 'retry...'}`);
         if (!retry)
             setStoredValue(inVarName, inValue, true);
@@ -6685,6 +6751,43 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
         });
         setStoredValue(inVarName, JSON.stringify(collectablesList));
     }
+}
+/**
+ * What the two web storages hold, and how much of it is this script's.
+ *
+ * getLocalStorageSize() sums localStorage AND sessionStorage over every key,
+ * the game's included, and reports one number under a name that reads like
+ * HHAuto's own footprint. Beside a quota error that number points at the wrong
+ * culprit: measured on a real debug log, 9,867 KB were reported while the
+ * registered HHAuto keys came to 50 KB and the log ring to ~5.3 MB -- the
+ * remaining ~4.5 MB belonged to the game and appears nowhere in the export,
+ * because extractHHVars only walks registered keys.
+ *
+ * Sizes are approximate in the same way getLocalStorageSize is: two bytes per
+ * UTF-16 code unit, keys counted with their values.
+ */
+function getStorageBreakdown() {
+    const kb = (chars) => (chars * 2 / 1024).toFixed(1) + ' KB';
+    let local = 0, session = 0, mine = 0;
+    const walk = (store, add) => {
+        var _a;
+        for (const key in store) {
+            if (!Object.prototype.hasOwnProperty.call(store, key))
+                continue;
+            const n = key.length + String((_a = store[key]) !== null && _a !== void 0 ? _a : '').length;
+            add(n);
+            if (key.startsWith(HHStoredVarPrefixKey))
+                mine += n;
+        }
+    };
+    walk(localStorage, (n) => { local += n; });
+    walk(sessionStorage, (n) => { session += n; });
+    return {
+        localStorage: kb(local),
+        sessionStorage: kb(session),
+        HHAuto: kb(mine),
+        other: kb(local + session - mine),
+    };
 }
 function getLocalStorageSize() {
     // Approximate size in KB. The factor (16 / 8) converts JavaScript

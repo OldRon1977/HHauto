@@ -63,12 +63,20 @@ the switch has always said it does, and what Path of Valor already did.
   wait is there now; on the test account it did not change the outcome, which
   is decided one condition further along.
 
-#### Less noise in the log
+#### The debug log
 
 - Place of Power's ten-girl notice ran on every tick -- 692 of 2532 lines in
   one run. It now names the count it saw and repeats only when that changes.
 - Path of Attraction stayed silent when it could not read its own timer, which
   looked exactly like an expired event. It says so now.
+- A storage-quota error from any writer used to clear the whole log ring. One
+  such error in a five-hour session left a log that began at the error. The
+  first attempt now gives up only the oldest chunks; the retry is what clears
+  the ring.
+- The debug dump reported one storage figure that sums both web storages over
+  every key, the game's included, under a name reading like this script's own
+  footprint -- 9,867 KB where HHAuto's registered keys came to 50 KB. It now
+  carries a breakdown beside it.
 
 #### Internal
 

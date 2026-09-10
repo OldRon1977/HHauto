@@ -1,4 +1,4 @@
-import { appendLog, clearLog, flushLog, importLegacyLog, readLogAsObject, readLogText } from '../../src/Utils/LogStore';
+import { appendLog, clearLog, dropOldestChunks, flushLog, importLegacyLog, readLogAsObject, readLogText } from '../../src/Utils/LogStore';
 import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
 
 describe('LogStore', () => {
@@ -95,6 +95,37 @@ describe('LogStore', () => {
             } finally {
                 Object.defineProperty(window, 'sessionStorage', { value: real, configurable: true });
             }
+        });
+
+        /**
+         * A quota error from another writer used to take the whole log through
+         * cleanLogsInStorage -> clearLog. Measured on a real session: one such
+         * error on an unrelated key at 09:34 left a log that began at 09:34,
+         * five hours short of the run it was meant to document. The ring can
+         * give ground in chunk-sized steps instead.
+         */
+        it('gives up its oldest chunks without losing the newest lines', () => {
+            for (let i = 0; i < 8_000; i++) appendLog(1_700_000_000_000 + i, 'fn', 'x'.repeat(80) + i);
+            appendLog(1_700_000_099_999, 'fn', 'the newest line');
+            flushLog();
+            const before = Object.keys(readLogAsObject()).length;
+
+            const dropped = dropOldestChunks(2);
+
+            expect(dropped).toBe(2);
+            expect(Object.keys(readLogAsObject()).length).toBeLessThan(before);
+            expect(readLogText()).toContain('the newest line');
+        });
+
+        it('reports nothing dropped when only the current chunk is left', () => {
+            // The caller falls back to a full clear on this answer: the partial
+            // path would free nothing and its retry would fail for the same
+            // reason.
+            appendLog(1_700_000_000_000, 'fn', 'one short line');
+            flushLog();
+
+            expect(dropOldestChunks(2)).toBe(0);
+            expect(readLogText()).toContain('one short line');
         });
 
         it('holds far more than the 5000 lines of the old buffer', () => {
