@@ -95,7 +95,7 @@ otherwise a defect you introduced and then removed reads as a defect you fixed.
 
 ```
 git show main:HHAuto.user.js > /tmp/main-bundle.user.js
-~/.config/hhauto-claude/tools/play-session.js --minutes 25 --bundle /tmp/main-bundle.user.js
+$HHAUTO_HOME/tools/play-session.js --minutes 25 --bundle /tmp/main-bundle.user.js
 ```
 
 Two things this produced that no static reading would have:
@@ -306,7 +306,8 @@ was used for:
   evict yours trying.
 
 The older harness scripts live outside the repo (they carry a logged-in browser
-profile): `~/.config/hhauto-claude/tools/`. `play-session.js` takes
+profile): `$HHAUTO_HOME/tools/`, where `HHAUTO_HOME` is the local harness
+directory outside the repository. `play-session.js` takes
 `--bundle <path>`, which injects an arbitrary build instead of the working
 tree's -- that is how a branch is compared against `main` under the same
 account and the same settings. They inject the built
@@ -345,7 +346,7 @@ Lively Scene event existed (#1857): setting off, no `parsed` attribute on
 *not* transfer that way is anything the event module itself reads -- its
 selectors, its collect path. Name which of the two a measurement covered.
 
-`~/.config/hhauto-claude/tools/live-collect-verify.js` does this out of the
+`$HHAUTO_HOME/tools/live-collect-verify.js` does this out of the
 box: it opens a visible window, waits for the login, then runs a list of cases
 against two builds on the same live page with the click interception in place,
 and reports per case whether the collection gate was entered and whether a

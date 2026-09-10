@@ -187,7 +187,7 @@ zwei Backend-Knoten mit unterschiedlichem Cache-Stand wuerden das Bild
 erklaeren, geprueft ist das nicht.
 
 Rohdaten liegen ausserhalb des Repos unter
-`~/.config/hhauto-claude/account/measurements/`.
+`$HHAUTO_HOME/account/measurements/` (außerhalb des Repos).
 
 Fortschritt geht dabei **nicht** verloren; eine spaetere Abfrage bestaetigte
 alle Stufen. Wer aber aus einem einzelnen Aufruf schliesst, misst unter
