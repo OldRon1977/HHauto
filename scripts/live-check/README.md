@@ -10,13 +10,13 @@ no account, and a check that cannot log in either fails permanently or lies.
 
 ```bash
 npm i --no-save playwright && npx playwright install chromium   # once
-HHAUTO_PROFILE=~/.config/hhauto-claude/profile node scripts/live-check/run.mjs
+HHAUTO_PROFILE=$HHAUTO_HOME/profile node scripts/live-check/run.mjs
 ```
 
 `VAR=value cmd` is bash syntax. In fish, or to stay shell-agnostic, use `env`:
 
 ```
-env HHAUTO_PROFILE=$HOME/.config/hhauto-claude/profile node scripts/live-check/run.mjs
+env HHAUTO_PROFILE=$HHAUTO_HOME/profile node scripts/live-check/run.mjs
 ```
 
 | Variable | |
