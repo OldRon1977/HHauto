@@ -138,11 +138,18 @@ export class LeagueHelper {
         const leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
         const simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
 
+        // calculateBattleProbabilities answers an unusable simulation with an
+        // empty {} from its own try/catch, and this line used to index into
+        // that stub -- a TypeError inside the un-awaited SimPower below, which
+        // left every opponent after it without a value. A missing point
+        // distribution now yields an expectedValue of 0 and the caller decides.
         const oppoPoints = simu.points;
         let expectedValue = 0;
-        for (let i=25; i>=3; i--) {
-            if (oppoPoints[i]) {
-                expectedValue += i*oppoPoints[i];
+        if (oppoPoints) {
+            for (let i=25; i>=3; i--) {
+                if (oppoPoints[i]) {
+                    expectedValue += i*oppoPoints[i];
+                }
             }
         }
         simu.expectedValue = expectedValue;
@@ -296,7 +303,19 @@ export class LeagueHelper {
                         }
                     }
                     if(!simu) {
-                        simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents); 
+                        try {
+                            simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents);
+                        } catch (error) {
+                            // One opponent the simulation cannot handle must not
+                            // cost the rest of the list. This loop runs inside an
+                            // async function that nobody awaits, so an escaping
+                            // error is an unhandled rejection: it stops the loop
+                            // where it stands and never reaches the try/catch in
+                            // moduleSimLeague.
+                            const message = error instanceof Error ? error.message : String(error);
+                            logHHAuto(`Simulation failed for one opponent, skipping it: ${message}`);
+                            continue;
+                        }
                         leagueOpponent = new LeagueOpponent(
                             opponents.player.id_fighter,
                             // opponents.place,
@@ -560,7 +579,7 @@ export class LeagueHelper {
                     let simu:BDSMSimu = {} as any;
                     if(canUseSimu) {
                         try{
-                            simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents); 
+                            simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents);
                             expectedPoints = Number(NumberHelper.nRounding(simu.expectedValue, 1, -1));
                         }catch{
                             logHHAuto("Error in simu for oppo " + opponent_id +", falback to not use powercalc");

@@ -18849,7 +18849,39 @@ BDSMHelper.ELEMENTS = {
 let _player;
 let _opponent;
 let _runs;
-let _cache;
+// Work budget for the recursion below. It walks every crit/no-crit path of
+// both sides, so the tree is exponential in the number of exchanges a fight
+// needs: measured, 13 ms at 10 exchanges, 425 ms at 14, 2.7 s at 16, 17.5 s at
+// 18, past 90 s at 20. maxAllowedTurns bounds the depth but not the work --
+// four branches per round means depth 50 is 4^50 nodes.
+//
+// A normal fight visits ~1,200 nodes and never comes near the budget, so its
+// result is exact and unchanged. Only a fight that would otherwise block the
+// tab reaches the limit, and then the branch that hit it returns an even
+// split rather than an answer the simulation has not earned.
+const MAX_SIMULATION_NODES = 200000;
+let _nodes = 0;
+// Memo for playerTurn. Two branches that reach the same state from different
+// crit histories continue identically, so the second one is answered from the
+// map and the tree collapses from exponential to polynomial: an 18-exchange
+// fight goes from 20.5 s to single-digit milliseconds, exactly, and the work
+// budget above never has to fire on it. Without this the budget would answer
+// such a fight at roughly 51% where the truth is 61% -- measured -- because
+// most of its probability mass would sit in branches the budget cut.
+//
+// The key carries every value the rest of the fight depends on, `turns`
+// included: calculateDmg raises attack and defence to the power of `turns`, so
+// the same ego pair one round later is a different state. That is why the
+// `_cache[playerHP][opponentHP]` sketch that stood here had to stay switched
+// off -- keyed on the ego pair alone it would answer with a foreign result.
+//
+// It only pays while damage per turn is constant, which is the case without a
+// tier-4 damage or defence bonus on either side. With such a bonus the damage
+// differs per turn, ego values stop colliding, and the map is pure overhead:
+// 290.5 ms against 291.7 ms for the same fight. _memoEnabled therefore leaves
+// that case on the plain recursion, where the budget is what bounds it.
+let _memo = new Map();
+let _memoEnabled = false;
 /**
  * Run a full probabilistic battle simulation between two players.
  *
@@ -18857,8 +18889,10 @@ let _cache;
  * for both sides, weighting each branch by its probability. Returns the
  * aggregate win/loss probability and a distribution of expected league points.
  *
- * The simulation caps at 50 turns to prevent stack overflow on stalemate
- * scenarios (e.g., high healing, low damage).
+ * A fight that does not resolve -- 50 rounds deep, or the work budget of
+ * MAX_SIMULATION_NODES spent -- comes out at 50%: the branch that ran out
+ * returns an even split, so a fight where every branch runs out is reported
+ * as undecided rather than abandoned. The result always carries `points`.
  *
  * @param player   - The attacker (hero) model.
  * @param opponent - The defender model.
@@ -18872,6 +18906,10 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
     _player = player;
     _opponent = opponent;
     _runs = 0;
+    _nodes = 0;
+    _memo = new Map();
+    _memoEnabled = player.tier4.dmg === 0 && opponent.tier4.dmg === 0
+        && player.tier4.def === 0 && opponent.tier4.def === 0;
     const setup = (x) => {
         x.critMultiplier = 2 + x.bonuses.critDamage;
         x.hp = Math.ceil(x.hp);
@@ -18928,18 +18966,46 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
         return { points, win, loss };
     }
     function playerTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns) {
-        //Avoid a stack overflow
+        // A fight the simulation cannot finish -- 50 rounds deep, or the work
+        // budget spent -- ends this branch at an even split instead of an
+        // answer. Every leaf being an even split makes the whole fight come
+        // out at 50%, which is what an undecided fight is worth; a fight where
+        // only some branches run long keeps the outcome of the ones that did
+        // resolve. The two point values are the ones the win and loss leaves
+        // below use, each carrying half the weight, so expectedValue stays
+        // meaningful.
+        //
+        // This replaces a `throw new Error()` that unwound the whole
+        // simulation to the try/catch in calculateBattleProbabilities, which
+        // returned an empty {} -- and LeagueHelper.getSimPowerOpponent reads
+        // simu.points on that stub without checking. The TypeError landed in
+        // an async function nobody awaits, so the league list stopped filling
+        // in at the first opponent whose fight ran long.
         const maxAllowedTurns = 50;
-        if (turns > maxAllowedTurns)
-            throw new Error();
-        // read cache
+        if (turns > maxAllowedTurns || ++_nodes > MAX_SIMULATION_NODES) {
+            const winPoint = Math.min(25, 15 + Math.ceil(10 * playerHP / _player.hp));
+            const lossPoint = Math.max(3, 3 + Math.ceil(10 * (_opponent.hp - opponentHP) / _opponent.hp));
+            const points = { [winPoint]: 0.5 };
+            points[lossPoint] = (points[lossPoint] || 0) + 0.5;
+            _runs += 1;
+            return { points, win: 0.5, loss: 0.5 };
+        }
+        let memoKey = '';
+        if (_memoEnabled) {
+            memoKey = playerHP + '|' + opponentHP + '|' + playerShield + '|' + opponentShield
+                + '|' + playerStunned + '|' + opponentStunned + '|' + playerReflect
+                + '|' + opponentReflect + '|' + turns;
+            const memoHit = _memo.get(memoKey);
+            if (memoHit !== undefined)
+                return memoHit;
+        }
         //Simulate base attack and critical attack
         const { baseAtk, critAtk } = calculateDmg(_player, turns);
         const baseAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, baseAtk, turns);
         const critAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, critAtk, turns);
         const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
-        // write cache
-        //_cache[playerHP][opponentHP] = mergedResult;
+        if (_memoEnabled)
+            _memo.set(memoKey, mergedResult);
         return mergedResult;
     }
     function playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, attack, turns) {
@@ -31623,11 +31689,18 @@ class LeagueHelper {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
         const simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
+        // calculateBattleProbabilities answers an unusable simulation with an
+        // empty {} from its own try/catch, and this line used to index into
+        // that stub -- a TypeError inside the un-awaited SimPower below, which
+        // left every opponent after it without a value. A missing point
+        // distribution now yields an expectedValue of 0 and the caller decides.
         const oppoPoints = simu.points;
         let expectedValue = 0;
-        for (let i = 25; i >= 3; i--) {
-            if (oppoPoints[i]) {
-                expectedValue += i * oppoPoints[i];
+        if (oppoPoints) {
+            for (let i = 25; i >= 3; i--) {
+                if (oppoPoints[i]) {
+                    expectedValue += i * oppoPoints[i];
+                }
             }
         }
         simu.expectedValue = expectedValue;
@@ -31761,7 +31834,20 @@ class LeagueHelper {
                                 }
                             }
                             if (!simu) {
-                                simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents);
+                                try {
+                                    simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents);
+                                }
+                                catch (error) {
+                                    // One opponent the simulation cannot handle must not
+                                    // cost the rest of the list. This loop runs inside an
+                                    // async function that nobody awaits, so an escaping
+                                    // error is an unhandled rejection: it stops the loop
+                                    // where it stands and never reaches the try/catch in
+                                    // moduleSimLeague.
+                                    const message = error instanceof Error ? error.message : String(error);
+                                    logHHAuto(`Simulation failed for one opponent, skipping it: ${message}`);
+                                    continue;
+                                }
                                 leagueOpponent = new LeagueOpponent(opponents.player.id_fighter, 
                                 // opponents.place,
                                 opponents.nickname, 

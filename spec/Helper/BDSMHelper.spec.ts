@@ -297,6 +297,110 @@ describe('BDSMHelper', () => {
             expect(result.scoreClass).toBe('minus');
         });
 
+        // These numbers come from the recursion before it gained a work budget
+        // and an even-split exit. None of these fights comes near the budget,
+        // so each result has to be bit-identical -- a mismatch means the exit
+        // fired where the simulation could still have answered.
+        describe('leaves a fight it can finish untouched', () => {
+            const reference = loadFixture('bdsm', 'simulator-reference') as Record<string, {
+                win: number; loss: number; scoreClass: string; points: Record<string, number>;
+            }>;
+            const bonuses = (over: Partial<typeof noBonuses> = {}) => ({ ...noBonuses, ...over });
+            const cases: Record<string, [BDSMPlayer, BDSMPlayer]> = {
+                evenMatch: [
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'A'),
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'B')],
+                longFight: [
+                    new BDSMPlayer(12000, 1000, 0, 0.25, noBonuses, noTier4, noTier5, 'A'),
+                    new BDSMPlayer(12000, 1000, 0, 0.25, noBonuses, noTier4, noTier5, 'B')],
+                healOnHit: [
+                    new BDSMPlayer(8000, 1000, 0, 0.25, bonuses({ healOnHit: 0.10 }), noTier4, noTier5, 'A'),
+                    new BDSMPlayer(8000, 1000, 0, 0.25, noBonuses, noTier4, noTier5, 'B')],
+                tier5Stun: [
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, { id: 11, value: 0.5 }, 'A'),
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'B')],
+                tier5Shield: [
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, { id: 12, value: 0.3 }, 'A'),
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'B')],
+                tier5Reflect: [
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, { id: 13, value: 0.4 }, 'A'),
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'B')],
+                tier5Execute: [
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, { id: 14, value: 0.2 }, 'A'),
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'B')],
+                opponentStun: [
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'A'),
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, { id: 11, value: 0.5 }, 'B')],
+                tier4Damage: [
+                    new BDSMPlayer(8000, 1000, 0, 0.25, noBonuses, { dmg: 0.04, def: 0 }, noTier5, 'A'),
+                    new BDSMPlayer(8000, 1000, 0, 0.25, noBonuses, { dmg: 0.04, def: 0 }, noTier5, 'B')],
+                critDamage: [
+                    new BDSMPlayer(5000, 1000, 200, 0.30, bonuses({ critDamage: 0.5 }), noTier4, noTier5, 'A'),
+                    new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'B')],
+            };
+
+            it.each(Object.keys(cases))('%s', (name) => {
+                const [player, opponent] = cases[name];
+                const result = calculateBattleProbabilities(player, opponent, false);
+                const want = reference[name];
+
+                expect(result.win).toBeCloseTo(want.win, 12);
+                expect(result.loss).toBeCloseTo(want.loss, 12);
+                expect(result.scoreClass).toBe(want.scoreClass);
+                const got = result.points as unknown as Record<string, number>;
+                expect(Object.keys(got).sort()).toEqual(Object.keys(want.points).sort());
+                for (const point of Object.keys(want.points)) {
+                    expect(got[point]).toBeCloseTo(want.points[point], 12);
+                }
+            });
+        });
+
+        describe('a fight it cannot finish', () => {
+            // Neither side gets through the other's defence, so no branch ever
+            // ends. Before the even-split exit this threw, calculateBattleProbabilities
+            // handed back an empty {}, and the caller indexed into it.
+            const stalemate = (): [BDSMPlayer, BDSMPlayer] => [
+                new BDSMPlayer(50000, 8000, 9000, 0.15, noBonuses, noTier4, noTier5, 'A'),
+                new BDSMPlayer(50000, 3000, 9000, 0.15, noBonuses, noTier4, noTier5, 'B')];
+
+            it('is reported as undecided at 50%', () => {
+                const [player, opponent] = stalemate();
+
+                const result = calculateBattleProbabilities(player, opponent, false);
+
+                expect(result.win).toBeCloseTo(0.5, 12);
+                expect(result.loss).toBeCloseTo(0.5, 12);
+            });
+
+            it('still carries a point distribution the caller can read', () => {
+                const [player, opponent] = stalemate();
+
+                const result = calculateBattleProbabilities(player, opponent, false);
+
+                expect(result.points).toBeDefined();
+                const got = result.points as unknown as Record<string, number>;
+                expect(Object.keys(got).length).toBeGreaterThan(0);
+                const mass = Object.values(got).reduce((sum, p) => sum + p, 0);
+                expect(mass).toBeCloseTo(1, 12);
+            });
+
+            // The depth cap alone does not bound the work: four branches per
+            // round means depth 50 is 4^50 nodes. Measured on this pairing
+            // without the budget, the call had not returned after 60 s.
+            it('returns inside a bound the depth cap alone does not give', () => {
+                const player = new BDSMPlayer(50000, 8000, 9000, 0.15, noBonuses, { dmg: 0.03, def: 0 }, noTier5, 'A');
+                const opponent = new BDSMPlayer(50000, 3000, 9000, 0.15, noBonuses, { dmg: 0.03, def: 0 }, noTier5, 'B');
+
+                const startedAt = Date.now();
+                const result = calculateBattleProbabilities(player, opponent, false);
+                const elapsed = Date.now() - startedAt;
+
+                expect(elapsed).toBeLessThan(5000);
+                expect(result.points).toBeDefined();
+                expect(result.win + result.loss).toBeCloseTo(1, 12);
+            });
+        });
+
         it('should account for tier5 stun skill', () => {
             const stunTier5 = { id: 11, value: 0.5 };
             const player = new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, stunTier5, 'Stunner');
