@@ -374,11 +374,45 @@ export class Booster {
      * Returns null if no market data is available — NO hardcoded fallback IDs.
      *
      * Resolution order:
-     *   1. Shop merchant inventory (storeContents) — full item data from shop page
-     *   2. Player booster inventory (boosterIdMap) — full item data from player inventory
+     *   1. Player booster inventory (boosterIdMap) — the item the account owns
+     *   2. Shop merchant inventory (storeContents) — the catalogue entry
+     *
+     * The inventory comes first because every caller of this function equips:
+     * the resolved id_item goes to HeroHelper.equipBooster, which sends
+     * `market_equip_booster&id_item=<n>` — a request about an item the account
+     * owns. An identifier does not name one item. Measured on a live account
+     * 2026-09-10: the account owned a legendary Chlorella (`B3`, id_item 318)
+     * while the shop listed a Chlorella of its own under the same identifier
+     * (id_item 28). With the shop consulted first, the equip request carried
+     * the shop's id and the AJAX never answered — 15 s timeout, nothing
+     * equipped, "Slot may be occupied" in the log. Only MB1 escaped it,
+     * because boosterId_MB1 is configured and overrides this resolution in
+     * HeroHelper.equipBooster.
+     *
+     * There is no buying caller: autoBuyBoosters goes through Shop.pure, not
+     * through here, so preferring the owned item costs no other path anything.
      */
     static getBoosterByIdentifier(identifier: string): any {
-        // Try to resolve from shop merchant inventory (storeContents)
+        // Try to resolve from the player's booster inventory (boosterIdMap —
+        // stores full item data)
+        const boosterIdMap = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        const entry = boosterIdMap[identifier];
+        if (entry) {
+            // boosterIdMap now stores { id_item, identifier, name, rarity }
+            if (typeof entry === 'object' && entry.id_item) {
+                logHHAuto(`getBoosterByIdentifier: "${identifier}" resolved from boosterIdMap → id_item=${entry.id_item}, name=${entry.name}`);
+                return { ...entry };
+            }
+            // Backward compat: old format stored just the id_item string
+            if (typeof entry === 'string') {
+                return { id_item: entry, identifier, name: identifier, rarity: 'legendary' };
+            }
+        }
+
+        // Fall back to the shop merchant inventory (storeContents). Reached when
+        // the account owns no such booster; equipBooster's own
+        // haveBoosterInInventory guard then refuses the equip anyway, so this
+        // serves callers that only want the item's name and rarity.
         const storeData = getStoredJSON<any>(HHStoredVarPrefixKey + TK.storeContents, null);
         if (storeData && Array.isArray(storeData[1])) {
             const shopBooster = storeData[1].find(
@@ -393,21 +427,6 @@ export class Booster {
                 };
                 logHHAuto(`getBoosterByIdentifier: "${identifier}" resolved from storeContents → id_item=${resolved.id_item}, name=${resolved.name}`);
                 return resolved;
-            }
-        }
-
-        // Try to resolve from player's booster inventory (boosterIdMap — now stores full item data)
-        const boosterIdMap = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.boosterIdMap, {});
-        const entry = boosterIdMap[identifier];
-        if (entry) {
-            // boosterIdMap now stores { id_item, identifier, name, rarity }
-            if (typeof entry === 'object' && entry.id_item) {
-                logHHAuto(`getBoosterByIdentifier: "${identifier}" resolved from boosterIdMap → id_item=${entry.id_item}, name=${entry.name}`);
-                return { ...entry };
-            }
-            // Backward compat: old format stored just the id_item string
-            if (typeof entry === 'string') {
-                return { id_item: entry, identifier, name: identifier, rarity: 'legendary' };
             }
         }
 

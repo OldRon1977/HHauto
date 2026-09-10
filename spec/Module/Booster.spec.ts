@@ -192,6 +192,46 @@ describe("Booster", function() {
       expect(result.id_item).toBe('316');
       expect(result.identifier).toBe('B1');
     });
+
+    /**
+     * An identifier does not name one item. Measured on a live account
+     * 2026-09-10: the account owned a legendary Chlorella ("B3", id_item 318)
+     * while the shop listed its own Chlorella under the same identifier
+     * (id_item 28). Every caller of getBoosterByIdentifier equips, and
+     * HeroHelper.equipBooster sends the resolved id as
+     * `market_equip_booster&id_item=<n>` -- a request about an item the account
+     * owns. Resolving from the shop first put the shop's id in that request:
+     * the AJAX never answered (15 s timeout) and nothing was equipped.
+     */
+    describe("two items, one identifier", function() {
+      /** The shop's catalogue entry, as collectBoostersFromMarket stores it. */
+      function setupStoreContents(entries: {id_item: string; identifier: string; name: string; rarity: string}[]) {
+        sessionStorage.setItem(
+          HHStoredVarPrefixKey + "Temp_storeContents",
+          JSON.stringify([[], entries.map(e => ({ item: { ...e } }))]),
+        );
+      }
+
+      it("resolves the item the account owns, not the shop's entry of the same name", function() {
+        setupBoosterIdMap([{id_item: "318", identifier: "B3", name: "Chlorella", rarity: "legendary"}]);
+        setupStoreContents([{id_item: "28", identifier: "B3", name: "Chlorella", rarity: "common"}]);
+
+        const result = Booster.getBoosterByIdentifier('B3');
+
+        expect(result.id_item).toBe('318');
+        expect(result.rarity).toBe('legendary');
+      });
+
+      it("still resolves from the shop for a booster the account does not own", function() {
+        setupBoosterIdMap([{id_item: "318", identifier: "B3", name: "Chlorella", rarity: "legendary"}]);
+        setupStoreContents([{id_item: "7", identifier: "B1", name: "Ginseng root", rarity: "legendary"}]);
+
+        const result = Booster.getBoosterByIdentifier('B1');
+
+        expect(result.id_item).toBe('7');
+        expect(result.name).toBe('Ginseng root');
+      });
+    });
   });
 
   describe("markBoosterAsEquippedInStorage", function() {

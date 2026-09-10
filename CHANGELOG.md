@@ -7,6 +7,33 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.13.5 - the booster that was equipped by the shop's id
+
+`getBoosterByIdentifier` resolved a booster from the shop catalogue first and
+from the player's own inventory second. Every caller of it equips: the id it
+returns goes to `HeroHelper.equipBooster`, which sends
+`market_equip_booster&id_item=<n>` -- a request about an item the account owns.
+
+An identifier does not name one item. Measured on a live account: the account
+owned a legendary Chlorella (`B3`, `id_item` 318) while the shop listed a
+Chlorella of its own under the same identifier (`id_item` 28). The equip
+request carried the shop's id, the AJAX never answered, and the run logged a
+15-second timeout and "Failed to equip Chlorella. Slot may be occupied."
+Nothing was equipped.
+
+That the wrong id is *why* the request hung is inferred, not measured -- what
+is measured is the mismatch, the id that went out, and the timeout. The
+resolution order is wrong for the equip path either way.
+
+Only `MB1` escaped this, because `boosterId_MB1` is configured and overrides
+the resolution inside `equipBooster` -- which is why the Sandalwood automation
+worked while the ordinary slots did not.
+
+The inventory now comes first, the shop is the fallback for a booster the
+account does not own (where `equipBooster`'s own ownership guard refuses the
+equip anyway, so only the name and rarity are of use). No buying path goes
+through this function.
+
 ### v8.13.4 - the Path of Attraction entry that expired on arrival
 
 `getSecondsLeft` answers `0` both for "no timer stored" and for "expired"
