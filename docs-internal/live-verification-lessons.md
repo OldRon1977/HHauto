@@ -56,9 +56,17 @@ above: the call site was right, the page was right, the reading was correct.
 
 `ParanoiaService` plans a spend-down before each rest period. A module that
 cannot act -- league blocked by a rank threshold, quest out of energy -- sets a
-`paranoia<X>Blocked` marker. It was measured that `setParanoiaSpendings` plans
-a category **even when its marker is set**, and concluded from that single true
-observation that the markers had no effect. Three commits followed.
+`paranoia<X>Blocked` marker. It was measured that a marked category still ended
+up in the plan, and concluded from that single true observation that the markers
+had no effect. Three commits followed.
+
+(Corrected 2026-09-10, by reading the code in `main`: `setParanoiaSpendings`
+**does** check the marker -- `if (getStoredValue(...paranoiaLeagueBlocked) ===
+undefined)`, and the same for quest. What was actually seen is the other
+ordering: the category is planned while no marker is set yet, and the module
+sets it afterwards. Two guards for two orderings, not a missing one. The
+original note said the planning step ignores the marker, which is not true --
+and getting that detail wrong is itself an instance of the rule below.)
 
 The compensation sits one step further along. `checkParanoiaSpendings` removes
 the marked category from the map, so the total drops, and `flipParanoia` reads
@@ -151,6 +159,20 @@ Two sources settled questions that DOM inspection could not:
   is available on either tab of the Sultry page and made the tab-dependent DOM
   timer scrape unnecessary. Prefer a global that the game maintains over a
   selector that depends on which tab happens to be open.
+
+  **But measure before swapping — the advantage is tab-dependence, not
+  earliness.** Path of Attraction has the same pair: the DOM timer
+  (`#events .nc-panel-header .event-timer span[rel=expires]`) and the global
+  `event_ends_in`. Measured 2026-09-10 over eight direct loads of the event
+  page, sampling every 100 ms: both first appeared in the **same** 100 ms
+  window every time (median 808 ms), and there was no load on which one was
+  present and the other was not. The global agreed with the screen
+  (`'183299'` against "Ends in 2d 2h"). Swapping the source there would have
+  bought nothing — the PoA timer read fails intermittently *inside a script
+  run*, and never on a direct load, so neither source explains it. Where a
+  reading can fail, the fix is to make the unknown safe (a bounded fallback
+  instead of a value the consumer reads as "expired"), not to pick a different
+  place to read it from.
 
 Caveat that also applies here: the *runtime* AJAX capture is more reliable than
 static extraction. Grepping `action:` out of `src/` missed `do_battles_trolls`
