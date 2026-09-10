@@ -99,7 +99,7 @@ seine eigenen Kennungen kennt, lässt zusätzlich auf den **Wert** prüfen:
 ```
 HHAUTO_PRIVATE_IDS="123456 7890"    # direkt
 HHAUTO_PRIVATE_IDS_FILE=<pfad>      # eine Kennung je Zeile, # ist Kommentar
-# sonst ~/.config/hhauto-claude/private-ids.txt, falls vorhanden
+# sonst $HHAUTO_HOME/private-ids.txt bzw. ~/.config/hhauto/private-ids.txt
 ```
 
 Die Liste bleibt außerhalb des Repos; liegt der Pfad doch darin und git
