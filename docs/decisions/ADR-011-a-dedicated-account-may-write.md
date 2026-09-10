@@ -62,7 +62,7 @@ Konto ist schreibende Automatisierung erlaubt.**
   Zahlungsmittel findet nicht statt, auch wenn eine Strategie ihn
   nahelegt.
 - **Zugangsdaten ausserhalb des Repos.** Sie liegen in
-  `~/.config/hhauto-claude/account/`, nicht im Arbeitsbaum. Ein
+  `$HHAUTO_HOME/account/`, nicht im Arbeitsbaum. Ein
   `.gitignore`-Eintrag waere schwaecher: er haelt `git add -f` nicht auf.
 - **Die Konto-ID erscheint nirgends** -- nicht in Commits, PR-Texten,
   Issues, Messberichten oder Fixtures. Es gilt dieselbe Anonymisierung
@@ -133,5 +133,5 @@ selben Spiel.
   falschen Ort einen Fehler erfindet
 - `scripts/live-check/README.md` -- der lesende Checker, der bleibt, was
   er ist
-- `~/.config/hhauto-claude/account/README.md` (nicht im Repo) -- wo die
+- `$HHAUTO_HOME/account/README.md` (nicht im Repo) -- wo die
   Zugangsdaten liegen und warum dort

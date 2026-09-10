@@ -99,4 +99,5 @@ prüfen. Auf dem Konto des Maintainers bleiben schreibende Prüfungen Handarbeit
 ein Prüfer, der dort kauft oder speichert, ist ein Bot mit anderem Namen. Für das
 eigene Prüfkonto gilt das nicht mehr — siehe
 [ADR-011](docs/decisions/ADR-011-a-dedicated-account-may-write.md). Dessen
-Zugangsdaten liegen außerhalb des Repos in `~/.config/hhauto-claude/account/`.
+Zugangsdaten liegen außerhalb des Repos, im lokalen Prüfkonto-Verzeichnis
+(`$HHAUTO_HOME/account/`; `HHAUTO_HOME` zeigt auf das Harness-Verzeichnis).

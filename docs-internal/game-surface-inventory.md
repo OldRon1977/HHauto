@@ -4,7 +4,7 @@ verified-against-version: v8.12.10 HHAuto, hentaiheroes.com
 status: current
 sources:
   - Live-Inventur auf dem Pruefkonto (ADR-011), Level 42, Welt 3, 8 Maedchen
-  - Werkzeug: ~/.config/hhauto-claude/tools/explore.js (nicht im Repo)
+  - Werkzeug: $HHAUTO_HOME/tools/explore.js (nicht im Repo)
 ---
 
 # Inventar der Spieloberflaeche
