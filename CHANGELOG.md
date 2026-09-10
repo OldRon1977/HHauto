@@ -19,6 +19,39 @@ existing player: with only *Collect all* on for Path of Glory, the sweep now
 runs in the final window before the event ends instead of continuously -- what
 the switch has always said it does, and what Path of Valor already did.
 
+#### The league power calc finishes, and says when it cannot
+
+*Display PowerCalc* simulates a fight against every opponent in the league
+list, walking each crit/no-crit path of both sides. Two ends of that were
+broken.
+
+The tree grows exponentially with the number of exchanges a fight would need.
+On a league list of 110 opponents that came to 88.3 seconds of frozen tab, one
+single block of 61.5 s, and 37 opponents carrying a value after 85 seconds --
+with nothing written to storage, since the list is saved only once the whole
+loop finishes.
+
+And a fight that did not resolve within 50 rounds ended the run for good: the
+simulation handed back an empty result, the code that reads it indexed into
+nothing, and the error surfaced where nobody was listening. Every opponent
+after that one stayed blank. It takes one such opponent, which is why the same
+switch behaves for years and then stops the day a league rotates.
+
+The recursion now remembers states it has already answered, and it works to a
+budget. Measured over a captured list of 120 opponents: all 120 answered in
+223 ms together, the slowest 16 ms. On the live page 476 ms, longest single
+block 191 ms -- the figure the page also shows with the power calc switched
+off. Fights of 12 to 18 exchanges come out bit-identical to before, in 3 to 6
+ms instead of 95 ms to 19.9 s.
+
+A fight the simulation genuinely cannot decide -- neither side gets through the
+other's defence -- is now reported as **50%** instead of ending the run, and
+one opponent it cannot handle no longer costs the rest of the list.
+
+Where the budget does cut a fight short the value is an approximation. It cuts
+none of the 120 opponents measured; only pairings the memo cannot help reach
+it, and those carry a tier-4 damage or defence bonus, or are a stalemate.
+
 #### Dead ends the run could not leave
 
 - In world 1 no troll is unlocked; the script replaced that answer with a
