@@ -32,7 +32,7 @@
 // Eigene Kennungen zusätzlich als Wert prüfen (alles optional):
 //   HHAUTO_PRIVATE_IDS="123456 7890"        # direkt, getrennt durch , ; oder Leerraum
 //   HHAUTO_PRIVATE_IDS_FILE=<pfad>          # eine Kennung je Zeile, # ist Kommentar
-//   sonst ~/.config/hhauto-claude/private-ids.txt, falls vorhanden
+//   sonst $HHAUTO_HOME/private-ids.txt bzw. ~/.config/hhauto/private-ids.txt
 //
 // Exit: 0 sauber, 1 Fund, 2 interner Fehler.
 import { execFileSync } from 'node:child_process';
@@ -67,7 +67,8 @@ const prosePattern = /\b(account|konto)\b(?:[ -]?(?:id|nr\.?|#))?[\s:#-]{0,3}(\d
  * Die privat hinterlegten Kennungen, als Suchmuster.
  *
  * Reihenfolge der Quellen: HHAUTO_PRIVATE_IDS, dann HHAUTO_PRIVATE_IDS_FILE,
- * sonst ~/.config/hhauto-claude/private-ids.txt. Die Vorgabe liegt bewusst
+ * sonst $HHAUTO_HOME/private-ids.txt, ersatzweise ~/.config/hhauto/private-ids.txt.
+ * Die Vorgabe liegt bewusst
  * außerhalb des Arbeitsverzeichnisses: eine Datei mit echten Kennungen im
  * Repo ist genau das, wovor dieses Skript schützen soll. Liegt der Pfad
  * trotzdem im Repo, muss git ihn ignorieren -- sonst bricht das Skript ab,
@@ -79,7 +80,12 @@ const prosePattern = /\b(account|konto)\b(?:[ -]?(?:id|nr\.?|#))?[\s:#-]{0,3}(\d
 function privateValues() {
     const fromEnv = process.env.HHAUTO_PRIVATE_IDS;
     const fileEnv = process.env.HHAUTO_PRIVATE_IDS_FILE;
-    const fallback = join(homedir(), '.config', 'hhauto-claude', 'private-ids.txt');
+    // HHAUTO_HOME zeigt auf das lokale Harness-Verzeichnis, falls eines
+    // existiert; sonst ein neutraler Ort unter .config.
+    const home = process.env.HHAUTO_HOME && process.env.HHAUTO_HOME.trim()
+        ? resolve(process.env.HHAUTO_HOME.trim())
+        : join(homedir(), '.config', 'hhauto');
+    const fallback = join(home, 'private-ids.txt');
 
     let raw = null;
     let source = null;
