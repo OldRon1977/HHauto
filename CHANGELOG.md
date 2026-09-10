@@ -7,6 +7,31 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.13.4 - the Path of Attraction entry that expired on arrival
+
+`getSecondsLeft` answers `0` both for "no timer stored" and for "expired"
+(#1846). `PathOfAttraction.parse` handed that `0` to `seconds_before_end`,
+which dated the registry entry to the moment it was written.
+
+The consumer is one step further along: `pruneExpiredEvents`, which
+`getStaleEventIDs` runs on every `handleEventParsing` precondition, drops the
+entry as expired. `checkEvent` then reports the id as unregistered,
+`parsePageForEventId` puts it back into `ctx.eventIDs`, and the same page is
+parsed again -- issue #1738's loop, re-entered through a producer that can
+legitimately emit `0`.
+
+Measured on a live account: with `PoA end in {"days":0,...}` the pipeline ran
+`handleEventParsing` 43 times in four minutes, one run every 2 s, with a
+home/event navigation round in between. With a readable timer, once.
+
+An unreadable timer now books the same bounded stand-in the other event
+modules use (`DoublePenetration`, `LivelyScene`, `SultryMysteries`: one hour)
+and keeps `next_refresh` inside that window, so the entry is re-parsed before
+it can expire. A readable timer is unaffected.
+
+Why the timer element is missing on some visits is still open; this changes
+what an unknown remaining time costs, not how often it happens.
+
 ### v8.13.3 - 121 identifiers nothing was reading
 
 A sweep of everything ESLint reported as unused in `src/`, by kind rather
