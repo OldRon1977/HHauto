@@ -47,6 +47,8 @@ import {
     decideNextLevelUp,
     parseRequirement,
     pickUpgradeTargets,
+    summariseNoTargets,
+    type NoUpgradeSummary,
     upgradePageUrl,
 } from "../Service/EquipmentUpgradeService";
 import type { PlayerClass } from "../Service/TeamScoringService";
@@ -803,7 +805,7 @@ export class EquipmentGear {
                     + ` [${TIER_NAMES[t.tier]}]`);
             }
 
-            EquipmentGear.showUpgradePlan(targets, stock, theme);
+            EquipmentGear.showUpgradePlan(targets, stock, theme, summariseNoTargets(all));
         } catch (err) {
             logHHAuto('Gear: Upgrade Gear failed before any change was made: ' + err);
             EquipmentGear.showMessage('Upgrade Gear', 'Failed, nothing was changed. See the log.');
@@ -812,16 +814,38 @@ export class EquipmentGear {
         }
     }
 
+    /** The three ways the list comes back empty read as three different
+     *  situations, and only one of them is "you are done". Measured
+     *  2026-09-11: the game turns a worn legendary away from the upgrade page
+     *  under either query parameter, so there is no version of this that can
+     *  offer to level the rest of what the player wears. */
+    private static noTargetsMessage(empty: NoUpgradeSummary): string {
+        const hint = '<p style="color:#aaa;">Put the pieces you want to develop on first'
+            + ' &mdash; "Possible Best Gear" does exactly that.</p>';
+        switch (empty.reason) {
+            case 'none-equipped':
+                return `<p>You own ${empty.inInventory} mythic piece(s), but none of them is`
+                    + ' equipped, and only worn gear is levelled here.</p>' + hint;
+            case 'no-mythic-owned':
+                return '<p>You are not wearing any mythic gear, so there is nothing to level.</p>'
+                    + '<p style="color:#aaa;">Only mythic pieces gain levels. Legendary and epic'
+                    + ' ones carry a fixed value tied to your own level, and the game turns the'
+                    + ' upgrade page away for them.</p>';
+            case 'all-at-cap':
+            default:
+                return `<p>Every mythic you are wearing is already at level ${MYTHIC_MAX_LEVEL}.</p>`
+                    + hint;
+        }
+    }
+
     private static showUpgradePlan(
         targets: UpgradeTarget[],
         stock: { legendary: number; epic: number; other: number },
         theme: GearTheme | null,
+        empty: NoUpgradeSummary,
     ): void {
         if (targets.length === 0) {
-            EquipmentGear.showMessage('Upgrade Gear',
-                `<p>Every mythic you are wearing is already at level ${MYTHIC_MAX_LEVEL}.</p>`
-                + '<p style="color:#aaa;">Put the items you want to develop on first'
-                + ' &mdash; "Possible Best Gear" does exactly that.</p>');
+            EquipmentGear.showMessage('Upgrade Gear', EquipmentGear.noTargetsMessage(empty));
             return;
         }
         const rows = targets.map(t =>

@@ -3,6 +3,7 @@ import {
     decideNextLevelUp,
     parseRequirement,
     pickUpgradeTargets,
+    summariseNoTargets,
 } from '../../src/Service/EquipmentUpgradeService';
 import { ArmorItem, MYTHIC_MAX_LEVEL } from '../../src/Service/EquipmentOptimizerService';
 import type { PlayerClass } from '../../src/Service/TeamScoringService';
@@ -89,6 +90,63 @@ describe('pickUpgradeTargets', () => {
 // worn item under id_member_item_equipped, and bounced back to the market
 // when sent the inventory parameter -- is a claim about the page, so it is
 // checked in scripts/live-check instead (spec triage 2026-08).
+
+describe('summariseNoTargets', () => {
+    // An empty target list has three causes and the popup used to name only
+    // one of them, telling a player wearing no mythic at all that every mythic
+    // they wear is at the cap.
+    it('separates an account that owns no mythic at all', () => {
+        const worn = [
+            item({ rarity: 'legendary', level: 68, equipped: true, slot: 1 }),
+            item({ rarity: 'epic', level: 61, equipped: true, slot: 2 }),
+        ];
+
+        expect(summariseNoTargets(worn)).toEqual({
+            reason: 'no-mythic-owned', inInventory: 0, wornMythics: 0,
+        });
+    });
+
+    it('separates mythics that are owned but not worn', () => {
+        const items = [
+            item({ rarity: 'legendary', level: 68, equipped: true, slot: 1 }),
+            item({ rarity: 'mythic', level: 4, slot: 2 }),
+            item({ rarity: 'mythic', level: MYTHIC_MAX_LEVEL, slot: 3 }),
+        ];
+
+        expect(summariseNoTargets(items)).toEqual({
+            reason: 'none-equipped', inInventory: 2, wornMythics: 0,
+        });
+    });
+
+    it('keeps "done" for worn mythics at the cap', () => {
+        const items = [
+            item({ rarity: 'mythic', level: MYTHIC_MAX_LEVEL, equipped: true, slot: 1 }),
+            item({ rarity: 'mythic', level: 7, slot: 2 }),
+        ];
+
+        expect(summariseNoTargets(items)).toEqual({
+            reason: 'all-at-cap', inInventory: 1, wornMythics: 1,
+        });
+    });
+
+    // The three reasons are exhaustive only for a list pickUpgradeTargets
+    // came back empty on. This ties the two together so the pairing cannot
+    // drift apart: whenever there is nothing to upgrade, a summary exists.
+    it('covers every list pickUpgradeTargets rejects', () => {
+        const listen: ArmorItem[][] = [
+            [],
+            [item({ rarity: 'legendary', level: 68, equipped: true, slot: 1 })],
+            [item({ rarity: 'mythic', level: 4, slot: 1 })],
+            [item({ rarity: 'mythic', level: MYTHIC_MAX_LEVEL, equipped: true, slot: 1 })],
+        ];
+
+        for (const liste of listen) {
+            expect(pickUpgradeTargets(liste, KNOW_HOW, null)).toHaveLength(0);
+            expect(['no-mythic-owned', 'none-equipped', 'all-at-cap'])
+                .toContain(summariseNoTargets(liste).reason);
+        }
+    });
+});
 
 describe('countMaterialStock', () => {
     it('counts legendaries and epics, never mythics, never worn items', () => {

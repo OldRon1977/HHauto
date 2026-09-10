@@ -158,6 +158,13 @@ angelegtes:     /mythic-equipment-upgrade.html?id_member_item_equipped=<id_membe
 Der falsche Parameter scheitert **nicht laut**: die Seite springt zum Markt
 zurueck, und die Automatik sieht aus, als haette sie nichts getan.
 
+**Nur Mythics kommen auf diese Seite** (gemessen 2026-09-11 auf einem Konto mit
+sechs getragenen legendaeren und epischen Teilen): mit gueltiger
+``id_member_armor_equipped`` eines legendaeren Teils landet der Aufruf in
+**beiden** Parameterformen auf ``/shop.html``, und ``item_to_upgrade`` bleibt
+ungesetzt. Ein Vorschlag, stattdessen die getragenen nicht-mythischen Teile
+hochzuleveln, hat also keinen Endpunkt hinter sich.
+
 ---
 
 ## 4. Messfallen -- was NICHT funktioniert
