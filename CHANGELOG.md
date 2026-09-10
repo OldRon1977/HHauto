@@ -19,6 +19,18 @@ existing player: with only *Collect all* on for Path of Glory, the sweep now
 runs in the final window before the event ends instead of continuously -- what
 the switch has always said it does, and what Path of Valor already did.
 
+#### Upgrade Gear says which of three situations you are in
+
+With no mythic gear on, *Upgrade Gear* reported that every mythic you wear is
+already at level 20 -- a statement about items that do not exist. It says one
+of three things now: that you wear no mythic at all, that you own some but have
+none equipped and how many, or that the ones you wear are done.
+
+Levelling what you wear instead is not on offer, and that is the game's call:
+with a valid id for a worn legendary the upgrade page bounces back to the
+market under either query parameter and never loads an item. Only mythic pieces
+gain levels; legendary and epic ones carry a fixed value tied to your own level.
+
 #### The league power calc finishes, and says when it cannot
 
 *Display PowerCalc* simulates a fight against every opponent in the league
