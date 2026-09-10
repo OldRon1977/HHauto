@@ -150,7 +150,10 @@ export function setStoredValue(inVarName: string, inValue: any, retry: boolean=f
         // catastrophic in the AutoLoop hot-loop where this runs >100x
         // per tick. Coerce to a string message instead.
         const message = (e instanceof Error) ? e.message : String(e);
-        cleanLogsInStorage();
+        // First attempt: give up the oldest log chunks only. The retry (retry
+        // === true) is the one that clears the ring, so a single quota error
+        // no longer costs the whole log.
+        cleanLogsInStorage(retry);
         logHHAuto(`ERROR: Can't save value in storage for ${inVarName} (${message}), ${retry?'user storage need to be cleaned':'retry...'}`);
         if (!retry) setStoredValue(inVarName, inValue, true);
     }
@@ -442,6 +445,41 @@ export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = g
         });
         setStoredValue(inVarName, JSON.stringify(collectablesList));
     }
+}
+
+/**
+ * What the two web storages hold, and how much of it is this script's.
+ *
+ * getLocalStorageSize() sums localStorage AND sessionStorage over every key,
+ * the game's included, and reports one number under a name that reads like
+ * HHAuto's own footprint. Beside a quota error that number points at the wrong
+ * culprit: measured on a real debug log, 9,867 KB were reported while the
+ * registered HHAuto keys came to 50 KB and the log ring to ~5.3 MB -- the
+ * remaining ~4.5 MB belonged to the game and appears nowhere in the export,
+ * because extractHHVars only walks registered keys.
+ *
+ * Sizes are approximate in the same way getLocalStorageSize is: two bytes per
+ * UTF-16 code unit, keys counted with their values.
+ */
+export function getStorageBreakdown(): Record<string, string> {
+    const kb = (chars: number) => (chars * 2 / 1024).toFixed(1) + ' KB';
+    let local = 0, session = 0, mine = 0;
+    const walk = (store: Storage, add: (n: number) => void) => {
+        for (const key in store) {
+            if (!Object.prototype.hasOwnProperty.call(store, key)) continue;
+            const n = key.length + String(store[key] ?? '').length;
+            add(n);
+            if (key.startsWith(HHStoredVarPrefixKey)) mine += n;
+        }
+    };
+    walk(localStorage, (n) => { local += n; });
+    walk(sessionStorage, (n) => { session += n; });
+    return {
+        localStorage: kb(local),
+        sessionStorage: kb(session),
+        HHAuto: kb(mine),
+        other: kb(local + session - mine),
+    };
 }
 
 export function getLocalStorageSize() {

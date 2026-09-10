@@ -39,6 +39,12 @@ const CHUNK_BYTES = 128_000;
 /** Flush thresholds: whichever is reached first. */
 const FLUSH_BYTES = 4_000;
 const FLUSH_MS = 1_000;
+/**
+ * Chunks the quota-recovery path sacrifices before it resorts to clearLog().
+ * Two are 256 KB, orders of magnitude more than the write that failed -- and
+ * the log a bug report is written from survives.
+ */
+const RECOVERY_DROP_CHUNKS = 2;
 
 // Both computed at call time, never at module scope: a top-level read of
 // the prefix crashes on a circular import (lesson zirkulaerer-import-tdz-crash).
@@ -220,6 +226,29 @@ export function readLogAsObject(): Record<string, string> {
         out[key] = text;
     }
     return out;
+}
+
+/**
+ * Free room for somebody else's write by dropping the oldest chunks.
+ *
+ * The ring already gives ground when its *own* write is refused (writeChunk ->
+ * dropOldest). A quota error from another writer used to take the whole log
+ * instead, which is the one thing a bug report needs -- measured on a real
+ * session: a single quota error on an unrelated key at 09:34 left a log that
+ * began at 09:34, five hours short of the run it was meant to document.
+ *
+ * Returns how many chunks were actually dropped; 0 means the ring holds only
+ * the chunk being written to and the caller has to fall back to clearLog().
+ */
+export function dropOldestChunks(count: number = RECOVERY_DROP_CHUNKS): number {
+    const idx = readIndex();
+    let dropped = 0;
+    for (let i = 0; i < count; i++) {
+        if (!dropOldest(idx)) break;
+        dropped++;
+    }
+    if (dropped > 0) writeIndex(idx);
+    return dropped;
 }
 
 /** Drop the whole log. Used by the quota-recovery path, which must not write. */
