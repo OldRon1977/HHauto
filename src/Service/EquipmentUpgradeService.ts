@@ -83,6 +83,54 @@ export function pickUpgradeTargets(
         .sort((a, b) => a.tier - b.tier || a.slot - b.slot);
 }
 
+/** Why pickUpgradeTargets came back empty. The three cases need three
+ *  different sentences, and only one of them is "you are done". */
+export type NoUpgradeReason =
+    /** No mythic anywhere -- not worn, not in the inventory. */
+    | 'no-mythic-owned'
+    /** Mythics owned, but none of them equipped. */
+    | 'none-equipped'
+    /** Every worn mythic sits at the cap. */
+    | 'all-at-cap';
+
+export interface NoUpgradeSummary {
+    reason: NoUpgradeReason;
+    /** Mythics in the inventory, i.e. owned but not worn. */
+    inInventory: number;
+    /** Worn mythics, all of them at the cap when the reason says so. */
+    wornMythics: number;
+}
+
+/**
+ * Read a target list pickUpgradeTargets came back empty on.
+ *
+ * Only meaningful for such a list: a worn mythic can then only be one that
+ * already sits at the cap, which is what makes the three reasons exhaustive.
+ *
+ * The message this feeds used to say "every mythic you are wearing is already
+ * at level 20" for all three cases. On an account wearing no mythic at all
+ * that is a false statement about items that do not exist, and it hides the
+ * one thing worth knowing: whether the player owns mythics and only needs to
+ * put them on, or owns none yet.
+ *
+ * Measured 2026-09-11 on an account wearing six legendary and epic pieces:
+ * /mythic-equipment-upgrade.html bounces straight back to /shop.html for a
+ * worn legendary, under either query parameter, and leaves `item_to_upgrade`
+ * unset. Only mythics level; nothing here can offer to level the rest.
+ */
+export function summariseNoTargets(items: ArmorItem[]): NoUpgradeSummary {
+    let wornMythics = 0;
+    let inInventory = 0;
+    for (const i of items) {
+        if (i.rarity !== 'mythic') continue;
+        if (i.equipped) wornMythics++;
+        else inInventory++;
+    }
+    if (wornMythics > 0) return { reason: 'all-at-cap', inInventory, wornMythics };
+    if (inInventory > 0) return { reason: 'none-equipped', inInventory, wornMythics };
+    return { reason: 'no-mythic-owned', inInventory, wornMythics };
+}
+
 /**
  * Items the game may consume. Mythics are never material -- no exception for
  * duplicates or for a theme match on the wrong class.

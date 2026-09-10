@@ -24709,6 +24709,40 @@ function pickUpgradeTargets(items, playerClass, theme) {
         .sort((a, b) => a.tier - b.tier || a.slot - b.slot);
 }
 /**
+ * Read a target list pickUpgradeTargets came back empty on.
+ *
+ * Only meaningful for such a list: a worn mythic can then only be one that
+ * already sits at the cap, which is what makes the three reasons exhaustive.
+ *
+ * The message this feeds used to say "every mythic you are wearing is already
+ * at level 20" for all three cases. On an account wearing no mythic at all
+ * that is a false statement about items that do not exist, and it hides the
+ * one thing worth knowing: whether the player owns mythics and only needs to
+ * put them on, or owns none yet.
+ *
+ * Measured 2026-09-11 on an account wearing six legendary and epic pieces:
+ * /mythic-equipment-upgrade.html bounces straight back to /shop.html for a
+ * worn legendary, under either query parameter, and leaves `item_to_upgrade`
+ * unset. Only mythics level; nothing here can offer to level the rest.
+ */
+function summariseNoTargets(items) {
+    let wornMythics = 0;
+    let inInventory = 0;
+    for (const i of items) {
+        if (i.rarity !== 'mythic')
+            continue;
+        if (i.equipped)
+            wornMythics++;
+        else
+            inInventory++;
+    }
+    if (wornMythics > 0)
+        return { reason: 'all-at-cap', inInventory, wornMythics };
+    if (inInventory > 0)
+        return { reason: 'none-equipped', inInventory, wornMythics };
+    return { reason: 'no-mythic-owned', inInventory, wornMythics };
+}
+/**
  * Items the game may consume. Mythics are never material -- no exception for
  * duplicates or for a theme match on the wrong class.
  *
@@ -25519,7 +25553,7 @@ class EquipmentGear {
                     logHHAuto(`  Slot ${t.slot} (${SLOT_NAMES[t.slot]}): ${t.name} at level ${t.level}`
                         + ` [${TIER_NAMES[t.tier]}]`);
                 }
-                EquipmentGear.showUpgradePlan(targets, stock, theme);
+                EquipmentGear.showUpgradePlan(targets, stock, theme, summariseNoTargets(all));
             }
             catch (err) {
                 logHHAuto('Gear: Upgrade Gear failed before any change was made: ' + err);
@@ -25530,11 +25564,32 @@ class EquipmentGear {
             }
         });
     }
-    static showUpgradePlan(targets, stock, theme) {
+    /** The three ways the list comes back empty read as three different
+     *  situations, and only one of them is "you are done". Measured
+     *  2026-09-11: the game turns a worn legendary away from the upgrade page
+     *  under either query parameter, so there is no version of this that can
+     *  offer to level the rest of what the player wears. */
+    static noTargetsMessage(empty) {
+        const hint = '<p style="color:#aaa;">Put the pieces you want to develop on first'
+            + ' &mdash; "Possible Best Gear" does exactly that.</p>';
+        switch (empty.reason) {
+            case 'none-equipped':
+                return `<p>You own ${empty.inInventory} mythic piece(s), but none of them is`
+                    + ' equipped, and only worn gear is levelled here.</p>' + hint;
+            case 'no-mythic-owned':
+                return '<p>You are not wearing any mythic gear, so there is nothing to level.</p>'
+                    + '<p style="color:#aaa;">Only mythic pieces gain levels. Legendary and epic'
+                    + ' ones carry a fixed value tied to your own level, and the game turns the'
+                    + ' upgrade page away for them.</p>';
+            case 'all-at-cap':
+            default:
+                return `<p>Every mythic you are wearing is already at level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}.</p>`
+                    + hint;
+        }
+    }
+    static showUpgradePlan(targets, stock, theme, empty) {
         if (targets.length === 0) {
-            EquipmentGear.showMessage('Upgrade Gear', `<p>Every mythic you are wearing is already at level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}.</p>`
-                + '<p style="color:#aaa;">Put the items you want to develop on first'
-                + ' &mdash; "Possible Best Gear" does exactly that.</p>');
+            EquipmentGear.showMessage('Upgrade Gear', EquipmentGear.noTargetsMessage(empty));
             return;
         }
         const rows = targets.map(t => `<tr><td>${t.slot} ${SLOT_NAMES[t.slot]}</td><td>${esc(t.name)}</td>`
