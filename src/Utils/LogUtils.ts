@@ -12,11 +12,11 @@
  * for sharing in bug reports.
  */
 
-import { deleteStoredValue, extractHHVars, getLocalStorageSize } from "../Helper/StorageHelper";
+import { deleteStoredValue, extractHHVars, getLocalStorageSize, getStorageBreakdown } from "../Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";
 import { getBrowserData } from "./BrowserUtils";
-import { appendLog, clearLog } from './LogStore';
+import { appendLog, clearLog, dropOldestChunks } from './LogStore';
 
 /**
  * Wipe all existing log entries from storage and free up large temp
@@ -35,11 +35,37 @@ import { appendLog, clearLog } from './LogStore';
  * Console.log still receives a one-line breadcrumb so the cleanup is
  * visible during debugging without touching storage.
  */
-export function cleanLogsInStorage() {
+/**
+ * Make room after a storage write was refused.
+ *
+ * `full` is the caller's second attempt. The first one only sacrifices the
+ * oldest chunks of the log ring: the failing write is a few hundred bytes,
+ * two chunks are 256 KB, and the log is what a bug report is written from.
+ * Measured on a real session -- one quota error on an unrelated key at 09:34
+ * left a log that began at 09:34, five hours short of the run it documented.
+ * Only when that frees nothing, or when the retry fails as well, does the
+ * whole ring go.
+ */
+export function cleanLogsInStorage(full = false) {
     const sizeBefore = getLocalStorageSize();
-    clearLog();
+    let what: string;
+    if (full) {
+        clearLog();
+        what = 'the whole log ring';
+    } else {
+        const dropped = dropOldestChunks();
+        if (dropped > 0) {
+            what = `the ${dropped} oldest log chunk(s)`;
+        } else {
+            // Only the chunk being written to is left, so there is nothing
+            // older to give: the partial path would free nothing and the
+            // caller's retry would fail for the same reason.
+            clearLog();
+            what = 'the whole log ring (nothing older to drop)';
+        }
+    }
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
-    console.log(`HHAuto: cleanLogsInStorage cleared the log ring and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
+    console.log(`HHAuto: cleanLogsInStorage cleared ${what} and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
 
 /**
@@ -124,6 +150,11 @@ export function saveHHDebugLog()
     dataToSave['HHAuto_version']=GM_info.script.version;
     dataToSave['HHAuto_HHSite']=window.location.origin;
     dataToSave['HHAuto_storageSize'] = getLocalStorageSize();
+    // The line above sums both storages over every key, the game's included,
+    // under a name that reads like this script's own footprint. The breakdown
+    // says which part is whose, so a quota error is not pinned on HHAuto by
+    // default.
+    dataToSave['HHAuto_storageBreakdown'] = getStorageBreakdown();
     extractHHVars(dataToSave,true);
     const a = document.createElement('a')
     a.download = name
