@@ -1,4 +1,10 @@
 import { getSecondsLeft, setTimer } from '../../src/Helper/TimerHelper';
+import * as AjaxTracker from '../../src/Service/AjaxTracker';
+
+jest.mock('../../src/Service/PageNavigationService', () => ({
+    ...jest.requireActual('../../src/Service/PageNavigationService'),
+    gotoPage: jest.fn(),
+}));
 import {
     ClubChampion
 } from '../../src/Module/ClubChampion'
@@ -44,6 +50,57 @@ describe("Club Champion module", function () {
                                </div>`;
             MockHelper.mockPage('clubs', timerHtml);
             expect(ClubChampion.getNextClubChampionTimer()).toBe(5 * 3600 + 53 * 60);
+        });
+    });
+
+    /**
+     * The champions tab fetches its content -- it is not hidden markup.
+     * Measured on a live account 2026-09-10: on the members tab the club page
+     * carries `div.club_champions_details_container` zero times, and
+     * querySelectorAll counts hidden nodes, so the container is absent rather
+     * than invisible. The reads used to follow the tab click in the same
+     * synchronous block (12 ms apart by the log's timestamps) and found
+     * nothing: "on clubs, next timer:-1", a 16-minute timer, home, repeat --
+     * while /club-champion.html carried a live `button[rel=perform]`.
+     */
+    describe("the champions tab is fetched, not unhidden", function () {
+        it("waits for the tab to load before reading it", async function () {
+            // No .club-champion-members-challenges: the tab has not been opened,
+            // which is the state the club page lands in.
+            MockHelper.mockPage('clubs', '<div id="club_champions_tab"></div>');
+            const order: string[] = [];
+            const idle = jest.spyOn(AjaxTracker, 'waitForAjaxIdle')
+                .mockImplementation(async () => { order.push('wait'); return true; });
+            const timer = jest.spyOn(ClubChampion, 'getNextClubChampionTimer')
+                .mockImplementation(() => { order.push('read'); return -1; });
+
+            await ClubChampion.doClubChampionStuff();
+
+            expect(idle).toHaveBeenCalled();
+            // The read must not happen before the wait -- that ordering is the
+            // whole defect. There are two reads per pass (doClubChampionStuff
+            // reads once, updateClubChampionTimer again at the end), which is
+            // why the live log carries "on clubs, next timer:-1" twice; both
+            // have to come after the wait.
+            expect(order[0]).toBe('wait');
+            expect(order.filter(o => o === 'read').length).toBeGreaterThan(0);
+            expect(order.indexOf('read')).toBeGreaterThan(order.indexOf('wait'));
+            idle.mockRestore();
+            timer.mockRestore();
+        });
+
+        it("reads the tab anyway when the load does not settle", async function () {
+            MockHelper.mockPage('clubs', '<div id="club_champions_tab"></div>');
+            const idle = jest.spyOn(AjaxTracker, 'waitForAjaxIdle').mockResolvedValue(false);
+            const timer = jest.spyOn(ClubChampion, 'getNextClubChampionTimer').mockReturnValue(-1);
+
+            await ClubChampion.doClubChampionStuff();
+
+            // A tab that never settles must not stall the handler: it reads and
+            // schedules the next check like any other pass.
+            expect(timer).toHaveBeenCalled();
+            idle.mockRestore();
+            timer.mockRestore();
         });
     });
 
