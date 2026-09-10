@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.13.5
+// @version      8.13.6
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -23642,6 +23642,7 @@ var ClubChampion_awaiter = (undefined && undefined.__awaiter) || function (thisA
 
 
 
+
 class ClubChampion {
     static getNextClubChampionTimer() {
         var page = getPage();
@@ -23784,6 +23785,20 @@ class ClubChampion {
                 if (!onChampTab) {
                     logHHAuto('Click champions tab');
                     $("#club_champions_tab").trigger('click');
+                    // The tab fetches its content; it is not merely hidden markup.
+                    // Measured on a live account 2026-09-10: on the members tab the
+                    // club page carries `div.club_champions_details_container` zero
+                    // times -- querySelectorAll counts hidden nodes, so the
+                    // container is absent, not invisible. The reads below used to
+                    // follow the click in the same synchronous block, 12 ms later
+                    // by the log's own timestamps, and found nothing: "on clubs,
+                    // next timer:-1", a 16-minute timer, back to home, and around
+                    // again -- while /club-champion.html carried a live
+                    // `button[rel=perform]` the whole time.
+                    const tabIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                    if (!tabIdle) {
+                        logHHAuto('Club champion: champions tab still loading after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, reading it anyway');
+                    }
                 }
                 const Started = $("div.club-champion-members-challenges .player-row").length === 1;
                 const secsToNextTimer = ClubChampion.getNextClubChampionTimer();

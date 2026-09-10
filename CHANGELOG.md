@@ -7,6 +7,28 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.13.6 - the club champions tab, read 12 ms after it was opened
+
+`doClubChampionStuff` lands on the club page, clicks the champions tab, and
+then reads it -- in the same synchronous block.
+
+The tab fetches its content; it is not hidden markup. Measured on a live
+account: on the members tab the club page carries
+`div.club_champions_details_container` **zero** times, and `querySelectorAll`
+counts hidden nodes, so the container is absent rather than invisible. By the
+log's own timestamps the reads followed the click 12 ms later and found
+nothing: `on clubs, next timer:-1`, a 16-minute timer, back to the home page,
+and around again -- while `/club-champion.html` carried a live
+`button[rel=perform]` the whole time.
+
+The click is now followed by `waitForAjaxIdle`, the same primitive the sibling
+`Champion` module already uses after a content-loading click. A tab that never
+settles is read anyway, with a log line, rather than stalling the handler.
+
+(The doubled `next timer:-1` in the log is not a second attempt:
+`doClubChampionStuff` reads the timer once and `updateClubChampionTimer` reads
+it again at the end of the same pass.)
+
 ### v8.13.5 - the booster that was equipped by the shop's id
 
 `getBoosterByIdentifier` resolved a booster from the shop catalogue first and
