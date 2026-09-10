@@ -7,534 +7,76 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.13.6 - the club champions tab, read 12 ms after it was opened
-
-`doClubChampionStuff` lands on the club page, clicks the champions tab, and
-then reads it -- in the same synchronous block.
-
-The tab fetches its content; it is not hidden markup. Measured on a live
-account: on the members tab the club page carries
-`div.club_champions_details_container` **zero** times, and `querySelectorAll`
-counts hidden nodes, so the container is absent rather than invisible. By the
-log's own timestamps the reads followed the click 12 ms later and found
-nothing: `on clubs, next timer:-1`, a 16-minute timer, back to the home page,
-and around again -- while `/club-champion.html` carried a live
-`button[rel=perform]` the whole time.
-
-The click is now followed by `waitForAjaxIdle`, the same primitive the sibling
-`Champion` module already uses after a content-loading click. A tab that never
-settles is read anyway, with a log line, rather than stalling the handler.
-
-**What this was measured to change, and what it was not.** Re-run against the
-same account: the gap between the click and the read went from 12 ms to 264 ms
-and the wait reported the tab settled. The reading did **not** change -- still
-`No timer found`, still `next timer:-1`. The outcome on that account is decided
-one condition further along: the branch that walks on to the champion page
-needs `Started` (exactly one `.player-row` in the challenges list) or
-`Setting_autoClubForceStart`, and neither held. So this closes a synchronous
-read that was wrong on its own terms; it is not, on this evidence, what stands
-between the handler and a club champion fight.
-
-(The doubled `next timer:-1` in the log is not a second attempt:
-`doClubChampionStuff` reads the timer once and `updateClubChampionTimer` reads
-it again at the end of the same pass.)
-
-### v8.13.5 - the booster that was equipped by the shop's id
-
-`getBoosterByIdentifier` resolved a booster from the shop catalogue first and
-from the player's own inventory second. Every caller of it equips: the id it
-returns goes to `HeroHelper.equipBooster`, which sends
-`market_equip_booster&id_item=<n>` -- a request about an item the account owns.
-
-An identifier does not name one item. Measured on a live account: the account
-owned a legendary Chlorella (`B3`, `id_item` 318) while the shop listed a
-Chlorella of its own under the same identifier (`id_item` 28). The equip
-request carried the shop's id, the AJAX never answered, and the run logged a
-15-second timeout and "Failed to equip Chlorella. Slot may be occupied."
-Nothing was equipped.
-
-That the wrong id is *why* the request hung is inferred, not measured -- what
-is measured is the mismatch, the id that went out, and the timeout. The
-resolution order is wrong for the equip path either way.
-
-Only `MB1` escaped this, because `boosterId_MB1` is configured and overrides
-the resolution inside `equipBooster` -- which is why the Sandalwood automation
-worked while the ordinary slots did not.
-
-The inventory now comes first, the shop is the fallback for a booster the
-account does not own (where `equipBooster`'s own ownership guard refuses the
-equip anyway, so only the name and rarity are of use). No buying path goes
-through this function.
-
-### v8.13.4 - the Path of Attraction entry that expired on arrival
-
-`getSecondsLeft` answers `0` both for "no timer stored" and for "expired"
-(#1846). `PathOfAttraction.parse` handed that `0` to `seconds_before_end`,
-which dated the registry entry to the moment it was written.
-
-The consumer is one step further along: `pruneExpiredEvents`, which
-`getStaleEventIDs` runs on every `handleEventParsing` precondition, drops the
-entry as expired. `checkEvent` then reports the id as unregistered,
-`parsePageForEventId` puts it back into `ctx.eventIDs`, and the same page is
-parsed again -- issue #1738's loop, re-entered through a producer that can
-legitimately emit `0`.
-
-Measured on a live account: with `PoA end in {"days":0,...}` the pipeline ran
-`handleEventParsing` 43 times in four minutes, one run every 2 s, with a
-home/event navigation round in between. With a readable timer, once.
-
-An unreadable timer now books the same bounded stand-in the other event
-modules use (`DoublePenetration`, `LivelyScene`, `SultryMysteries`: one hour)
-and keeps `next_refresh` inside that window, so the entry is re-parsed before
-it can expire. A readable timer is unaffected.
-
-Why the timer element is missing on some visits is still open; this changes
-what an unknown remaining time costs, not how often it happens.
-
-### v8.13.3 - 121 identifiers nothing was reading
-
-A sweep of everything ESLint reported as unused in `src/`, by kind rather
-than by regex -- the lesson from the requirement-id regex that once took two
-import lines with it. Each batch was column- or line-anchored from the lint
-report and followed by `tsc --noEmit`.
-
-| Kind | Count | What was done |
-|---|---|---|
-| catch bindings | 35 | `catch (e)` → `catch`; the two `catch ({ errName, message })` kept `message` |
-| import bindings | 44 | removed; 27 whole import lines went with them |
-| function arguments | 26 | renamed to `_name`, the pattern the rule already allows |
-| dead locals | 16 | removed |
-
-The lint ceiling drops with it: **1031 → 907**.
-
-Two of the dead locals were flags, not clutter. `Champion.orderTeam` set
-`oneGirlSwitched = true` after every successful switch and never read it,
-while the reload at the end of the function runs unconditionally -- someone
-meant that reload to be conditional. `PathOfAttraction` had the same shape
-with `modified`. Both are removed, because that is what an unread variable
-is; the Champion one is worth a maintainer's eye.
-
-Two were kept as calls without a binding, because the call is the point:
-`getHero()` in `League.doLeagueBattle` kicks the auto-loop when the page is
-not ready, and `GM_registerMenuCommand` in `StartService` registers the debug
-menu -- only its return handle was dead.
-
-`model/IModule.ts` lost two interfaces, `IModuleStatic` and
-`IRunnableModuleStatic`, plus a header promising "type-check helpers at the
-bottom" that were never written. Neither interface was exported or referenced
-anywhere, so nothing had ever been checked against them; the file is 42 lines
-down to 26 and now describes what it actually holds.
-
-One import that was never called turned out to be load-bearing for the cycle
-count: `LivelyScene → Service/AutoLoop`, removed in 8.13.2. The rest of this
-sweep took the baseline from 52 to **50**.
-
-### v8.13.2 - 84 import cycles down to 52, through one seam
-
-Seven modules imported `autoLoop` for one reason: to call
-`setTimeout(autoLoop, delay)` after an action that had switched the loop off.
-Those seven `Module → Service/AutoLoop` edges were worth **32 of the 84
-baseline import cycles** -- measured by removing exactly them and re-running
-madge before anything was rewritten:
-
-| | cycles |
-|---|---|
-| with the seven edges | 84 |
-| without | 52 |
-
-`Service/AutoLoopKick.ts` takes the reference from the boot path instead, the
-way `setPachinkoAutoLoopKick` and `setHeroAutoLoopKick` already did
-(ADR-008 / ARCH-001) -- but as one shared seam rather than a setter per
-module. It imports nothing at all: a leaf cannot join a cycle, so the seam
-cannot become the problem it was written to solve. The delay stays with the
-caller for the same reason, and the reference is read when the timer fires,
-so a kick scheduled before boot still reaches the real loop.
-
-`Module/Events/LivelyScene.ts` imported `autoLoop` without ever calling it;
-that import is gone.
-
-No behaviour change. Pachinko and HeroHelper keep their own setters -- both
-are wired and tested, and moving them removes no cycle.
-
-### v8.13.1 - Path of Glory and Path of Valor decide the same way again
-
-The two modules are the same feature twice -- 148 and 150 lines that differ in
-identifiers. They also differed in two decisions, both from the commit that
-first brought the pair over.
-
-**The collect-all sweep fired on an unknown remaining time.** Both read
-`end < getLimitTimeBeforeEnd()` without asking whether the end was known.
-`getSecondsLeft` answers 0 for "no such timer" as well as for "already
-expired", so `0 < limit` opened the gate at any distance from the event end --
-and the sweep clicks *Claim all*, which walks straight past the tier filter
-the player configured. This is issue #1846, which `PathOfAttraction` failed
-closed on in 8.11 (`poAEnd > 0`) while these two kept the hole. Both have the
-guard now.
-
-**"Collect all" also ran the routine round -- but only in Path of Glory.**
-`PathOfGlory` alone carried `|| autoPoGCollectAll` on the ordinary collect
-condition, so the same two switches behaved differently on two identical
-features. The tooltip describes the final-window sweep ("collect all items
-before end ... configured with Collect all timer"), and `PathOfValue` and
-`PathOfAttraction` both implement that reading; Path of Glory now does too.
-An account that had only "Collect all" switched on for Path of Glory will
-collect at the end of the event instead of continuously -- which is what the
-switch has always said it does.
-
-After this the two files differ only in identifiers, the timer element ids and
-comments. Whoever considers merging them has one behaviour to reason about
-instead of two.
-
-### v8.13.0 - One table of unlock conditions
-
-Eight modules answered the same question -- *has this account unlocked the
-feature at all?* -- with eight hand-written conditions, and they had drifted.
-`DoublePenetration.isEnabled` carried the comment `// And 10 gilrs` beside a
-check that only looked at the level. `LoveRaidManager` kept its level check
-commented out. The ten-girl threshold was a literal in two files until
-v8.12.14 gave it a name.
-
-The heavier part is that each condition read its own numbers, and the numbers
-are what goes wrong. Two of the nine fixes in the 8.12.9-8.12.18 run were
-faults in a gate rather than in the feature behind it: v8.12.11, where the
-girl count came out 24 on an account owning 9, and v8.12.13/14, where the same
-count sat at 3 for a day while the page in front of it listed 13.
-
-`Service/FeatureGate.ts` now holds one table of what each feature needs, and
-`FeatureGate.pure.ts` decides it. Three rules the table carries:
-
-- **A value that is no answer is not a low answer.** `0`, `NaN`, `undefined`,
-  a negative number -- all become 0, and 0 opens no gate. The game hands these
-  out unevenly: `getLevel()` is 0 before any page is parsed, `getGirlCount()`
-  is 0 for "no source on this page" as well as for "no girls", and `id_world`
-  is missing off the quest pages.
-- **Read only what the condition needs.** A level gate does not fetch the girl
-  count, which costs storage and, without a cache, the page globals.
-- **A locked feature says why once**, naming the requirement and the value it
-  saw -- not per tick, where one such line was 692 of 2532 log lines
-  (v8.12.12).
-
-Behaviour is unchanged except for the log: seven features that used to be
-locked silently now report their obstacle once per change of answer, and a
-feature this game variant does not have reports nothing at all.
-
-Deliberately *not* in the table: the ten-girl condition
-`DoublePenetration`'s old comment claimed. Nobody has measured it, so it stays
-an open question in `docs-internal/adventure-quest-flow.md`, and a test holds
-the absence in place so it is not added from the comment alone.
-
-Rejected along the way, with the reasoning in the ADR: a global lock that
-would disable the script below a level. Checked against the nine fixes above,
-it would have hidden one, *is* the subject of another, and would have masked a
-third without fixing it -- while six were level-independent. The clearest case
-is v8.12.18: level 52, thirteen girls, and still a three-girl team.
-
-See `docs/decisions/ADR-012-one-table-of-unlock-conditions.md`.
-
-### v8.12.18 - A team of fewer than seven girls is a team
-
-`TeamModule.getSelectedGirls()` and `getSelectedGirlsId()` both answered `[]`
-with `Error: can't get all team members, cancel action` whenever the selected
-team did not hold exactly seven girls.
-
-Measured 2026-09-09 on a live account: a three-girl team carries
-`girls_ids: [1, 4, 7]` and three entries in `girls`, **no nulls**, beside its
-own `max_team_size: 7`. The game states capacity separately from occupancy, so
-"not seven" is not "unreadable" -- it is a young account, or any account that
-has not filled its team.
-
-Every consumer gave up on such a team:
-
-- `buildStuffTeamSelectPopUp()` returns at once, so the *Stuff Team* button
-  does nothing;
-- `equipAllGirls()` disables `#EquipAll` and switches `autoLoop` off *before*
-  it asks for the girls, and only the success path put either back -- so the
-  button greyed itself out, equipped nothing, and stayed grey until the next
-  page load.
-
-Both functions now answer with the girls the team actually holds and keep `[]`
-for a team with none. `equipAllGirls` undoes the button and the autoLoop switch
-on that path too.
-
-The edit-team page had the same fixed seven in
-`getGirlsFromEditTeamHexagons()`, which `getSelectedGirls()` routes to there.
-That one compares the girls it resolved against the ids the hexagons carry
-instead -- an id `availableGirls` does not know is dropped by the filter above
-it, and *that* is a broken read, unlike a team of three.
-
-`manageSkillScrollTooltip` keeps its own seven-girl condition: whether its
-scroll arithmetic means anything for a partial team is not measured, so it
-stays as it was. So does `saveTeamInPlace`, whose `< 7` guards a half-finished
-assignment in the middle of the unequip-pick-assign-save workflow, not a young
-account's team.
-
-### v8.12.17 - Path of Attraction says when it cannot read its own timer
-
-`PathOfAttraction.getRemainingTime()` reads the event's expiry from
-`#events .nc-panel-header .event-timer span[rel=expires]`, and when that finds
-nothing it did nothing at all. Every reader downstream then saw the same 0 that
-an expired event produces -- the ambiguity issue #1846 was about, and the
-reason `run()` fails closed on it.
-
-Measured 2026-09-09 on `path_event_110`: the element is there, it reads
-"2d 17h", and it is present 800 to 950 ms after navigation in four out of four
-direct page loads. In one session the module stored that value; in another it
-stored nothing on three visits running, and the log showed only
-`PoA end in 0d 0h 0m 0s` in both cases. **What the module saw at its own moment
-is not known**, and it could not be known while the miss left no trace.
-
-So the miss is logged now, and only when no remaining time is known yet -- a
-page without a timer that already has one is not worth a line. This is a
-diagnostic, not a fix: the behaviour is unchanged.
-
-### v8.12.16 - The Skip Quest button is left where it is
-
-`#skip-quest` was the one button type the script could not name. It does not
-appear in this repository's source, and a world-1 run with the selector
-`Quest.ts` uses read it as the button type -- which lands in the unknown-button
-branch, and that branch **switches autoQuest off** and asks the player to carry
-on by hand.
-
-Read out of the game's own `build/quest.js` on 2026-09-09:
-
-- it sits inside `#controls`, beside the next button -- the game's own cleanup
-  selector is `$("#controls a, #controls .grade-controls, #controls .win img,
-  #controls #skip-quest")`;
-- it exists only while the step reports `skippable`, and the game removes it
-  otherwise: `!this.is_skippable && $("#skip-quest").length>0 &&
-  $("#skip-quest").remove()`;
-- its click handler reads `this.skip_cost.hard_currency` and calls
-  `shared.general.hc_confirm(n, ...)` before `hh_ajax({action:
-  "skip_quest_steps"})`. It is a koban price behind a confirmation.
-
-So it is never the way forward, and it costs the script twice. Besides being
-misread as the button type, `proceedButtonMatch.click()` fires on the whole
-matched set -- a skip button standing *behind* the next one was pressed along
-with it, leaving the koban confirmation open over the quest. Both selectors in
-`QuestHelper.run` now exclude it, and both orders are covered by tests.
-
-### v8.12.15 - One walk through the shop popup at a time
-
-Measured 2026-09-09: the pipeline entered `goAndCollectFreeBundles` three times
-within four seconds, and each entry pressed the "+" again. The popup then held
-its content twice over -- the free-button count read **32** where a plain page
-read of the same popup showed 16, and it fell by 2 per claim -- and two walks
-logged "Free bundle collection finished" in the same second.
-
-In the same second, six exceptions came out of the game's own code, two of them
-`Cannot read properties of undefined (reading 'daily')`: the period-deal
-sub-tab that both walks were clicking at once. **Measured** is the timing and
-the doubling; that the game throws because two walks click the same sub-tab is
-**concluded**, not shown.
-
-Nothing was lost -- everything claimable was claimed -- but the second walk has
-no work of its own. The collector now refuses to start one while another is
-running. It remembers when the walk began rather than that it began: a walk's
-steps are 1.5 to 2.5 seconds apart, so one that has not finished within a
-minute counts as gone and the next may start. A flag would have needed the
-page load to clear it.
-
-### v8.12.14 - The girl count is refreshed while it still decides something
-
-v8.12.13 let a bigger count reach the cache -- but only `moduleHaremCountMax`
-writes it, and that runs on the waifu, team-edit and battle-team pages alone.
-Nothing else on the run's path carries the girl list, and the only handler that
-walks there, `handleHaremSize`, waited on `HaremMaxSizeExpirationSecs`: seven
-days.
-
-Measured 2026-09-09: through a whole session the cache held **3** while the
-account owned **13**, so `Place of Power needs 10 girls, the harem holds 3.`
-kept printing and Path of Attraction stayed shut. Both would have waited out
-the week.
-
-The count only decides something below ten -- `PlaceOfPower.isEnabled` and
-`PathOfAttraction.isEnabled` are its two readers, and a young account crosses
-that in hours. `handleHaremSize` now refreshes hourly while the cached count is
-under the gate and keeps the weekly cadence above it, where the number changes
-nothing. The ten is `HaremSizeGate` in `HHEnvVariables` now, read by all three
-places instead of written out three times.
-
-### v8.12.13 - A harem that has grown reaches the cache the same day
-
-`Harem.getGirlCount()` reads the cached size first, and `moduleHaremCountMax`
-refreshed that cache at most once a day even while standing on the page that
-carries the true list. Measured 2026-09-09: the cache held **3** from that
-morning while the waifu page in front of it listed **13** girls, and the
-ten-girl gate for Place of Power and Path of Attraction read the 3. The
-account had earned both features and would have waited out the day for them.
-
-A count *larger* than the cached one is now taken straight away; anything else
-still waits for the daily timer. That keeps the hazard issue #1864 was about --
-a list *shorter* than the harem overwriting a good snapshot, as the home page
-once did to the harem page's -- because a shorter list fails the test. The
-seven-day timer that sends the run to the waifu page in the first place is
-untouched.
-
-### v8.12.12 - Place of Power says its ten-girl notice once, not every tick
-
-`PlaceOfPower.isActivated()` asks `isEnabled()` on every pipeline tick, and
-`isEnabled()` logged `ERROR: not enough girl for POP` each time. In a measured
-12-minute run that line accounted for **692 of 2532 log lines** -- 27 percent of
-the whole log, over 24 page loads -- and it sat between the lines that report
-actual faults.
-
-It is not an error either: a harem under ten girls is the ordinary state of a
-young account. The notice now names the count it saw ("Place of Power needs 10
-girls, the harem holds 9") and repeats only when that number changes, so a
-reader still learns why Place of Power is quiet without losing the rest of the
-log to it.
-
-### v8.12.11 - The ten-girl gate stops counting girls the player does not own
-
-`Harem.getGirlCount()` feeds the ten-girl condition in
-`PlaceOfPower.isEnabled()` and `PathOfAttraction.isEnabled()`. With no cached
-harem size it fell back to `girlsDataList`, and that variable means something
-different on every page. Measured 2026-09-09 on an account owning nine girls:
-
-| page | variable | entries |
-|---|---|---|
-| `/waifu.html` | `girls_data_list` | 9, every one `shards` 100 |
-| `/characters.html` | `girlsDataList` | 24 |
-| `/home.html` | `girlsDataList` | 9, carrying only `salary` and `pay_in` |
-
-The harem page lists every *known* girl, so the gate read 24 where the answer
-was 9. Filtering is not an option either: those records carry no `shards`,
-`level` or `graded` -- nothing there tells an owned girl from a known one.
-
-Only the two pages that hand out full owned records may answer now:
-`girls_data_list` on the waifu page and `availableGirls` on the team-edit page,
-the same two `moduleHaremCountMax` caches from and the same two `getGirlsList`
-already picks between. Anything else falls through to the salary list and then
-to 0. Under-counting is the safe direction: a feature that stays locked one
-refresh longer costs nothing, while a count that is too high walks the run onto
-a page the account cannot use -- the dead end v8.12.8 closed for Path of
-Attraction.
-
-### v8.12.10 - A quest that demands a battle no longer stops the account
-
-Measured 2026-09-09 on a world-4 account with `autoTrollBattle` off: the main
-quest reached a step that requires a fight, `handleQuest` logged "Quest requires
-battle" and "prepare to save one battle for quest", `Troll.doBossBattle` answered
-"No valid troll target found, skipping." -- and that was the last thing that
-happened. Twelve minutes of empty `handleQuest` ticks followed, with quest energy
-at 310 and nothing else left to do.
-
-Two gates caused it, both reading `autoTrollBattle` where the quest's own demand
-was the reason to act:
-
-`Troll.getTrollIdToFight` resolves the target. Every branch that sets one is
-gated on `autoTrollBattle === "true"`, the quest-item branch included, so with
-troll farming off the target came out 0. `isTrollFightActivated()` already lists
-`autoTrollBattleSaveQuest` beside `autoTrollBattle` rather than under it, and
-`handleQuest` calls `doBossBattle()` precisely when `autoTrollBattle` is off --
-the quest-item branch now agrees with both. World 1 still yields nothing: there
-`lastTrollIdAvailable` is 0, and that 0 is the answer (v8.12.5).
-
-`handleQuest`'s battle branch armed `autoTrollBattleSaveQuest` and then used that
-same marker as its own gate, so it fired once. A fight that did not happen --
-no energy, no resolvable target -- left the quest waiting on a battle nobody
-would start again: `handleTrollBattle` cannot, every arm of its `shouldFight`
-requires `autoTrollBattle`. The arming stays one-shot; the fight is now retried
-each tick until `GenericBattle` clears the marker.
-
-### v8.12.9 - The free bundle collector reaches the step-up rung
-
-Measured on a live account, 2026-09-09: the shop popup carries nine tabs, and
-the collector walked four of them. `Step-Up Offers` was not among the four,
-although its ladder starts with a claimable free reward -- 25 combativity on
-that account, expiring in 20 hours.
-
-The tab list is only half of it. Under `stepup_offers` the free claim is
-`button#free-reward.free-buy-button-shop.purple_button_L`, while under
-`special_offers` and `period_deal` the same claim is `blue_button_L`. The query
-asked for the colour, so even a clicked step-up tab would have yielded nothing.
-Both tabs' buttons carry `free-buy-button-shop`; that is what the query asks
-for now, with `[price='0.00']:enabled` still keeping paid and already-claimed
-buttons out. Measured on the same popup: the starter-pack tab's one free button
-is disabled, and the step-up ladder's remaining eight rungs are disabled until
-the rung before them is paid for -- none of them is reached.
-
-### v8.12.8 - Path of Attraction is skipped while the account cannot enter it
-
-The event page states its own condition: "You need to be at least on the Second
-World of your adventure and have at least 10 girls in your Harem to participate
-in the Path of Attraction event." The script did not ask. Any account with the
-event in its list treated it as enabled, walked to the event page, found
-nothing to do and came back -- every tick. In one measured session twelve of
-eighteen samples sat on that page.
-
-The empty-id guard in EventModule does not catch this, and the measurement says
-why: on the locked page the tab is still rendered as
-`.event-title.active` with its own href, so `getDisplayedIdEventPage()` returns
-the event id rather than the empty string the guard tests for. Trying to spot
-the lock in the DOM instead does not work either -- the `nc-panel` that carries
-the notice is present on every event tab, playable ones included.
-
-`PathOfAttraction.isEnabled()` now checks ten girls and world 2, and
-`EventModule` asks it the way it already asks `SultryMysteries.isEnabled()`.
-A locked event stops being enabled, so it is neither visited nor parsed, and it
-comes back on its own the moment the tenth girl arrives. Same shape as
-`PlaceOfPower.isEnabled`, which guards the same kind of dead end.
-
-### v8.12.7 - A stale page no longer switches off half the script
-
-The game does not serve a consistent hero snapshot. Measured on a live
-account: two page loads six seconds apart, both with the browser cache off and
-each with its own `server_time`, carried `Hero.infos.level` 36 and 17, with
-`Xp` and `caracs` differing to match. `questing` was current on both. Which
-page holds the fresh copy varies -- in one run it was `home.html`, in the next
-`hero.html`.
-
-A page that loads the low value keeps it for its whole lifetime, and
-`HeroHelper.getLevel()` feeds the `>= LEVEL_MIN_*` gate of six modules:
-Pantheon (15), Sultry Mysteries (15), League (20), Path of Glory (30), Path of
-Valor (30) and Double Penetration (40). At a true level of 36 a stale 17
-switches League, Path of Glory and Path of Valor off silently: no error, no log
-line, three modules that simply do nothing.
-
-`getLevel()` now keeps the highest level it has seen, in
-`Temp_heroMaxLevel`. A level never decreases, so the maximum is always the
-right answer, and it costs one stored number. Callers that want exactly what
-their page was served still read the global directly -- `Pipeline.config` does,
-for its shop-refresh comparison, where a stale-low value only delays a check.
-
-Nothing is lost to the staleness itself: a later request confirms the real
-state. What it breaks is any decision made from a single reading.
-
-### v8.12.6 - The level-up popup gets confirmed instead of waited out
-
-A level-up during questing opens `#level_up`, and that popup covers the quest
-UI: the proceed button underneath stays dark and the quest does not advance
-until someone dismisses it.
-
-The script tried, with `$("#level_up close")`. That popup has no `close`
-element -- measured on a live account, hidden ones included, its markup carries
-exactly one control: `button.blue_button_L`, labelled "Ok". The selector
-matched nothing, and it is the only place in the code that touches `#level_up`.
-A measured run held the popup open across six ticks with the level and XP
-unchanged.
-
-The Ok button is now clicked as well. The `close` line stays: other popups in
-this game do use that element -- `#no_HC` carries `close.closable` -- so a skin
-that gives the level-up one keeps working.
-
-### v8.12.5 - A new account no longer walks into a troll it cannot fight
-
-In world 1 no troll is unlocked yet. The script knew that -- the last available
-troll id is derived as `id_world - 1`, which is 0 -- and then threw the answer
-away: both fallback paths replaced that 0 with a hard-wired troll 1.
-
-The game answers `troll-pre-battle.html?id_opponent=1` with a bare page that
-says "Troll not available yet!" and carries no hero data, so HHauto does not
-initialise on it and no handler can leave it again. Measured on a level-5
-account in world 1, quest 7: the run sat on that page for minutes without
-moving. It is the dead end issue #1875 described for side trolls, reached this
-time through the main fallback, which that fix did not cover.
-
-Both places now ask whether any troll is unlocked at all before falling back.
-If none is, the fight is skipped and the run goes on to the next block. The
-second fallback also leaves before its retry, which would only have delayed the
-same navigation by one run. Once a troll is unlocked nothing changes.
+### v8.13.0 - Gates for a young account
+
+Most of this release came from running the script on a fresh account and
+reading the log next to the screen. A young account keeps hitting features it
+has not unlocked yet, and the script had no gate in front of most of them -- it
+walked in, found nothing to do, and came back, every tick. Those gates exist
+now, and the numbers they read were fixed along with them, so the script runs
+cleanly on an account that is still growing. One change is visible to an
+existing player: with only *Collect all* on for Path of Glory, the sweep now
+runs in the final window before the event ends instead of continuously -- what
+the switch has always said it does, and what Path of Valor already did.
+
+#### Dead ends the run could not leave
+
+- In world 1 no troll is unlocked; the script replaced that answer with a
+  hard-wired troll 1 and sat on a page carrying no hero data (#1875).
+- Path of Attraction was visited while the account could not enter it -- twelve
+  of eighteen samples in one session sat on that page.
+- A quest step demanding a battle stopped the account when troll farming was
+  off: twelve minutes of empty ticks at 310 quest energy.
+- The level-up popup covers the quest UI and was never confirmed; the script
+  reached for a `close` element that popup does not have.
+- The free-bundle collector ran three times at once, doubling the popup's
+  content and drawing six exceptions out of the game's own code.
+- A Path of Attraction event whose timer could not be read was written as
+  ending *now*, so it was pruned as expired and re-parsed every two seconds --
+  43 times in four minutes (#1846, #1738).
+
+#### Numbers that decided something and were wrong
+
+- The ten-girl gate counted girls the player does not own: 24 on the harem
+  page against 9 owned.
+- A harem that had grown took a day to reach the cache, and the walk to the
+  page that fills it waited seven; both now refresh while the count still
+  decides something.
+- A stale hero page silently switched League, Path of Glory and Path of Valor
+  off -- two loads six seconds apart carried level 36 and 17.
+- A team of fewer than seven girls counted as unreadable, so *Stuff Team* did
+  nothing and *Equip All* greyed itself out without equipping.
+- A booster was equipped by the shop's id instead of the owned item's; the
+  call never answered.
+- Path of Glory and Path of Valor are the same feature twice and decided
+  differently; both fired their collect-all sweep on an unknown remaining
+  time (#1846).
+
+#### Buttons and selectors
+
+- The free-bundle collector reached four of nine tabs and matched the button's
+  colour instead of its class.
+- `#skip-quest` was read as a button *type*, which switched autoQuest off --
+  and the proceed click pressed it along with the next button, opening a koban
+  confirmation over the quest.
+- The club champions tab was read 12 ms after the click that loads it. The
+  wait is there now; on the test account it did not change the outcome, which
+  is decided one condition further along.
+
+#### Less noise in the log
+
+- Place of Power's ten-girl notice ran on every tick -- 692 of 2532 lines in
+  one run. It now names the count it saw and repeats only when that changes.
+- Path of Attraction stayed silent when it could not read its own timer, which
+  looked exactly like an expired event. It says so now.
+
+#### Internal
+
+- One table of unlock conditions replaces eight hand-written ones that had
+  drifted apart (ADR-012).
+- Import cycles 84 → 50, through one shared seam for the auto-loop restart
+  (ADR-008 / ARCH-001).
+- 121 unused identifiers removed; the lint ceiling drops 1031 → 907.
 
 ### v8.12.4 - Upgrade Gear works through every worn mythic, without needing a team
 
