@@ -1153,7 +1153,8 @@ raw percentage overstates that gap -- the pure/impure split of stage 3 is why.
 
 The two that *were* untested decisions got tests:
 
-- `LeagueHelper.numberOfFightAvailable` -- the function CLAUDE.md warns about
+- `LeagueHelper.numberOfFightAvailable` -- the function the repository guide
+  warns about
   by name. The game renamed the `match_history` column in the DOM and kept the
   key in the JSON; reading the DOM finding into the data makes this return 0,
   and a 0 is silent -- the league simply stops fighting, and league wins are
@@ -1258,4 +1259,4 @@ introduced, the suite run, and reverted:
 | 2026-08-17 | Stage 5 task 5.4: inspector v4.9.0 captures the hero's own equipment; `spec/fixtures/equipment/hero-armor.json` added and `parseArmorItem` fed from it. The capture confirms the worn/inventory id asymmetry, the string `chance`, and the absent `resonance_bonuses` key. Two tests deleted in 5.1 return as `the model against the capture`, measured against a real capped mythic. All fixtures re-cut from the surviving dump. Merged via PR #1828. 1183 -> 1185 tests |
 | 2026-08-17 | Stage 5 finished: 1396 -> 1185 tests, 93 -> 82 suites, across PRs #1826, #1827 and #1828. First live run: 11 OK, 1 DRIFT, 0 ERROR -- and the DRIFT was a dead claim in the checker, not a change in the game. The `quality` job, red on main since 2026-08-16, is green again with the lint ceiling at the real number (1046). Carried forward: the `item.ico` decision for `getRewardTypeByData` |
 | 2026-09-09 | ADR-012: eight hand-written `isEnabled` conditions replaced by one table (`Service/FeatureGate`), covered by a table-driven spec pair -- 66 tests from ~14 written cases, all four hand-run mutations caught. `Pantheon.pure.decideIsEnabled` and its four tests folded in. Three test traps from the same session written up above. 1558 -> 1619 tests, 98 -> 100 suites |
-| 2026-09-09 | Write-path pass: `LeagueHelper.numberOfFightAvailable` (9 tests, the match_history/match_history_sorting trap from CLAUDE.md) and `PlaceOfPower.girlPower` / `chooseGirlsTeam` (13 tests, including the array the recursion empties). PlaceOfPower 9.8 -> 20.7 % statements, League 6.4 -> 8.1 %. Recorded that EquipmentGear and Champion are not the gap their numbers suggest -- their decisions already sit at 94-100 % in the extracted services. 1637 -> 1659 tests, 102 -> 104 suites |
+| 2026-09-09 | Write-path pass: `LeagueHelper.numberOfFightAvailable` (9 tests, the match_history/match_history_sorting trap from Repo-Leitfaden) and `PlaceOfPower.girlPower` / `chooseGirlsTeam` (13 tests, including the array the recursion empties). PlaceOfPower 9.8 -> 20.7 % statements, League 6.4 -> 8.1 %. Recorded that EquipmentGear and Champion are not the gap their numbers suggest -- their decisions already sit at 94-100 % in the extracted services. 1637 -> 1659 tests, 102 -> 104 suites |

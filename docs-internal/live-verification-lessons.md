@@ -166,7 +166,7 @@ debugging convenience, never as an access path.
 probe that prints the object prints the account id -- into the terminal, the
 task log and any transcript of either. *Guard:* redact in the probe, before the
 value is printed, not in the report afterwards. `check:player-data` can also be
-given the identifiers to match on; see CLAUDE.md.
+given the identifiers to match on; see the repository guide.
 
 **A single session at a time.**
 The game appears to allow one active session per account. A headless session
