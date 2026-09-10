@@ -90,6 +90,24 @@ einem neuen Klon einmal einrichten:
 npm run hooks:install    # setzt core.hooksPath auf .githooks
 ```
 
+`check:player-data` prüft die **Form**, in der solche Daten hereinkommen: die
+Personen-Schlüssel des Spiel-JSON mit einer Zahl dahinter, ein Namensfeld mit
+Wert, und in Markdown-Dateien das Wort Konto oder Account mit einer Nummer
+direkt daran. Eine nackte Kennung ohne solchen Schlüssel kommt da durch. Wer
+seine eigenen Kennungen kennt, lässt zusätzlich auf den **Wert** prüfen:
+
+```
+HHAUTO_PRIVATE_IDS="123456 7890"    # direkt
+HHAUTO_PRIVATE_IDS_FILE=<pfad>      # eine Kennung je Zeile, # ist Kommentar
+# sonst ~/.config/hhauto-claude/private-ids.txt, falls vorhanden
+```
+
+Die Liste bleibt außerhalb des Repos; liegt der Pfad doch darin und git
+ignoriert ihn nicht, bricht das Tor ab. Ein Fund nennt Datei, Zeile und die
+Position in der Liste -- **nie den Wert**, sonst stünde die Kennung im
+Terminal und im CI-Protokoll. Ohne konfigurierte Liste verhält sich das Tor
+wie zuvor, damit ein fremder Klon unverändert läuft.
+
 ## Live gegen das Spiel messen
 
 Eine Sitzung pro Konto — der eigene Browser muss ausgeloggt sein. Die
