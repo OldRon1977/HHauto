@@ -7,7 +7,7 @@ Accepted
 2026-09-09
 
 ## Kehrt um
-Die Regel im Abschnitt "Live gegen das Spiel messen" in `CLAUDE.md`:
+Die Regel im Abschnitt "Live gegen das Spiel messen" des Repo-Leitfadens:
 
 > Schreibende Pruefungen bleiben Handarbeit; ein Pruefer, der kauft oder
 > speichert, ist ein Bot mit anderem Namen.
@@ -74,7 +74,7 @@ Konto ist schreibende Automatisierung erlaubt.**
 
 ### Was ein Befund vom Pruefkonto ist
 
-Unveraendert das, was `CLAUDE.md` verlangt: am Aufrufort gemessen, Seite
+Unveraendert das, was der Repo-Leitfaden verlangt: am Aufrufort gemessen, Seite
 und Zustand benannt, und getrennt notiert, welche Aussage aus der Messung
 und welche aus einer Ableitung stammt. Ein schreibender Durchgang liefert
 mehr Gelegenheiten fuer einen Fehlschluss, nicht weniger -- der
@@ -118,7 +118,7 @@ selben Spiel.
 - Schreibende Pfade koennen vor der Auslieferung einmal gegen den echten
   Server gelaufen sein. Das ist eine Moeglichkeit, keine Zusage: geprueft
   ist, was jemand geprueft hat.
-- `CLAUDE.md` traegt die Regel weiter, jetzt mit dem Zusatz, fuer welches
+- Der Repo-Leitfaden traegt die Regel weiter, jetzt mit dem Zusatz, fuer welches
   Konto sie gilt, und mit Verweis auf diese ADR.
 - Ein neuer Weg, Spielerdaten zu verlieren, ist entstanden: das Konto
   produziert Logs, Screenshots und Fixtures. `npm run check:player-data`
@@ -128,7 +128,7 @@ selben Spiel.
   Nutzer-Log nach dem Release.
 
 ## Referenzen
-- `CLAUDE.md`, Abschnitt "Live gegen das Spiel messen"
+- Repo-Leitfaden, Abschnitt "Live gegen das Spiel messen"
 - `docs-internal/live-verification-lessons.md` -- warum eine Messung am
   falschen Ort einen Fehler erfindet
 - `scripts/live-check/README.md` -- der lesende Checker, der bleibt, was

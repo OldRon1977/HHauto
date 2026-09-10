@@ -6,7 +6,7 @@ import type { KKLeagueOpponent } from "../../src/model/KK/KKLeagueOpponent";
 /**
  * How many fights are left against one league opponent.
  *
- * This is the function CLAUDE.md warns about by name: the game renamed the
+ * This is the function the repository guide warns about by name: the game renamed the
  * `match_history` column **in the DOM** and kept the key **in the JSON**.
  * Reading the DOM finding into the data makes this return 0, and a 0 here is
  * silent -- no error, no log line, the league simply never fights. League
@@ -53,7 +53,7 @@ describe("LeagueHelper.numberOfFightAvailable", () => {
     });
 
     it("reads match_history, not the match_history_sorting number beside it", () => {
-        // The whole point of the CLAUDE.md warning: an opponent carries both,
+        // The whole point of that warning: an opponent carries both,
         // and only one of them is a history. Taking the other would throw or
         // yield 0 -- either way the league stops fighting without saying so.
         const withBoth = opponent([null, null]);
