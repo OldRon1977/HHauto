@@ -261,7 +261,34 @@ opponentTurn(turns)
   -> mergeResult
 
 
-Cache-Logik ist im Code auskommentiert: ein simpler _cache[playerHP][opponentHP]-Lookup wuerde nicht zwischen Shield/Stun/Reflect-Zustaenden differenzieren und die Ergebnisse verfaelschen.
+### Memo in playerTurn
+
+Der Baum ist exponentiell in der Zahl der Schlagabtausche, die ein Kampf
+braucht. Gemessen gegen die Fassung ohne Memo, ein Gegner, synchron:
+12 Schlagabtausche 95 ms, 14 → 502 ms, 16 → 3,1 s, 18 → 19,9 s.
+
+playerTurn memoisiert daher ueber den vollstaendigen Zustand: beide Ego-Werte,
+beide Schilde, beide Stun- und Reflect-Zaehler und **turns**. turns gehoert in
+den Schluessel, weil calculateDmg Angriff und Verteidigung mit turns
+potenziert -- dasselbe Ego-Paar eine Runde spaeter ist ein anderer Zustand.
+Genau daran scheiterte die frueher auskommentierte Skizze
+`_cache[playerHP][opponentHP]`: auf das Ego-Paar allein geschluesselt haette
+sie fremde Ergebnisse zurueckgegeben.
+
+Mit Memo dauern dieselben Kaempfe 3 bis 6 ms und liefern **bitgleiche** Werte;
+sie besuchen 507 bis 1786 Knoten und kommen dem Budget unten nicht nahe.
+
+Der Memo ist nur eingeschaltet, solange der Schaden pro Zug konstant ist, also
+ohne Tier-4-Schadens- oder Verteidigungsbonus auf beiden Seiten. Mit einem
+solchen Bonus unterscheidet sich der Schaden je Zug, die Ego-Werte fallen nicht
+mehr zusammen, und die Map ist reiner Aufwand -- gemessen 290,5 ms gegen
+291,7 ms fuer denselben Kampf. `_memoEnabled` laesst diesen Fall deshalb auf
+der reinen Rekursion, wo das Budget ihn begrenzt.
+
+Er greift ausserdem nicht bei negativem Schaden: `opponentShield -
+attack.damageAmount` laesst den Schild dann *wachsen*, und zwar im Krit-Ast
+staerker als im Grundast, so dass die Zustaende auseinanderlaufen. Ein Patt
+kostet deshalb rund 390 ms und laeuft ins Budget.
 
 ### Schadensformel (calculateDmg)
 
@@ -302,7 +329,26 @@ Die symmetrische Variante laeuft im opponentAttack mit getauschten Rollen.
 
 ### Cap und Abbruch
 
-maxAllowedTurns = 50. Wird das ueberschritten, wirft die Funktion einen Error. Der try/catch in calculateBattleProbabilities faengt ihn ab und liefert ein leeres {} als BDSMSimu-Stub. Aufrufer muessen also pruefen, ob simu.win definiert ist.
+Zwei Grenzen, beide liefern ein Ergebnis statt zu werfen:
+
+- `maxAllowedTurns = 50` begrenzt die Tiefe.
+- `MAX_SIMULATION_NODES = 200_000` begrenzt die **Arbeit**. Die Tiefe allein
+  tut das nicht: vier Aeste je Runde heisst Tiefe 50 gleich 4^50 Knoten.
+
+Wird eine der beiden erreicht, endet dieser Ast mit einem halbe-halbe-Ergebnis
+(`win: 0.5, loss: 0.5`) und zwei Punktwerten zu je 0,5, gebildet mit denselben
+Formeln wie die Sieg- und Niederlage-Blaetter. Laufen alle Aeste in die Grenze,
+kommt der Kampf mit genau 50 % heraus -- das ist die Markierung fuer
+"unentschieden". Loesen nur einige Aeste nicht auf, bleiben die Ergebnisse der
+uebrigen erhalten.
+
+Frueher warf die Funktion an dieser Stelle. Der try/catch in
+calculateBattleProbabilities lieferte dann ein leeres `{}`, und
+`LeagueHelper.getSimPowerOpponent` las darauf `simu.points` ohne Pruefung. Der
+TypeError landete in `SimPower()`, einer async-Funktion, die niemand awaitet --
+die Ligenliste hoerte beim ersten solchen Gegner auf, sich zu fuellen. Das
+Ergebnis traegt jetzt immer `points`; die Pruefung im Aufrufer steht trotzdem,
+weil der try/catch bei einem anderen Fehler weiterhin `{}` liefern kann.
 
 ### Aggregation
 
@@ -368,8 +414,8 @@ Summiert das percentage_value-Feld aller team.girls[*].skills[id] und gibt 1 + (
 
 ## Bekannte Grenzen / Designentscheidungen
 
-1. **Vollstaendige Branch-Exploration statt Monte-Carlo.** Der Simulator besucht jeden moeglichen Crit/Non-Crit-Pfad und gewichtet ihn -- exakt aber exponentiell in der Rundenzahl.
-2. **Cache abgeschaltet.** Die HP-Tupel-Memoization wuerde Shield/Stun/Reflect-Zustaende nicht erfassen und falsche Ergebnisse cachen.
+1. **Vollstaendige Branch-Exploration statt Monte-Carlo.** Der Simulator besucht jeden moeglichen Crit/Non-Crit-Pfad und gewichtet ihn -- exakt, aber exponentiell in der Rundenzahl, solange der Memo nicht greift. Wo das Budget zuschlaegt, ist der Wert eine Naeherung: gemessen an einem 16-Runden-Kampf ohne Memo 51,7 % gegen exakt 61,3 %.
+2. **Memo nur bei konstantem Schaden.** playerTurn memoisiert ueber den vollen Zustand samt turns. Mit Tier-4-Bonus oder negativem Schaden faellt der Lauf auf die reine Rekursion zurueck; dort begrenzt ihn das Knotenbudget, und der Wert wird zur Naeherung.
 3. **Tier-4 Defense ignoriert.** Der def-Faktor wird nie populiert (estimateTier4SkillValue setzt def: 0). Tier-4-Defense-Skills haben keinen Sim-Effekt.
 4. **Skill-Schaetzung statt API.** Da exakte Skill-Werte nicht zuverlaessig vom Game-API geliefert werden, werden feste Faktoren pro skill_points_used verwendet (Tier-4: 0.002; Tier-5: 0.07/0.08/0.2/0.08 je Element-Familie).
 5. **Asymmetrie League vs. Season.** Liga rechnet Element-Domination auf Ego/Attack/Defense, Season nicht. Domination-Crit-Bonus gilt in beiden Modi.
