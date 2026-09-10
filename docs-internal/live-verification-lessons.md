@@ -1,17 +1,19 @@
 # Live verification: how to test HHAuto against the running game
 
-Status: 2026-08-15. Written after the v8.5.5 session, in which seven fixes were
+Status: 2026-09-10. Written after the v8.5.5 session, in which seven fixes were
 verified against the live game and **three suspected defects turned out to be
 measurement errors** -- one of them only after it had already been implemented
-and had to be reverted.
+and had to be reverted. Extended after the 8.13.x session, which produced the
+same outcome by a different route: three commits withdrawn because the
+mechanism they changed was read at the wrong step, not on the wrong page.
 
 This document exists so the same mistakes are not repeated. It is not about
 jest; it is about the class of testing that jsdom cannot do: checking whether
 the selectors and game globals the script depends on still hold.
 
-## The one root cause behind every false finding
+## The first root cause: measuring where the element is expected
 
-All three retracted findings had the same shape:
+All three retracted findings of the 8.5.5 session had the same shape:
 
 > The element/global was measured **where it was expected to exist**,
 > not **where the code actually reads it**.
@@ -43,6 +45,60 @@ state.** Concretely:
 
 A `0` without a stated context is not a finding. It is an unfinished
 measurement.
+
+## The second root cause: measuring the middle of a chain
+
+Added 2026-09-10, after a fix was shipped, run live, and withdrawn again.
+
+The 2026-08 lesson above is about measuring on the wrong **page**. This one is
+about measuring at the wrong **step**, and it survives every check in the list
+above: the call site was right, the page was right, the reading was correct.
+
+`ParanoiaService` plans a spend-down before each rest period. A module that
+cannot act -- league blocked by a rank threshold, quest out of energy -- sets a
+`paranoia<X>Blocked` marker. It was measured that `setParanoiaSpendings` plans
+a category **even when its marker is set**, and concluded from that single true
+observation that the markers had no effect. Three commits followed.
+
+The compensation sits one step further along. `checkParanoiaSpendings` removes
+the marked category from the map, so the total drops, and `flipParanoia` reads
+`ParanoiaService.checkParanoiaSpendings() === 0` as "the spend-down is done"
+and goes into hiding. Measured against main 8.12.4 on the test account: League
+set the marker at 08:39:43 with a plan of `[["challenge",2]]`, and the flip to
+rest followed at 08:39:46. The mechanism works; the description of it in the
+comments is what is imprecise.
+
+The third of the three commits moved the per-tick reset off the full clear, and
+that reset is what the working path depends on -- so the "fix" would have
+broken the behaviour it was written to protect, in a way no unit test would
+have caught, because the tests were written from the same wrong model.
+
+**The rule:** a claim about a mechanism has to name the step that *consumes*
+the value, not only the step that produces it. Follow the value to its last
+reader before deciding it has no effect.
+
+## Compare against `main`, not against your own last build
+
+Corollary, from the same session. Whether a defect is real is decided against
+the state before *all* of your own changes, not against your previous build --
+otherwise a defect you introduced and then removed reads as a defect you fixed.
+
+```
+git show main:HHAuto.user.js > /tmp/main-bundle.user.js
+~/.config/hhauto-claude/tools/play-session.js --minutes 25 --bundle /tmp/main-bundle.user.js
+```
+
+Two things this produced that no static reading would have:
+
+- the paranoia flip sequence above, which refuted the premise of three commits;
+- four page exceptions (`t.forEach is not a function`, `reading 'daily'`) that
+  had been attributed to a change of mine and turned out to predate it.
+
+The static half is cheaper and comes first: for each claimed defect, show the
+same code in `main` (`git show main:<file>`), and check with
+`git diff main...<branch-start> -- <file>` that the file was not already
+touched by your own earlier work. A defect that only exists after your
+branch-start commit is a regression you caused, not a finding.
 
 ## Harness pitfalls, each observed in this session
 
@@ -160,6 +216,10 @@ Before claiming a defect:
 - [ ] Measured in the state the code runs in, not where the element is expected.
 - [ ] A count of `0` has a stated explanation.
 - [ ] Both directions checked where a toggle exists.
+- [ ] The value followed to its **last** reader, not only to the step that
+      produces it.
+- [ ] The same code shown to exist in `main`, and the file shown to be
+      untouched by your own branch before that point.
 
 Before shipping a fix:
 
@@ -185,7 +245,10 @@ was used for:
   evict yours trying.
 
 The older harness scripts live outside the repo (they carry a logged-in browser
-profile): `~/.config/hhauto-claude/tools/`. They inject the built
+profile): `~/.config/hhauto-claude/tools/`. `play-session.js` takes
+`--bundle <path>`, which injects an arbitrary build instead of the working
+tree's -- that is how a branch is compared against `main` under the same
+account and the same settings. They inject the built
 `HHAuto.user.js` with Tampermonkey shims (`GM_addStyle`, `GM.info`,
 `unsafeWindow`) via `addInitScript`, so the script survives navigations the way
 it does under Tampermonkey.
