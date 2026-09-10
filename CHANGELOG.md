@@ -25,6 +25,16 @@ The click is now followed by `waitForAjaxIdle`, the same primitive the sibling
 `Champion` module already uses after a content-loading click. A tab that never
 settles is read anyway, with a log line, rather than stalling the handler.
 
+**What this was measured to change, and what it was not.** Re-run against the
+same account: the gap between the click and the read went from 12 ms to 264 ms
+and the wait reported the tab settled. The reading did **not** change -- still
+`No timer found`, still `next timer:-1`. The outcome on that account is decided
+one condition further along: the branch that walks on to the champion page
+needs `Started` (exactly one `.player-row` in the challenges list) or
+`Setting_autoClubForceStart`, and neither held. So this closes a synchronous
+read that was wrong on its own terms; it is not, on this evidence, what stands
+between the handler and a club champion fight.
+
 (The doubled `next timer:-1` in the log is not a second attempt:
 `doClubChampionStuff` reads the timer once and `updateClubChampionTimer` reads
 it again at the end of the same pass.)
