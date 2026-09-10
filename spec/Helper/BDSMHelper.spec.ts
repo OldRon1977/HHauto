@@ -355,6 +355,25 @@ describe('BDSMHelper', () => {
             });
         });
 
+        // This one is the memo's guard, not the budget's: an 18-exchange fight
+        // visits 1,786 nodes with the memo and 7.4 million without, so the
+        // budget never sees it and the bound is what the memo buys. Measured
+        // at 19.0 s on the plain recursion against 9 ms here, for the very same
+        // number asserted below. The bound has to
+        // be asserted by hand -- calculateBattleProbabilities is synchronous,
+        // so Jest's own timeout never interrupts it and a slow run passes.
+        it('answers a long fight in a bound the plain recursion misses', () => {
+            const player = new BDSMPlayer(18000, 1000, 0, 0.25, noBonuses, noTier4, noTier5, 'A');
+            const opponent = new BDSMPlayer(18000, 1000, 0, 0.25, noBonuses, noTier4, noTier5, 'B');
+
+            const startedAt = Date.now();
+            const result = calculateBattleProbabilities(player, opponent, false);
+            const elapsed = Date.now() - startedAt;
+
+            expect(elapsed).toBeLessThan(2000);
+            expect(result.win).toBeCloseTo(0.6069564547400814, 12);
+        });
+
         describe('a fight it cannot finish', () => {
             // Neither side gets through the other's defence, so no branch ever
             // ends. Before the even-split exit this threw, calculateBattleProbabilities
