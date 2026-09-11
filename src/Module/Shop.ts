@@ -7,6 +7,7 @@
 //
 // Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
+import { POWER_CALC_IMAGES } from "../config/Images";
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { HeroHelper } from "../Helper/HeroHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
@@ -387,7 +388,7 @@ export class Shop {
             {
                 $(inFilter).each(function(){
                     this.setAttribute("menuSellLocked", "");
-                    $(this).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="https://i.postimg.cc/PxgxrBVB/Opponent-red.png">');
+                    $(this).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="' + POWER_CALC_IMAGES.minus + '">');
                 });
             }
             else
