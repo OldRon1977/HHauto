@@ -131,8 +131,9 @@ Gemessen 2026-09-11 aus `element_data.flavor`:
 | psychic | Voyeur |
 | light | Submissive |
 
-`BlessingService.parseElement` und `TeamModule.CLASS_NAME` fuehren die beiden
-letzten Zeilen vertauscht; im Simulator selbst spielt der Name keine Rolle.
+`BlessingService.parseElement` und `TeamModule.CLASS_NAME` fuehrten die beiden
+letzten Zeilen bis 8.13.1 vertauscht; im Simulator selbst spielt der Name keine
+Rolle.
 
 **Achtung Verwechslungsgefahr:** "Klasse" ist hier doppeldeutig. Es gibt zwei Begriffe:
 

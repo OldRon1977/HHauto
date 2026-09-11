@@ -243,10 +243,10 @@ Measured 2026-09-11, with `plusEvent*`, Boss Bang, Sultry and raid settings off
 as well and an empty `Temp_eventsList`: the navigation is `handleEventParsing`
 (`block=handleEventParsing page=home`, then `/event.html?tab=path_event_110`,
 12 s after the start). A Path of Attraction that is not yet in the registry is
-a visit target, and `EventModule.getEvent` counts it as enabled on the unlock
-alone -- no setting is involved. Double Penetration and Lively Scene ids are
-enabled the same way, unconditionally (read from the code, not measured: no
-such event was running).
+a visit target, and `EventModule.getEvent` counted it as enabled on the unlock
+alone -- no setting was involved; Double Penetration and Lively Scene ids
+unconditionally. Since 8.13.1 these three collect-only types count only with
+one of their collect switches on or a manual collect-all pending.
 *Guard:* take the result from the log lines as they arrive, not from a final
 read. Save every `HHAuto_Setting_*` before the run and write them back in a
 `finally`; leave `master` off afterwards so a later injection starts nothing.
