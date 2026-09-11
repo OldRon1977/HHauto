@@ -16,7 +16,7 @@ import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
-import { checkTimer, clearTimer, getSecondsLeft } from "../Helper/TimerHelper";
+import { checkTimer, clearTimer, getSecondsLeft, setTimer } from "../Helper/TimerHelper";
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { gotoPage } from "../Service/PageNavigationService";
 import {
@@ -39,6 +39,11 @@ import { LoveRaidManager } from "./Events/LoveRaidManager";
 import { Harem } from "./harem/Harem";
 
 export class Troll {
+    /** Timer set when the waifu page gave no usable girl list; while it runs,
+     *  no other page sends the run back there for the list. */
+    static readonly WAIFU_LIST_RETRY_TIMER = 'nextTrollWaifuListAttempt';
+    static readonly WAIFU_LIST_RETRY_SECS = 600;
+
 
     static getEnergy() {
         return Number(getHHVars('Hero.energies.fight.amount'));
@@ -71,7 +76,10 @@ export class Troll {
      * the list getGirlsList() handed over held 22, and with no stored
      * snapshot getTrollIdToFight reloaded the page every four seconds. Read
      * for the same account, the page listed all 24. Where the 22 came from is
-     * not established; getGirlsList() prefers OCD's stored map over the page.
+     * not established. It was not OCD's stored map, which getGirlsList()
+     * prefers over the page: that map existed neither in the reporting
+     * browser nor on the test account (checked 2026-09-11), and girlsDataList
+     * on the home page carried all 24 from its first appearance.
      */
     static getTrollWithGirls() {
         const waifuPageGirls = Harem.getWaifuPageGirlsList();
@@ -281,6 +289,13 @@ export class Troll {
                     // waifu<->home loop. No target; the love-raid fallback still runs.
                     if (logging) logHHAuto("The waifu page gave no usable girl list either; no troll target for now.");
                     waifuGaveNoList = true;
+                    // Hold the way back as well: handleGoHome takes the run home,
+                    // and from there this branch sent it straight back -- measured
+                    // 2026-09-11 as a waifu<->home cycle every ~14 s.
+                    if (allowSideEffects) setTimer(Troll.WAIFU_LIST_RETRY_TIMER, Troll.WAIFU_LIST_RETRY_SECS);
+                } else if (!checkTimer(Troll.WAIFU_LIST_RETRY_TIMER)) {
+                    if (logging) logHHAuto("The waifu page gave no usable girl list a moment ago; not going back before its timer runs out.");
+                    waifuGaveNoList = true;
                 } else {
                     if (logging) logHHAuto("Need girls list, going to Waifu page to get them");
                     if (!allowSideEffects) return 0;
@@ -462,6 +477,11 @@ export class Troll {
         let TTF = Troll.getTrollIdToFight();
         const trollz = ConfigHelper.getHHScriptVars("trollzList");
         const currentPage = getPage();
+
+        // -1: getTrollIdToFight is on its way to the waifu page for the girl
+        // list. That is not "no target"; saying so in the log read like a
+        // decision right after the navigation line.
+        if (TTF === -1) return false;
 
         if (!TTF || TTF <= 0) {
             const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();

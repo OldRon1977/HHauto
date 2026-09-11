@@ -442,6 +442,17 @@ export class EventModule {
         const isLivelyScene = inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'));
         const isCumback = "cumback" === eventType;
         const isKinky = "kinky" === eventType;
+        // Double Penetration, Lively Scene and Path of Attraction are events
+        // the script only collects on. A visit is worth it when one of their
+        // collect switches is on or a manual collect-all is waiting; without
+        // that the run parsed the page and did nothing there -- measured
+        // 2026-09-11, with every auto* switch off except autoQuest, the run
+        // went to a Path of Attraction twelve seconds in. The type flags stay
+        // as they are: on the event page itself the buttons are still drawn.
+        const on = (key: string) => getStoredValue(HHStoredVarPrefixKey + key) === "true";
+        const wantsDP = on(SK.autodpEventCollect) || on(SK.autodpEventCollectAll);
+        const wantsLivelyScene = on(SK.autoLivelySceneEventCollect) || on(SK.autoLivelySceneEventCollectAll) || on(TK.lseManualCollectAll);
+        const wantsPoa = on(SK.autoPoACollect) || on(SK.autoPoACollectAll) || on(TK.poaManualCollectAll);
         return {
             eventTypeKnown: eventType !== '',
             eventId: inEventID,
@@ -455,7 +466,8 @@ export class EventModule {
             isPoa: isPoa, // and activated
             isCumback: isCumback,
             isKinky: isKinky,
-            isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent || isDPEvent || isPoa || isLivelyScene
+            isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent
+                || (isDPEvent && wantsDP) || (isPoa && wantsPoa) || (isLivelyScene && wantsLivelyScene)
         }
     }
 

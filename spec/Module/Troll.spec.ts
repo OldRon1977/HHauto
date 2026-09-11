@@ -567,6 +567,27 @@ describe("Troll module", function () {
             expect(getStoredValue(HHStoredVarPrefixKey + TK.autoLoop)).not.toBe('false');
         });
 
+        it("holds the way back to the waifu page after it gave no list", function () {
+            // Measured 2026-09-11: waifu (no list) -> handleGoHome -> home ->
+            // "Need girls list" -> waifu, every ~14 s.
+            const { clearTimer } = require("../../src/Helper/TimerHelper");
+            localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+            localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '98');
+            jest.spyOn(Troll, 'getTrollWithGirls').mockReturnValue([]);
+            try {
+                MockHelper.mockPage('waifu');
+                Troll.getTrollIdToFight(false);
+
+                MockHelper.mockPage('home');
+                const TTF = Troll.getTrollIdToFight(false);
+
+                expect(TTF).toBe(0);
+                expect(getStoredValue(HHStoredVarPrefixKey + TK.autoLoop)).not.toBe('false');
+            } finally {
+                clearTimer(Troll.WAIFU_LIST_RETRY_TIMER);
+            }
+        });
+
         it("returns custom troll index when autoTrollSelectedIndex set (1-97)", function () {
             localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
             localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '3');

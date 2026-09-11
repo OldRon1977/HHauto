@@ -44,33 +44,57 @@ export function getHero():KKHero
     return unsafeWindow.shared?.Hero as KKHero;
 }
 
-// Tracks the last stat-buy attempt so a buy that does not advance the
-// shared Hero values (issue #1735: on some pages, e.g. the level-up reward
-// screen, the buy never reflects in shared.Hero) stops the self-rescheduling
-// loop instead of repeating forever. Timestamp-gated so a later, unrelated
-// run on the same page load is not mistaken for no-progress.
+// The game answers hero_update_stats but does not move
+// shared.Hero.infos.caracN in the running document -- measured 2026-09-11 on
+// /waifu.html: the value changed only after a reload. A confirmed buy
+// therefore advances the local value itself, the way the money is already
+// deducted locally. A buy that is never confirmed (issue #1735: the level-up
+// reward screen) leaves the value where it was, and the next call stops
+// instead of repeating forever. Timestamp-gated so a later, unrelated run on
+// the same page load is not mistaken for no-progress.
 let lastStatAttempt: { carac: number; value: number; ts: number } | null = null;
+
+// The stat cap the game sends back with every buy (statsPrices.max). It is the
+// hero's base stat plus 30 per level -- measured 575 + 30 x 115 = 4025 -- so
+// level * 30 alone stops one base stat short of it. Used once an answer is in.
+let gameStatMax: number | null = null;
+
+/**
+ * Money for raising a stat from `stat` by `count` points. The game charges
+ * each point at the curve value of the level it reaches: measured 2026-09-11,
+ * 2541 -> 2542 cost 6,173, the curve value of 2542, and the answer then quoted
+ * 6,177 (the value of 2543) for the next point.
+ */
+export function statBuyPrice(stat: number, count: number): number
+{
+    let total = 0;
+    for (let k = 1; k <= count; k++)
+    {
+        const s = stat + k;
+        total += 5 + s*2 + Math.max(0,s-2000)*2 + Math.max(0,s-4000)*2 + Math.max(0,s-6000)*2 + Math.max(0,s-8000)*2;
+    }
+    return total;
+}
 
 export function doStatUpgrades()
 {
     //Stats?
     var Hero=getHero();
-    var stats=[getHHVars('Hero.infos.carac1'),getHHVars('Hero.infos.carac2'),getHHVars('Hero.infos.carac3')];
+    var stats=[getHHVars('Hero.infos.carac1'),getHHVars('Hero.infos.carac2'),getHHVars('Hero.infos.carac3')].map(Number);
     var money = HeroHelper.getMoney();
     var M=Number(getStoredValue(HHStoredVarPrefixKey+SK.autoStats));
     var MainStat = stats[HeroHelper.getClass() -1];
-    var Limit = HeroHelper.getLevel() * 30;//HeroHelper.getLevel()*19+Math.min(HeroHelper.getLevel(),25)*21;
+    var Limit = gameStatMax ?? HeroHelper.getLevel() * 30;
     var carac = HeroHelper.getClass();
     var mp=0;
     var mults=[60,30,10,1];
     for (var car=0; car<3; car++)
     {
         var s=stats[carac-1];
-        for (var mu=0;mu<5;mu++)
+        for (var mu=0;mu<mults.length;mu++)
         {
             var mult=mults[mu];
-            var price = 5+s*2+(Math.max(0,s-2000)*2)+(Math.max(0,s-4000)*2)+(Math.max(0,s-6000)*2)+(Math.max(0,s-8000)*2);
-            price*=mult;
+            var price = statBuyPrice(s, mult);
             if (carac == HeroHelper.getClass())
             {
                 mp=price;
@@ -82,9 +106,8 @@ export function doStatUpgrades()
                     && (nowTs - lastStatAttempt.ts) < 3000
                     && lastStatAttempt.carac === carac
                     && lastStatAttempt.value === stats[carac-1]) {
-                    logHHAuto('doStatUpgrades: stat carac'+carac+'='+stats[carac-1]
-                        +' did not advance after the last buy (page='+location.pathname
-                        +'); stopping to avoid an infinite loop.');
+                    logHHAuto('doStatUpgrades: the last buy of carac'+carac+' was not confirmed by the game'
+                        +' (page='+location.pathname+'); stopping to avoid an infinite loop.');
                     lastStatAttempt = null;
                     return;
                 }
@@ -96,13 +119,21 @@ export function doStatUpgrades()
                     action: "hero_update_stats",
                     nb: mult
                 };
+                const bought = carac;
+                const boughtBy = mult;
+                const cost = price;
                 getHHAjax()!(params, function(data: any) {
                     logHHAuto('doStatUpgrades resp: success='+!!(data && data.success)
                         +' page='+location.pathname
-                        +' carac'+carac+'='+getHHVars('Hero.infos.carac'+carac)
+                        +' carac'+bought+'='+getHHVars('Hero.infos.carac'+bought)
                         +' money='+HeroHelper.getMoney()
                         +' data='+JSON.stringify(data).slice(0,300));
-                    Hero.update("soft_currency", 0 - price, true);
+                    if (!data || !data.success) return;
+                    const infos = Hero.infos as unknown as Record<string, number>;
+                    infos['carac' + bought] = Number(infos['carac' + bought]) + boughtBy;
+                    const max = Number(data.statsPrices?.max);
+                    if (max > 0) gameStatMax = max;
+                    Hero.update("soft_currency", 0 - cost, true);
                 });
                 setTimeout(doStatUpgrades, randomInterval(300,500));
                 return;

@@ -21,7 +21,30 @@ Older entries below were migrated 1:1 from `README.md`.
   starts when it is written, not when the calculation began.
 - **Gear tools:** the status messages of Current and Possible Best Gear, Mark
   Keepers and Upgrade Gear, and their popup titles, follow the menu language.
-  The plan previews and the Mark Keepers result are still English.
+  So do the plan previews with their slot and priority names, the progress
+  while equipping, the Mark Keepers result and the Upgrade Gear preview; only
+  the log stays English.
+- **Stat buying:** with the stats option on, a page load bought one step and
+  then logged "did not advance ... stopping". The game does not update the
+  hero's stat in the page after a buy -- the purchase went through, the number
+  on the page stayed. The script now counts a confirmed buy itself, keeps
+  buying up to the cap the game reports with each buy (the hero's base stat
+  plus 30 per level, where the script used 30 per level), and prices each
+  point at the level it reaches, which it had put one step low.
+- **Blessings:** an element blessing for Submissive was read as psychic and one
+  for Voyeur as light -- the other way round from the game's own element data.
+  A Rarity blessing (such as "Rarity Legendary") is now recognised as well.
+  Team scoring was not affected: it reads the bonus each girl carries.
+- **Market sell tools:** the stat and slot filters of the sell menu matched
+  nothing, and the count for stat 1 included the items with stats 10 to 16.
+- **Events:** Double Penetration, Lively Scene and Path of Attraction events are
+  visited only when one of their collect options is on or a manual *Collect
+  all* is waiting. With all of them off the script used to go to the event page
+  anyway and do nothing there.
+- **Troll battles:** when the waifu page gives no usable girl list, the script no
+  longer goes waifu -> home -> waifu every few seconds; it waits ten minutes
+  before asking that page again.
+- **Log:** a single Place of Power page is no longer reported as an unknown page.
 - **Troll battles:** with *First/Last troll with girl*, the script could
   reload the waifu page every few seconds without end. It happened after an
   update, which empties the stored troll list, when the girl list the script
@@ -33,6 +56,8 @@ Older entries below were migrated 1:1 from `README.md`.
 #### Internal
 
 - An unused field removed from the simulator's player model.
+- Two unused selector constants removed; four code comments that described the
+  game wrongly corrected.
 
 ### v8.13.0 - Gates for a young account
 

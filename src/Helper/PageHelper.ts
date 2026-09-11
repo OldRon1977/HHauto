@@ -241,7 +241,11 @@ export function getPage(checkUnknown = false): string
                 isKnown = true;
             }
         }
-        if (!isKnown && page)
+        // A single place of power resolves to "powerplace" + its id, which no
+        // pagesKnownList entry can name. Recording it as unknown logged
+        // "Page unknown for script : powerplace0" on every visit although
+        // nothing about the game had changed (measured 2026-09-11).
+        if (!isKnown && page && !/^powerplace\d+$/.test(page))
         {
             const unknownPageList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.unknownPagesList, {});
             // Idempotent write: skip the JSON.stringify+setStoredValue round-trip

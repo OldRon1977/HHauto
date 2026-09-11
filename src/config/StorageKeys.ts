@@ -234,7 +234,7 @@ export const SK = {
 
     // Love Raid
     autoLoveRaidSelectedIndex: "Setting_autoLoveRaidSelectedIndex",
-    plusLoveRaidMythic: "Setting_autoLoveRaidMythicOnly", // now stores min grade (0=off, 3, 5, 6) instead of boolean
+    plusLoveRaidMythic: "Setting_autoLoveRaidMythicOnly", // raid-stars selection: off | exact3 | min3 | exact5 (key name kept from the old boolean)
 
     // Bundles
     autoFreeBundlesCollect: "Setting_autoFreeBundlesCollect",

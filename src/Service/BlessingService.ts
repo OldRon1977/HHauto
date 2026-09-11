@@ -163,6 +163,8 @@ export class BlessingService {
             if (desc.includes('hair color') || desc.includes('hair colour')) traits.push('hairColor');
             if (desc.includes('zodiac') || desc.includes('astrological') || (desc.includes('sign ') && !desc.includes('element'))) traits.push('zodiac');
             if (desc.includes('favourite position') || desc.includes('favorite position')) traits.push('position');
+            // Measured 2026-09-11: "Rarity Legendary +25%" as a league blessing.
+            if (desc.includes('rarity')) traits.push('rarity');
         }
         return traits;
     }
@@ -193,6 +195,8 @@ export class BlessingService {
                 values['zodiac'] = condition.replace(/(?:zodiac|astrological)\s*(?:sign)?\s*/i, '').replace(/^sign\s*/i, '').trim().toLowerCase();
             } else if (condition.toLowerCase().startsWith('favourite position') || condition.toLowerCase().startsWith('favorite position')) {
                 values['position'] = condition.replace(/favou?rite? position\s*/i, '').trim().toLowerCase();
+            } else if (condition.toLowerCase().startsWith('rarity')) {
+                values['rarity'] = condition.replace(/rarity\s*/i, '').trim().toLowerCase();
             } else if (condition.toLowerCase().startsWith('element')) {
                 // Element blessing handled by parseElement
             }
@@ -204,10 +208,13 @@ export class BlessingService {
         const active = response.active;
         if (!Array.isArray(active)) return undefined;
 
+        // Class names as the game's own element_data.flavor gives them
+        // (measured 2026-09-11 on 24 girls): light is Submissive, psychic is
+        // Voyeur. The two were swapped here before.
         const elementMap: Record<string, string> = {
             'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
             'physical': 'stone', 'playful': 'sun', 'dominatrix': 'darkness',
-            'submissive': 'psychic', 'voyeur': 'light',
+            'submissive': 'light', 'voyeur': 'psychic',
         };
 
         for (const blessing of active) {

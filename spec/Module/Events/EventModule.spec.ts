@@ -1,5 +1,6 @@
 import { getTimer, setTimer, setTimers } from "../../../src/Helper/TimerHelper";
 import { EventModule } from '../../../src/Module/Events/EventModule';
+import { PathOfAttraction } from '../../../src/Module/Events/PathOfAttraction';
 import { HHStoredVarPrefixKey } from "../../../src/config/HHStoredVars";
 import { MockHelper } from "../../testHelpers/MockHelpers";
 
@@ -46,6 +47,54 @@ describe("Event Module", function() {
     // event tab still carries those classes is checked in
     // scripts/live-check (spec triage 2026-08).
 
+
+    // Measured 2026-09-11: with every auto* switch off except autoQuest the
+    // run still went to a Path of Attraction, because getEvent counted it as
+    // enabled on the unlock alone. The collect-only event types now need one
+    // of their collect switches, or a pending manual collect-all.
+    describe("getEvent: which collect-only events are worth a visit", function () {
+        const setting = (key: string, value: string) => localStorage.setItem(HHStoredVarPrefixKey + key, value);
+        afterEach(() => {
+            jest.restoreAllMocks();
+            for (const key of ["Setting_autoPoACollect", "Setting_autoPoACollectAll", "Temp_poaManualCollectAll",
+                "Setting_autodpEventCollectAll", "Setting_autoLivelySceneEventCollect",
+                "Setting_autoLivelySceneEventCollectAll", "Temp_lseManualCollectAll"]) {
+                localStorage.removeItem(HHStoredVarPrefixKey + key);
+            }
+        });
+
+        it("a Path of Attraction needs a PoA collect switch or a pending manual collect", function () {
+            jest.spyOn(PathOfAttraction, 'isEnabled').mockReturnValue(true);
+            expect(EventModule.getEvent('path_event_110').isEnabled).toBe(false);
+            setting("Setting_autoPoACollect", 'true');
+            expect(EventModule.getEvent('path_event_110').isEnabled).toBe(true);
+            setting("Setting_autoPoACollect", 'false');
+            setting("Temp_poaManualCollectAll", 'true');
+            expect(EventModule.getEvent('path_event_110').isEnabled).toBe(true);
+        });
+
+        it("a Path of Attraction the account cannot enter stays off whatever the switches say", function () {
+            jest.spyOn(PathOfAttraction, 'isEnabled').mockReturnValue(false);
+            setting("Setting_autoPoACollect", 'true');
+            expect(EventModule.getEvent('path_event_110').isEnabled).toBe(false);
+        });
+
+        it("Double Penetration and Lively Scene need their collect switch", function () {
+            expect(EventModule.getEvent('dp_event_7').isEnabled).toBe(false);
+            setting("Setting_autodpEventCollect", 'true');
+            expect(EventModule.getEvent('dp_event_7').isEnabled).toBe(true);
+            expect(EventModule.getEvent('lively_scene_event_3').isEnabled).toBe(false);
+            setting("Setting_autoLivelySceneEventCollectAll", 'true');
+            expect(EventModule.getEvent('lively_scene_event_3').isEnabled).toBe(true);
+        });
+
+        it("keeps the type flags without the switches, for the event page's own buttons", function () {
+            jest.spyOn(PathOfAttraction, 'isEnabled').mockReturnValue(true);
+            const ev = EventModule.getEvent('path_event_110');
+            expect(ev.isPoa).toBe(true);
+            expect(ev.isEnabled).toBe(false);
+        });
+    });
 
     describe("isEventActive", function () {
         beforeEach(() => {

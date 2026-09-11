@@ -201,7 +201,9 @@ export class LoveRaidManager {
                     if (debugEnabled && kkRaid.girl_data?.shards >= 100) {
                         logHHAuto(`Girl won, may have skin to win, ignore for now`);
                     }
-                    // nb_grades = number of star slots (3=rare, 5=legendary, 6=mythic)
+                    // nb_grades = number of star slots of this girl. It belongs to the
+                    // girl, not the rarity (measured: legendary girls with 3, commons
+                    // with 1, 3 or 5); 6 only occurs on mythics.
                     // Graded is a string of star symbols (e.g. "☆☆☆"), graded = completed awakenings
                     raid.girlGrade = Number(kkRaid.girl_data?.nb_grades) || 0;
                     raid.isMythic = kkRaid.girl_data?.rarity === 'mythic' || raid.girlGrade >= 6;

@@ -221,3 +221,35 @@ describe("Shop.isTimeToCheckShop", function () {
 // #player-inventory.armor .slot[data-d*='"name_add":"5"'] matches anything --
 // and on which of the two equipment trees shop.html renders -- is a claim
 // about the page, checked in scripts/live-check (spec triage 2026-08).
+
+// The filter checked against the data-d form measured on 2026-09-11 (65
+// armour slots): name_add and subtype are numbers, always followed by a comma;
+// rarity is a quoted string. The quoted form the builder used before matched
+// nothing, and a number without the comma lets 1 match 10 to 16.
+describe("Shop sell filter against the measured data-d", function () {
+    const slot = (nameAdd: number, subtype: number, rarity: string) =>
+        `<div class="slot" data-d='{"id_member_armor":1,"item":{"name_add":${nameAdd},"rarity":"${rarity}","type":"armor"},"skin":{"subtype":${subtype},"wearer":"hero"}}'></div>`;
+    const build = (c: string, t: string, r: string) =>
+        $((Shop as unknown as { buildSlotFilter: (c: string, t: string, r: string, l: string) => string })
+            .buildSlotFilter(c, t, r, 'not_locked'));
+
+    beforeEach(() => {
+        document.body.innerHTML = '<div id="player-inventory" class="armor">'
+            + slot(1, 6, 'legendary') + slot(16, 6, 'legendary') + slot(11, 2, 'epic') + '</div>';
+    });
+
+    it("matches a stat by its number and not the numbers that start with it", function () {
+        expect(build('1', '*', '*').length).toBe(1);
+        expect(build('16', '*', '*').length).toBe(1);
+    });
+
+    it("matches a slot type", function () {
+        expect(build('*', '6', '*').length).toBe(2);
+        expect(build('*', '2', '*').length).toBe(1);
+    });
+
+    it("combines stat, type and rarity", function () {
+        expect(build('16', '6', 'legendary').length).toBe(1);
+        expect(build('1', '2', '*').length).toBe(0);
+    });
+});

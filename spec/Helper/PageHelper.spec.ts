@@ -105,6 +105,15 @@ describe("Page Helper", function () {
             expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unknownPagesList")).toBeNull();
         });
 
+        it("checkUnknown does not record a single place of power", function () {
+            // "powerplace" + id is built at runtime and sits in no known-page
+            // list; measured 2026-09-11 it was logged as unknown on every visit.
+            MockHelper.mockDomain('www.hentaiheroes.com', 'activities.html', '?tab=pop&pop_id=3');
+            document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="activities"><p>Hello world</p></div>`;
+            expect(getPage(true)).toBe('powerplace3');
+            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unknownPagesList")).toBeNull();
+        });
+
         it("checkUnknown Unknown", function () {
             MockHelper.mockDomain('www.hentaiheroes.com', 'XXX-page.html');
             MockHelper.mockPage('XXX');
