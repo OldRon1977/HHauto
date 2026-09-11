@@ -22,6 +22,13 @@ Older entries below were migrated 1:1 from `README.md`.
 - **Gear tools:** the status messages of Current and Possible Best Gear, Mark
   Keepers and Upgrade Gear, and their popup titles, follow the menu language.
   The plan previews and the Mark Keepers result are still English.
+- **Troll battles:** with *First/Last troll with girl*, the script could
+  reload the waifu page every few seconds without end. It happened after an
+  update, which empties the stored troll list, when the girl list the script
+  read was shorter than the harem size it had counted on that same page. With
+  stat buying on, every reload also bought stats. On the waifu page the script
+  now counts from the page's own list, and it no longer sends itself to the
+  page it is already on.
 
 #### Internal
 

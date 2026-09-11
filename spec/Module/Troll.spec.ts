@@ -8,6 +8,7 @@ import { LoveRaid } from '../../src/model/LoveRaid';
 import { EventModule } from '../../src/Module/Events/EventModule';
 import { LoveRaidManager } from '../../src/Module/Events/LoveRaidManager';
 import { MockHelper } from '../testHelpers/MockHelpers';
+import { getStoredValue } from '../../src/Helper/StorageHelper';
 import type { KKHero } from '../../src/model/KK/KKHero';
 
 describe("Troll module", function () {
@@ -466,6 +467,40 @@ describe("Troll module", function () {
             expect(counts[19]).toBe(4); // troll 20: four girls, none owned
             expect(counts[20]).toBe(3); // troll 21: three girls, none owned
         });
+
+        // A user log: the size was cached as 24 on /waifu.html, the list
+        // getGirlsList() handed over held 22, and with no stored snapshot the
+        // troll handler reloaded the waifu page every four seconds.
+        describe("on the waifu page", function () {
+            const pageGlobals = () => unsafeWindow as unknown as { girls_data_list?: unknown };
+
+            afterEach(() => {
+                delete pageGlobals().girls_data_list;
+            });
+
+            it("counts from the page's own list, whatever getGirlsList() returns", function () {
+                MockHelper.mockPage('waifu');
+                cacheHaremSize(30);
+                jest.spyOn(Harem, 'getGirlsList').mockReturnValue(dictionaryOf(6));
+                pageGlobals().girls_data_list = [
+                    { id_girl: 8, shards: 100 }, { id_girl: 9, shards: 100 }, { id_girl: 10, shards: 100 },
+                    ...Array.from({ length: 21 }, (_, i) => ({ id_girl: 5000 + i, shards: 100 })),
+                ];
+
+                const counts = Troll.getTrollWithGirls();
+
+                expect(counts.length).toBeGreaterThan(0);
+                expect(counts[0]).toBe(2); // troll 1: the two extra girls are still missing
+            });
+
+            it("falls back to getGirlsList() and its size check when the page has no list", function () {
+                MockHelper.mockPage('waifu');
+                cacheHaremSize(30);
+                jest.spyOn(Harem, 'getGirlsList').mockReturnValue(dictionaryOf(6));
+
+                expect(Troll.getTrollWithGirls()).toEqual([]);
+            });
+        });
     });
 
     describe("getTrollIdToFight", function () {
@@ -517,6 +552,19 @@ describe("Troll module", function () {
             const TTF = Troll.getTrollIdToFight(false);
 
             expect(TTF).toBe(3);
+        });
+
+        it("does not send itself to the waifu page it is already on", function () {
+            localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+            localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '98'); // first troll with girl
+            MockHelper.mockPage('waifu');
+            // No stored snapshot, and a list the size check refuses.
+            jest.spyOn(Troll, 'getTrollWithGirls').mockReturnValue([]);
+
+            const TTF = Troll.getTrollIdToFight(false);
+
+            expect(TTF).toBe(0);
+            expect(getStoredValue(HHStoredVarPrefixKey + TK.autoLoop)).not.toBe('false');
         });
 
         it("returns custom troll index when autoTrollSelectedIndex set (1-97)", function () {
