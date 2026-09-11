@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-05-05
-verified-against-version: 7.35.21
+last-verified: 2026-09-11
+verified-against-version: 8.13.1
 status: current
 ---
 
@@ -86,7 +86,7 @@ Bei Match: pro getroffenem Gegner-Element +10% Ego UND +10% Attack auf der eigen
 fire -> nature -> stone -> sun -> water -> fire
 
 
-| Element dominiert -> | wird besiegt von |
+| Element | dominiert |
 |---|---|
 | fire | nature |
 | nature | stone |
@@ -102,13 +102,23 @@ Bei Match: pro getroffenem Gegner-Element +20% Crit-Chance auf der eigenen Seite
 darkness -> light -> psychic -> darkness
 
 
-| Element dominiert -> | wird besiegt von |
+| Element | dominiert |
 |---|---|
 | darkness | light |
 | light | psychic |
 | psychic | darkness |
 
-### Element -> Klassen-Anzeigename (aus BlessingService.ts / TeamModule.ts)
+Die zweite Spalte ist das Element, gegen das der Bonus greift -- im Code
+`BDSMHelper.ELEMENTS[kette][element]`. Gemessen 2026-09-11 an
+`element_data.domination`/`weakness` aller Maedchen eines Kontos: jedes
+Element dominiert genau das hier genannte, und der Code liest es in dieser
+Richtung (`b.includes(ELEMENTS...[element])` auf der Gegnerseite). Bis dahin
+stand die Spalte als "wird besiegt von" beschriftet; die Werte waren richtig,
+die Beschriftung nicht.
+
+### Element -> Klassen-Anzeigename
+
+Gemessen 2026-09-11 aus `element_data.flavor`:
 
 | Element | Klassen-Name (UI) |
 |---------|--------------------|
@@ -118,8 +128,11 @@ darkness -> light -> psychic -> darkness
 | stone | Physical |
 | sun | Playful |
 | darkness | Dominatrix |
-| psychic | Submissive |
-| light | Voyeur |
+| psychic | Voyeur |
+| light | Submissive |
+
+`BlessingService.parseElement` und `TeamModule.CLASS_NAME` fuehren die beiden
+letzten Zeilen vertauscht; im Simulator selbst spielt der Name keine Rolle.
 
 **Achtung Verwechslungsgefahr:** "Klasse" ist hier doppeldeutig. Es gibt zwei Begriffe:
 
