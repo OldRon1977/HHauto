@@ -239,6 +239,14 @@ With `master` on and every `HHAuto_Setting_auto*` set to false except
 `autoQuest`, the script still navigated to `/event.html` a few seconds after
 the quest had gone home. A reading taken at the end of such a run can land on a
 page load and fail with "Execution context was destroyed".
+Measured 2026-09-11, with `plusEvent*`, Boss Bang, Sultry and raid settings off
+as well and an empty `Temp_eventsList`: the navigation is `handleEventParsing`
+(`block=handleEventParsing page=home`, then `/event.html?tab=path_event_110`,
+12 s after the start). A Path of Attraction that is not yet in the registry is
+a visit target, and `EventModule.getEvent` counts it as enabled on the unlock
+alone -- no setting is involved. Double Penetration and Lively Scene ids are
+enabled the same way, unconditionally (read from the code, not measured: no
+such event was running).
 *Guard:* take the result from the log lines as they arrive, not from a final
 read. Save every `HHAuto_Setting_*` before the run and write them back in a
 `finally`; leave `master` off afterwards so a later injection starts nothing.

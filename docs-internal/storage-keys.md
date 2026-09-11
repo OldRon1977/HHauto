@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-08-31
-verified-against-version: 8.11.0
+last-verified: 2026-09-11
+verified-against-version: 8.13.1
 status: current
 ---
 
@@ -8,14 +8,20 @@ status: current
 
 Alle localStorage / sessionStorage Schluessel des HHauto Skripts.
 
-**Code-Stand (2026-08-28, gegen das Release v8.10.0 nachgezaehlt):** 188 SK-
-und 103 TK-Konstanten in `StorageKeys.ts`, 283 davon registriert; 8 sind nicht
-in `HHStoredVars.ts` registriert. Am 2026-08-19 wurden die acht toten Keys
-entfernt (siehe unten); die drei Keys des neuen Settings-Menue-Layouts
-(`menuSingleColumn`, `menuOrder`, `menuTab`) sind seit v8.10.0 dazugekommen. Nachgezaehlt wurden Bestand, Storage-Typ, HHType und
-Registrierung jedes Keys gegen den Code -- die Beschreibungstexte der vor
-2026-08-19 bestehenden Zeilen stammen unveraendert aus der letzten
-vollstaendigen Verifikation vom 2026-05-05 gegen v7.35.21.
+**Abgleich (2026-09-11, 8.13.1).** Jede Tabellenzeile -- Konstante, Storage
+Key, Storage-Typ, HHType -- stimmt mit `StorageKeys.ts` und `HHStoredVars.ts`
+ueberein; `npm run check:docs` haelt fest, dass jede Konstante hier steht.
+Anzahlen stehen bewusst nicht mehr hier: sie liefen dem Code jedes Mal
+hinterher, und `check:docs` nennt sie.
+
+**Speicherort, gemessen 2026-09-11** nach einer Seitentour mit HHauto auf dem
+Pruefkonto: 233 `HHAuto_*`-Schluessel im Browser, 230 davon in dem Speicher,
+den die Registry vorsieht (`Storage()` ohne `settPerTab` = localStorage). Die
+drei anderen: `Temp_LogIdx` und `Temp_Log0` (Log-Ring, absichtlich nicht
+registriert, siehe unten) und `Temp_Debug` (siehe dessen Zeile). Die
+Beschreibungstexte sind **nicht** einzeln gegen das Verhalten geprueft; wo eine
+Zeile eine pruefbare Aussage macht (Standardwert, Wertebereich), steht dabei,
+ob sie gemessen oder aus dem Code gelesen ist.
 
 ---
 
@@ -42,20 +48,12 @@ Drei moegliche Werte fuer das `storage`-Feld in `HHStoredVars.ts`:
 | `"sessionStorage"` | nur fuer aktuellen Tab |
 | `"Storage()"` | Auswahl zur Laufzeit anhand `SK.settPerTab`: wenn aktiv -> sessionStorage, sonst localStorage |
 
-Fakten aus dem Code-Stand v7.35.21:
-
-| Storage-Typ | Anzahl Variablen |
-|---|---|
-| `Storage()` | 174 |
-| `sessionStorage` | 68 |
-| `localStorage` | 17 |
-
 ### HHType
 
-| HHType | Bedeutung | Anzahl |
-|---|---|---|
-| `Setting` | Benutzer-Einstellung (auf der UI sichtbar) | 173 |
-| `Temp` | Laufzeit-State (intern) | 86 |
+| HHType | Bedeutung |
+|---|---|
+| `Setting` | Benutzer-Einstellung (auf der UI sichtbar) |
+| `Temp` | Laufzeit-State (intern) |
 
 ### Kern-Funktionen (`StorageHelper.ts`)
 
@@ -112,7 +110,7 @@ Die `kobanUsing: true`-Flag bei einer Setting verknuepft sie zusaetzlich mit dem
 > solche Tabelle stand bis 2026-09-01 in data-sources-inventory.md und war zu dem
 > Zeitpunkt neun Keys hinterher.
 
-## SK -- Setting Keys (187 Konstanten)
+## SK -- Setting Keys
 
 Vollstaendige Liste aller SK-Konstanten in der Reihenfolge wie in `StorageKeys.ts`. Quelle: Code, automatisch generiert. Beschreibungen aus der vorigen Doku-Version uebernommen.
 
@@ -399,7 +397,7 @@ Die Spalte "Storage" zeigt den Wert aus der Registry. `--` heisst: nicht in `HHS
 | Konstante | Storage Key | Storage | HHType | Beschreibung |
 |-----------|-------------|---------|--------|--------------|
 | `autoLoveRaidSelectedIndex` | `Setting_autoLoveRaidSelectedIndex` | `Storage()` | `Setting` | Love Raid Auswahl |
-| `plusLoveRaidMythic` | `Setting_autoLoveRaidMythicOnly` | `Storage()` | `Setting` | now stores min grade (0=off, 3, 5, 6) instead of boolean |
+| `plusLoveRaidMythic` | `Setting_autoLoveRaidMythicOnly` | `Storage()` | `Setting` | Raid-Sterne-Auswahl: `off`, `exact3`, `min3` oder `exact5` (`isValid` der Registry, Default `off`); aeltere Werte bildet `StartService` beim Start darauf ab. Gemessen 2026-09-11: im Profil steht `off`. Der Kommentar an der Konstante ("0=off, 3, 5, 6") ist veraltet |
 
 ### Bundles
 
@@ -456,7 +454,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 
 ---
 
-## TK -- Temp Keys (100 Konstanten)
+## TK -- Temp Keys
 
 ### (unsorted)
 
@@ -464,7 +462,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 |-----------|-------------|---------|--------|--------------|
 | `autoLoop` | `Temp_autoLoop` | `sessionStorage` | `Temp` | AutoLoop aktiv |
 | `autoLoopTimeMili` | `Temp_autoLoopTimeMili` | `Storage()` | `Temp` | Loop-Intervall (ms) |
-| `Debug` | `Temp_Debug` | `sessionStorage` | `Temp` | Debug-Modus |
+| `Debug` | `Temp_Debug` | `sessionStorage` | `Temp` | Debug-Modus. Kein Code schreibt ihn, er wird von Hand in der Konsole gesetzt -- und zwar in den **sessionStorage**; ein Wert im localStorage wird nicht gelesen. Gemessen 2026-09-11: im Pruefprofil stand `HHAuto_Temp_Debug` im localStorage und war damit wirkungslos |
 | `Logging` | `Temp_Logging` | `sessionStorage` | `Temp` | **Nur noch Export-Name.** Seit 8.10.47 liegt der Log im Ringpuffer (siehe unten); der Schluessel selbst wird beim Start einmal eingelesen und geloescht. |
 | `Timers` | `Temp_Timers` | `sessionStorage` | `Temp` | Timer-State (JSON) |
 | `LastPageCalled` | `Temp_LastPageCalled` | `sessionStorage` | `Temp` | Letzte aufgerufene Seite |
@@ -688,7 +686,7 @@ Key-Praefix).
 
 ## Bekannte nicht registrierte Keys
 
-Folgende 8 Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStoredVars.ts` registriert (nachgezaehlt 2026-08-19 gegen v8.9.0, nach dem Entfernen der toten Keys). Lesen liefert `undefined`, Schreiben verfaellt:
+Folgende 8 Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStoredVars.ts` registriert (abgeglichen 2026-09-11 gegen 8.13.1). Lesen liefert `undefined`, Schreiben verfaellt:
 
 **SK:**
 - `SK.PoAMaskRewards`
