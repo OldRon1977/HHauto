@@ -1,9 +1,10 @@
 ---
-last-verified: 2026-09-09
-verified-against-version: v8.12.10 HHAuto, hentaiheroes.com
+last-verified: 2026-09-11
+verified-against-version: 8.13.1 HHAuto, hentaiheroes.com
 status: current
 sources:
   - Live-Inventur auf dem Pruefkonto (ADR-011), Level 42, Welt 3, 8 Maedchen
+  - Nachpruefung ohne Klicks, Level 115, Welt 5, 24 Maedchen (2026-09-11)
   - Werkzeug: $HHAUTO_HOME/tools/explore.js (nicht im Repo)
 ---
 
@@ -31,13 +32,32 @@ Ausgelassen wurde alles, was Ressourcen kostet, und zwar nach diesen Merkmalen:
 Der Lauf bricht ab, sobald ein Klick den Kobanstand senkt. Er hat nicht
 abgebrochen: **kein einziger der 303 Klicks hat Kobans gekostet.**
 
+## Nachpruefung (2026-09-11, Level 115, Welt 5, 24 Maedchen)
+
+Ohne Klicks nachgemessen, mit HHAuto 8.13.1: das `body[page=…]` jeder der 23
+Seiten stimmt noch; `/labyrinth-entrance.html` leitet, solange ein Labyrinth
+laeuft, auf `/labyrinth.html` (`page=labyrinth`) weiter. Jede Kennung aus den
+Tabellen unten wurde auf ihrer Seite gezaehlt. Null Treffer hatten nur
+Kennungen, die am Zustand haengen: `.button-notification-icon` (auf allen
+Seiten ausser home -- das Symbol erscheint nur, wenn es etwas zu melden gibt),
+`.feature-locked` (Clubs ist freigeschaltet), `.mission_button`, `.later`,
+`.green_button_L` auf Pachinko und auf `/event.html`
+`.nc-events-prize-locations-buttons-container` und `.redirect_button`. Die
+Spalte "Wirkung" ist **nicht** neu erklickt; sie bleibt die Aufnahme vom
+2026-09-09.
+
 ## Seiten, die auf home umleiten
 
-`/clubs.html`, `/champions-map.html`, `/club-champion.html` und `/teams.html`
-liefern `body[page=home]`. Fuer dieses Konto sind sie nicht erreichbar --
-Clubs nennt als Grund 15 Maedchen. Wer dorthin navigiert, landet
+Gesperrte Seiten liefern `body[page=home]`: wer dorthin navigiert, landet
 stillschweigend zu Hause; ein Modul, das dort etwas sucht, findet nichts und
-meldet nichts.
+meldet nichts. Auf Level 42 mit 8 Maedchen (2026-09-09) betraf das
+`/clubs.html` (Clubs nennt als Grund 15 Maedchen), `/champions-map.html`,
+`/club-champion.html` und `/teams.html`. Gemessen 2026-09-11 mit 24 Maedchen:
+`/clubs.html` fuehrt auf `?tab=members` (`page=clubs`), `/champions-map.html`
+und `/club-champion.html` tragen ihre eigene Seite. `/teams.html` und
+`/edit-team.html` leiten **ohne Parameter** weiter auf home, mit
+`?battle_type=leagues` liefern sie `page=teams` bzw. `page=edit-team` -- das
+ist kein Sperren, sondern ein fehlender Parameter.
 
 ## Seiten, die erst die Inventur zutage gefoerdert hat
 
@@ -534,6 +554,11 @@ ist eine Beobachtung, keine Rate.
 
 `event_bundles` gibt es im Quelltext des Skripts, auf diesem Konto stand der
 Reiter an dem Tag nicht in der Leiste.
+
+Nachgemessen 2026-09-11 (Plus neben der Waehrung, nichts gekauft): **acht**
+Reiter -- dieselben ohne `stepup_offers` -- und 5 Kaufknoepfe, keiner frei,
+alle `paid-buy-button-shop.orange_button_L`. Die Leiste haengt also am
+Kontostand; die freien Kacheln der Tabelle oben waren inzwischen abgeholt.
 
 `period_deal` hat Unterreiter `.subtabs-container .card-container` mit dem
 Attribut `period_deal` (`daily`, `weekly`, `monthly`); `special_offers` hat
