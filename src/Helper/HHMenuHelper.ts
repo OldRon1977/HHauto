@@ -20,6 +20,7 @@
 // feature modules that inject menu rows (Champion, Labyrinth, Pachinko,
 // TeamModule).
 
+import { SCRIPT_MENU_ICON } from "../config/Images";
 import { LABY_DIFFICULTY } from '../Module/LabyrinthDifficulty';
 import { LEAGUE_SORT } from '../Module/LeagueSortModes';
 import { Troll } from '../Module/Troll';
@@ -86,7 +87,7 @@ export class HHMenu {
                 + '}}'
             );
         }
-        $("#contains_all nav").prepend('<div class="square_blue_btn" id="' + HHMenu.BUTTON_MENU_ID + '" ><img src="https://i.postimg.cc/bv7n83z3/script-Icon2.png"></div>');
+        $("#contains_all nav").prepend('<div class="square_blue_btn" id="' + HHMenu.BUTTON_MENU_ID + '" ><img src="' + SCRIPT_MENU_ICON + '"></div>');
         $("#sMenuButton").on("click", () => {
             const sMenu = document.getElementById("sMenu");
             if (sMenu != null) {
