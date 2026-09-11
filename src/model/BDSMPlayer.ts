@@ -14,7 +14,6 @@ export class BDSMPlayer {
     playerShield: number;
     opponentShield: number;
     stunned: number;
-    alreadyStunned: number;
     reflect: number;
     critMultiplier: number;
     name:string = '';

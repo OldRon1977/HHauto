@@ -177,9 +177,7 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
     _opponent.opponentShield = 0;
 
     _player.stunned = 0;
-    _player.alreadyStunned = 0;
     _opponent.stunned = (_player.tier5.id == 11) ? 2 : 0;
-    _opponent.alreadyStunned = 0;
 
     _player.reflect = (_player.tier5.id == 13) ? 2 : 0;
     _opponent.reflect = 0;
@@ -205,7 +203,14 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
     return ret;
 
     function calculateDmg(x: BDSMPlayer, turns: number) {
-        const dmg = x.atk * (1 + x.tier4.dmg) ** turns - x.adv_def * (1 + x.tier4.def) ** turns;
+        // A hit never does negative damage. Unclamped, an attack below the
+        // defender's defence came out negative, and the shield and reflect
+        // updates below (`shield - damageAmount`) then grew the shield instead
+        // of leaving it alone -- by more on the crit branch, which also kept
+        // the memo from collapsing a stalemate. The damage line already clamps
+        // at 0 (`Math.max(0, damageAmount - shield)`), so this is what the
+        // simulation meant; the game's own floor for such a hit is not measured.
+        const dmg = Math.max(0, x.atk * (1 + x.tier4.dmg) ** turns - x.adv_def * (1 + x.tier4.def) ** turns);
 
         return {
             baseAtk : {

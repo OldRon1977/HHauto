@@ -7,6 +7,26 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.13.1 - Loose ends from 8.13.0
+
+- **League power calc:** a hit below the defender's defence no longer counts
+  as negative damage. The simulation used to grow the target's shield from
+  such a hit; now the hit simply does nothing. On a captured league list of
+  134 opponents -- 83 of them with such a hit -- not one displayed value
+  changed, so this is about correctness and speed: a fight neither side can
+  win is now decided in about a millisecond instead of half a second.
+- **League power calc:** the opponent list is saved after each opponent
+  instead of once at the end, so leaving the league page in the middle of the
+  calculation keeps what was already computed. Its two-minute lifetime now
+  starts when it is written, not when the calculation began.
+- **Gear tools:** the status messages of Current and Possible Best Gear, Mark
+  Keepers and Upgrade Gear, and their popup titles, follow the menu language.
+  The plan previews and the Mark Keepers result are still English.
+
+#### Internal
+
+- An unused field removed from the simulator's player model.
+
 ### v8.13.0 - Gates for a young account
 
 Most of this release came from running the script on a fresh account and
