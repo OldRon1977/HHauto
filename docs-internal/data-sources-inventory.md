@@ -223,6 +223,11 @@ Zwei Beobachtungen zur Form:
 
 - **Nicht jeder Aufruf traegt ein `action`.** Der Team-Kampf-Submit identifiziert sich ueber `class: "TeamBattle"` plus `battle_type`, dazu `battles_amount`, `defender_id`, `attacker[team][]` -- und hat gar keinen `action`-Schluessel.
 - `claim_all_salaries` nimmt `{action, where}` und antwortet `{money, girls[], upcoming_girl_salaries[{next_pay_in, value}], success}`. Ein Aufruf holt alle Gehaelter. HHauto nutzt ihn nicht.
+  `money` ist der **eingesammelte Betrag**, nicht der neue Kontostand -- gemessen
+  2026-09-11: Guthaben 838, Knopf 46.986, danach 47.824. Das Spiel rechnet den
+  Betrag im Browser auf `Hero.currencies.soft_currency` drauf. Ein veralteter
+  Hero-Schnappschuss bleibt damit veraltet, nur verschoben; als frischere
+  Geldquelle taugt diese Antwort nicht.
 
 Die vollstaendigen Anfrage- und Antwortformen stehen in `scripts/catalogue/out/observed-actions.md` (nur Schluessel und Typen, keine Werte -- die Ausgabe traegt keine Kontodaten). Zum Auffrischen: `node scripts/catalogue/run.mjs observe --seconds=900` waehrend einer Spielsitzung.
 
