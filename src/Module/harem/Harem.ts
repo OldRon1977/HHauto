@@ -27,6 +27,9 @@ import { TeamData } from "../../model/TeamData";
 import { HaremFilter } from "./HaremFilter";
 import { HaremGirl } from "./HaremGirl";
 
+/** Girls keyed by id as a string; the entries are the game's own records. */
+type GirlDictionary = Map<string, any>;
+
 export class Harem {
     static HAREM_UPGRADE_LAST_ACTION='haremGirl';
     static filterGirlMapCanUpgrade(a:any)
@@ -86,7 +89,7 @@ export class Harem {
     }
 
     
-    static getGirlsList(): Map<string,any> {
+    static getGirlsList(): GirlDictionary {
         let girlsDataList: Map<string, any> | any = Harem.getHaremGirlsFromOcdIfExist();
         if (girlsDataList == null && getPage() === ConfigHelper.getHHScriptVars("pagesIDEditTeam")) {
             girlsDataList = getHHVars("availableGirls");
@@ -98,21 +101,39 @@ export class Harem {
             girlsDataList = getHHVars("girlsDataList");
         }
         if (girlsDataList != null && !(girlsDataList instanceof Map)) {
-            const girlNameDictionary = new Map();
-            // The game returns girlsDataList as either an Array
-            // or a plain Object keyed by girl id (current). forEach only
-            // exists on the Array form -- normalise via Object.values().
-            const entries: any[] = Array.isArray(girlsDataList)
-                ? girlsDataList
-                : (typeof girlsDataList === 'object' ? Object.values(girlsDataList) : []);
-            entries.forEach((data: any) => {
-                if (data != null && data.id_girl !== undefined) {
-                    girlNameDictionary.set(data.id_girl + "", data);
-                }
-            });
-            girlsDataList = girlNameDictionary;
+            girlsDataList = Harem.toGirlDictionary(girlsDataList);
         }
         return girlsDataList;
+    }
+
+    /**
+     * The waifu page's own `girls_data_list`, or null on any other page.
+     *
+     * getGirlsList() prefers OCD's stored map, which is only as fresh as OCD's
+     * last pass over the harem. The waifu page lists the harem as the game has
+     * it now, and moduleHaremCountMax sizes TK.HaremSize from this very list --
+     * so it is the one list that can be held against that size.
+     */
+    static getWaifuPageGirlsList(): GirlDictionary | null {
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDWaifu")) return null;
+        const list = getHHVars("girls_data_list", false);
+        return list == null ? null : Harem.toGirlDictionary(list);
+    }
+
+    private static toGirlDictionary(list: unknown): GirlDictionary {
+        const girlNameDictionary = new Map();
+        // The game returns girlsDataList as either an Array
+        // or a plain Object keyed by girl id (current). forEach only
+        // exists on the Array form -- normalise via Object.values().
+        const entries: any[] = Array.isArray(list)
+            ? list
+            : (list !== null && typeof list === 'object' ? Object.values(list) : []);
+        entries.forEach((data: any) => {
+            if (data != null && data.id_girl !== undefined) {
+                girlNameDictionary.set(data.id_girl + "", data);
+            }
+        });
+        return girlNameDictionary;
     }
 
     static getHaremGirlsFromOcdIfExist(): Map<string, any> | null {
