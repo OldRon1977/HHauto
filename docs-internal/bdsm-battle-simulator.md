@@ -413,8 +413,12 @@ point = max(3, 3 + ceil(10 * (opponentMaxHP - opponentHP) / opponentMaxHP))
 **An einem echten Kampf gemessen (2026-09-11, Pruefkonto):** HHauto
 simulierte 127 Liga-Gegner in 5 s; fuer den gewaehlten Gegner `win` 1,0,
 `scoreClass` `plus`, Verteilung 17 bis 24 Punkte, Erwartungswert 22,1. Ein
-Einzelkampf gegen ihn brachte **+22** Ligapunkte (1309 -> 1331). Ein Kampf ist
-keine Rate; er liegt aber im Erwartungswert und in der Sieg-Formel oben.
+Einzelkampf gegen ihn brachte **+22** Ligapunkte (1309 -> 1331), und die Antwort
+nennt dieselbe Zahl (`rewards.heroChangesUpdate.league_points`). Nachgerechnet
+aus den `rounds` der Antwort: 8 gegnerische Treffer, davon 2 kritisch; Rest-Ego
+zu Start-Ego 0,642, also 15 + ceil(6,42) = 22 -- die Sieg-Formel oben trifft
+den Wert des Spiels. Ein Kampf ist keine Rate; eine Niederlage ist nicht
+gemessen.
 
 ### Aggregation
 
