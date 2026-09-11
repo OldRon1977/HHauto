@@ -20895,6 +20895,24 @@ class QuestHelper {
             rewardConfirm.first().trigger('click');
             return true;
         }
+        // The game's "not enough money" popup (#not_enough_SC_popup, measured).
+        // The pay check below reads the same balance the game does, so the
+        // popup means that reading was wrong -- a stale hero snapshot can do
+        // that. Close it, remember the step cost, wait NO_MONEY_BACKOFF_SECS and
+        // let handleQuest's idle guard take the bot home. Must run before the
+        // disabled-button check, which would otherwise wait on the greyed button.
+        const noMoneyPopup = $('#not_enough_SC_popup');
+        if (noMoneyPopup.length > 0) {
+            const missing = parsePrice($('span[rel="money"]', noMoneyPopup).first().text());
+            const stepCost = parsePrice($('#controls button#pay .action-cost .price').first().text());
+            const needed = stepCost > 0 ? stepCost : HeroHelper.getMoney() + missing;
+            logHHAuto(`Quest step refused for money: ${missing} missing, need ${needed}.`
+                + ` Not trying again for ${QuestHelper.NO_MONEY_BACKOFF_SECS / 60} minutes.`);
+            $('close.closable', noMoneyPopup).trigger('click');
+            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, '$' + needed);
+            setTimer(QuestHelper.NO_MONEY_TIMER, QuestHelper.NO_MONEY_BACKOFF_SECS);
+            return false;
+        }
         // `#skip-quest` is not a way forward. The game's own quest.js puts it
         // inside `#controls` beside the next button, adds it only while the
         // step reports `skippable`, and removes it again otherwise
@@ -20936,7 +20954,9 @@ class QuestHelper {
         }
         else if (proceedType === "pay") {
             var proceedButtonCost = $(".action-cost .price", proceedButtonMatch);
-            var proceedCost = parsePrice(proceedButtonCost[0].innerText);
+            // .text(), not innerText: same read as the refusal check above, and
+            // jsdom has no innerText.
+            var proceedCost = parsePrice(proceedButtonCost.first().text());
             var payTypeNRJ = $(".action-cost .energy_quest_icn", proceedButtonMatch).length > 0;
             var energyCurrent = QuestHelper.getEnergy();
             var moneyCurrent = HeroHelper.getMoney();
@@ -21009,6 +21029,11 @@ class QuestHelper {
     }
 }
 QuestHelper.SITE_QUEST_PAGE = '/side-quests.html';
+/** Set when the game refuses a step for money; handleQuest's '$' branch
+ *  does not retry before it runs out. The money is usually back within
+ *  about 20 minutes. */
+QuestHelper.NO_MONEY_TIMER = 'nextQuestMoneyAttempt';
+QuestHelper.NO_MONEY_BACKOFF_SECS = 1200;
 
 ;// ./src/Module/PentaDrill.ts
 var PentaDrill_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -37597,7 +37622,11 @@ const handleQuest = {
                         }
                     }
                     else if (questRequirement[0] === '$') {
-                        if (Number(questRequirement.substr(1)) < getHHVars('Hero.currencies.soft_currency')) {
+                        // A step the game refused for money arms QuestHelper.NO_MONEY_TIMER.
+                        // The balance that let that click through is the reading this check
+                        // would trust again, so the back-off has to run out first.
+                        if (checkTimer(QuestHelper.NO_MONEY_TIMER)
+                            && Number(questRequirement.substr(1)) < getHHVars('Hero.currencies.soft_currency')) {
                             logHHAuto('Continuing quest, required money obtained.');
                             setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
                             ctx.busy = QuestHelper.run();
