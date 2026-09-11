@@ -1073,7 +1073,11 @@ const handleQuest: HandlerConfig = {
             }
           }
         } else if (questRequirement[0] === '$') {
-          if (Number(questRequirement.substr(1)) < (getHHVars('Hero.currencies.soft_currency') as number)) {
+          // A step the game refused for money arms QuestHelper.NO_MONEY_TIMER.
+          // The balance that let that click through is the reading this check
+          // would trust again, so the back-off has to run out first.
+          if (checkTimer(QuestHelper.NO_MONEY_TIMER)
+              && Number(questRequirement.substr(1)) < (getHHVars('Hero.currencies.soft_currency') as number)) {
             logHHAuto('Continuing quest, required money obtained.');
             setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
             ctx.busy = QuestHelper.run();

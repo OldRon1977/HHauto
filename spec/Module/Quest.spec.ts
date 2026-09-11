@@ -4,6 +4,8 @@ import { SK, TK } from '../../src/config/StorageKeys';
 import { MockHelper } from '../testHelpers/MockHelpers';
 import * as PageHelper from '../../src/Helper/PageHelper';
 import type { KKHero } from '../../src/model/KK/KKHero';
+import { getStoredValue } from '../../src/Helper/StorageHelper';
+import { checkTimer, getSecondsLeft, setTimers } from '../../src/Helper/TimerHelper';
 
 // The level-up popup measured on a live account, 2026-09-09. It carries no
 // `close` element -- hidden ones included -- so the selector the script used
@@ -169,5 +171,109 @@ describe('QuestHelper.run: popups that block the quest', function () {
         document.body.innerHTML = '<div id="controls"></div>';
 
         expect(() => QuestHelper.run()).not.toThrow();
+    });
+});
+
+// The popup and the pay step as the game builds them, measured on a live quest
+// page on 2026-09-11. The popup came from calling
+// shared.general.notEnoughSoftCurrency(5928), which is what quest.js calls when
+// the balance falls short of the step's cost. #controls is the pay step of the
+// same quest, reduced to the button the script reads.
+const NO_MONEY_POPUP = `
+<div id="common-popups" class="fixed_scaled"><div class="popup_wrapper">
+<div id="not_enough_SC_popup" class="popup"> <div rel="money">You lack <span rel="money">5,928</span><span class="soft_currency_icn"></span> to complete this action! <br><br>You can collect from the harem, do missions, battles and contests - the city is ripe with opportunity. <br> <a href="/harem.html" class="orange_text_button">Harem</a> </div> <close class="closable"></close></div>
+</div></div>`;
+const PAY_STEP = `
+<div id="controls" type="quest" class="transitioned"><button id="pay" class="next-button green_text_button big-intro-button-angel"><div class="action-label">Use</div><div class="action-cost"><span class="soft_currency_icn"></span><span class="price">12.0K</span></div></button></div>`;
+
+describe('QuestHelper.run: the game refuses a step for money', function () {
+
+    beforeEach(() => {
+        jest.useFakeTimers();
+        MockHelper.mockDomain('www.hentaiheroes.com', '/quest/205');
+        unsafeWindow.shared!.Hero = {
+            infos: {
+                level: 9,
+                questing: { id_world: 2, id_quest: 205, current_url: '/quest/205' },
+            },
+            // Enough on paper -- which is how the click got through in the
+            // reported case, and why the popup must not be read as "retry".
+            currencies: { soft_currency: 51926, hard_currency: 750 },
+        } as unknown as KKHero;
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoQuest, 'true');
+        jest.spyOn(PageHelper, 'getPage').mockReturnValue('quest');
+        setTimers({});
+        document.body.innerHTML = '';
+    });
+
+    afterEach(() => {
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
+        document.body.innerHTML = '';
+        localStorage.clear();
+        sessionStorage.clear();
+        setTimers({});
+        jest.restoreAllMocks();
+    });
+
+    it('closes the popup through its close control', function () {
+        document.body.innerHTML = PAY_STEP + NO_MONEY_POPUP;
+        const clicked = jest.fn();
+        document.querySelector('#not_enough_SC_popup close')!.addEventListener('click', clicked);
+
+        QuestHelper.run();
+
+        expect(clicked).toHaveBeenCalled();
+    });
+
+    it('waits for the whole step cost, read from the pay button', function () {
+        document.body.innerHTML = PAY_STEP + NO_MONEY_POPUP;
+
+        QuestHelper.run();
+
+        expect(getStoredValue(HHStoredVarPrefixKey + TK.questRequirement)).toBe('$12000');
+    });
+
+    it('does not try again for 20 minutes', function () {
+        document.body.innerHTML = PAY_STEP + NO_MONEY_POPUP;
+
+        QuestHelper.run();
+
+        expect(QuestHelper.NO_MONEY_BACKOFF_SECS).toBe(1200);
+        expect(checkTimer(QuestHelper.NO_MONEY_TIMER)).toBe(false);
+        expect(getSecondsLeft(QuestHelper.NO_MONEY_TIMER)).toBeGreaterThan(1190);
+        expect(getSecondsLeft(QuestHelper.NO_MONEY_TIMER)).toBeLessThanOrEqual(1200);
+    });
+
+    it('returns not-busy and presses nothing, so the pipeline can take the bot home', function () {
+        document.body.innerHTML = PAY_STEP + NO_MONEY_POPUP;
+        const pressed = jest.fn();
+        document.querySelector('#controls button#pay')!.addEventListener('click', pressed);
+
+        const busy = QuestHelper.run();
+        jest.runOnlyPendingTimers();
+
+        expect(busy).toBe(false);
+        expect(pressed).not.toHaveBeenCalled();
+    });
+
+    it('without a readable pay button it waits for the balance plus the shortfall', function () {
+        document.body.innerHTML = NO_MONEY_POPUP;
+
+        QuestHelper.run();
+
+        expect(getStoredValue(HHStoredVarPrefixKey + TK.questRequirement)).toBe('$' + (51926 + 5928));
+    });
+
+    it('leaves a pay step without the popup to the normal money check', function () {
+        document.body.innerHTML = PAY_STEP;
+        const pressed = jest.fn();
+        document.querySelector('#controls button#pay')!.addEventListener('click', pressed);
+
+        QuestHelper.run();
+        jest.runOnlyPendingTimers();
+
+        expect(pressed).toHaveBeenCalled();
+        expect(checkTimer(QuestHelper.NO_MONEY_TIMER)).toBe(true);
     });
 });
