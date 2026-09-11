@@ -133,7 +133,16 @@ export function doStatUpgrades()
                     infos['carac' + bought] = Number(infos['carac' + bought]) + boughtBy;
                     const max = Number(data.statsPrices?.max);
                     if (max > 0) gameStatMax = max;
-                    Hero.update("soft_currency", 0 - cost, true);
+                    // The answer carries the new balance. Hero.update(..., true) left
+                    // currencies.soft_currency where it was (measured 2026-09-11), so
+                    // the next round bought with money that was already spent.
+                    const balance = Number(data.currency?.soft_currency);
+                    if (Number.isFinite(balance)) {
+                        Hero.currencies.soft_currency = balance;
+                        Hero.update("soft_currency", balance, false);
+                    } else {
+                        Hero.currencies.soft_currency = Number(Hero.currencies.soft_currency) - cost;
+                    }
                 });
                 setTimeout(doStatUpgrades, randomInterval(300,500));
                 return;

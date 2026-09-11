@@ -78,6 +78,11 @@ Neuladen stand 2542. `doStatUpgrades` rechnet seit 8.13.1 jeden Punkt zum Wert
 der erreichten Stufe (`statBuyPrice`), nimmt die Grenze aus `statsPrices.max`,
 sobald eine Antwort da ist (davor `level * 30`, ohne den Grundwert), und zaehlt
 einen bestaetigten Kauf selbst hoch, weil das Spiel es im Dokument nicht tut.
+Den Kontostand uebernimmt es aus `currency.soft_currency` der Antwort:
+`Hero.update("soft_currency", -preis, true)` liess `currencies.soft_currency`
+gemessen unveraendert (31.809 ueber drei Kaeufe, das Spiel stand danach bei
+4.494), und der vierte Kauf ging ohne Deckung hinaus. Das Spiel beantwortete
+ihn nicht; die Sperre gegen unbestaetigte Kaeufe hielt die Schleife an.
 
 ---
 

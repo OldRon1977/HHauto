@@ -8341,7 +8341,7 @@ function doStatUpgrades() {
                 const boughtBy = mult;
                 const cost = price;
                 getHHAjax()(params, function (data) {
-                    var _a;
+                    var _a, _b;
                     logHHAuto('doStatUpgrades resp: success=' + !!(data && data.success)
                         + ' page=' + location.pathname
                         + ' carac' + bought + '=' + getHHVars('Hero.infos.carac' + bought)
@@ -8354,7 +8354,17 @@ function doStatUpgrades() {
                     const max = Number((_a = data.statsPrices) === null || _a === void 0 ? void 0 : _a.max);
                     if (max > 0)
                         gameStatMax = max;
-                    Hero.update("soft_currency", 0 - cost, true);
+                    // The answer carries the new balance. Hero.update(..., true) left
+                    // currencies.soft_currency where it was (measured 2026-09-11), so
+                    // the next round bought with money that was already spent.
+                    const balance = Number((_b = data.currency) === null || _b === void 0 ? void 0 : _b.soft_currency);
+                    if (Number.isFinite(balance)) {
+                        Hero.currencies.soft_currency = balance;
+                        Hero.update("soft_currency", balance, false);
+                    }
+                    else {
+                        Hero.currencies.soft_currency = Number(Hero.currencies.soft_currency) - cost;
+                    }
                 });
                 setTimeout(doStatUpgrades, randomInterval(300, 500));
                 return;

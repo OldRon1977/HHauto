@@ -30,7 +30,9 @@ Older entries below were migrated 1:1 from `README.md`.
   on the page stayed. The script now counts a confirmed buy itself, keeps
   buying up to the cap the game reports with each buy (the hero's base stat
   plus 30 per level, where the script used 30 per level), and prices each
-  point at the level it reaches, which it had put one step low.
+  point at the level it reaches, which it had put one step low. It takes the
+  money left from the game's answer; before, it kept counting with the balance
+  from before the first buy and sent a buy the money no longer covered.
 - **Blessings:** an element blessing for Submissive was read as psychic and one
   for Voyeur as light -- the other way round from the game's own element data.
   A Rarity blessing (such as "Rarity Legendary") is now recognised as well.

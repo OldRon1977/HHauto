@@ -329,6 +329,31 @@ describe("HeroHelper", function() {
       expect(nbOf(ajax, 1)).toBe(60);
     });
 
+    it("takes the balance from the game's answer and stops when it is spent", async function() {
+      // Measured 2026-09-11: the local balance stayed at 31809 over three buys
+      // while the answers said 22708, 13603, 4494; the fourth buy went out
+      // without the money for it.
+      const Hero = setupHero();
+      const ajax = answering({ success: true, currency: { soft_currency: 0 } });
+      unsafeWindow.shared!.general!.hh_ajax = ajax;
+
+      const doStatUpgrades = await loadDoStatUpgrades();
+      doStatUpgrades();
+      doStatUpgrades();
+      expect(ajax).toHaveBeenCalledTimes(1);
+      expect(Hero.currencies.soft_currency).toBe(0);
+    });
+
+    it("counts the price down itself when the answer names no balance", async function() {
+      const Hero = setupHero();
+      const ajax = answering({ success: true });
+      unsafeWindow.shared!.general!.hh_ajax = ajax;
+
+      const doStatUpgrades = await loadDoStatUpgrades();
+      doStatUpgrades();
+      expect(Hero.currencies.soft_currency).toBeLessThan(1e12);
+    });
+
     it("prices each point at the level it reaches (measured 2026-09-11)", async function() {
       jest.resetModules();
       const { statBuyPrice } = await import("../../src/Helper/HeroHelper");
