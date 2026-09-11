@@ -861,7 +861,8 @@ export class TeamModule {
 
     private static readonly CLASS_NAME: Record<string, string> = {
         fire: 'Eccentric', water: 'Sensual', nature: 'Exhibitionist', stone: 'Physical',
-        sun: 'Playful', darkness: 'Dominatrix', psychic: 'Submissive', light: 'Voyeur',
+        // element_data.flavor, measured 2026-09-11: light is Submissive, psychic Voyeur.
+        sun: 'Playful', darkness: 'Dominatrix', psychic: 'Voyeur', light: 'Submissive',
     };
 
     private static readonly PLAYER_CLASS_NAME: Record<number, string> = {

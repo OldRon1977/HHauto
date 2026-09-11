@@ -114,6 +114,18 @@ const TIER_NAMES: Record<number, string> = {
     5: 'no capped mythic for this slot',
 };
 
+// The same two tables as language keys for the popups; the English names
+// above stay for the log, which is what bug reports are read from.
+const SLOT_KEYS: Record<number, string> = {
+    1: 'HHGearSlotHead', 2: 'HHGearSlotBody', 3: 'HHGearSlotLegs',
+    4: 'HHGearSlotFlag', 5: 'HHGearSlotPet', 6: 'HHGearSlotWeapon',
+};
+
+const TIER_KEYS: Record<number, string> = {
+    1: 'HHGearTierClassTheme', 2: 'HHGearTierClass', 3: 'HHGearTierTheme',
+    4: 'HHGearTierMythic', 5: 'HHGearTierNone',
+};
+
 export class EquipmentGear {
 
     /** Guards against a second injection when the page handler runs again. */
@@ -564,23 +576,26 @@ export class EquipmentGear {
     }
 
     private static showPlan(modeName: string, theme: GearTheme, plan: GearPlan, mode: GearMode): void {
+        // Numbers are appended to the labels, not interpolated into them: the
+        // translations carry no placeholders (see noTargetsMessage).
+        const t = (key: string) => EquipmentGear.gearText(key);
         const rows = plan.picks.map(pick => {
-            const slot = `${pick.slot} ${SLOT_NAMES[pick.slot]}`;
+            const slot = `${pick.slot} ${t(SLOT_KEYS[pick.slot])}`;
             if (!pick.chosen) {
-                return `<tr><td>${slot}</td><td colspan="4" style="color:#aaa;">no item owned</td></tr>`;
+                return `<tr><td>${slot}</td><td colspan="4" style="color:#aaa;">${t('HHGearNoItemOwned')}</td></tr>`;
             }
             const label = `${esc(pick.chosen.name)} (${pick.chosen.rarity} lvl${pick.chosen.level})`;
-            const tier = `<span style="color:#aaa;">${esc(TIER_NAMES[pick.tier])}</span>`;
+            const tier = `<span style="color:#aaa;">${t(TIER_KEYS[pick.tier])}</span>`;
             if (!pick.changed) {
-                return `<tr style="color:#aaa;"><td>${slot}</td><td>keep ${label}</td>`
+                return `<tr style="color:#aaa;"><td>${slot}</td><td>${t('HHGearKeepLabel')} ${label}</td>`
                     + `<td>${tier}</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>`;
             }
             const warn = pick.projectionUnreliable
-                ? ' <span style="color:#fc6;" title="Item does not follow the known mythic curve">&#9888;</span>'
+                ? ` <span style="color:#fc6;" title="${t('HHGearCurveWarning')}">&#9888;</span>`
                 : '';
             const resonance = mode === 'possible'
                 ? `${fmtSignedPct(pick.projectedResonanceDelta ?? 0)}`
-                  + `<br/><span style="color:#aaa;font-size:10px;">now ${fmtSignedPct(pick.resonanceDelta)}</span>`
+                  + `<br/><span style="color:#aaa;font-size:10px;">${t('HHGearNowLabel')} ${fmtSignedPct(pick.resonanceDelta)}</span>`
                 : fmtSignedPct(pick.resonanceDelta);
             return `<tr><td>${slot}</td><td>${label}${warn}</td><td>${tier}</td>`
                 + `<td class="num" style="color:${pick.caracDelta < 0 ? '#f88' : '#7f7'};">${fmtSigned(pick.caracDelta)}</td>`
@@ -588,27 +603,25 @@ export class EquipmentGear {
         }).join('');
 
         const summary = mode === 'possible'
-            ? `<p><b>Today this costs ${fmtSigned(plan.totalCaracDelta)} carac points.</b>`
-              + ` Levelled to the cap it is worth ${fmtSignedPct(plan.totalProjectedResonanceDelta ?? 0)} of resonance,`
-              + ` and every mythic reaches the same stats there. The gap is deliberate &mdash;`
-              + ` these are the better targets, not the better items today.</p>`
-            : `<p><b>${fmtSigned(plan.totalCaracDelta)} carac points, ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.</b></p>`;
+            ? `<p><b>${t('HHGearCaracPointsToday')}: ${fmtSigned(plan.totalCaracDelta)}</b><br/>`
+              + `${t('HHGearResonanceOnceLevelled')}: ${fmtSignedPct(plan.totalProjectedResonanceDelta ?? 0)}</p>`
+              + `<p>${t('HHGearGapNote')}</p>`
+            : `<p><b>${t('HHGearCaracPoints')}: ${fmtSigned(plan.totalCaracDelta)},`
+              + ` ${t('HHGearActiveResonance')}: ${fmtSignedPct(plan.totalResonanceDelta)}</b></p>`;
 
-        const resonanceHead = mode === 'possible' ? 'resonance at cap' : 'resonance';
+        const resonanceHead = t(mode === 'possible' ? 'HHGearColResonanceAtCap' : 'HHGearColResonance');
         const button = plan.changes.length === 0
-            ? '<p style="color:#7f7;">Nothing to change &mdash; every slot already holds the best item.</p>'
+            ? `<p style="color:#7f7;">${t('HHGearNothingToChange')}</p>`
             : `<label class="myButton" id="HHGearExecute" style="font-size:14px;width:100%;text-align:center;">`
-              + `Equip ${plan.changes.length} item(s)</label>`;
+              + `${t('HHGearEquipPlanned')} (${plan.changes.length})</label>`;
 
         fillHHPopUp('HHGearPreview', modeName, `
         <div id="HHGearPreview" style="padding:10px;max-width:760px;font-size:13px;">
-            <p>Hero class <b>${HeroHelper.getClass()}</b>, team theme <b>${esc(theme)}</b>.
-               Ranked by priority, not by a stat score: a capped mythic matching your class
-               and your team's theme first, then class, then theme, then any capped mythic,
-               and only then everything else. At the cap every mythic has the same stats,
-               so the resonance is the whole difference.</p>
+            <p>${t('HHGearHeroClass')}: <b>${HeroHelper.getClass()}</b>, ${t('HHGearTeamTheme')}: <b>${esc(theme)}</b>.
+               ${t('HHGearRankingNote')}</p>
             <table>
-                <tr><th>Slot</th><th>Item</th><th>why</th><th>caracs</th><th>${resonanceHead}</th></tr>
+                <tr><th>${t('HHGearColSlot')}</th><th>${t('HHGearColItem')}</th><th>${t('HHGearColWhy')}</th>`
+                + `<th>${t('HHGearColCaracs')}</th><th>${resonanceHead}</th></tr>
                 ${rows}
             </table>
             ${summary}
@@ -678,14 +691,15 @@ export class EquipmentGear {
                 }
             }
 
+            const t = (key: string) => EquipmentGear.gearText(key);
             const rows = decision.groups
                 .map(g => `<tr><td>${g.slot}</td><td>${g.element}</td><td class="num">${g.freed}</td></tr>`)
                 .join('');
             EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'),
-                `<p>${decision.keep.size} marked, ${freed} free to use as material by hand.</p>`
-                + '<p>A marked piece is the one to keep for that slot and element.'
-                + ' Nothing was changed in the game.</p>'
-                + '<table id="HHGearPreview"><tr><th>Slot</th><th>Element</th><th>Free</th></tr>'
+                `<p>${t('HHGearMarkedCount')}: ${decision.keep.size}, ${t('HHGearFreeCount')}: ${freed}</p>`
+                + `<p>${t('HHGearMarkNote')}</p>`
+                + `<table id="HHGearPreview"><tr><th>${t('HHGearColSlot')}</th><th>${t('HHGearColElement')}</th>`
+                + `<th>${t('HHGearColFree')}</th></tr>`
                 + rows + '</table>');
         } catch (err) {
             logHHAuto('Gear: Mark Keepers failed -- ' + String(err));
@@ -859,32 +873,28 @@ export class EquipmentGear {
             EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.noTargetsMessage(empty));
             return;
         }
-        const rows = targets.map(t =>
-            `<tr><td>${t.slot} ${SLOT_NAMES[t.slot]}</td><td>${esc(t.name)}</td>`
-            + `<td class="num">lvl ${t.level}</td>`
-            + `<td style="color:#aaa;">${esc(TIER_NAMES[t.tier])}</td></tr>`).join('');
+        const t = (key: string) => EquipmentGear.gearText(key);
+        const rows = targets.map(target =>
+            `<tr><td>${target.slot} ${t(SLOT_KEYS[target.slot])}</td><td>${esc(target.name)}</td>`
+            + `<td class="num">lvl ${target.level}</td>`
+            + `<td style="color:#aaa;">${t(TIER_KEYS[target.tier])}</td></tr>`).join('');
 
         fillHHPopUp('HHGearPreview', EquipmentGear.gearTitle('HHGearUpgrade'), `
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
-            <p>Worn mythics below level ${MYTHIC_MAX_LEVEL}, best-matching first &mdash;
-               material goes where it grows the most resonance.</p>
-            ${theme ? '' : `<p style="color:#aaa;">No team theme known, so the order below only
-               separates items that match your class from those that do not. Every worn mythic
-               is upgraded either way. Open your team page once ("Change team" on the league
-               page) and the theme sharpens the order next time.</p>`}
+            <p>${t('HHGearUpgradeIntro')} (${MYTHIC_MAX_LEVEL})</p>
+            ${theme ? '' : `<p style="color:#aaa;">${t('HHGearUpgradeNoThemeNote')}</p>`}
             <table>
-                <tr><th>Slot</th><th>Item</th><th>level</th><th>why it is worth it</th></tr>
+                <tr><th>${t('HHGearColSlot')}</th><th>${t('HHGearColItem')}</th><th>${t('HHGearColLevel')}</th>`
+                + `<th>${t('HHGearColWorth')}</th></tr>
                 ${rows}
             </table>
-            <p><b>Material:</b> ${stock.legendary.toLocaleString()} legendary and
-               ${stock.epic.toLocaleString()} epic items. Mythics are never consumed.</p>
-            <p style="color:#aaa;font-size:11px;">One item is taken to level ${MYTHIC_MAX_LEVEL}
-               before the next one starts. The upgrade page states each item's exact
-               requirement, and the run stops by itself once the material is spent.</p>
+            <p><b>${t('HHGearMaterialLegendary')}:</b> ${stock.legendary.toLocaleString()},
+               <b>${t('HHGearMaterialEpic')}:</b> ${stock.epic.toLocaleString()}. ${t('HHGearMythicsNeverUsed')}</p>
+            <p style="color:#aaa;font-size:11px;">${t('HHGearUpgradeFootnote')}</p>
             <p id="HHGearStatus" style="color:#ffb827;"></p>
             <label class="myButton" id="HHGearUpgradeStart" style="font-size:14px;width:100%;text-align:center;">
-                Level all ${targets.length} item(s), starting with ${esc(targets[0].name)}
-                (slot ${targets[0].slot})</label>
+                ${t('HHGearUpgradeStart')} (${targets.length}), ${t('HHGearStartingWith')} ${esc(targets[0].name)}
+                (${t('HHGearColSlot')} ${targets[0].slot})</label>
         </div>`);
 
         $('#HHGearUpgradeStart').on('click', function () {
@@ -1158,7 +1168,7 @@ export class EquipmentGear {
         const ajax = getHHAjax();
         if (!ajax) {
             logHHAuto('Gear: shared.general.hh_ajax disappeared, aborting -- nothing was changed.');
-            $('#HHGearStatus').text('hh_ajax is unavailable. Nothing was changed.');
+            $('#HHGearStatus').text(getTextForUI('HHGearAjaxMissing', 'elementText'));
             return;
         }
 
@@ -1166,7 +1176,7 @@ export class EquipmentGear {
         let done = 0;
         for (const pick of plan.changes) {
             const item = pick.chosen!;
-            $('#HHGearStatus').text(`Equipping slot ${pick.slot} (${done + 1}/${plan.changes.length})...`);
+            $('#HHGearStatus').text(`${getTextForUI('HHGearEquippingSlot', 'elementText')} ${pick.slot} (${done + 1}/${plan.changes.length})...`);
             const data: any = await new Promise(resolve => {
                 ajax({
                     action: 'market_equip_armor',
@@ -1177,8 +1187,8 @@ export class EquipmentGear {
 
             if (!data || data.success === false) {
                 logHHAuto(`Gear: slot ${pick.slot} refused by the game, stopping after ${done} swap(s).`);
-                $('#HHGearStatus').text(`Stopped at slot ${pick.slot}: the game refused the swap.`
-                    + ` ${done} of ${plan.changes.length} done.`);
+                $('#HHGearStatus').text(`${getTextForUI('HHGearRefusedAtSlot', 'elementText')} ${pick.slot}.`
+                    + ` ${done}/${plan.changes.length}`);
                 break;
             }
 
@@ -1204,7 +1214,7 @@ export class EquipmentGear {
         }
 
         if (done === plan.changes.length) {
-            $('#HHGearStatus').text(`Done: ${done} slot(s) changed. Reload the page to see the new stats.`);
+            $('#HHGearStatus').text(`${getTextForUI('HHGearDoneReload', 'elementText')} ${done}`);
             logHHAuto(`Gear: finished, ${done} slot(s) changed.`);
         }
     }
