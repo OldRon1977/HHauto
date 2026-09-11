@@ -285,7 +285,8 @@ export class LeagueHelper {
                 if (debugEnabled) logHHAuto('Simulating league opponents, remaining to simulate: ' + opponentsToSimulate.length);
 
                 const opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
-                let opponentsPowerListChanged = false;
+                const expirationSecs = ConfigHelper.getHHScriptVars("LeagueListExpirationSecs");
+                let newlySimulated = 0;
 
                 for(let opponentIndex = 0;opponentIndex < opponentsToSimulate.length ; opponentIndex++)
                 {
@@ -330,16 +331,24 @@ export class LeagueHelper {
                         );
 
                         opponentsPowerList.opponentsList.push(leagueOpponent);
-                        opponentsPowerListChanged = true;
+                        newlySimulated++;
+                        // Saved after every opponent, not once after the last: the
+                        // loop yields between opponents and a navigation can end it
+                        // anywhere, and a list saved only at the end was lost whole
+                        // (measured before the memo: 37 of 110 opponents computed,
+                        // nothing stored). The expiry is stamped here, at write time
+                        // -- stamped when the list was loaded, it could run out
+                        // before the list was ever written.
+                        opponentsPowerList.expirationDate = Date.now() + expirationSecs * 1000;
+                        setStoredValue(HHStoredVarPrefixKey+TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
                     }
 
                     LeagueHelper.displayOppoSimuOnButton(opponents.player.id_fighter, simu);
                     await TimeHelper.sleep(randomInterval(10, 30)); // Allow browser to render
                 }
 
-                if(opponentsPowerListChanged) {
-                    logHHAuto('Save opponent list for later');
-                    setStoredValue(HHStoredVarPrefixKey+TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
+                if (newlySimulated > 0) {
+                    logHHAuto(`Saved opponent list for later (${newlySimulated} newly simulated).`);
                 }
             }
 

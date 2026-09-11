@@ -431,6 +431,9 @@ export class EquipmentGear {
         if (EquipmentGear.running) return;
         EquipmentGear.running = true;
         const modeName = mode === 'current' ? 'Current Best Gear' : 'Possible Best Gear';
+        // The popup title follows the menu language; modeName stays English
+        // for the log, which is what bug reports are read from.
+        const modeTitle = EquipmentGear.gearTitle(mode === 'current' ? 'HHGearCurrentBest' : 'HHGearPossibleBest');
         try {
             const theme = EquipmentGear.resolveTheme();
             if (!theme) {
@@ -439,23 +442,23 @@ export class EquipmentGear {
                     + ' way in. Nothing needs to be built. Picking gear on a guessed theme would equip'
                     + ' the wrong items, which is why this stops instead.';
                 logHHAuto('Gear: ' + msg + ' Nothing was changed.');
-                EquipmentGear.showMessage(modeName, msg);
+                EquipmentGear.showMessage(modeTitle, EquipmentGear.gearText('HHGearMsgNoTheme'));
                 return;
             }
 
             const rawClass = Number(HeroHelper.getClass());
             if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
                 logHHAuto('Gear: hero class is ' + rawClass + ', aborting -- nothing was changed.');
-                EquipmentGear.showMessage(modeName, 'Could not read the hero class.');
+                EquipmentGear.showMessage(modeTitle, EquipmentGear.gearText('HHGearMsgNoClass'));
                 return;
             }
             const playerClass = rawClass as PlayerClass;
 
-            EquipmentGear.showMessage(modeName, 'Reading the inventory...');
+            EquipmentGear.showMessage(modeTitle, EquipmentGear.gearText('HHGearMsgReading'));
             const inventory = await EquipmentGear.fetchInventory();
             if (inventory === null) {
-                EquipmentGear.showMessage(modeName,
-                    'Could not read the inventory. Nothing was changed -- see the log.');
+                EquipmentGear.showMessage(modeTitle,
+                    EquipmentGear.gearText('HHGearMsgNoInventory'));
                 return;
             }
 
@@ -485,10 +488,10 @@ export class EquipmentGear {
                 : planPossibleBest(all, playerClass, theme);
 
             EquipmentGear.logPlan(modeName, theme, plan, mode);
-            EquipmentGear.showPlan(modeName, theme, plan, mode);
+            EquipmentGear.showPlan(modeTitle, theme, plan, mode);
         } catch (err) {
             logHHAuto('Gear: ' + modeName + ' failed before any change was made: ' + err);
-            EquipmentGear.showMessage(modeName, 'Failed, nothing was changed. See the log.');
+            EquipmentGear.showMessage(modeTitle, EquipmentGear.gearText('HHGearMsgFailed'));
         } finally {
             EquipmentGear.running = false;
         }
@@ -543,6 +546,16 @@ export class EquipmentGear {
             + entry('upgrade', 'HHGearUpgrade')
             + entry('keep', 'HHGearMarkKeep')
             + '</ul>');
+    }
+
+    /** A plain-text message from the language files, escaped for the popup. */
+    private static gearText(key: string): string {
+        return esc(getTextForUI(key, 'elementText'));
+    }
+
+    /** A popup title from the language files: the menu entry's own label. */
+    private static gearTitle(key: string): string {
+        return getTextForUI(key, 'elementText');
     }
 
     private static showMessage(title: string, message: string): void {
@@ -633,15 +646,15 @@ export class EquipmentGear {
         try {
             const rawClass = Number(HeroHelper.getClass());
             if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
-                EquipmentGear.showMessage('Mark Keepers', 'Could not read the hero class.');
+                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'), EquipmentGear.gearText('HHGearMsgNoClass'));
                 return;
             }
 
-            EquipmentGear.showMessage('Mark Keepers', 'Reading the inventory...');
+            EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'), EquipmentGear.gearText('HHGearMsgReading'));
             const inventory = await EquipmentGear.fetchInventory();
             if (inventory === null) {
-                EquipmentGear.showMessage('Mark Keepers',
-                    'Could not read the inventory. Nothing was marked -- see the log.');
+                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'),
+                    EquipmentGear.gearText('HHGearMsgNoInventoryMark'));
                 return;
             }
 
@@ -668,7 +681,7 @@ export class EquipmentGear {
             const rows = decision.groups
                 .map(g => `<tr><td>${g.slot}</td><td>${g.element}</td><td class="num">${g.freed}</td></tr>`)
                 .join('');
-            EquipmentGear.showMessage('Mark Keepers',
+            EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'),
                 `<p>${decision.keep.size} marked, ${freed} free to use as material by hand.</p>`
                 + '<p>A marked piece is the one to keep for that slot and element.'
                 + ' Nothing was changed in the game.</p>'
@@ -781,15 +794,15 @@ export class EquipmentGear {
             const theme = EquipmentGear.resolveTheme();
             const rawClass = Number(HeroHelper.getClass());
             if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
-                EquipmentGear.showMessage('Upgrade Gear', 'Could not read the hero class.');
+                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.gearText('HHGearMsgNoClass'));
                 return;
             }
 
-            EquipmentGear.showMessage('Upgrade Gear', 'Reading the inventory...');
+            EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.gearText('HHGearMsgReading'));
             const inventory = await EquipmentGear.fetchInventory();
             if (inventory === null) {
-                EquipmentGear.showMessage('Upgrade Gear',
-                    'Could not read the inventory. Nothing was changed -- see the log.');
+                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'),
+                    EquipmentGear.gearText('HHGearMsgNoInventory'));
                 return;
             }
             const all = [...EquipmentGear.readEquipped(), ...inventory];
@@ -808,7 +821,7 @@ export class EquipmentGear {
             EquipmentGear.showUpgradePlan(targets, stock, theme, summariseNoTargets(all));
         } catch (err) {
             logHHAuto('Gear: Upgrade Gear failed before any change was made: ' + err);
-            EquipmentGear.showMessage('Upgrade Gear', 'Failed, nothing was changed. See the log.');
+            EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.gearText('HHGearMsgFailed'));
         } finally {
             EquipmentGear.running = false;
         }
@@ -843,7 +856,7 @@ export class EquipmentGear {
         empty: NoUpgradeSummary,
     ): void {
         if (targets.length === 0) {
-            EquipmentGear.showMessage('Upgrade Gear', EquipmentGear.noTargetsMessage(empty));
+            EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.noTargetsMessage(empty));
             return;
         }
         const rows = targets.map(t =>
@@ -851,7 +864,7 @@ export class EquipmentGear {
             + `<td class="num">lvl ${t.level}</td>`
             + `<td style="color:#aaa;">${esc(TIER_NAMES[t.tier])}</td></tr>`).join('');
 
-        fillHHPopUp('HHGearPreview', 'Upgrade Gear', `
+        fillHHPopUp('HHGearPreview', EquipmentGear.gearTitle('HHGearUpgrade'), `
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
             <p>Worn mythics below level ${MYTHIC_MAX_LEVEL}, best-matching first &mdash;
                material goes where it grows the most resonance.</p>
