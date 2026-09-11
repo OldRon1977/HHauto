@@ -2,6 +2,7 @@
 // Detects the current game domain and loads the matching set of page IDs, URLs,
 // CSS selectors, feature flags, and troll/quest data for that variant.
 
+import { POWER_CALC_IMAGES } from "./Images";
 import { getLanguageCode } from "../Helper/LanguageHelper";
 import { Harem } from "../Module/harem/Harem";
 import { AmourAgent } from "./game/AmourAgentVars";
@@ -83,13 +84,7 @@ HHEnvVariables["global"].LEVEL_MIN_EVENT_SM = 15;
 HHEnvVariables["global"].LEVEL_MIN_EVENT_DP = 40;
 HHEnvVariables["global"].boosterId_MB1 = 632;
 
-HHEnvVariables["global"].powerCalcImages =
-    {
-    plus:   "https://i.postimg.cc/qgkpN0sZ/Opponent-green.png",
-    close:  "https://i.postimg.cc/3JCgVBdK/Opponent-orange.png",
-    minus:  "https://i.postimg.cc/PxgxrBVB/Opponent-red.png",
-    chosen: "https://i.postimg.cc/MfKwNbZ8/Opponent-go.png"
-};
+HHEnvVariables["global"].powerCalcImages = POWER_CALC_IMAGES;
 
 HHEnvVariables["global"].possibleRewardsList = {'energy_kiss' : "Kisses",
                                                 'energy_quest' : "Quest energy",

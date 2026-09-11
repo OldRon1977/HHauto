@@ -19,6 +19,22 @@ existing player: with only *Collect all* on for Path of Glory, the sweep now
 runs in the final window before the event ends instead of continuously -- what
 the switch has always said it does, and what Path of Valor already did.
 
+#### The script's own icons load again
+
+The menu button, the power-calc markers next to opponents in League, Season
+and Penta Drill, the Labyrinth choice marker and the market's sell lock all
+showed as broken images from one day to the next. None of it was the game: the
+five pictures were linked from a free image host, and its TLS certificate ran
+out on 10 September at 20:49 UTC. A browser that still had them cached kept
+showing them, which is why it looked partial; every fresh load failed with
+`ERR_CERT_DATE_INVALID`.
+
+The icons now ship inside the script, so there is no outside server left whose
+certificate can lapse. The two large ones are stored at 64 pixels instead of
+their original 180 -- they are drawn at 25 to 35, and League puts one in each
+opponent row -- which keeps the script 67 KB lighter than embedding the
+originals would have.
+
 #### Upgrade Gear says which of three situations you are in
 
 With no mythic gear on, *Upgrade Gear* reported that every mythic you wear is
