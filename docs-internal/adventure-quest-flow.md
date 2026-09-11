@@ -1,9 +1,10 @@
 ---
-last-verified: 2026-09-09
-verified-against-version: v8.12.16 HHAuto, hentaiheroes.com
+last-verified: 2026-09-11
+verified-against-version: 8.13.1 HHAuto, hentaiheroes.com
 status: current
 sources:
   - Live-Messung auf einem eigenen Pruefkonto (ADR-011), Welt 1 bis 3, Level 5 bis 17
+  - Nachmessung auf demselben Konto in Welt 5, Level 115 (2026-09-11)
   - HHAuto Code (Module/Quest.ts, Module/Troll.ts, config/game/HentaiHeroesVars.ts)
 ---
 
@@ -180,6 +181,7 @@ kopiert.
 |---|---|---|
 | 1 | 0, also keiner | `troll-pre-battle.html?id_opponent=1` antwortet "Troll not available yet!" |
 | 2 | 1 | Kampf gegen Troll 1 laeuft, Gegnername laut `trollzList[1]` |
+| 5 | 4 | 2026-09-11: `id_opponent` 1 bis 4 liefern die Vorkampfseite mit `shared.Hero` und drei Kampfknoepfen, 5 bis 7 "Troll not available yet!" ohne `shared.Hero` |
 
 Die Seite ohne verfuegbaren Troll traegt **kein** `shared.Hero` und keine
 Knoepfe; HHauto initialisiert dort nicht und kann sie nicht verlassen. Deshalb
@@ -212,6 +214,12 @@ Grenze wie die Anzeige -- geprueft 2026-09-09, kein Handlungsbedarf.
 
 `seconds_per_point` nennt die Nachwachszeit: Quest 450 s, Fight 1800 s,
 Challenge 2100 s, Kiss 3600 s, Drill 3600 s, Worship 8640 s, Reply 10800 s.
+Nachgemessen 2026-09-11 in Welt 5, Level 115: dieselben sieben Toepfe und
+dieselben Zeiten; `max_regen_amount` Quest 150, Fight 30, Challenge 18, Kiss 20,
+Worship 15, Reply 10, Drill 20 (`max_amount` 1000/200/60/100/100/50/100). Die
+Kopfleiste zeigte `15/150` und `2/30`, also wieder `amount / max_regen_amount`.
+Alle sechs Toepfe, die das Skript liest, standen auf allen 39 besuchten Seiten
+bereit (`data-sources-inventory.md`, Abschnitt 10).
 `fight` ist damit auf einem jungen Konto die knappe Ressource, und jeder
 Questkampf kostet davon.
 
@@ -234,7 +242,12 @@ Ueber zwei Messschleifen mit je eigener Browsersitzung pro Lesung:
 |---|---|---|---|---|
 | 1 | 12 | 6 | 6 | 50 % |
 | 2 | 16 | 8 | 8 | 50 % |
-| zusammen | 28 | 14 | 14 | **50 %** |
+| 3 (2026-09-11, Level 115) | 12 | 4 | 8 | 67 % |
+| zusammen | 40 | 18 | 22 | **55 %** |
+
+Schleife 3 zeigte dasselbe Muster: die acht veralteten Lesungen trugen alle
+denselben Stand (Level 115 und das Geld unmittelbar nach einem Stat-Kauf gut
+eine Stunde vorher), die vier frischen den aktuellen (Level 116).
 
 Es ist kein Nachhinken, sondern **zwei feste Momentaufnahmen im Wechsel**: die
 veralteten Lesungen tragen immer exakt dieselben Werte (Level 17, Xp 36389,
@@ -264,10 +277,18 @@ und die betroffenen Module melden `isEnabled() === false`, ohne Fehler und ohne
 Logzeile. Seit v8.12.7 merkt sich `getLevel` deshalb den Hoechststand
 (`Temp_heroMaxLevel`) und faellt nicht darunter.
 
-**Eine Quest-URL aus einer alten Seite fuehrt ins Leere.** Navigiert man auf
-eine bereits erledigte Quest, antwortet das Spiel mit "Something went wrong.
-Please try again." und laesst den Weiter-Knopf ausgegraut. Der Questpfad
-gehoert vor jedem Lauf frisch aus `Hero.infos.questing.current_url` gelesen.
+**Eine Quest-URL aus einer alten Seite fuehrt nicht weiter.** Navigiert man
+auf eine bereits erledigte Quest, antwortete das Spiel am 2026-09-09 mit
+"Something went wrong. Please try again." und liess den Weiter-Knopf
+ausgegraut. Am 2026-09-11 zeigte `/quest/320` (auf einem Konto in Welt 5 laengst
+erledigt) stattdessen eine Archivansicht: `page=quest`, keine Fehlermeldung, im
+`#controls` nur `archive-back` und `archive-next`. Fortschritt gibt es ueber eine
+alte URL in keinem der beiden Faelle; der Questpfad gehoert vor jedem Lauf
+frisch aus `Hero.infos.questing.current_url` gelesen.
+
+Gemessen 2026-09-11 auf der aktuellen Questseite in Welt 5: erster Knopf `pay`,
+Text `Use 15`, Waehrung Quest-Energie (`.energy_quest_icn`), Zaehler
+`#controls .item span` `0`.
 
 ## Ein gesperrtes Event sieht aus wie ein offenes
 
