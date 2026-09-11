@@ -23,8 +23,11 @@ the switch has always said it does, and what Path of Valor already did.
 
 With no mythic gear on, *Upgrade Gear* reported that every mythic you wear is
 already at level 20 -- a statement about items that do not exist. It says one
-of three things now: that you wear no mythic at all, that you own some but have
-none equipped and how many, or that the ones you wear are done.
+of three things now: that you own no mythic item yet, that you own some but have
+none equipped and how many sit in the inventory, or that the ones you wear are
+at the maximum level. Each of the three adds that only mythic items can be
+levelled, and all of them come in the menu's language -- the old message was
+English whatever the menu was set to.
 
 Levelling what you wear instead is not on offer, and that is the game's call:
 with a valid id for a worn legendary the upgrade page bounces back to the
