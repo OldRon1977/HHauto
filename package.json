@@ -7,7 +7,7 @@
     "test": "jest",
     "build": "webpack --config webpack.config.js",
     "lint": "eslint \"src/**/*.ts\" \"spec/**/*.ts\"",
-    "lint:ci": "eslint \"src/**/*.ts\" \"spec/**/*.ts\" --max-warnings 907",
+    "lint:ci": "eslint \"src/**/*.ts\" \"spec/**/*.ts\" --max-warnings 906",
     "typecheck": "tsc --noEmit",
     "deps:graph": "madge --extensions ts src",
     "deps:circular": "madge --circular --extensions ts src",

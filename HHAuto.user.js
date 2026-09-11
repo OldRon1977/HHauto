@@ -9816,21 +9816,38 @@ class Harem {
             girlsDataList = getHHVars("girlsDataList");
         }
         if (girlsDataList != null && !(girlsDataList instanceof Map)) {
-            const girlNameDictionary = new Map();
-            // The game returns girlsDataList as either an Array
-            // or a plain Object keyed by girl id (current). forEach only
-            // exists on the Array form -- normalise via Object.values().
-            const entries = Array.isArray(girlsDataList)
-                ? girlsDataList
-                : (typeof girlsDataList === 'object' ? Object.values(girlsDataList) : []);
-            entries.forEach((data) => {
-                if (data != null && data.id_girl !== undefined) {
-                    girlNameDictionary.set(data.id_girl + "", data);
-                }
-            });
-            girlsDataList = girlNameDictionary;
+            girlsDataList = Harem.toGirlDictionary(girlsDataList);
         }
         return girlsDataList;
+    }
+    /**
+     * The waifu page's own `girls_data_list`, or null on any other page.
+     *
+     * getGirlsList() prefers OCD's stored map, which is only as fresh as OCD's
+     * last pass over the harem. The waifu page lists the harem as the game has
+     * it now, and moduleHaremCountMax sizes TK.HaremSize from this very list --
+     * so it is the one list that can be held against that size.
+     */
+    static getWaifuPageGirlsList() {
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDWaifu"))
+            return null;
+        const list = getHHVars("girls_data_list", false);
+        return list == null ? null : Harem.toGirlDictionary(list);
+    }
+    static toGirlDictionary(list) {
+        const girlNameDictionary = new Map();
+        // The game returns girlsDataList as either an Array
+        // or a plain Object keyed by girl id (current). forEach only
+        // exists on the Array form -- normalise via Object.values().
+        const entries = Array.isArray(list)
+            ? list
+            : (list !== null && typeof list === 'object' ? Object.values(list) : []);
+        entries.forEach((data) => {
+            if (data != null && data.id_girl !== undefined) {
+                girlNameDictionary.set(data.id_girl + "", data);
+            }
+        });
+        return girlNameDictionary;
     }
     static getHaremGirlsFromOcdIfExist() {
         if (localStorage.getItem('HHS.HHPNMap') !== null) {
@@ -16429,14 +16446,23 @@ class Troll {
      * counts as "no answer": [] is returned and the caller keeps whatever
      * snapshot it has. Without a cached size (fresh install) the check cannot
      * run and any list is accepted, as before.
+     *
+     * On the waifu page the page's own list answers, and the size check does
+     * not apply to it: TK.HaremSize is counted from that list. A user log
+     * showed why: on /waifu.html the size was cached as 24 from the page,
+     * the list getGirlsList() handed over held 22, and with no stored
+     * snapshot getTrollIdToFight reloaded the page every four seconds. Read
+     * for the same account, the page listed all 24. Where the 22 came from is
+     * not established; getGirlsList() prefers OCD's stored map over the page.
      */
     static getTrollWithGirls() {
-        const girlDictionary = Harem.getGirlsList();
+        const waifuPageGirls = Harem.getWaifuPageGirlsList();
+        const girlDictionary = waifuPageGirls !== null && waifuPageGirls !== void 0 ? waifuPageGirls : Harem.getGirlsList();
         const trollGirlsID = ConfigHelper.getHHScriptVars("trollGirlsID");
         const sideTrollGirlsID = ConfigHelper.getHHScriptVars("sideTrollGirlsID");
         const trollWithGirls = [];
         const knownHaremSize = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count || 0;
-        if (girlDictionary && girlDictionary.size > 0
+        if (waifuPageGirls === null && girlDictionary && girlDictionary.size > 0
             && knownHaremSize > 0 && girlDictionary.size < knownHaremSize) {
             logHHAuto(`Girl list holds ${girlDictionary.size} of ${knownHaremSize} known girls, so it is not the harem. Keeping the stored troll snapshot.`);
             return trollWithGirls;
@@ -16616,19 +16642,32 @@ class Troll {
             // only when the girl list is loaded; otherwise fall back to the cached
             // snapshot, or fetch the list from the Waifu page.
             const freshTrollWithGirls = Troll.getTrollWithGirls();
+            let waifuGaveNoList = false;
             if (freshTrollWithGirls.length > 0) {
                 trollWithGirls = freshTrollWithGirls;
                 if (allowSideEffects)
                     setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
             }
             else if (trollWithGirls === undefined || trollWithGirls.length === 0) {
-                if (logging)
-                    logHHAuto("Need girls list, going to Waifu page to get them");
-                if (!allowSideEffects)
-                    return 0;
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
-                return -1;
+                if (getPage() === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
+                    // Already on the page that is meant to supply the list, and it
+                    // gave none. Going there again only reloads it -- in the log
+                    // above every four seconds, with a stat purchase on each load --
+                    // and the home-page fallback below would only swap that for a
+                    // waifu<->home loop. No target; the love-raid fallback still runs.
+                    if (logging)
+                        logHHAuto("The waifu page gave no usable girl list either; no troll target for now.");
+                    waifuGaveNoList = true;
+                }
+                else {
+                    if (logging)
+                        logHHAuto("Need girls list, going to Waifu page to get them");
+                    if (!allowSideEffects)
+                        return 0;
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
+                    return -1;
+                }
             }
             if (trollWithGirls !== undefined && trollWithGirls.length > 0) {
                 if (autoTrollSelectedIndex === 98) {
@@ -16666,6 +16705,9 @@ class Troll {
                         }
                     }
                 }
+            }
+            else if (waifuGaveNoList) {
+                TTF = 0;
             }
             else if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDHome")) {
                 if (logging)
