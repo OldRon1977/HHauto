@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.13.0
+// @version      8.13.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -581,6 +581,12 @@ HHAuto_ToolTips.en['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: 
 HHAuto_ToolTips.en['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "You have not equipped any mythic item yet. Only mythic items can be levelled -- put them on first; Possible Best Gear does exactly that.", tooltip: "" };
 HHAuto_ToolTips.en['HHGearUpgradeNoneOwned'] = { version: "8.13.0", elementText: "You do not own any mythic item yet. Only mythic items can be levelled; legendary and epic pieces carry a fixed value tied to your own level.", tooltip: "" };
 HHAuto_ToolTips.en['HHGearUpgradeInInventory'] = { version: "8.13.0", elementText: "Mythic items in your inventory", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMsgNoTheme'] = { version: "8.13.1", elementText: "No team theme known yet. Open your team page once -- the \"Change team\" button on the league page gets you there -- and the theme is picked up on the way in. Nothing needs to be built. Picking gear on a guessed theme would equip the wrong items, which is why this stops instead.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMsgNoClass'] = { version: "8.13.1", elementText: "Could not read the hero class.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMsgReading'] = { version: "8.13.1", elementText: "Reading the inventory...", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMsgNoInventory'] = { version: "8.13.1", elementText: "Could not read the inventory. Nothing was changed -- see the log.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMsgNoInventoryMark'] = { version: "8.13.1", elementText: "Could not read the inventory. Nothing was marked -- see the log.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMsgFailed'] = { version: "8.13.1", elementText: "Failed, nothing was changed. See the log.", tooltip: "" };
 HHAuto_ToolTips.en['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Estimated cost (5M per skill):", tooltip: "Estimated cost of the team stuff operation" };
 HHAuto_ToolTips.en['StuffTeamMoney'] = { version: "7.30.0", elementText: "Money to keep", tooltip: "(Integer)<br>Minimum money to keep." };
 HHAuto_ToolTips.en['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Auto select girl equipment." };
@@ -1039,6 +1045,12 @@ HHAuto_ToolTips.fr['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: 
 HHAuto_ToolTips.fr['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Vous n'avez encore équipé aucun objet mythique. Seuls les objets mythiques peuvent monter de niveau : équipez-les d'abord, « Meilleur équipement possible » s'en charge.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearUpgradeNoneOwned'] = { version: "8.13.0", elementText: "Vous ne possédez encore aucun objet mythique. Seuls les objets mythiques peuvent monter de niveau ; les pièces légendaires et épiques ont une valeur fixe liée à votre niveau.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearUpgradeInInventory'] = { version: "8.13.0", elementText: "Objets mythiques dans l'inventaire", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMsgNoTheme'] = { version: "8.13.1", elementText: "Aucun thème d'équipe connu pour l'instant. Ouvrez une fois votre page d'équipe – le bouton « Change team » de la page de ligue y mène – et le thème est repris au passage. Rien à construire. Choisir l'équipement sur un thème deviné équiperait les mauvaises pièces, c'est pourquoi on s'arrête ici.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMsgNoClass'] = { version: "8.13.1", elementText: "Impossible de lire la classe du héros.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMsgReading'] = { version: "8.13.1", elementText: "Lecture de l'inventaire...", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMsgNoInventory'] = { version: "8.13.1", elementText: "Impossible de lire l'inventaire. Rien n'a été modifié – voir le journal.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMsgNoInventoryMark'] = { version: "8.13.1", elementText: "Impossible de lire l'inventaire. Rien n'a été marqué – voir le journal.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMsgFailed'] = { version: "8.13.1", elementText: "Échec, rien n'a été modifié. Voir le journal.", tooltip: "" };
 HHAuto_ToolTips.fr['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Coût estimé (5 M par compétence) :", tooltip: "Coût estimé de l'équipement de l'équipe." };
 HHAuto_ToolTips.fr['StuffTeamMoney'] = { version: "7.30.0", elementText: "Argent à conserver", tooltip: "(Entier)<br>Argent minimum à conserver." };
 HHAuto_ToolTips.fr['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Donner l'équipement", tooltip: "Sélectionne automatiquement l'équipement des filles." };
@@ -1453,6 +1465,12 @@ HHAuto_ToolTips.de['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: 
 HHAuto_ToolTips.de['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Du hast noch kein Mythic-Item angelegt. Nur Mythic-Items können gelevelt werden – leg sie zuerst an, „Mögliche beste Ausrüstung“ erledigt das.", tooltip: "" };
 HHAuto_ToolTips.de['HHGearUpgradeNoneOwned'] = { version: "8.13.0", elementText: "Du hast noch keine Mythic-Items. Nur Mythic-Items können gelevelt werden; legendäre und epische Teile haben einen festen Wert, der an dein Level gebunden ist.", tooltip: "" };
 HHAuto_ToolTips.de['HHGearUpgradeInInventory'] = { version: "8.13.0", elementText: "Mythic-Items im Inventar", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMsgNoTheme'] = { version: "8.13.1", elementText: "Noch kein Team-Thema bekannt. Öffne einmal deine Teamseite – der Knopf „Change team“ auf der Ligaseite führt dorthin –, dann wird das Thema dabei übernommen. Bauen musst du nichts. Mit einem geratenen Thema würde die falsche Ausrüstung angelegt, deshalb geht es hier nicht weiter.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMsgNoClass'] = { version: "8.13.1", elementText: "Die Heldenklasse ließ sich nicht lesen.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMsgReading'] = { version: "8.13.1", elementText: "Inventar wird gelesen...", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMsgNoInventory'] = { version: "8.13.1", elementText: "Das Inventar ließ sich nicht lesen. Nichts wurde geändert – siehe Log.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMsgNoInventoryMark'] = { version: "8.13.1", elementText: "Das Inventar ließ sich nicht lesen. Nichts wurde markiert – siehe Log.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMsgFailed'] = { version: "8.13.1", elementText: "Fehlgeschlagen, nichts wurde geändert. Siehe Log.", tooltip: "" };
 HHAuto_ToolTips.de['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Geschätzte Kosten (5 Mio. pro Skill):", tooltip: "Geschätzte Kosten für das Bestücken des Teams" };
 HHAuto_ToolTips.de['StuffTeamMoney'] = { version: "7.30.0", elementText: "Geld behalten", tooltip: "(Ganzzahl)<br>Mindestbetrag, der behalten wird." };
 HHAuto_ToolTips.de['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Wählt die Mädel-Ausrüstung automatisch." };
@@ -1786,6 +1804,12 @@ HHAuto_ToolTips.es['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: 
 HHAuto_ToolTips.es['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Todavía no llevas puesto ningún objeto mítico. Solo los objetos míticos pueden subir de nivel: equípalos primero, «Mejor equipo posible» lo hace por ti.", tooltip: "" };
 HHAuto_ToolTips.es['HHGearUpgradeNoneOwned'] = { version: "8.13.0", elementText: "Todavía no tienes ningún objeto mítico. Solo los objetos míticos pueden subir de nivel; las piezas legendarias y épicas tienen un valor fijo ligado a tu nivel.", tooltip: "" };
 HHAuto_ToolTips.es['HHGearUpgradeInInventory'] = { version: "8.13.0", elementText: "Objetos míticos en el inventario", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMsgNoTheme'] = { version: "8.13.1", elementText: "Todavía no se conoce el tema del equipo. Abre una vez tu página de equipo – el botón «Change team» de la página de la liga te lleva allí – y el tema se recoge al pasar. No hay que construir nada. Elegir equipo con un tema adivinado pondría las piezas equivocadas, por eso se detiene aquí.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMsgNoClass'] = { version: "8.13.1", elementText: "No se pudo leer la clase del héroe.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMsgReading'] = { version: "8.13.1", elementText: "Leyendo el inventario...", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMsgNoInventory'] = { version: "8.13.1", elementText: "No se pudo leer el inventario. No se cambió nada – mira el log.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMsgNoInventoryMark'] = { version: "8.13.1", elementText: "No se pudo leer el inventario. No se marcó nada – mira el log.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMsgFailed'] = { version: "8.13.1", elementText: "Falló, no se cambió nada. Mira el log.", tooltip: "" };
 HHAuto_ToolTips.es['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Coste estimado (5 M por habilidad):", tooltip: "Coste estimado de preparar el equipo." };
 HHAuto_ToolTips.es['StuffTeamMoney'] = { version: "7.30.0", elementText: "Dinero a conservar", tooltip: "(Entero)<br>Dinero mínimo que se conserva." };
 HHAuto_ToolTips.es['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Dar equipo", tooltip: "Selecciona automáticamente el equipo de las chicas." };
@@ -18965,9 +18989,7 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
     _player.playerShield = (_player.tier5.id == 12) ? _player.tier5.value * player.hp : 0;
     _opponent.opponentShield = 0;
     _player.stunned = 0;
-    _player.alreadyStunned = 0;
     _opponent.stunned = (_player.tier5.id == 11) ? 2 : 0;
-    _opponent.alreadyStunned = 0;
     _player.reflect = (_player.tier5.id == 13) ? 2 : 0;
     _opponent.reflect = 0;
     let ret;
@@ -18988,7 +19010,14 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
     }
     return ret;
     function calculateDmg(x, turns) {
-        const dmg = x.atk * Math.pow((1 + x.tier4.dmg), turns) - x.adv_def * Math.pow((1 + x.tier4.def), turns);
+        // A hit never does negative damage. Unclamped, an attack below the
+        // defender's defence came out negative, and the shield and reflect
+        // updates below (`shield - damageAmount`) then grew the shield instead
+        // of leaving it alone -- by more on the crit branch, which also kept
+        // the memo from collapsing a stalemate. The damage line already clamps
+        // at 0 (`Math.max(0, damageAmount - shield)`), so this is what the
+        // simulation meant; the game's own floor for such a hit is not measured.
+        const dmg = Math.max(0, x.atk * Math.pow((1 + x.tier4.dmg), turns) - x.adv_def * Math.pow((1 + x.tier4.def), turns));
         return {
             baseAtk: {
                 probability: 1 - x.critchance,
@@ -25268,6 +25297,9 @@ class EquipmentGear {
                 return;
             EquipmentGear.running = true;
             const modeName = mode === 'current' ? 'Current Best Gear' : 'Possible Best Gear';
+            // The popup title follows the menu language; modeName stays English
+            // for the log, which is what bug reports are read from.
+            const modeTitle = EquipmentGear.gearTitle(mode === 'current' ? 'HHGearCurrentBest' : 'HHGearPossibleBest');
             try {
                 const theme = EquipmentGear.resolveTheme();
                 if (!theme) {
@@ -25276,20 +25308,20 @@ class EquipmentGear {
                         + ' way in. Nothing needs to be built. Picking gear on a guessed theme would equip'
                         + ' the wrong items, which is why this stops instead.';
                     logHHAuto('Gear: ' + msg + ' Nothing was changed.');
-                    EquipmentGear.showMessage(modeName, msg);
+                    EquipmentGear.showMessage(modeTitle, EquipmentGear.gearText('HHGearMsgNoTheme'));
                     return;
                 }
                 const rawClass = Number(HeroHelper.getClass());
                 if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
                     logHHAuto('Gear: hero class is ' + rawClass + ', aborting -- nothing was changed.');
-                    EquipmentGear.showMessage(modeName, 'Could not read the hero class.');
+                    EquipmentGear.showMessage(modeTitle, EquipmentGear.gearText('HHGearMsgNoClass'));
                     return;
                 }
                 const playerClass = rawClass;
-                EquipmentGear.showMessage(modeName, 'Reading the inventory...');
+                EquipmentGear.showMessage(modeTitle, EquipmentGear.gearText('HHGearMsgReading'));
                 const inventory = yield EquipmentGear.fetchInventory();
                 if (inventory === null) {
-                    EquipmentGear.showMessage(modeName, 'Could not read the inventory. Nothing was changed -- see the log.');
+                    EquipmentGear.showMessage(modeTitle, EquipmentGear.gearText('HHGearMsgNoInventory'));
                     return;
                 }
                 const equipped = EquipmentGear.readEquipped();
@@ -25317,11 +25349,11 @@ class EquipmentGear {
                     ? planCurrentBest(all, playerClass, theme)
                     : planPossibleBest(all, playerClass, theme);
                 EquipmentGear.logPlan(modeName, theme, plan, mode);
-                EquipmentGear.showPlan(modeName, theme, plan, mode);
+                EquipmentGear.showPlan(modeTitle, theme, plan, mode);
             }
             catch (err) {
                 logHHAuto('Gear: ' + modeName + ' failed before any change was made: ' + err);
-                EquipmentGear.showMessage(modeName, 'Failed, nothing was changed. See the log.');
+                EquipmentGear.showMessage(modeTitle, EquipmentGear.gearText('HHGearMsgFailed'));
             }
             finally {
                 EquipmentGear.running = false;
@@ -25378,6 +25410,14 @@ class EquipmentGear {
             + entry('upgrade', 'HHGearUpgrade')
             + entry('keep', 'HHGearMarkKeep')
             + '</ul>');
+    }
+    /** A plain-text message from the language files, escaped for the popup. */
+    static gearText(key) {
+        return esc(getTextForUI(key, 'elementText'));
+    }
+    /** A popup title from the language files: the menu entry's own label. */
+    static gearTitle(key) {
+        return getTextForUI(key, 'elementText');
     }
     static showMessage(title, message) {
         fillHHPopUp('HHGearPreview', title, `<div id="HHGearPreview" style="padding:10px;max-width:640px;font-size:13px;">${message}</div>`);
@@ -25463,13 +25503,13 @@ class EquipmentGear {
             try {
                 const rawClass = Number(HeroHelper.getClass());
                 if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
-                    EquipmentGear.showMessage('Mark Keepers', 'Could not read the hero class.');
+                    EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'), EquipmentGear.gearText('HHGearMsgNoClass'));
                     return;
                 }
-                EquipmentGear.showMessage('Mark Keepers', 'Reading the inventory...');
+                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'), EquipmentGear.gearText('HHGearMsgReading'));
                 const inventory = yield EquipmentGear.fetchInventory();
                 if (inventory === null) {
-                    EquipmentGear.showMessage('Mark Keepers', 'Could not read the inventory. Nothing was marked -- see the log.');
+                    EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'), EquipmentGear.gearText('HHGearMsgNoInventoryMark'));
                     return;
                 }
                 const decision = pickKeepers(inventory, rawClass);
@@ -25492,7 +25532,7 @@ class EquipmentGear {
                 const rows = decision.groups
                     .map(g => `<tr><td>${g.slot}</td><td>${g.element}</td><td class="num">${g.freed}</td></tr>`)
                     .join('');
-                EquipmentGear.showMessage('Mark Keepers', `<p>${decision.keep.size} marked, ${freed} free to use as material by hand.</p>`
+                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'), `<p>${decision.keep.size} marked, ${freed} free to use as material by hand.</p>`
                     + '<p>A marked piece is the one to keep for that slot and element.'
                     + ' Nothing was changed in the game.</p>'
                     + '<table id="HHGearPreview"><tr><th>Slot</th><th>Element</th><th>Free</th></tr>'
@@ -25604,13 +25644,13 @@ class EquipmentGear {
                 const theme = EquipmentGear.resolveTheme();
                 const rawClass = Number(HeroHelper.getClass());
                 if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
-                    EquipmentGear.showMessage('Upgrade Gear', 'Could not read the hero class.');
+                    EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.gearText('HHGearMsgNoClass'));
                     return;
                 }
-                EquipmentGear.showMessage('Upgrade Gear', 'Reading the inventory...');
+                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.gearText('HHGearMsgReading'));
                 const inventory = yield EquipmentGear.fetchInventory();
                 if (inventory === null) {
-                    EquipmentGear.showMessage('Upgrade Gear', 'Could not read the inventory. Nothing was changed -- see the log.');
+                    EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.gearText('HHGearMsgNoInventory'));
                     return;
                 }
                 const all = [...EquipmentGear.readEquipped(), ...inventory];
@@ -25628,7 +25668,7 @@ class EquipmentGear {
             }
             catch (err) {
                 logHHAuto('Gear: Upgrade Gear failed before any change was made: ' + err);
-                EquipmentGear.showMessage('Upgrade Gear', 'Failed, nothing was changed. See the log.');
+                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.gearText('HHGearMsgFailed'));
             }
             finally {
                 EquipmentGear.running = false;
@@ -25658,13 +25698,13 @@ class EquipmentGear {
     }
     static showUpgradePlan(targets, stock, theme, empty) {
         if (targets.length === 0) {
-            EquipmentGear.showMessage('Upgrade Gear', EquipmentGear.noTargetsMessage(empty));
+            EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.noTargetsMessage(empty));
             return;
         }
         const rows = targets.map(t => `<tr><td>${t.slot} ${SLOT_NAMES[t.slot]}</td><td>${esc(t.name)}</td>`
             + `<td class="num">lvl ${t.level}</td>`
             + `<td style="color:#aaa;">${esc(TIER_NAMES[t.tier])}</td></tr>`).join('');
-        fillHHPopUp('HHGearPreview', 'Upgrade Gear', `
+        fillHHPopUp('HHGearPreview', EquipmentGear.gearTitle('HHGearUpgrade'), `
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
             <p>Worn mythics below level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}, best-matching first &mdash;
                material goes where it grows the most resonance.</p>
@@ -31939,7 +31979,8 @@ class LeagueHelper {
                         if (debugEnabled)
                             logHHAuto('Simulating league opponents, remaining to simulate: ' + opponentsToSimulate.length);
                         const opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
-                        let opponentsPowerListChanged = false;
+                        const expirationSecs = ConfigHelper.getHHScriptVars("LeagueListExpirationSecs");
+                        let newlySimulated = 0;
                         for (let opponentIndex = 0; opponentIndex < opponentsToSimulate.length; opponentIndex++) {
                             const opponents = opponentsToSimulate[opponentIndex];
                             let simu;
@@ -31984,14 +32025,22 @@ class LeagueHelper {
                                 // opponents,
                                 simu);
                                 opponentsPowerList.opponentsList.push(leagueOpponent);
-                                opponentsPowerListChanged = true;
+                                newlySimulated++;
+                                // Saved after every opponent, not once after the last: the
+                                // loop yields between opponents and a navigation can end it
+                                // anywhere, and a list saved only at the end was lost whole
+                                // (measured before the memo: 37 of 110 opponents computed,
+                                // nothing stored). The expiry is stamped here, at write time
+                                // -- stamped when the list was loaded, it could run out
+                                // before the list was ever written.
+                                opponentsPowerList.expirationDate = Date.now() + expirationSecs * 1000;
+                                setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
                             }
                             LeagueHelper.displayOppoSimuOnButton(opponents.player.id_fighter, simu);
                             yield TimeHelper.sleep(randomInterval(10, 30)); // Allow browser to render
                         }
-                        if (opponentsPowerListChanged) {
-                            logHHAuto('Save opponent list for later');
-                            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
+                        if (newlySimulated > 0) {
+                            logHHAuto(`Saved opponent list for later (${newlySimulated} newly simulated).`);
                         }
                     });
                 };

@@ -174,6 +174,51 @@ and the maintainer's browser evict each other; cookies stay locally valid while
 the server serves the intro page. Log in and run in **one** browser session,
 and stay logged out elsewhere for the duration.
 
+**Clearing the timers on every navigation manufactures the churn you want to measure.**
+The guard above says to delete `HHAuto_Temp_Timers` before a measured phase.
+Done inside an `addInitScript`, it runs on every page load: the script then
+starts each page without cooldowns and bounces between modules. A performance
+run measured 24 navigations a minute and a shop <-> contests ping-pong that way;
+with the timers cleared once, the same run measured 5.3 a minute.
+*Guard:* clear once per phase -- set a marker in sessionStorage and clear only
+while it is missing.
+
+**A fresh browser session runs every module before the one you want.**
+Even without clearing anything, a new headless session started with a full
+pass through contests, shop, season, penta drill, the paths, events, missions,
+pachinko and daily goals; the quest block got its first tick after about four
+minutes. A fixed 70-second window saw none of it.
+*Guard:* poll for the state you are waiting for (a stored marker, a log line)
+with a generous upper bound, instead of waiting a fixed time.
+
+**The profile's HTTP cache hides a dead external host.**
+The persistent profile showed images from a third-party host with status 200
+while that host's TLS certificate had expired; a fresh context without a profile
+got `net::ERR_CERT_DATE_INVALID` for every one of them, which is what users saw.
+*Guard:* check the reachability of anything external in a fresh
+`browser.newContext()`. Node's TLS (`ctx.request`, `curl`) reports an expired
+certificate directly.
+
+**Headless rendering makes animated pages look expensive.**
+Headless Chromium draws canvas on the CPU (SwiftShader). Without any script,
+`/home.html` measured 67 % main-thread load, `/season.html` 99 % and event pages
+100 %, against 0.1-0.4 % for list pages such as the shop or the league.
+*Guard:* only compare with and without the script on the same page; absolute
+percentages do not carry over to a browser with a GPU.
+
+**The script's own popup overlay swallows coordinate clicks.**
+`#HHAutoPopupGlobal` covers the viewport, so a Playwright click on a button
+underneath times out with "element intercepts pointer events".
+*Guard:* the script's buttons hang on jQuery click handlers; trigger them on the
+element (`$$eval(sel, n => n[0].click())`).
+
+**Visibility checks have two blind spots.**
+`offsetParent` is always `null` for a `position: fixed` element, so a fixed popup
+that is on screen reads as hidden; check its bounding rectangle and computed
+style instead. And an `<img>` without a `src` reports `complete` with
+`naturalWidth` 0 -- Season uses one as an invisible spacer, 0 px high -- which a
+broken-image count reads as a failure.
+
 ## Where the ground truth actually lives
 
 Two sources settled questions that DOM inspection could not:

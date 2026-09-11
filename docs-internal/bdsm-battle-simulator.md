@@ -285,10 +285,13 @@ mehr zusammen, und die Map ist reiner Aufwand -- gemessen 290,5 ms gegen
 291,7 ms fuer denselben Kampf. `_memoEnabled` laesst diesen Fall deshalb auf
 der reinen Rekursion, wo das Budget ihn begrenzt.
 
-Er greift ausserdem nicht bei negativem Schaden: `opponentShield -
-attack.damageAmount` laesst den Schild dann *wachsen*, und zwar im Krit-Ast
-staerker als im Grundast, so dass die Zustaende auseinanderlaufen. Ein Patt
-kostet deshalb rund 390 ms und laeuft ins Budget.
+Negativer Schaden kommt nicht mehr vor: `calculateDmg` kappt bei 0. Vorher
+liess ein Treffer unter der Verteidigung des Gegners `shield - damageAmount`
+den Schild *wachsen*, im Krit-Ast staerker, so dass die Zustaende
+auseinanderliefen und der Memo im Patt nichts fand. Die Schadenszeile kappte
+schon vorher bei 0 (`Math.max(0, damageAmount - shield)`); welche Untergrenze
+das Spiel selbst fuer einen solchen Treffer setzt, ist nicht gemessen.
+Gemessen am Patt-Testfall: 596 bis 619 ms vorher, 1 ms nachher.
 
 ### Schadensformel (calculateDmg)
 
@@ -415,7 +418,7 @@ Summiert das percentage_value-Feld aller team.girls[*].skills[id] und gibt 1 + (
 ## Bekannte Grenzen / Designentscheidungen
 
 1. **Vollstaendige Branch-Exploration statt Monte-Carlo.** Der Simulator besucht jeden moeglichen Crit/Non-Crit-Pfad und gewichtet ihn -- exakt, aber exponentiell in der Rundenzahl, solange der Memo nicht greift. Wo das Budget zuschlaegt, ist der Wert eine Naeherung: gemessen an einem 16-Runden-Kampf ohne Memo 51,7 % gegen exakt 61,3 %.
-2. **Memo nur bei konstantem Schaden.** playerTurn memoisiert ueber den vollen Zustand samt turns. Mit Tier-4-Bonus oder negativem Schaden faellt der Lauf auf die reine Rekursion zurueck; dort begrenzt ihn das Knotenbudget, und der Wert wird zur Naeherung.
+2. **Memo nur bei konstantem Schaden.** playerTurn memoisiert ueber den vollen Zustand samt turns. Mit Tier-4-Bonus faellt der Lauf auf die reine Rekursion zurueck; dort begrenzt ihn das Knotenbudget, und der Wert wird zur Naeherung.
 3. **Tier-4 Defense ignoriert.** Der def-Faktor wird nie populiert (estimateTier4SkillValue setzt def: 0). Tier-4-Defense-Skills haben keinen Sim-Effekt.
 4. **Skill-Schaetzung statt API.** Da exakte Skill-Werte nicht zuverlaessig vom Game-API geliefert werden, werden feste Faktoren pro skill_points_used verwendet (Tier-4: 0.002; Tier-5: 0.07/0.08/0.2/0.08 je Element-Familie).
 5. **Asymmetrie League vs. Season.** Liga rechnet Element-Domination auf Ego/Attack/Defense, Season nicht. Domination-Crit-Bonus gilt in beiden Modi.
