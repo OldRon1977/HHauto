@@ -51,7 +51,7 @@ Siehe auch `src/index.ts` fuer die `Window`-Interface-Erweiterung, die alle hier
 | `unsafeWindow.is_cheat_click` | Function (Cheat-Detector) | auf keiner der 39 Seiten vorhanden (gemessen) | `Utils/Utils.ts` | `replaceCheatClick()` (auskommentiert) | Veraltete Override-Stelle |
 | `unsafeWindow.hh_nutaku` | Boolean/Truthy | NHH/NPH Nutaku-Build; auf www.hentaiheroes.com auf jeder Seite `null` (gemessen) | `Service/PageNavigationService.ts`, `Service/StartService.ts` | `addNutakuSession()`, `start()` | Nutaku-Spezialfall: Session-Token via `?sess=` injizieren; postMessage("ImAlive") an parent |
 | `unsafeWindow.hh_prices` | Objekt (Preis-Map z.B. `fight_cost_per_minute`) | jede Seite (gemessen, 39 von 39) | `Module/Troll.ts` | `Troll.canBuyFight()`, `Troll.canBuyFightLoveRaid()` | Berechnung von `pricePerFight` fuer Auto-Buy von Combats |
-| `unsafeWindow.has_contests_datas` | -- | **auf keiner Seite vorhanden** (gemessen, auch nicht auf `?tab=contests`) | `Service/Pipeline.config.ts` | Vorbedingung "Time to get contest rewards." | Eine von drei Oder-Bedingungen neben dem Timer `nextContestCollectTime` und `Contest.getClaimsButton()`; dieser Teil ist heute immer falsch, die beiden anderen tragen |
+| `unsafeWindow.has_contests_datas` | -- | **auf keiner Seite vorhanden** (gemessen, auch nicht auf `?tab=contests`; der Name kommt in keinem der 33 Spiel-Skripte und keinem Inline-Skript von Home, Karte, Raid- und Contest-Seite vor) | `Service/Pipeline.config.ts` | Vorbedingung "Time to get contest rewards." | Eine von drei Oder-Bedingungen neben dem Timer `nextContestCollectTime` und `Contest.getClaimsButton()`; dieser Teil ist heute immer falsch, die beiden anderen tragen |
 | `unsafeWindow.contests_timer.next_contest` | Number (sec) | alle Activities-Tabs (gemessen) | `Module/Contest.ts` | `Contest.collectAndSchedule()` | Naechster Contest-Wechsel |
 | `unsafeWindow.contests_timer.duration` | Number (sec) | alle Activities-Tabs (gemessen) | `Module/Contest.ts` | `Contest.collectAndSchedule()` | Contest-Dauer |
 | `unsafeWindow.contests_timer.remaining_time` | Number (sec) | alle Activities-Tabs (gemessen) | `Module/Contest.ts` | `Contest.collectAndSchedule()` | Restzeit aktueller Contest |
@@ -90,9 +90,16 @@ Gemessen 2026-09-11: `Collect`, `HHTimers` und `league_tag` gibt es auf keiner
 der 39 Seiten, `server_now_ts` auf jeder, `championData` nur auf
 `/club-champion.html` (die Champion-Seite selbst war nicht erreichbar).
 `love_raids` ist ein Array auf `/map.html` (24 Eintraege), `/champions-map.html`
-und `/season.html`, auf `/love-raids.html` ein **leeres Objekt** und sonst nicht
-vorhanden. `LoveRaidManager.parseRaids` laeuft ueber `.length` und liest auf
-`/love-raids.html` deshalb 0 Raids.
+und `/season.html` -- dort als `var` deklariert, also Fenster-Property. Auf
+`/love-raids.html`, der einzigen Seite, auf der `LoveRaidManager.parse()` liest,
+steht es gemessen als `const love_raids = [...]` im Inline-Skript: im
+Seiten-Scope ein Array (26 Raids, troll, season und champion; `/map.html` hatte
+zur selben Zeit 23, nur troll), aber **keine** Fenster-Property.
+`window.love_raids` ist dort das leere Modul-Objekt des Spiel-Skripts
+`love_raids.js` (0 Schluessel). `parseRaids` liest den nackten Namen
+`love_raids`. Abgeleitet, nicht gemessen: unter Tampermonkey mit `@grant`
+laeuft das Skript nicht im Seiten-Scope, sieht also das leere Objekt und liest
+0 Raids; der Harness spritzt das Bundle in den Seiten-Scope und sieht die 26.
 
 `server_now_ts` wird ueber `getHHVars('server_now_ts')` (siehe Sektion 2) gelesen, nicht direkt ueber `unsafeWindow`.
 
@@ -646,7 +653,7 @@ Auf **keiner** Seite: `is_cheat_click` (ohne `shared.general`), `Hero` (ohne `sh
 | `/path-of-valor.html` (`path-of-valor`) | -- | `.free-slot .slot,.free-slot .shards_girl_ico` 53 |
 | `/path-of-glory.html` (`path-of-glory`) | -- | `.free-slot .slot,.free-slot .shards_girl_ico` 65 |
 | `/seasonal.html` (`seasonal`) | `mega_event_data.cards` String | `.free-slot .slot,.free-slot .shards_girl_ico` 115 |
-| `/love-raids.html` (`love_raids`) | `love_raids` Obj | -- |
+| `/love-raids.html` (`love_raids`) | `window.love_raids` Obj (leer); `const love_raids` Array[26] nur im Seiten-Scope | -- |
 | `/waifu.html` (`waifu`) | `girls_data_list` Array[24] | -- |
 | `/teams.html?battle_type=leagues` (`teams`) | `teams_data` Obj | `.team-member-container[data-team-member-position="0"]` 1, `.team-slot-container.selected-team` 1 |
 | `/edit-team.html?battle_type=leagues` (`edit-team`) | `hero_data` Obj, `availableGirls` Array[24] | `.team-member-container[data-team-member-position="0"]` 1, `#contains_all section .player-panel .player-team .team-hexagon .team-member-container.selectable` 7, `#edit-team-page` 1, `.player-panel .team-hexagon .team-member-container[data-girl-id]` 7 |

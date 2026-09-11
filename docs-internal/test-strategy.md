@@ -1,879 +1,14 @@
 # Test Strategy HHAuto
 
-Status: 2026-08-17. Living document. When a task is finished, tick the checkbox
-and add the date plus commit hash in the Status field.
+What a test in this repository has to prove, and where a claim belongs when a
+unit test cannot hold it. The staged plan that produced this (pure-function
+extraction, fixtures, spec triage) is in the git history of this file.
 
-## Status
+## What a test is for
 
-- Current stage: **5 finished** (spec triage)
-- Last completed task: 5.5 (stage closure, 2026-08-17)
-- Open, carried forward: one decision, not a task -- `RewardHelper.getRewardTypeByData`
-  reads `item.ico`, which no dump carries and the redaction rule strips. See the
-  stage 5 section.
-- Next step: none planned. New stages need a fresh planning round with the user.
-- Coverage is no longer a goal. What a test proves is. See "Why coverage
-  stopped being the target" below.
-- Note on the earlier consensus: "Coverage threshold as a CI gate" is listed
-  under both *Blocked* and *Deliberately dropped*, but `jest.config.ts` has
-  carried a `coverageThreshold` (39/30/35/40) for some time. Doc and reality
-  disagreed; the gate exists. It is left in place, but it must not be allowed
-  to argue against removing a worthless test -- lower the number instead.
-- Previous stage: **4 finished** (reliability layer)
-- Last completed task before stage 5: 4.4 (stage 4 closure -- CI coverage reporting picked up under refs #1614)
-- Open reminder: none. Issue #1614 is referenced in PR #1659; the issue stays open until the reporter (and any CI consumers) verifies the comment + artefact behaviour live, then it is closed manually.
-- Next step: none planned. The strategy plan ends with stage 4. New stages (e.g. browser-end-to-end smoke, mutation testing experiments, deeper domain-specific suites) require a fresh planning round with the user.
-- Carried-forward reminders for stage 4:
-  - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser. Stage 3 did not need it; reactivate when a haremGirl-touching parser test lands.
-  - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
-  - League energy snapshot (`hero.shared.Hero.energies.challenge`) deferred from task 2.2: not added until a League parser test needs it.
-  - AJAX endpoints observed without an HHAuto consumer (audit hint, no test follow-up).
-    The May list held two; a traffic recording on 2026-08-17
-    (`scripts/catalogue/run.mjs observe`, 25 minutes of play) raised it to 19:
-    `process_rewards_queue`, `show_specific_girl_grade`, `seasonal_claim`,
-    `contest_give_reward`, `get_girls_list`, `get_girl`, `claim_all_salaries`,
-    `event_market_get_data`, `get_sweep_status`, `adventure_switch`,
-    `labyrinth_pool_select`, `labyrinth_hex_enter`,
-    `labyrinth_get_member_relics`, `labyrinth_pick_unclaimed_relic`,
-    `do_battles_labyrinth`, `do_battles_seasons`, `do_battles_penta_drill`,
-    `do_battles_trolls`, plus `Pachinko.play` / `Pachinko.claim`.
-    If HHAuto starts consuming any of them, an AJAX schema test belongs in the
-    same `spec/fixtures/<endpoint>/` layout as the live-blessings slice -- and
-    the shape is already recorded in `scripts/catalogue/out/observed-actions.md`.
-    Two worth a second look on their own merits: `claim_all_salaries` collects
-    every salary in one call, and `team_calculate_caracs` lets the game do the
-    stat maths HHauto reimplements.
-
-## Context
-
-- Repo: OldRon1977/HHauto, userscript for a browser game.
-- Counted 2026-09-11: about 43k lines of TypeScript under `src/` (without
-  specs) and 105 spec files. The May figures (28k, 39 files) were the
-  starting point of this plan.
-- Coverage: the gate in `jest.config.ts` (`coverageThreshold` 39/30/35/40).
-- Test stack: Jest + ts-jest + jsdom + mock-local-storage.
-
-## Review consensus (5:1 or better)
-
-### Blocked
-- Snapshot tests for HTML
-- Mutation testing (Stryker)
-- Property-based testing as its own phase (one or two targeted tests at most)
-- Coverage threshold as a CI gate (reporting yes, gate no)
-- Splitting the 41 MB dump into 30 page JSONs
-- Pre-commit hook (use a GitHub Action instead)
-- Trivial tests for one-line `isEnabled` getters
-
-### Accepted
-- Pure-function extraction before decision-logic tests
-- Curated mini fixtures from the dump (one or two per module, 5-20 lines of JSON)
-- AJAX schema tests against real dump responses
-- Storage migration tests
-- Extended MockHelper (world setup helper)
-
-## Decisions taken before stage 0 (archive)
-
-- A: xit tests inventoried (7 found, all addressed in task 0.2).
-- B: fdescribe-hidden tests inventoried (1 found, fixed in task 0.1).
-- C-3 (Pachinko string-mapping tautology): defer to the Pachinko refactor.
-- C-4 (Pipeline.config value asserts): defer to the next Pipeline change.
-- C-5 (League jest.spyOn on static methods): keep until stage 1 task 1.1
-  replaces them with the pure function.
-
-Default recommendation from the review was: C-3a, C-4a, C-5b. Final answers:
-C-3c, C-4c, C-5b.
-
-## Findings with evidence
-
-| # | Finding | Evidence | Verdict |
-|---|---|---|---|
-| 1 | `fdescribe` skips one sibling describe in the same file | `spec/Module/Champion.spec.ts:39` | objective bug |
-| 2 | 8 xit tests in limbo | Jest reports `pendingTests=8` | objective gap |
-| 3 | Pachinko string-mapping tautology | full `spec/Module/Pachinko.spec.ts` | subjective (consensus) |
-| 4 | Pipeline.config asserts hardcode config values | `spec/Service/Pipeline.config.spec.ts` handler-specific blocks | subjective (consensus) |
-| 5 | League `jest.spyOn` on static methods -- brittle | `spec/Module/League.spec.ts:71-73` | subjective (refactoring architect) |
-| 6 | Coverage spread is highly uneven | `coverage/clover.xml`: HaremGirl 5%, League 8%, Champion 4% | objective |
-| 7 | Dump contains 30 real game pages with game state | `INPUT/hhauto_dump_*.json` | usable for mini fixtures |
-| 8 | Log files contain action traces (TeamModule, Generator.next) | `INPUT/HH_DebugLog_*.log` key `HHAuto_Temp_Logging` | reliability hints |
-
-## Roadmap
-
-### Stage 0 -- immediate hygiene (1-2h, no risk)
-
-- [x] **0.1** `fdescribe` -> `describe` in `spec/Module/Champion.spec.ts:37` (2026-05-07)
-  - Precondition: question B answered, hidden tests known
-  - Verification: `npm test` shows more passing tests than before
-  - If tests turn red: decide individually (fix or xit)
-- [x] **0.2** Handle xit tests according to answer A (2026-05-07)
-  - 7 xit tests inventoried, 5 reactivated (all green), 2 empty stubs removed
-  - TimeHelper: canCollectCompetitionActive + getSecondsLeftBeforeNewCompetition (stubs removed)
-  - Season: 2 low-mojo tests reactivated, with `Setting_autoSeasonSkipLowMojo=true` set in the tests
-  - HaremGirl: \"Button and no girl\" reactivated, green without further changes
-  - League: \"should return false during the last hour...\" reactivated, green without further changes
-  - PageNavigationService: `toHaveBeenCalledWith` -> `expect.stringContaining` (test bug, timestamp prefix)
-- [x] **0.3** Findings 3/4/5 per answer C: nothing to do in stage 0
-  - C-3c (Pachinko string mapping): defer to the Pachinko refactor
-  - C-4c (Pipeline.config value asserts): defer to the next Pipeline change
-  - C-5b (League jest.spyOn): keep until stage 1 (pure-function extraction replaces them)
-- [x] **0.4** MockHelper extended (2026-05-07)
-  - `mockBoosterInventory({normal, mythic})` -- localStorage Temp_boosterStatus
-  - `mockSetting(key, value)` -- localStorage Setting_*
-  - `mockTimer(name, secondsLeft)` -- localStorage Temp_Timers; <=0 clears
-  - `mockAjaxSuccess(response)` / `mockAjaxError(error)` -- shared.general.hh_ajax
-  - `mockGameGlobals({ heroLevel, energies, settings })` -- world setup
-  - File: spec/testHelpers/MockHelpers.ts (143 lines added)
-  - Note: storage prefixes pulled from src/config (HHStoredVarPrefixKey, TK) instead of hardcoded literals
-- [x] **0.5** Coverage reporters enabled (2026-05-07)
-  - jest.config.ts: coverageReporters = text, text-summary, lcov, clover, html
-  - No threshold gate
-  - text-summary prints at the end of every npm test run
-  - HTML report at coverage/lcov-report/index.html
-  - Current values: 28.92% statements / 17.11% branches / 24.10% functions / 29.60% lines
-- [x] **0.6** Coverage reporting via GitHub Action (issue as reminder, 2026-05-07)
-  - Issue: https://github.com/OldRon1977/HHauto/issues/1614 (\"Coverage reporting in CI\")
-  - Body references this plan
-  - Do not implement now, just track
-- [x] **0.7** Stage 0 finished (2026-05-07)
-  - Branch: chore/test-hygiene with 7 commits
-  - No version bump (tests only)
-  - Push + PR + merge per workflow rules: in progress (PR pending)
-
-### Stage 1 -- pure-function extraction (2-3 days, high ROI)
-
-Goal: extract decision logic out of the large modules into pure functions.
-Input = data, output = decision. No globals, no jQuery, no storage reads in
-the core.
-
-- [x] **1.1** League: `decideShouldFight(state) -> bool` (2026-05-07)
-  - Source: `src/Module/League.ts` `LeagueHelper.isTimeToFight`
-  - New module: `src/Module/League.pure.ts` exports `decideShouldFight` and `ShouldFightState`
-  - Final signature drops `heroLevel`, `energyMax`, `leagueEndTime` (none used
-    by the decision) and adds `humanLikeRun` (drives the energy threshold):
-    ```ts
-    type ShouldFightState = {
-      energy: number;
-      threshold: number;
-      runThreshold: number;
-      humanLikeRun: boolean;
-      timerLeft: number;
-      paranoiaSpending: number;
-      boosterRequired: boolean;
-      boosterEquipped: boolean;
-    };
-    function decideShouldFight(state: ShouldFightState): boolean;
-    ```
-  - `LeagueHelper.isTimeToFight()` builds the state and delegates. Public API
-    unchanged. Existing `spec/Module/League.spec.ts isTimeToFight` block kept
-    as is (still uses spies); the spec/Module/League.pure.spec.ts file
-    contains 12 spy-free tests covering the same scenarios plus humanLikeRun
-    on/off, paranoia at zero energy, and a negative timer.
-  - Behaviour delta: `ParanoiaService.checkParanoiaSpendings('challenge')` is
-    now called unconditionally; previously it was short-circuited away when
-    energy was zero. Read-only call, no side effects.
-  - Tests: 566 passed (554 + 12), 0 skipped, 40 suites.
-  - Bundle diff: structural only.
-  - Merged via PR #1617, commit 27b5e39.
-- [x] **1.2** Champion: timer scan extracted as `decideNextChampionTime` (2026-05-07)
-  - Plan deviation (agreed with the user before implementation): the
-    Champion module does not select a champion. It scans the existing
-    map and decides when the adapter should look again. The pure
-    function reflects that.
-  - New module: `src/Module/Champion.pure.ts` exports `decideNextChampionTime` and `ChampionTimerEntry` / `ChampionTimerDecision`.
-  - Signature:
-    ```ts
-    type ChampionTimerEntry = { inFilter: boolean; timer: number; started: boolean };
-    type ChampionTimerDecision = { minTime: number; minTimeEnded: number };
-    function decideNextChampionTime(
-      champions: ChampionTimerEntry[],
-      autoChampsForceStart: boolean,
-    ): ChampionTimerDecision;
-    ```
-  - `Champion.findNextChamptionTime` builds the input list from
-    `getChampionListFromMap()` (still impure, DOM-bound) and feeds the
-    deterministic decision into `randomInterval` plus `_setTimer`.
-  - Bit-for-bit equivalent to the original loop, including the
-    misleading variable names: `minTime` keeps the LARGEST timer
-    below 1800s, not the smallest. Refactor, not a bug fix.
-  - Side-clean: drop an unused `debugEnabled` local the loop no
-    longer references.
-  - Tests: 576 passed (566 + 10), 0 skipped, 41 suites.
-  - Bundle diff: structural only.
-  - Merged via PR #1619, commit 524bde0.
-- [x] **1.3** HaremGirl equipment scoring helpers extracted (2026-05-07)
-  - Plan deviation (agreed with the user before implementation): no
-    `parseGirlsFromGameData` exists in the module. The decision logic
-    that fits stage 1 is the equipment helper trio, which previously
-    had zero unit tests. A girls parser belongs in stage 2 alongside
-    the dump fixtures and is deferred there.
-  - New module: `src/Module/harem/HaremGirl.pure.ts` exports
-    `scoreItem`, `findBestItem`, `isBetter`, plus the typed
-    `EquipmentItem` and `EquipmentScore` shapes.
-  - `HaremGirl.optimizeEquipmentSlots` now imports the module
-    functions instead of calling private static methods. The three
-    private methods are removed from the class.
-  - Bit-for-bit equivalent to the original code, including the
-    stringified identifier comparison and the array-shaped
-    `resonance_bonuses` no-op contract.
-  - Side-finding: `findBestItem` has no remaining callers. It stays
-    in the pure module for parity with the trio; a separate cleanup
-    can drop it later.
-  - Tests: 592 passed (576 + 16), 0 skipped, 42 suites.
-  - Bundle diff: structural only.
-  - Merged via PR #1621, commit dfa13f5.
-  - Original plan signature deferred to stage 2:
-    ```ts
-    function parseGirlsFromGameData(rawData: unknown): Girl[];
-    ```
-- [x] **1.4** AutoLoop: `decideBurst` and `shouldRunStandardHandler` (2026-05-07)
-  - Plan deviation (agreed with the user before implementation): the
-    plan suggested a single `pickNextAction(state)` selector, but
-    AutoLoop is a sequential handler pipeline, not a one-shot picker.
-    Each handler has its own pre-conditions; only the unified
-    `runStandardHandler` entry has a guard cascade worth extracting
-    today. The remaining ~30 hand-rolled handlers each follow a
-    slightly different pattern and are deferred to stage 3.
-  - New module: `src/Service/AutoLoop.pure.ts` exports `decideBurst`,
-    `shouldRunStandardHandler`, and the typed `BurstState` /
-    `StandardHandlerGuard` shapes.
-  - `getBurst()` (in AutoLoop.ts) now reads the DOM overlays itself
-    and delegates the decision to `decideBurst`.
-  - `runStandardHandler()` (in AutoLoopActions.ts) now builds a
-    `StandardHandlerGuard` and delegates to
-    `shouldRunStandardHandler`. Affects 9 callsites that already
-    register handlers via the descriptor pattern.
-  - Bit-for-bit equivalent: same guard order, same
-    `requiresAutoLoop=undefined -> default-true` semantics, same
-    overlay-beats-settings short-circuit.
-  - Tests: 610 passed (592 + 18), 0 skipped, 43 suites.
-  - Bundle diff: structural only.
-  - Merged via PR #1623, commit 44aa97d.
-- [x] **1.5** Stage 1 finished (2026-05-07)
-  - Branch per module convention held: `refactor/pure-functions-league`,
-    `refactor/pure-functions-champion`,
-    `refactor/pure-functions-haremgirl-equipment`,
-    `refactor/pure-functions-autoloop`.
-  - 4 new pure modules (League, Champion, HaremGirl, AutoLoop) with 56
-    new tests; tests went from 554 to 610.
-  - Two of the four tasks (1.3, 1.4) were renegotiated with the user
-    when the planned signature did not fit the actual code; see the
-    individual task notes.
-
-### Stage 2 -- mini fixtures from the dump (3-4 days)
-
-- [x] **2.1** Create fixture directory: `spec/fixtures/<module>/` (2026-05-07)
-  - Created `spec/fixtures/league/` as the first module directory, with sibling `README.md` audit trail
-  - Future module directories (haremGirl, champion, event) follow the same pattern
-  - Merged via PR #1626 (commit 7395a0a)
-- [x] **2.2** Extract League fixtures from the dump (2026-05-07)
-  - Source: `INPUT/hhauto_dump_*.json` page index 1 (`/leagues.html`)
-  - Plan deviation (documented in fixture README): plan listed
-    `member.id_country`, `member.lvl`, `team.theme_elements[]`,
-    `team.girls[]` per opponent. The dump has those fields at top
-    level (`level`, `power`, `country`, `nickname`) and `team` is
-    an HTML snippet string, not an object. Field selection follows
-    the real dump shape.
-  - Files written:
-    * `spec/fixtures/league/opponents-mid-tier.json` -- 3 entries
-      (places 50-52, mid-tier by league place) extracted from
-      `pages[1].teams.opponents_list[49:52]`. Nicknames redacted
-      to `Player_1..3`, `player.club` removed. Fields kept:
-      top-level `id_member`/`level`/`power`/`place`/`country`/
-      `can_fight`/`nickname` plus `player.{id_fighter, level,
-      class, current_season_mojo}`.
-    * `spec/fixtures/league/league-rewards-tier3.json` -- tier 3
-      of `pages[1].battle.league_rewards` in full (rank brackets
-      1, 4, 15, 30, 45, 60, 75, 200, plus `name`).
-    * `spec/fixtures/league/README.md` -- audit trail (source,
-      selection, redactions, refresh procedure).
-  - Tests: 5 smoke tests in `spec/fixtures/league/Fixtures.spec.ts`
-    confirming entry count, numeric ID fields, redaction pattern,
-    and expected rank brackets. Parser tests deferred to a stage 3
-    decision-logic PR -- no parser exists yet.
-  - Energy snapshot (`hero.shared.Hero.energies.challenge`) deferred:
-    not needed for this fixture set, will be added when a League
-    parser test needs it.
-  - Merged via PR #1626 (commit 7395a0a).
-- [x] **2.3** HaremGirl fixtures (2026-05-07)
-  - Plan deviation (documented in fixture README): plan listed page
-    index 0 (`/home.html`) and the path `girls_full.game.shared.Hero`.
-    The actual dump has the harem on page index 19 (`/waifu.html`)
-    under the dotted-key path `girls_full["game.girls_data_list"]`.
-    `girls_full.game.shared.Hero` on page 0 contains 28 hero-side
-    records, not the harem. Field selection follows the real dump.
-  - Source: `pages[19].girls_full["game.girls_data_list"]`
-  - Selection: 3 girls covering the rarity / max-grade range
-    * `id_girl=118565805` (Untamed Levitya, mythic, `nb_grades=6`)
-    * `id_girl=118816` (Fanny & Fione, legendary, `nb_grades=5`)
-    * `id_girl=5` (Princess Agate, common, `nb_grades=5`)
-    All three are owned with `shards=100` and `level=750`.
-  - Files written:
-    * `spec/fixtures/haremGirl/sample-girls.json` -- 3 girls,
-      whitelisted to parser-relevant fields (ids, classification,
-      progress, caracs, salary, element/blessing, skill tiers, grade
-      offsets); avatar urls and decoration metadata dropped.
-    * `spec/fixtures/haremGirl/README.md` -- audit trail.
-  - Tests: 6 smoke tests in `spec/fixtures/haremGirl/Fixtures.spec.ts`
-    confirming entry count, rarity slot coverage, numeric ids and
-    progress fields, the caracs object, salary fields, and the absence
-    of dropped metadata. 621 total (615 + 6).
-  - Scoping: per stage 2 rule (test code only), the deferred parser
-    `parseGirlsFromGameData` from stage 1 task 1.3 stays deferred. It
-    will land in stage 3 alongside the parser tests this fixture is
-    sized to feed.
-  - Merged via PR #1628 (commit ab78a5a).
-- [x] **2.4** Champion fixtures (2026-05-07)
-  - Plan deviation (documented in fixture README): plan listed page
-    index 8 (`/champions-map.html`) and two files
-    (`champion-map.json`, `active-champion.json`). Reality:
-    * Page 8 carries no champion data; the map is rendered
-      client-side from DOM only. The dump's `dom_data_attributes`
-      payload for that page is page chrome, not parser-relevant.
-    * Page 7 (`/club-champion.html`) carries the active champion
-      under `battle.championData`, plus the team side-channel
-      under `girls_full["game.championData.team"]` that breaks
-      the inspector's circular marker.
-  - `champion-map.json` is intentionally not produced. The
-    `Champion.pure.ts decideNextChampionTime` function from stage 1
-    task 1.2 operates on DOM-derived state; an HTML fixture is what
-    it would consume, and the strategy plan blocks "snapshot tests
-    for HTML". Champion-map fixtures stay deferred.
-  - Source: `pages[7].battle.championData` plus
-    `pages[7].girls_full["game.championData.team"]` for the team
-    substitution.
-  - Files written:
-    * `spec/fixtures/champion/active-champion.json` -- champion
-      with girl whitelist (id_girl, id_girl_ref, name, class,
-      figure, element, rarity, level, nb_grades, carac1..3),
-      timers, canDraft/freeDrafts/priceEnergy/hero_damage, reward
-      (with `item.ico` stripped), fight (with `participants[].nickname`
-      redacted to `Player_1..19` and `participants[].avatar` dropped),
-      and the 10-member team (with `team[].ico` dropped).
-    * `spec/fixtures/champion/README.md` -- audit trail with the
-      PII / asset-url scan procedure.
-  - Tests: 7 smoke tests in `spec/fixtures/champion/Fixtures.spec.ts`
-    covering top-level keys, champion sub-object types, dropped
-    asset urls and bubble/scene text, timers shape (`championRest`
-    and `teamRest` legitimately nullable), team length, redacted
-    participants, and reward structure. 628 total (621 + 7).
-  - Merged via PR #1630 (commit b2ab9d7).
-- [x] **2.5** EventModule fixtures (2026-05-07)
-  - Source: page index 13 (`/event.html`)
-  - File: `spec/fixtures/event/event-detection.json` -- compound
-    fixture combining the event header and the mega-event flag, both
-    consumed by event detection logic.
-  - Plan note: plan listed one file without further specification.
-    The compound shape combines the two sources of event detection
-    that real consumers use together (event header and mega-event
-    flag); both are sourced from the same page.
-    `battle.event_data` and `battle.current_event` are exact
-    duplicates in this dump; only one is fixtured.
-  - Contents:
-    * `event_data` -- header from `pages[13].battle.event_data`
-      (`event_name`, `type`, `identifier`, timers,
-      `can_participate`, `participation_info`, `progression_href`).
-      The `girls` field is substituted in from
-      `pages[13].girls_full["game.event_girls"]` to break the
-      inspector's circular marker. Each girl is reduced to the
-      haremGirl whitelist plus event-specific extensions
-      (`source`, `source_list`, `own`, `role_data`); avatar urls
-      and decoration metadata are dropped. Captured event:
-      `cumback_contest_188` ("Cumback Contests").
-    * `mega_event` -- `{ active, time_remaining }` from
-      `battle.mega_event_active` /
-      `battle.mega_event_time_remaining`. Captured snapshot has the
-      mega event active.
-  - Tests: 5 smoke tests in `spec/fixtures/event/Fixtures.spec.ts`
-    covering top-level shape, event_data identity / timers /
-    participation gate types, the substituted girls list with the
-    whitelist applied, dropped asset urls / decoration metadata, and
-    the mega_event shape. 633 total (628 + 5).
-  - Merged via PR #1632 (commit 13c5f82).
-- [x] **2.6** Fixture loader helper (2026-05-07)
-  - File: `spec/testHelpers/Fixtures.ts`
-  - Function: `loadFixture(modulePath: string, name: string): unknown`
-  - Implementation: synchronous `fs.readFileSync` + `JSON.parse`. Returns `unknown`; callers narrow types at the use site (preferred over `any` per workspace rule 08).
-  - Bundled with 2.1 + 2.2 in PR #1626. The League fixture is the first concrete consumer; future module fixtures (haremGirl, champion, event) reuse the same loader.
-- [x] **2.7** Stage 2 finished (2026-05-07)
-  - Branch per fixture set as planned (`feat/test-fixtures-<module>`):
-    `feat/test-fixtures-league` (PR #1626), `feat/test-fixtures-haremgirl`
-    (PR #1628), `feat/test-fixtures-champion` (PR #1630),
-    `feat/test-fixtures-event` (PR #1632). Each fixture-set PR was
-    followed by its own `docs/test-strategy-stage2-task<n>` doc PR
-    (PR #1627 / #1629 / #1631 / #1633). Closure on
-    `chore/test-strategy-stage2-close`.
-  - 4 fixture sets and the shared loader introduced; 23 new smoke
-    tests (5 + 6 + 7 + 5) bring the suite from 610 to 633 total.
-    Suite count: 43 -> 47.
-  - No production code changes in stage 2; per the stage rule the
-    deferred `parseGirlsFromGameData` parser stays deferred to
-    stage 3 alongside the parser tests the fixtures are sized to feed.
-  - Two of the five fixture tasks were renegotiated mid-flight when
-    the plan's pre-inspection guesses did not match the dump:
-    - 2.2 (League): plan listed `member.id_country`, `member.lvl`,
-      `team.theme_elements[]`, `team.girls[]`. Dump has those at top
-      level and `team` is an HTML snippet; the field selection
-      followed the dump.
-    - 2.3 (HaremGirl): plan pointed at page 0
-      (`girls_full.game.shared.Hero`), which is hero-side data. The
-      harem actually lives on page 19
-      (`girls_full["game.girls_data_list"]`).
-    - 2.4 (Champion): plan listed page 8 and two files; page 8
-      carries no champion JSON. Active-champion sourced from page 7
-      under `battle.championData`. Champion-map fixture deferred
-      (DOM-only data, no JSON to extract).
-  - Task 2.5 (Event): no plan deviation; compound shape
-    (`event_data` + `mega_event`) chosen as a documented design call
-    and recorded in the fixture README.
-
-### Stage 3 -- decision-logic coverage (2-3 days)
-
-For each `isTimeToX` / `shouldRunY` / `getNextZTime`: 4-8 tests covering
-default, boundaries, setting-off, hero-level too low, timer active,
-energy edge, AJAX error.
-
-Precondition: stage 1 has produced a pure function for the respective
-module.
-
-- [x] **3.1** ClubChampion -- pure decision logic extracted (2026-05-08)
-  - Plan deviation (agreed with the user before implementation): the
-    plan listed `isTimeToFight` + `getNextChampionTime`. ClubChampion
-    has no `isTimeToFight` equivalent that fits the pure pattern --
-    the fight decision in `doClubChampionStuff` is interleaved with
-    DOM scraping, ajax clicks, and `gotoPage` navigation, so
-    extracting it would move more code than it tests.
-    `getNextChampionTime` is renamed to `decideNextClubChampionTime`
-    to match the actual concern (range selection) and to avoid the
-    name clash with `Champion.pure.decideNextChampionTime` from
-    stage 1 task 1.2. A second small decision,
-    `decideAlignedClubChampionTimer`, is split out of `_setTimer`
-    because it is the only other piece of pure logic in the module.
-  - New module: `src/Module/ClubChampion.pure.ts` exports
-    `decideNextClubChampionTime`, `decideAlignedClubChampionTimer`,
-    and the typed `NextClubChampionTimerState` /
-    `NextClubChampionTimerDecision` /
-    `AlignClubChampionTimerState` shapes.
-  - `ClubChampion.updateClubChampionTimer` builds the input state
-    and delegates the range to `decideNextClubChampionTime`. The
-    `[min, max]` tuple goes back into `randomInterval`, same as
-    before.
-  - `ClubChampion._setTimer` builds the input state and delegates
-    the alignment to `decideAlignedClubChampionTimer`. The result
-    is handed to `setTimer`, same as before.
-  - Bit-for-bit equivalent: all threshold comparisons (`>7200`,
-    `>10`, `<1200`) keep their strict semantics. Bundle diff is
-    structural only.
-  - Tests: 648 passed (633 + 15), 0 skipped, 48 suites.
-  - Merged via PR #1636, commit d6e4e38.
-- [x] **3.2** Pantheon -- pure decision logic extracted (2026-05-08)
-  - No plan deviation in scope: both `isEnabled` and
-    `isTimeToFight` extracted as pure functions. Naming follows the
-    stage-1 convention (`decideIsEnabled`, `decideShouldFight`); the
-    `decideShouldFight` symbol shadows the same name in
-    `League.pure` only at the file boundary, callers import from
-    `Pantheon.pure` directly so no global collision.
-  - New module: `src/Module/Pantheon.pure.ts` exports
-    `decideIsEnabled`, `decideShouldFight`, and the typed
-    `IsEnabledState` / `ShouldFightState` shapes.
-  - `Pantheon.isEnabled` builds the state and delegates.
-  - `Pantheon.isTimeToFight` builds the state and delegates. The
-    impure adapter recomputes `energyAboveThreshold` locally only
-    because the existing diagnostic log line ("Time for pantheon
-    but no booster equipped") still depends on it; the pure
-    function recomputes the same expression independently.
-  - Bit-for-bit equivalent: `>=` on the level gate, strict `>` on
-    the energy gate, `runThreshold - 1` off-by-one preserved,
-    operator precedence preserved on the booster branch
-    (`(needBoosterToFight && haveBoosterEquipped) || !needBooster
-    ToFight || isDailyGoal`).
-  - Behaviour delta: `ParanoiaService.checkParanoiaSpendings(
-    'worship')` is now called unconditionally; previously it was
-    short-circuited away when energy was zero. Read-only call,
-    no side effects. Same delta accepted in League stage 1
-    task 1.1.
-  - Tests: 664 passed (648 + 16), 0 skipped, 49 suites.
-  - Merged via PR #1638, commit e54db73.
-- [x] **3.3** MonthlyCard -- skipped after inspection, no decision-logic candidate (2026-05-08)
-  - Plan deviation (agreed with the user before any change): the
-    plan listed `shouldClaim` + `getNextClaimTime`. The module has
-    neither. Despite the name, `MonthlyCard.ts` does not handle
-    monthly-card claiming or timers; its single public method
-    `updateInputPattern()` builds regex strings for the settings-
-    UI input validators (`HHAuto_inputPattern.*`) based on
-    `getEnergyMax()` of League / Season / Pantheon / PentaDrill /
-    Quest / Troll. There is no claim flow, no timer, no AJAX call,
-    no hero-level gate.
-  - Stage-3 acceptance criteria (default / boundaries / setting-
-    off / hero-level too low / timer active / energy edge / AJAX
-    error) do not map onto string-building. The existing
-    `spec/Module/MonthlyCards.spec.ts` already covers all 6
-    energy-type tier mappings with 24 tests; the function is
-    additionally wrapped in a try/catch which addresses the
-    "AJAX error" class without extra tests.
-  - Decision: skip 3.3 as a no-op stage-3 task. No code change,
-    no pure module, no new tests. Tests stay at 664 / 49 suites.
-  - Singleton-mutation cleanup of `updateInputPattern` (replacing
-    the in-place `HHAuto_inputPattern.*` writes with a returned
-    object) is style refactoring, not test-strategy work, and
-    will be filed separately if the user decides to pursue it.
-- [x] **3.4** Labyrinth path pipeline -- pure decision logic extracted (2026-05-08)
-  - Plan deviation (agreed with the user before implementation):
-    plan listed `LabyrinthAuto -- entire decision pipeline`.
-    `LabyrinthAuto.run()` is a DOM / click / navigation sequence
-    with no isolatable decision logic. The actual pure logic lives
-    one module over, in `Labyrinth.ts`: `createPathFromMatrix`,
-    `filterPathWithNoTreasue`, `sortPathsByDifficulty`, and
-    `findBetter`. The extraction targets those four functions.
-  - New module: `src/Module/Labyrinth.pure.ts` exports
-    `getNextIndices`, `buildPathsFromMatrix`,
-    `filterPathsWithTreasure`, `sortPathsByDifficulty`,
-    `decideBetterOption`, plus the typed `LabyrinthPathOpponent` /
-    `LabyrinthOpponentLite` / `FindBetterState` shapes. The
-    path-pipeline functions are generic over
-    `LabyrinthPathOpponent` (only `opponentDifficulty` +
-    `isTreasure` are read); `decideBetterOption` is generic over
-    `LabyrinthOpponentLite` (adds `isShrine`, `isNext`,
-    `isOpponent`, `power`, `hasButton`).
-  - `Labyrinth.createPathFromMatrix`,
-    `Labyrinth.filterPathWithNoTreasue` (typo retained at the
-    adapter boundary; pure function uses corrected name),
-    `Labyrinth.sortPathsByDifficulty`, and `Labyrinth.findBetter`
-    delegate to the pure functions. `findBetter` projects the
-    DOM-bound `LabyrinthOpponent[]` onto `LabyrinthOpponentLite[]`
-    (mapping `option.button` truthiness onto `hasButton`,
-    attaching `__orig` as a back-reference) before delegating, and
-    returns the original record afterwards.
-  - Bit-for-bit equivalent: all filter cascades, the strict
-    comparisons (`==`, `<`, `>`), and the fallback to
-    `firstOption` when no eligible option survives are preserved.
-  - Behaviour delta: the five inner debug-log lines inside
-    `findBetter` ("first", "More reward: higher difficulty
-    group", "More reward: Powerless opponent", "Not
-    opponent", "Powerless opponent") are gone. They only fired
-    when `debugEnabled === true` and never affected game state.
-    The three outer debug logs and the post-filter log are kept;
-    the post-filter log now reads "Options after filter (handled
-    by Labyrinth.pure)".
-  - Tests: 692 passed (664 + 28), 0 skipped, 50 suites.
-  - Merged via PR #1641, commit c16adc2.
-- [x] **3.5** Bundles -- pure decision logic extracted (2026-05-08)
-  - Plan deviation (agreed with the user before implementation):
-    plan listed "visibility / trigger". Bundles has no
-    visibility check (the trigger is
-    `getSecondsLeft('nextFreeBundlesCollectTime')` external to
-    the module). `Bundles.goAndCollectFreeBundles` is a DOM /
-    click / `setTimeout` pipeline with no isolatable pure logic.
-    The only piece of pure logic in the module is the 24-hour
-    threshold check inside `Bundles.getExpiryTime`; the
-    extraction targets that single function.
-  - New module: `src/Module/Bundles.pure.ts` exports
-    `decideExpiryTime` and the typed `ExpiryTimeState` shape.
-    Three-branch cascade: `null` -> fallback, `>= 24*3600` ->
-    fallback (strict `<` boundary), otherwise -> scraped.
-  - `Bundles.getExpiryTime` scrapes the DOM, computes the
-    fallback value, and delegates the threshold decision. The
-    original ERROR log is preserved and now fires whenever the
-    fallback branch is taken (matching the original fallthrough
-    behaviour).
-  - Bit-for-bit equivalent: the 24-hour boundary stays strict
-    `<`; exactly `24 * 3600` falls through to the fallback.
-  - Behaviour delta: `randomInterval(60, 180)` is now called
-    unconditionally as part of computing `fallbackSeconds`;
-    previously it was only called in the fallback branch.
-    `randomInterval` is read-only and has no game-state effect.
-    Same delta type as League stage 1 task 1.1 and Pantheon
-    stage 3 task 3.2.
-  - Tests: 698 passed (692 + 6), 0 skipped, 51 suites.
-  - Merged via PR #1643, commit cc8c80c.
-- [x] **3.6** LivelyScene + BossBang -- partial extraction, BossBang skipped (2026-05-08)
-  - Plan deviation (agreed with the user before implementation):
-    plan listed "isAvailable, timer reset" for both modules.
-    Reality:
-    * LivelyScene: `isEnabled` is a trivial Config-flag wrapper
-      (matches the strategy's "no trivial getters" rule). The
-      "timer reset" path in `goAndCollect` is a single
-      `setTimer + setStoredValue` pair with no branching.
-      What is pure: the two OR cascades inside `parse`
-      (`decideCollectTrigger`) and `parseClaimableRewards`
-      (`selectClaimablePieces`).
-    * BossBang: `parse()` is a DOM-driven team-search loop with
-      `click()` side effects in the loop body. `goToFightPage`
-      and `skipFightPage` are DOM / click / navigation. There is
-      no `isAvailable` check; the timer is unconditional from
-      the DOM with no reset branch. No isolatable pure logic.
-      Skipped (same rationale class as 3.3 MonthlyCard).
-  - New module: `src/Module/Events/LivelyScene.pure.ts` exports
-    `decideCollectTrigger` and `selectClaimablePieces`, plus the
-    typed `CollectTriggerState` / `PuzzlePieceLite` /
-    `SelectClaimableState` shapes.
-  - `LivelyScene.parse` builds the input state and delegates the
-    OR cascade. `LivelyScene.parseClaimableRewards` projects each
-    puzzle-piece onto `PuzzlePieceLite` (mapping the
-    optional-chained `reward.shards`/`.rewards[0].type` onto a
-    single `rewardType` string, attaching `__orig` as a
-    back-reference) and delegates the loop.
-  - Bit-for-bit equivalent: operator precedence preserved
-    (`&&` binds tighter than `||`), strict `<` boundary on
-    `remainingTime` vs `limitBeforeEnd` preserved.
-  - Tests: 711 passed (698 + 13), 0 skipped, 52 suites.
-  - Merged via PR #1645, commit 546df93.
-- [x] **3.7** Stage 3 finished (2026-05-08)
-  - Branch per task held: `refactor/pure-functions-clubchampion`
-    (PR #1636), `refactor/pure-functions-pantheon` (PR #1638),
-    `refactor/pure-functions-labyrinth` (PR #1641),
-    `refactor/pure-functions-bundles` (PR #1643),
-    `refactor/pure-functions-livelyscene` (PR #1645). Each
-    refactor PR was followed by its own
-    `docs/test-strategy-stage3-task<n>` doc PR (PR #1637 /
-    #1640 / #1642 / #1644 / #1646). Task 3.3 (MonthlyCard)
-    shipped as a doc-only skip
-    (`docs/test-strategy-stage3-task33-skip`, PR #1640).
-    Closure on `chore/test-strategy-stage3-close`. Plan's
-    suggested unified branch `feat/test-decision-logic` was
-    not used: the per-module branch convention from stage 1
-    survived stage 3 unchanged because each task ships its
-    own pure module.
-  - 5 new pure modules produced (`ClubChampion.pure`,
-    `Pantheon.pure`, `Labyrinth.pure`, `Bundles.pure`,
-    `LivelyScene.pure`) with 76 new tests across 5 refactor
-    PRs (3.1 - 3.2, 3.4 - 3.6); tests went from 633 to 711.
-    Suite count: 47 -> 52.
-  - Two of the seven sub-tasks shipped as documented skips:
-    * 3.3 (MonthlyCard): module name is misleading -- the
-      single public method `updateInputPattern()` only builds
-      regex strings for the settings UI from the six energy-
-      type `getEnergyMax()` values. No claim flow, no timer,
-      no AJAX, no hero-level gate. The existing
-      `MonthlyCards.spec.ts` already covers all six tier
-      mappings with 24 tests, and the function is wrapped in
-      a try/catch. Stage-3 acceptance criteria do not map
-      onto string-building. Singleton-mutation cleanup
-      (replacing in-place `HHAuto_inputPattern.*` writes with
-      a returned object) is style refactoring and is filed
-      separately if pursued.
-    * 3.6 (BossBang half): `parse()` is a DOM-driven team-
-      search loop with `click()` side effects in the loop
-      body; the rest is DOM / click / navigation. There is
-      no `isAvailable` check; the timer is unconditional from
-      the DOM with no reset branch. No isolatable pure logic.
-  - Six of the seven sub-tasks were renegotiated mid-flight
-    when the plan's `isTimeToFight` / `getNextChampionTime` /
-    `shouldClaim` / `getNextClaimTime` / `entire decision
-    pipeline` / `visibility / trigger` / `isAvailable, timer
-    reset` headings did not match the actual code; see the
-    individual task notes. Net result: every module that had
-    real pure decision logic now has a `<Module>.pure.ts`
-    module.
-  - Behaviour deltas accepted across stage 3, all read-only and
-    without game-state effects (same class as League stage 1
-    task 1.1):
-    * 3.2 (Pantheon): `ParanoiaService.checkParanoiaSpendings(
-      'worship')` now called unconditionally.
-    * 3.5 (Bundles): `randomInterval(60, 180)` now called
-      unconditionally as part of computing `fallbackSeconds`.
-    * 3.4 (Labyrinth): five inner debug-log lines inside
-      `findBetter` removed; all gated by `debugEnabled`.
-    * Side-finding from 3.1 (ClubChampion): the impure
-      adapter calls `randomInterval(decision.minTime,
-      decision.maxTime)` once where the original called it
-      three times across mutually exclusive branches; same
-      number of random draws per call site, no behaviour
-      change.
-  - Stage 4 (reliability layer) inherits three deferrals from
-    stage 1/2: `parseGirlsFromGameData` parser, the champion-
-    map fixture, and the League energy snapshot. None of
-    these blocked stage 3.
-
-### Stage 4 -- reliability layer (1-2 days)
-
-- [x] **4.1** AJAX schema tests (2026-05-08)
-  - First endpoint slice (live-blessings) landed:
-    - Source: `pages[*].live_blessings_api.live` (action=`get_girls_blessings`).
-      All 30 dump pages carry the same envelope shape; three temporal
-      snapshots persisted as `page-00.json` / `page-14.json` /
-      `page-29.json` to feed every parser branch (position, eyeColor,
-      labyrinth-filter rejection in active; hairColor / element / role
-      in upcoming).
-    - Inspector wraps the AJAX response as `{ live: <response>, error
-      }`; stored fixture content is the inner `live` value, i.e. the
-      actual game-API response that `BlessingService.fetchAndCache()`
-      consumes. No PII, no asset URLs, no IDs in this endpoint --
-      fixtures are stored verbatim.
-    - Schema test: `spec/fixtures/live-blessings/Schema.spec.ts` calls
-      every BlessingService parser (`parseTraits`, `parseBlessedValues`,
-      `parseElement`, `parseBlessingPercent`) on each snapshot and
-      asserts no-crash plus type plausibility. Private statics
-      (`parseTraits`, `parseElement`) accessed through a typed
-      `BlessingParserSurface` view; no `any`.
-    - No `src/` change in this slice; existing parsers are pure on
-      `response.active`.
-    - Tests: 717 passed (711 + 6), 53 suites.
-    - Merged via PR #1648, commit 3e647be.
-  - Inspector inventory pass (active capture, observer enhancements):
-    - v4.6.0 added a per-step XHR observer (PR #1650).
-    - v4.6.1 added auto-update URLs (PR #1651).
-    - v4.7.0 fixed the install-too-late bug: hooks now install at
-      script start via `startHookSweep()` and persist for the inspector
-      lifetime; `window.fetch` is patched too; per-step buffer slicing
-      via `ajaxBufferMark()` / `ajaxBufferSliceFrom()` (PR #1652).
-    - Fresh tour bundle captured 2026-05-08T13:35:50Z with v4.7.0:
-      `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-05-08T13-35-50-669Z.json`.
-  - Inventory result: only one observed read-only AJAX endpoint with
-    an HHAuto consumer (`get_girls_blessings`, already covered above).
-    Two additional observed endpoints have no consumer in `src/`:
-    - `process_rewards_queue` (page 0 / Home, ~29 bytes)
-    - `show_specific_girl_grade` (class=`Hero`, page 19 / Waifu,
-      ~245 bytes)
-    Both are game-internal UI calls; HHAuto neither sends nor parses
-    them today. Recorded as audit hints in the Status block.
-  - Plan deviation (closing 4.1 with one schema test set instead of
-    multiple): the strategy plan listed `pages[*].battle.*` and
-    `pages[*].girls_full.*` as additional candidates. After re-reading
-    the data sources inventory and the inspector capture, those paths
-    are page-injected game globals (already covered as fixtures in
-    stage 2: league / haremGirl / champion / event), not AJAX
-    responses. Adding "page-global schema tests" would extend stage 2
-    rather than stage 4 task 4.1. The remaining 12 AJAX call sites in
-    `src/` are all writes (do_battles_leagues, market_buy, etc.) and
-    cannot be exercised in the inspector without game-state effects.
-    4.1 is therefore closed at one slice with an explicit no-consumer
-    note for the two extra observed endpoints.
-- [x] **4.2** Storage migration tests (2026-05-08)
-  - Helpers slice (only slice):
-    - `spec/Service/StorageMigration.spec.ts` -- 26 new tests covering
-      `safeJsonParse` / `isJSON` / `getStoredJSON` edge cases plus a
-      smoke pass over a real settings snapshot.
-    - `spec/fixtures/storage-snapshot/setting-snapshot.json` -- 21
-      keys curated from `INPUT/HH_DebugLog_1778140621437.log` covering
-      boolean / integer / semicolon-list / JSON-array / custom-format /
-      sessionStorage payloads.
-    - Plan deviation documented in the spec: `isJSON` is intentionally
-      a liberal regex pre-check; `safeJsonParse` remains the hard
-      no-throw guard.
-    - No `src/` change.
-    - Tests: 743 passed (717 + 26), 54 suites.
-    - Coverage: 30.62 statements / 19.75 branches / 26.22 functions /
-      31.12 lines (was 30.55 / 19.67 / 26.15 / 31.06).
-    - Merged via PR #1654, commit 3d1f208.
-  - Closure rationale (plan deviation, agreed with the user before
-    closing): the plan listed module-level migration tests for the
-    four sites that combine `isJSON` with `JSON.parse` on stored
-    values. After re-reading the live source:
-    - `BDSMHelper.ts:428` and `AutoLoopActions.ts:169` are commented
-      out (`by const ...` / `//console.log(...)`); not live code.
-    - `Market.ts:38` only uses `isJSON` for a defensive log line; the
-      actual parse goes through `getStoredJSON` (already covered).
-    - `Shop.ts:101` uses `isJSON` + `getStoredJSON`; both already
-      covered.
-    - `EventModule.ts:792` is inside a `/* ... */` block; not live.
-    There is no remaining ungauarded `JSON.parse(getStoredValue(...))`
-    site in live code that the helpers slice does not already cover.
-    A `setDefaults` boot-path test was offered as an alternative slice
-    and explicitly declined; defaults flow through the same
-    `getStoredValue` reader the helpers slice covers.
-  - Optional follow-up slices recorded for future reference (not
-    blocking 4.2):
-    - `extractHHVars` with corrupted `Temp_Logging` (defensive parse
-      already in place, so test value is small).
-    - `setDefaults` boot path coverage (every registered key -> the
-      registry default after a `localStorage.clear()`).
-- [x] **4.3** Multi-domain smoke (2026-05-08)
-  - Append-only update to `spec/Helper/ConfigHelper.spec.ts` -- 22
-    new tests covering all 21 hostnames registered in
-    `HHKnownEnvironnements`, plus a sanity guard that fires if a new
-    hostname is added to `src/config/game/*Vars.ts:getEnv()` without
-    extending the table.
-  - Per case: `getEnvironnement()`, `getHHScriptVars('gameID')`,
-    `isPshEnvironnement()`.
-  - Plan deviation (documented in the spec describe block):
-    - The plan listed `domain.includes()` as a thing to assert.
-      `ConfigHelper` does not use `includes` -- it uses exact-match
-      against `HHKnownEnvironnements[hostname]`. Smoke uses exact
-      hostnames accordingly.
-    - The plan called for a new file `spec/config/Domain.spec.ts`.
-      Per user direction: appended to the existing
-      `spec/Helper/ConfigHelper.spec.ts` instead, to avoid a new
-      directory and keep all ConfigHelper tests together.
-    - The handoff mentioned a `tour` subdomain captured in the dump.
-      That was a filename artefact -- the actual host in the dump is
-      `www.hentaiheroes.com` (the tour is a path, not a host). No
-      extra entry needed.
-  - No `src/` change.
-  - Tests: 765 passed (743 + 22), 54 suites.
-  - Coverage unchanged (ConfigHelper was already covered by the
-    existing 10 tests).
-  - Merged via PR #1657, commit d191c47.
-- [x] **4.4** Stage 4 finished (2026-05-08)
-  - CI coverage reporting picked up under refs #1614:
-    - `jest.config.ts`: `json-summary` reporter added so the comment
-      action can read `coverage/coverage-summary.json`.
-    - `.github/workflows/ci.yml`:
-      - `permissions` block: `contents: read`,
-        `pull-requests: write` (minimum scope required by the
-        comment action).
-      - Upload `coverage/` as workflow artefact `coverage-report`,
-        retention 14 days, `if: always()` so the artefact is
-        available even on a failed test step.
-      - On `pull_request` events, post a coverage summary as a PR
-        comment using `MishaKav/jest-coverage-comment@v1.0.23`
-        (pinned, Marketplace latest as of 2026-05-08).
-        `create-new-comment: false` so the comment is updated in
-        place across pushes.
-    - Reporting only -- no threshold gate (review consensus, plan
-      constraint).
-    - Merged via PR #1659, commit 284938d. Issue #1614 referenced
-      (no auto-close keyword); it stays open until the reporter
-      verifies the live comment + artefact behaviour and is then
-      closed manually.
-  - Plan deviation (closure shape): the plan listed a single closure
-    task on a single branch `feat/test-reliability`. Stage 4 was
-    actually shipped as four task-scoped branches mirroring stage 2
-    and stage 3:
-    - `feat/test-ajax-schema-live-blessings` (PR #1648, 4.1 first
-      slice -- AJAX schema)
-    - `feat/inspector-passive-ajax-capture` (PR #1650, 4.1
-      inspector v4.6.0)
-    - `feat/inspector-auto-update-urls` (PR #1651, 4.1 inspector
-      v4.6.1)
-    - `feat/inspector-persistent-ajax-hooks` (PR #1652, 4.1
-      inspector v4.7.0)
-    - `feat/test-storage-migration-helpers` (PR #1654, 4.2 helpers)
-    - `feat/test-multi-domain-smoke` (PR #1657, 4.3 smoke)
-    - `feat/ci-coverage-reporting` (PR #1659, 4.4 CI coverage)
-    plus six matching `docs/test-strategy-...` PRs and this
-    closure (`chore/test-strategy-stage4-close`).
-  - Stage 4 totals:
-    - 7 code PRs and 6 doc PRs across the four tasks.
-    - Tests: 711 -> 765 (+54) across 53 -> 54 suites.
-    - Coverage: 30.13 -> 30.62 statements / 18.94 -> 19.75
-      branches / 25.79 -> 26.22 functions / 30.69 -> 31.12 lines.
-    - One inspector userscript bumped from v4.5.0 to v4.7.0
-      (per-step XHR observer -> auto-update URLs -> persistent
-      XHR + fetch hooks).
-    - `npm run build`: succeeds. `HHAuto.user.js` build drift
-      discarded after every build per workspace convention.
-  - Carried-forward into the next planning round (not blocking
-    closure):
-    - `parseGirlsFromGameData(rawData) -> Girl[]` parser stays
-      deferred (sized fixture exists in
-      `spec/fixtures/haremGirl/sample-girls.json`).
-    - Champion-map fixture stays deferred (DOM-only data, needs a
-      different testing approach for DOM-derived state).
-    - League energy snapshot
-      (`hero.shared.Hero.energies.challenge`) stays deferred until
-      a League parser test needs it.
-    - Inspector-observed AJAX endpoints without an HHAuto consumer
-      (`process_rewards_queue`, `show_specific_girl_grade`); audit
-      hint, no test follow-up unless HHAuto starts consuming them.
-    - Optional 4.2 follow-up slices (`extractHHVars` corrupted
-      `Temp_Logging`; `setDefaults` boot path).
-    - Inspector PII hardening for shared player dumps (id_member,
-      club ids, chat_token, caracs/xp/level/quest_step, opponent /
-      club-leader nicknames). Tracked as a new feature for the
-      inspector userscript; not part of stage 4.
-
-### Stage 5 -- spec triage (2026-08-17)
-
-The trigger: building the equipment optimizers shipped five real defects with a
-green suite. The file carrying the wrong model sat at 91.5% statement coverage.
+Coverage counts lines a test *entered*, not lines it *checked*. The equipment
+optimizer shipped five real defects with its file at 91.5 % statement coverage:
+every branch ran, every assertion agreed with the same wrong model of the game.
 
 | Defect | would have been caught by |
 |---|---|
@@ -883,331 +18,156 @@ green suite. The file carrying the wrong model sat at 91.5% statement coverage.
 | `item_to_upgrade.level` freezes after page build | **live only** |
 | ranking by a home-grown stat score | **no kind of test** -- it took a data comparison against 99 real players |
 
-None of those tests were broken. They were correct about a world that was not
-the game's. That is the finding this stage acts on.
-
-#### The four classes
-
-Every one of the 1,396 tests was placed in exactly one:
-
-- **A -- tautological.** Checks the implementation against a copy of itself:
-  config literals read back out of the registry that defines them, constructors
-  read back through their own getters, mocked values read back through the
-  getter that returned them, markup held against its own template, `styles()`
-  smoke tests, fixture files checked against their own README. **139 tests.**
-- **B -- live-only.** Claims about selectors, CSS classes, page globals and API
-  parameters, asserted against evidence the test built itself. Green by
-  construction and therefore silent when the game changes. **44 tests**, of
-  which 42 were removed (two turned out to be null-guards on our own side).
-- **C -- real logic.** Rankings, thresholds, state machines, parsers with error
-  handling. Synthetic input is the point here, not a weakness. **1,143 tests**,
-  untouched.
-- **D -- deserves a real payload.** Anything taking game data. **70 tests**, of
-  which 34 already run on captured fixtures (live-blessings, EventGirl, the
-  TeamBuilder player pools, the ad tiles) and 36 still run on hand-built
-  objects.
-
-Plus a side finding outside the classes: four blocks said the same thing twice,
-once through spies -- `League.isTimeToFight`, `Season.isBlockedOnlyByMissing
-Booster`, `Labyrinth.findBetter` and `ClubChampion._setTimer` are each covered
-spy-free by the matching `.pure` spec. **39 tests.**
-
-- [x] **5.1** A and the duplicates deleted (2026-08-17)
-  - 178 tests, ten spec files gone entirely (ButtonHelper, ChampionModel,
-    LeagueOpponent, Contest, Quest, PathOfGlory, PathOfValue, Pantheon,
-    PathOfAttraction, Labyrinth).
-  - Where a block went because a `.pure` spec covers it, a comment naming that
-    file stands in its place, so nobody re-adds it in six months.
-  - Tests: 1,396 -> 1,218. Suites: 93 -> 83.
-  - Coverage: 44.04 -> 43.37 statements / 35.48 -> 34.89 branches /
-    42.61 -> 41.10 functions / 44.32 -> 43.65 lines.
-- [x] **5.2** B deleted and moved into a live check (2026-08-17)
-  - 42 tests removed; `scripts/live-check/` added.
-  - `checks.json` names every claim together with the call site it comes from;
-    `run.mjs` is a read-only Playwright runner printing one line per claim as
-    `OK` / `DRIFT` / `SKIP`.
-  - It refuses to measure unless `shared.Hero.infos.id` is set **and**
-    `a[rel='phoenix_member_login']` matches nothing -- the logged-out page
-    serves a plausible placeholder hero (600 kobans, full energies).
-  - Selector counts ignore visibility on purpose: `shop.html` renders two
-    equipment trees and the one carrying the data is the hidden one.
-  - Writes and popup states stay manual with printed instructions. A checker
-    that buys and equips to prove the API still works is a bot, not a checker.
-  - `playwright` is deliberately **not** a devDependency: CI has no account and
-    must never download a browser for this. The profile stays outside the repo,
-    addressed through `HHAUTO_PROFILE`.
-  - The runner is verified end to end against local stand-in pages (every probe
-    kind, the drift path, the logged-out abort). The claims themselves are not
-    verified -- the game allows one session per account, so that needs the
-    maintainer's own browser.
-  - Tests: 1,218 -> 1,176. Suites: 83 -> 82.
-- [x] **5.3** D onto real payloads (2026-08-17)
-  - A fresh dump was captured the same day (inspector v4.8.0, 32 pages,
-    51 MB), which unblocked this task.
-  - New fixtures, each with a README naming source, selection, redactions,
-    consumers and refresh procedure:
-    - `spec/fixtures/teams/` -- `teams-data.json` (a fielded themed team and
-      an empty slot from `/teams.html`), `team-girls.json` (three girls with
-      their skills map), `available-girls.json` (three raw entries
-      whitelisted to the 21 fields `mapAvailableGirl` reads).
-    - `spec/fixtures/blessings/blessed-girls.json` -- one girl per case:
-      league-blessed, Role-only, unblessed.
-    - `spec/fixtures/equipment/girl-armor.json` -- a real girl armor entry.
-  - Three things the capture settled that no hand-written object had:
-    - The game's own `bonus_identifier` per synergy confirms the element
-      mapping `fightBonues` assumes (fire = critical hit damage, stone =
-      crit chance, sun = decrease defense, water = recover on hit).
-    - A flat skill carries `percentage_value: null` -- not `0`, not a
-      missing key. That is what the nullish coalescing in
-      `getSkillPercentage` is for.
-    - A Role-blessed girl carries **no `pvp_v3` key at all** and her
-      `can_be_blessed` flag is `false`, exactly as the BlessingService spec
-      had been asserting since July.
-  - One of the two gaps recorded here was closed the same day (see 5.4); the
-    other is a decision, not a task:
-    - `RewardHelper.getRewardTypeByData` reads `item.ico`, and no reward
-      payload in either capture carries a `/pictures/items/` url -- the
-      inspector does not collect reward payloads with their icons at all, and
-      the redaction rule would strip the field anyway. Decide before the next
-      capture: teach the inspector to keep `ico` for reward fixtures, or drop
-      the url-pattern branch from the parser and detect on `type` alone.
-  - No fielded team on the account is themeless, so the one
-    `themeFromTeamData` case that needs it builds it by emptying the two
-    theme fields of the real team. Noted at the test.
-  - Tests: 1,176 -> 1,183. Suites: 82. Coverage unchanged (same paths, real
-    input).
-- [x] **5.4** Hero armor captured and parsed (2026-08-17)
-  - Inspector v4.9.0 adds `equipped_armor`, `player_inventory` and
-    `market_inventory` to the captured market globals; the header said 4.8.1
-    while the `VERSION` constant said 4.8.0, so dumps had been reporting the
-    older number. Both now agree.
-  - The 13:13 capture delivered 6 worn items and 204 stocked (104 mythic, 100
-    legendary, all `wearer: hero`, evenly over the six slots).
-  - `spec/fixtures/equipment/hero-armor.json` carries three of them. The
-    capture confirms every claim the block had been making against its own
-    builder: a worn entry has `id_member_armor_equipped` and **no**
-    `id_member_armor` key, `caracs.chance` arrives as a string on legendaries,
-    and `resonance_bonuses` is absent rather than empty on 100 of the 204.
-  - Two tests deleted in 5.1 as tautological return as `the model against the
-    capture`, measured this time: a level-20 mythic really carries
-    4000/4000/4000/4000/5000 (21,000 points), and resonance really grows at
-    0.1 per level, doubled on the chance track. A rebalance now fires a test.
-  - All fixture sets re-cut from the surviving capture after the older dump was
-    deleted, so every provenance line in a README is followable. The extractor
-    finds pages by pathname instead of index.
-  - Merged via PR #1828. Tests: 1,183 -> 1,185.
-- [x] **5.5** Stage 5 closed (2026-08-17)
-  - Shipped across four PRs: #1826 (triage stages A, B, D and the strategy
-    entry), #1827 (the pipeline), #1828 (hero armor and the live-check
-    correction).
-  - Totals: 1,396 -> 1,185 tests, 93 -> 82 suites. Coverage 44.04 -> 42.92
-    statements / 35.48 -> 34.03 branches / 42.61 -> 40.74 functions /
-    44.32 -> 43.18 lines, all above the configured thresholds.
-  - 220 tests removed, 7 added. Every removed one either checked the code
-    against a copy of itself or made a claim about the game that jsdom cannot
-    hold.
-
-#### What the first live run found
-
-`scripts/live-check/run.mjs` ran against the game on 2026-08-17: **11 OK, 1
-DRIFT, 0 ERROR, 7 SKIP** (the manual ones).
-
-The single DRIFT was in the checker, not the game.
-`.league_content .data-list .data-column[sorting]` matched nothing because the
-script no longer looks for it -- the selector sat in a commented-out
-`_refreshSorting` block with no callers, and it had been lifted into
-`checks.json` from a grep hit without following it to a live call site. That is
-the mistake `live-verification-lessons.md` exists to prevent, made while
-building the tool meant to apply it.
-
-Three things came out of that, all in PR #1828:
-
-- the dead block is gone from `League.ts`; commented-out selectors are what
-  produced the false claim, and git history keeps them better than a comment
-- two checks the code really does make replace it, both reading
-  `div[column="match_history"], div[column="match_history_sorting"]` on the
-  opponent rows. `league-match-history-legacy` is inverted on purpose: a DRIFT
-  there means the game finished the w32 rename and the fallback branch at
-  `League.ts:445` can go
-- the README states the rule the run taught: follow the selector to a live call
-  site before adding a check, a grep hit is not a claim
-
-The other eight automated claims held. For selectors that had gone two weeks
-without live verification, that is a better result than expected -- and it is
-the first time any of them was actually checked rather than asserted.
-
-#### The pipeline, fixed on the way (PR #1827)
-
-`quality` had been red on `main` since 2026-08-16: `lint:ci` allowed 1203
-warnings and the tree carried 1253. A permanently red check teaches everyone to
-stop reading it, which is the same failure mode as a green suite that proves
-nothing.
-
-`eslint --fix` cleared 207, all `let` -> `const`. The ceiling now sits at the
-real number, 1046, and moves **down** as warnings go rather than up as they
-accumulate. It caught its author two commits later, when the first draft of the
-hero-armor fixture added four `any`; the fixture got typed instead.
-
-What remains is substantial work, not noise: 560 `no-explicit-any`, 155
-`eqeqeq`, 124 unused bindings, concentrated in `BDSMHelper` (100),
-`KKHaremGirl` (64), `League` (60) and `Champion` (58).
-
-Also fixed there: `AjaxTracker`'s uninstalled path was pinned to 50 ms of wall
-clock, failed at 54 ms under parallel load and passed alone. The number
-described the machine. It is measured against its own timeout budget now.
-
-
-#### Why coverage stopped being the target
-
-Coverage counts lines a test *entered*. It says nothing about lines a test
-*checked*. The 91.5% on the equipment optimizer was honest and worthless: every
-branch ran, every assertion agreed with the same wrong model.
-
-Stage 5 lowered coverage by roughly a point and a half on functions and half a
-point on statements. Every point of it came from lines that were entered and
-never checked. That is a gain, and the reporting should be read that way: the
-number is a description of where tests go, not a measure of what they know.
+So a test is judged by what it would catch, not by the lines it touches.
 
 The `coverageThreshold` in `jest.config.ts` stays as a floor against silent
-rot, not as an argument. When a worthless test is removed and the number drops
-below it, the number moves -- not the decision.
+rot, not as an argument. When removing a worthless test drops the number below
+it, the number moves -- not the decision.
 
-## Deliberately dropped (do not implement)
+## Where a claim belongs
 
-- Snapshot tests for HTML
-- Mutation testing with Stryker
-- Property-based testing as a whole phase
-- Coverage threshold as a CI gate
-- Splitting the 41 MB dump into 30 page JSONs
-- Pre-commit hook
-- Trivial tests for one-line `isEnabled` getters
+Every test belongs in exactly one of four classes. Two of them are kept, one
+moves elsewhere, one is not written.
 
-## xit inventory
+- **Real logic** -- rankings, thresholds, state machines, parsers with error
+  handling. A unit test with synthetic input; synthetic input is the point.
+- **Takes game data** -- anything that parses a game payload. Runs on a
+  fixture cut from a real capture (see below), not on a hand-built object.
+  Where no capture exists yet, the test says so.
+- **A claim about the game** -- selectors, CSS classes, page globals, API
+  parameters. jsdom holds these against evidence the test built itself, so
+  they are green by construction and silent when the game changes. They go
+  into `scripts/live-check/`, not into `spec/`.
+- **Tautological** -- not written: config literals read back out of the
+  registry that defines them, constructors read back through their getters,
+  mocked values read back through the getter that returned them, markup held
+  against its own template, `styles()` smoke tests, fixture files checked
+  against their own README.
 
-Status: 2026-05-07. 7 xit tests found (the plan's initial estimate was 8).
+An adapter whose decision is covered spy-free by its `.pure` spec is not tested
+again through spies. Where such a block was removed, a comment naming the
+`.pure` spec stands in its place, so it is not re-added.
 
-| # | File | Line | Test name |
-|---|---|---|---|
-| 1 | spec/Helper/TimeHelper.spec.ts | 70 | default |
-| 2 | spec/Helper/TimeHelper.spec.ts | 76 | default |
-| 3 | spec/Module/Events/Season.spec.ts | 231 | low mojo |
-| 4 | spec/Module/Events/Season.spec.ts | 255 | low mojo, energy not max with cards |
-| 5 | spec/Module/harem/HaremGirl.spec.ts | 55 | Button and no girl |
-| 6 | spec/Module/League.spec.ts | 149 | should return false during the last hour of the league if energy is insufficient |
-| 7 | spec/Service/PageNavigationService.spec.ts | 74 | should log an error if Nutaku is detected but no session is found |
+## Pure modules
 
-## Tests hidden by fdescribe
+Decision logic lives in `<Module>.pure.ts` files (`ls src/**/*.pure.ts`): data
+in, decision out, no globals, no jQuery, no storage reads. The module itself
+builds the input state from the page and delegates. That split is why a file
+like `EquipmentGear.ts` or `Champion.ts` shows low coverage without being an
+untested decision -- what is left in them is DOM and rendering.
 
-Status: 2026-05-07. `fdescribe(\"_setTimer\")` in Champion.spec.ts:37 focuses
-on 7 tests inside the _setTimer block and therefore hides the sibling block
-findNextChamptionTime with 1 test.
+Not every module has one, on purpose:
 
-| File | fdescribe block (line) | hidden describe block | tests skipped |
-|---|---|---|---|
-| spec/Module/Champion.spec.ts | _setTimer (37) | findNextChamptionTime | 1: \"default\" |
+- `MonthlyCard.updateInputPattern()` only builds regex strings for the settings
+  inputs; there is no claim flow, timer or level gate to extract.
+- `BossBang` is a DOM-driven team search with clicks inside the loop, and
+  `LabyrinthAuto.run()` a click and navigation sequence; the labyrinth
+  decisions sit in `Labyrinth.pure.ts` instead.
 
-## Data sources
+An accepted kind of behaviour change from the extraction: a read-only call that
+used to be short-circuited now runs unconditionally
+(`ParanoiaService.checkParanoiaSpendings`, `randomInterval`). None of them
+touches game state.
 
-- `INPUT/hhauto_dump_*.json` (41 MB, 2026-05-05, 30 pages)
-  - Pages: home, leagues, season-arena, penta-drill-arena, penta-drill,
-    labyrinth (2x), club-champion, champions-map, shop, clubs, pantheon,
-    season, event, seasonal, path-of-glory, path-of-valor, pachinko, map,
-    waifu, activities (5x), hero/profile, member-progression, teams,
-    edit-team, characters/1
-  - Fields per page: girls_full, hero, teams, battle, market_equipment,
-    hh_namespace, shared_namespace, local_storage, dom_data_attributes,
-    live_blessings_api
-- `INPUT/HH_DebugLog_*.log` (3 files, ~10h old)
-  - Settings snapshot per file
-  - Key `HHAuto_Temp_Logging` carries time-stamped action traces
-    (TeamModule, Harem, Generator.next with slot equipment)
-- If a fresh dump is needed: ask the user (inspector script:
-  `bonus-scripts/HHAuto_debug_inspector.user.js` v4.5.0)
+## Fixtures
 
-## Workflow reminder
+`spec/fixtures/<topic>/`, each set with a README naming source, selection,
+redactions, consumers and the refresh procedure. `loadFixture()` in
+`spec/testHelpers/Fixtures.ts` returns `unknown`; the caller narrows the type.
 
-- Branch -> implement -> commit -> push -> test -> approval -> PR -> merge
-- Identity: `oldron1977@gmail.com`, user: `OldRon1977`
-- No AI / agent mention in commits
-- File writes only via Python+UTF8 (workspace rule 05)
-- README entry on a version bump (not required for this stage)
+Captures come from the inspector userscript
+(`bonus-scripts/HHAuto_debug_inspector.user.js`); the dumps themselves are not
+in the repository. Player data is anonymised when the fixture is cut -- own
+account `1`, other players from `1000`, names `Player_N` -- and
+`npm run check:player-data` checks the form.
 
-## Where the write paths actually are (2026-09-09)
+What real captures settled that hand-built objects had not:
 
-The four modules with the lowest statement coverage looked like the obvious
-gap, being exactly the write paths ADR-011 keeps a game account for:
+- a worn item has `id_member_armor_equipped` and **no** `id_member_armor` key;
+  `caracs.chance` arrives as a string on legendaries; `resonance_bonuses` is
+  absent rather than empty on most items
+- a flat skill carries `percentage_value: null`, not `0` and not a missing key
+- a Role-blessed girl carries no `pvp_v3` key and `can_be_blessed: false`
+- the game's own `bonus_identifier` per synergy confirms the element mapping
+  in `fightBonues`
 
-| | before | after |
-|---|---|---|
-| `Module/PlaceOfPower.ts` | 9.8 % | **20.7 %** |
-| `Module/League.ts` | 6.4 % | **8.1 %** |
-| `Module/EquipmentGear.ts` | 5.9 % | 5.9 % |
-| `Module/Champion.ts` | 9.8 % | 9.8 % |
+Not produced, and why:
 
-Two of them turned out not to be the gap they look like. The decision logic
-for equipment already lives in `EquipmentKeepService` (98.4 %),
-`EquipmentOptimizerService` (97.1 %) and `EquipmentUpgradeService` (94.9 %);
-Champion's sits in `Champion.pure.ts` (100 %). What is left in those two files
-is DOM and rendering, and raising it needs page fixtures, not unit tests. The
-raw percentage overstates that gap -- the pure/impure split of stage 3 is why.
+- A champion-map fixture: that page carries no champion JSON, only DOM, and
+  HTML snapshots are ruled out below.
+- A `parseGirlsFromGameData` parser: none exists; `spec/fixtures/haremGirl/`
+  is sized for it if one is written.
 
-The two that *were* untested decisions got tests:
+## The live check
 
-- `LeagueHelper.numberOfFightAvailable` -- the function the repository guide
-  warns about
-  by name. The game renamed the `match_history` column in the DOM and kept the
-  key in the JSON; reading the DOM finding into the data makes this return 0,
-  and a 0 is silent -- the league simply stops fighting, and league wins are
-  one of three koban sources. The fixtures carry both `match_history` and the
-  `match_history_sorting` number beside it, so the trap is in the test.
-- `PlaceOfPower.girlPower` / `chooseGirlsTeam` -- which girls get sent into a
-  Place of Power, where a wrong answer locks them for hours. Includes the
-  property that `girlPower` **empties the array it is handed**;
-  `chooseGirlsTeam` only gets away with it by passing a slice.
+`scripts/live-check/` holds the claims about the game. `checks.json` names each
+claim together with the call site that relies on it; `run.mjs` is a read-only
+Playwright runner printing `OK` / `DRIFT` / `SKIP` per claim. It refuses to
+measure unless `shared.Hero.infos.id` is set and no
+`a[rel='phoenix_member_login']` exists -- the logged-out page serves a
+plausible placeholder hero. Writes and popup states stay manual with printed
+instructions; a checker that buys and equips to prove the API still works is a
+bot. `playwright` is not a devDependency: CI has no account and must never
+download a browser for this.
 
-Remaining, in order of statements behind a real decision rather than a
-rendering: `ParanoiaService` (21.4 %, 182) decides when the bot rests and what
-it spends first; `BlessingService` (61.6 %, 250).
+The rule its first run taught: follow a selector to a live call site before
+adding a check. Its only DRIFT then was a selector lifted from a commented-out
+block with no callers -- a grep hit, not a claim. Details in the README there
+and in `live-verification-lessons.md`.
 
-## Traps when writing a new test (2026-09-09)
+## Where untested decisions still are
 
-Three came out of one session, all in tests that were green at first.
+The write paths ADR-011 keeps a game account for were checked for that:
+
+- `LeagueHelper.numberOfFightAvailable` is tested, including the trap the
+  repository guide names: the game renamed the `match_history` column in the
+  DOM and kept the key in the JSON. The fixtures carry both, so the trap is in
+  the test.
+- `PlaceOfPower.girlPower` / `chooseGirlsTeam` are tested, including that
+  `girlPower` **empties the array it is handed**; `chooseGirlsTeam` only gets
+  away with it by passing a slice.
+- The largest remaining decision code without tests: `ParanoiaService` (when
+  the bot rests and what it spends first) and the rest of `BlessingService`.
+
+## Traps when writing a test
 
 **A negative assertion is vacuous until the positive one runs.** A test for
 "the script must not click `#skip-quest`" passed before the fix, because
-`QuestHelper.run()` clicks from a `setTimeout` and the test had no fake
-timers -- so nothing was clicked at all and the assertion could not fail.
-Fix: assert in the same test that the button which *should* be pressed was
-pressed. If that fails, the negative half is not evidence.
+`QuestHelper.run()` clicks from a `setTimeout` and the test had no fake timers
+-- nothing was clicked at all. Assert in the same test that the button which
+*should* be pressed was pressed.
 
-**A test that asserts the new behaviour must be run against the old code.**
-`git stash push -- <one source file>` and re-running the spec is enough, and
-it is the only cheap proof that a test would have caught the defect. Two of
-the four TeamModule tests written that day failed that check on the first
-attempt for the wrong reason (a page guard the fixture did not satisfy), so
-they were passing without exercising anything.
+**A test that asserts new behaviour must be run against the old code.**
+`git stash push -- <one source file>` and re-running the spec is the cheap
+proof that a test would have caught the defect. Two TeamModule tests failed
+that check for the wrong reason (a page guard the fixture did not satisfy) and
+were passing without exercising anything.
 
 **Module-level state outlives a test.** `Bundles` remembers when its popup
-walk started, `FeatureGate` remembers the last verdict it reported. Both
-survive `afterEach`. Two ways out, both used here: advance the fake clock per
-test so the memo ages out (`Bundles.spec`), or expose a narrow reset the spec
-calls (`FeatureGate.forgetReportedState`). Relying on test order instead is
-how a green suite hides a broken memo.
+walk started, `FeatureGate` the last verdict it reported; both survive
+`afterEach`. Either advance the fake clock per test so the memo ages out
+(`Bundles.spec`), or expose a narrow reset the spec calls
+(`FeatureGate.forgetReportedState`). Relying on test order hides a broken memo.
 
-### Table-driven where the code became table-driven
+**A time limit in wall-clock milliseconds describes the machine.**
+`AjaxTracker`'s uninstalled path was pinned to 50 ms, failed at 54 ms under
+parallel load and passed alone. It is measured against its own timeout budget.
 
-ADR-012 replaced eight hand-written `isEnabled` conditions with one table.
-The spec follows the same shape: `spec/Service/FeatureGate.pure.spec.ts`
-runs every case against every kind of condition (level / girls / world), so a
-fourth condition cannot arrive with tests for only one of them. 39 tests come
-out of ~10 written cases.
+**The lint ceiling is the real count.** `lint:ci` allows exactly the warnings
+the tree carries and moves down as they go. New code, specs included, adds
+none: type a fixture or a mock (`unknown` plus a cast at the use site) instead
+of reaching for `any`.
 
-This does not contradict "no trivial tests for one-line `isEnabled` getters"
-under *Deliberately dropped*: the eight getters have no tests of their own,
+### Table-driven where the code is table-driven
+
+ADR-012 replaced eight hand-written `isEnabled` conditions with one table, and
+`spec/Service/FeatureGate.pure.spec.ts` follows that shape: every case against
+every kind of condition (level / girls / world), so a new kind cannot arrive
+with tests for only one of them. The eight getters have no tests of their own;
 the shared decision behind them does.
 
-Checked by mutation, by hand, on the day it was written -- each of these was
-introduced, the suite run, and reverted:
+Checked by hand mutation when it was written -- each introduced, the suite run,
+reverted:
 
 | Mutation | Failing tests |
 |---|---|
@@ -1216,47 +176,29 @@ introduced, the suite run, and reverted:
 | obstacle order swapped | 9 |
 | a row loses its condition | 2 |
 
-## Change log
+## Open decisions
 
-| Date | Change |
-|---|---|
-| 2026-05-07 | Initial draft, state before stage 0 |
-| 2026-05-07 | Task 0.1 done: fdescribe -> describe. Tests: 549 passed / 7 skipped / 556 total |
-| 2026-05-07 | Tasks 0.2 + 0.3 done: every xit handled. Tests: 554 passed / 0 skipped / 554 total |
-| 2026-05-07 | Task 0.4 done: MockHelper +5 functions. Tests stay 554 passed |
-| 2026-05-07 | Task 0.5 done: coverage reporters enabled |
-| 2026-05-07 | Task 0.6 done: issue #1614 opened |
-| 2026-05-07 | Stage 0 finished (tasks 0.1-0.7), branch ready for push |
-| 2026-05-07 | Stage 0 merged via PR #1615 (commit c4d6837) |
-| 2026-05-07 | Stage 1 prep: plan consolidated, task 1.1 detailed, session handoff rewritten for stage 1 |
-| 2026-05-07 | Task 1.1 done: `decideShouldFight` extracted, 12 new pure tests (566 total), bundle diff structural, merged via PR #1617 (commit 27b5e39) |
-| 2026-05-07 | Task 1.2 done: `decideNextChampionTime` extracted, 10 new pure tests (576 total), bundle diff structural, signature changed from plan (no champion is selected, only the next check time), merged via PR #1619 (commit 524bde0) |
-| 2026-05-07 | Task 1.3 done: equipment scoring helpers (`scoreItem`/`findBestItem`/`isBetter`) extracted, 16 new pure tests (592 total), bundle diff structural, scope changed from plan (no parser exists; girls parser deferred to stage 2), merged via PR #1621 (commit dfa13f5) |
-| 2026-05-07 | Task 1.4 done: `decideBurst` and `shouldRunStandardHandler` extracted, 18 new pure tests (610 total), bundle diff structural, signature changed from plan (handler pipeline has no single picker; remaining handlers deferred to stage 3), merged via PR #1623 (commit 44aa97d) |
-| 2026-05-07 | Stage 1 finished: 4 pure modules, 56 new tests across 4 PRs (1.1-1.4) |
-| 2026-05-07 | Tasks 2.1 + 2.2 + 2.6 done (bundled): League fixtures (3 mid-tier opponents, tier-3 rewards) + shared loader `Fixtures.ts`, 5 new smoke tests (615 total), no src changes, plan deviation in opponent field set documented in fixture README, merged via PR #1626 (commit 7395a0a) |
-| 2026-05-07 | Task 2.3 done: HaremGirl fixture (3 girls -- mythic 6/6 + legendary 5/5 + common 5/5) + 6 new smoke tests (621 total), no src changes, plan deviation in source path documented in fixture README (page 19 /waifu.html instead of plan's page 0 /home.html), `parseGirlsFromGameData` parser stays deferred to stage 3 per stage 2 rule, merged via PR #1628 (commit ab78a5a) |
-| 2026-05-07 | Task 2.4 done: Champion fixture (active-champion from page 7 with redacted participants and stripped asset urls) + 7 new smoke tests (628 total), no src changes, plan deviation in source path documented in fixture README (page 7 /club-champion.html instead of plan's page 8 /champions-map.html), champion-map fixture deferred (DOM-only data, no JSON to extract), merged via PR #1630 (commit b2ab9d7) |
-| 2026-05-07 | Task 2.5 done: Event fixture (event-detection from page 13, compound event_data + mega_event) + 5 new smoke tests (633 total), no src changes, no plan deviation (plan specified only the file name), merged via PR #1632 (commit 13c5f82) |
-| 2026-05-07 | Stage 2 finished: 4 fixture sets (league / haremGirl / champion / event) + shared loader, 23 new smoke tests across 4 fixture PRs (1626/1628/1630/1632) and 4 doc PRs (1627/1629/1631/1633), 633 total, no src changes; three plan deviations documented in the affected fixture READMEs; deferrals for stage 3 (parseGirlsFromGameData) and beyond (champion-map needs a different testing approach for DOM-derived state) carried forward in the status block |
-| 2026-05-08 | Task 3.1 done: ClubChampion pure-function extraction (`decideNextClubChampionTime`, `decideAlignedClubChampionTimer`) + 15 new pure tests (648 total), bundle diff structural, plan deviation in extracted scope documented in the task entry (no `isTimeToFight` equivalent in the module; `getNextChampionTime` renamed to `decideNextClubChampionTime` for clarity and to avoid the name clash with `Champion.pure.decideNextChampionTime`), merged via PR #1636 (commit d6e4e38) |
-| 2026-05-08 | Task 3.2 done: Pantheon pure-function extraction (`decideIsEnabled`, `decideShouldFight`) + 16 new pure tests (664 total), bundle diff structural, no plan deviation in scope; behaviour delta documented (`ParanoiaService.checkParanoiaSpendings` now called unconditionally, mirroring League stage 1 task 1.1), merged via PR #1638 (commit e54db73) |
-| 2026-05-08 | Task 3.3 skipped: MonthlyCard has no claim flow / timer / hero-level gate -- its single public method `updateInputPattern()` only builds regex strings for the settings UI, fully covered by the existing `MonthlyCards.spec.ts` (24 tests). No code change, no PR, only doc update; tests stay at 664 / 49 suites. |
-| 2026-05-08 | Task 3.4 done: Labyrinth path pipeline pure-function extraction (`getNextIndices`, `buildPathsFromMatrix`, `filterPathsWithTreasure`, `sortPathsByDifficulty`, `decideBetterOption`) + 28 new pure tests (692 total), bundle diff structural, plan deviation in module choice documented in the task entry (`LabyrinthAuto.run()` has no isolatable pure logic; the actual decision pipeline lives in `Labyrinth.ts`); behaviour delta documented (five inner debug-log lines inside `findBetter` removed, all under `debugEnabled === true` and without game-state effects), merged via PR #1641 (commit c16adc2) |
-| 2026-05-08 | Task 3.5 done: Bundles `getExpiryTime` pure-function extraction (`decideExpiryTime`) + 6 new pure tests (698 total), bundle diff structural, plan deviation in scope documented in the task entry (no visibility/trigger logic in the module; only the 24-hour threshold check is pure); behaviour delta documented (`randomInterval(60, 180)` now called unconditionally, mirroring League stage 1 task 1.1 and Pantheon stage 3 task 3.2), merged via PR #1643 (commit cc8c80c) |
-| 2026-05-08 | Task 3.6 done: LivelyScene pure-function extraction (`decideCollectTrigger`, `selectClaimablePieces`) + 13 new pure tests (711 total), bundle diff structural; BossBang skipped (no isolatable pure logic, same rationale class as 3.3 MonthlyCard); plan deviation in scope documented in the task entry (`isAvailable` / `timer reset` headings did not map onto either module's actual code), merged via PR #1645 (commit 546df93) |
-| 2026-05-08 | Stage 3 finished: 5 pure modules (ClubChampion / Pantheon / Labyrinth / Bundles / LivelyScene), 76 new tests across 5 refactor PRs (1636/1638/1641/1643/1645) and 6 doc PRs (1637/1640/1642/1644/1646 plus the 3.3 skip-only doc PR), 711 total; six of seven sub-tasks renegotiated mid-flight when the plan's symbol names did not match the actual code; two sub-tasks shipped as documented skips (3.3 MonthlyCard -- module name is misleading; 3.6 BossBang half -- DOM-only); behaviour deltas documented per task, all read-only and without game-state effects |
-| 2026-05-08 | Task 4.1 first endpoint slice: live-blessings AJAX schema fixtures (3 temporal snapshots) + parser smoke test (`parseTraits` / `parseBlessedValues` / `parseElement` / `parseBlessingPercent` on real payloads via a typed `BlessingParserSurface` view; no `any`); fixture content is the inner `live_blessings_api.live` value (= actual game-API response BlessingService consumes); 6 new tests (717 total, 53 suites); coverage 30.13->30.55 statements / 18.94->19.67 branches / 25.79->26.15 functions / 30.69->31.06 lines; no plan deviation; merged via PR #1648 (commit 3e647be) |
-| 2026-05-08 | Task 4.1 closed: inspector inventory pass via v4.7.0 (PRs #1650/#1651/#1652 -- per-step XHR observer, auto-update URLs, persistent XHR + fetch hooks). Fresh tour bundle (`hhauto_dump_..._2026-05-08T13-35-50-669Z.json`, inspector v4.7.0) shows three observed endpoints across all 32 pages: `get_girls_blessings` (covered by the live-blessings slice), `process_rewards_queue`, `show_specific_girl_grade`. The latter two have no HHAuto consumer; recorded as audit hints. Plan deviation documented (closing 4.1 with one schema test set; remaining `pages[*].battle.*` / `pages[*].girls_full.*` paths are page-globals already covered in stage 2 fixtures, not AJAX responses; remaining 12 src/ AJAX call sites are writes and not testable from the inspector). Next step: stage 4 task 4.2 (storage migration tests) |
-| 2026-05-08 | Task 4.2 first slice: storage-migration helpers spec (`safeJsonParse` / `isJSON` / `getStoredJSON` edge cases) plus a real settings snapshot smoke pass; `spec/fixtures/storage-snapshot/setting-snapshot.json` curated from `INPUT/HH_DebugLog_1778140621437.log` (21 keys covering boolean / integer / semicolon-list / JSON-array / custom-format / sessionStorage payloads). 26 new tests (743 total, 54 suites). Coverage 30.55->30.62 statements / 19.67->19.75 branches / 26.15->26.22 functions / 31.06->31.12 lines. Plan deviation documented (`isJSON` is intentionally a liberal regex pre-check; `safeJsonParse` remains the hard no-throw guard). No `src/` change. Merged via PR #1654 (commit 3d1f208) |
-| 2026-05-08 | Task 4.2 closed (helpers slice only): plan deviation documented after re-reading live source -- the four module-level `JSON.parse(getStored...)` sites the plan listed are either commented out (`BDSMHelper:428`, `AutoLoopActions:169`, `EventModule:792`) or already covered by the helpers slice (`Market:38` defensive log + `getStoredJSON`, `Shop:101` `isJSON` + `getStoredJSON`); no remaining ungauarded `JSON.parse` site in live code. Optional follow-up slices recorded but not blocking (`extractHHVars` corrupted `Temp_Logging`; `setDefaults` boot-path). Next step: stage 4 task 4.3 (multi-domain smoke) |
-| 2026-05-08 | Task 4.3 done: multi-domain smoke covering all 21 hostnames in `HHKnownEnvironnements` (HentaiHeroes 6 / ComixHarem 2 / GayHarem 3 / GayPornstarHarem 2 / MangaRpg 2 / PornstarHarem 2 / TransPornstarHarem 2 / AmourAgent 1 / SexyHeroes 1) plus a sanity guard against new hostnames; appended to existing `spec/Helper/ConfigHelper.spec.ts` (per user direction, instead of new `spec/config/Domain.spec.ts` file). 22 new tests (765 total, 54 suites). Plan deviations documented (exact-match instead of `domain.includes()`; appended instead of new file; `tour` subdomain in handoff was a filename artefact). No `src/` change. Merged via PR #1657 (commit d191c47) |
-| 2026-05-08 | Stage 4 finished: 4.4 closure picked up issue #1614 (CI coverage reporting). `jest.config.ts` adds `json-summary` reporter; `.github/workflows/ci.yml` adds permissions block (contents=read, pull-requests=write), uploads `coverage/` as workflow artefact, and posts a PR coverage comment via `MishaKav/jest-coverage-comment@v1.0.23` (pinned, Marketplace latest as of 2026-05-08); reporting only, no threshold gate. Stage 4 totals: 7 code PRs + 6 doc PRs across tasks 4.1-4.4 plus this closure; 711 -> 765 tests (+54), 53 -> 54 suites; coverage 30.13->30.62 statements / 18.94->19.75 branches / 25.79->26.22 functions / 30.69->31.12 lines; inspector userscript v4.5.0 -> v4.7.0. Plan deviation documented (per-task branches mirroring stages 2 + 3 instead of the plan's single `feat/test-reliability` branch). Carried-forward deferrals for the next planning round listed in the closure block. Merged via PR #1659 (commit 284938d) for the 4.4 code part |
-| 2026-08-17 | Stage 5 task 5.1: spec triage, class A plus the four adapter duplicates deleted -- 178 tests, ten spec files gone entirely. Coverage 44.04->43.37 statements / 35.48->34.89 branches / 42.61->41.10 functions / 44.32->43.65 lines, all above the configured thresholds. 1396 -> 1218 tests, 93 -> 83 suites |
-| 2026-08-17 | Stage 5 task 5.2: 42 class-B tests removed and replaced by `scripts/live-check/` (declarative check list plus a read-only Playwright runner, session guard, manual instructions for writes and popup states; playwright deliberately not a devDependency). Runner verified against local stand-in pages; the claims themselves need the maintainer's own session. 1218 -> 1176 tests, 83 -> 82 suites |
-| 2026-08-17 | Stage 5 task 5.3 blocked: `INPUT/` no longer holds the dump, so 19 of the 36 open class-D tests have nothing to be built from. 17 are convertible from fixtures already in the repo (BlessingService, TeamModule.mapAvailableGirl). Conflict recorded: `RewardHelper.getRewardTypeByData` reads `item.ico`, which the fixture redaction rule strips |
-| 2026-08-17 | Stage 5 task 5.3 done: a fresh capture (inspector v4.8.0) unblocked the parser fixtures. New fixture sets `teams/`, `blessings/`, `equipment/` with READMEs; BDSMHelper (synergies + skills), TeamModule.mapAvailableGirl, BlessingService and the parseArmorItem reject case now run on real payloads. The capture confirmed three things no hand-written object had: the element/bonus_identifier mapping, `percentage_value: null` on flat skills, and the absent `pvp_v3` key on Role-only girls. Two gaps recorded (hero armor globals not captured; `item.ico` needed by getRewardTypeByData but stripped by the redaction rule). 1176 -> 1183 tests |
-| 2026-08-17 | Stage 5 task 5.4: inspector v4.9.0 captures the hero's own equipment; `spec/fixtures/equipment/hero-armor.json` added and `parseArmorItem` fed from it. The capture confirms the worn/inventory id asymmetry, the string `chance`, and the absent `resonance_bonuses` key. Two tests deleted in 5.1 return as `the model against the capture`, measured against a real capped mythic. All fixtures re-cut from the surviving dump. Merged via PR #1828. 1183 -> 1185 tests |
-| 2026-08-17 | Stage 5 finished: 1396 -> 1185 tests, 93 -> 82 suites, across PRs #1826, #1827 and #1828. First live run: 11 OK, 1 DRIFT, 0 ERROR -- and the DRIFT was a dead claim in the checker, not a change in the game. The `quality` job, red on main since 2026-08-16, is green again with the lint ceiling at the real number (1046). Carried forward: the `item.ico` decision for `getRewardTypeByData` |
-| 2026-09-09 | ADR-012: eight hand-written `isEnabled` conditions replaced by one table (`Service/FeatureGate`), covered by a table-driven spec pair -- 66 tests from ~14 written cases, all four hand-run mutations caught. `Pantheon.pure.decideIsEnabled` and its four tests folded in. Three test traps from the same session written up above. 1558 -> 1619 tests, 98 -> 100 suites |
-| 2026-09-09 | Write-path pass: `LeagueHelper.numberOfFightAvailable` (9 tests, the match_history/match_history_sorting trap from Repo-Leitfaden) and `PlaceOfPower.girlPower` / `chooseGirlsTeam` (13 tests, including the array the recursion empties). PlaceOfPower 9.8 -> 20.7 % statements, League 6.4 -> 8.1 %. Recorded that EquipmentGear and Champion are not the gap their numbers suggest -- their decisions already sit at 94-100 % in the extracted services. 1637 -> 1659 tests, 102 -> 104 suites |
+- `RewardHelper.getRewardTypeByData` detects some reward types from the `ico`
+  url (`items/K`, `items/XP`). No captured reward payload carries that url --
+  the inspector does not collect reward payloads with icons, and the
+  redaction rule would strip it. Before the next capture: either the inspector
+  keeps `ico` for reward fixtures, or the parser detects on `type` alone.
+- AJAX endpoints the game uses without an HHauto consumer:
+  `node scripts/catalogue/run.mjs observe` records them with their shapes into
+  `scripts/catalogue/out/observed-actions.md` (generated, not committed).
+  When HHauto starts sending one, its schema test goes into
+  `spec/fixtures/<endpoint>/`, laid out like `live-blessings/`.
+
+## Deliberately not done
+
+- Snapshot tests for HTML.
+- Mutation-testing tooling (Stryker). A hand mutation run on a new decision
+  table, as above, is fine.
+- Property-based testing as its own phase; one or two targeted tests at most.
+- Coverage as a target. The threshold exists as a floor (see above).
+- Splitting a full dump into per-page JSON files. Curated mini fixtures of
+  5-20 lines per case instead.
+- A pre-commit hook that runs the suite; CI does that. The hook in `.githooks`
+  only stops player data, for the reason `CLAUDE.md` gives.
+- Tests for one-line `isEnabled` getters.
+- A live checker that writes.

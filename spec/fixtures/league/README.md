@@ -30,6 +30,6 @@
 
 If a fresh dump is captured later:
 
-1. Run the inspection helper from `docs-internal/test-strategy.md` "Data sources" to confirm key paths still match.
+1. Capture with the inspector (`bonus-scripts/HHAuto_debug_inspector.user.js`) and confirm the key paths above still match.
 2. Reuse the same indices (49-51) and tier (3). If structural drift breaks that, document the new selection here.
 3. Apply the same redactions: `nickname` -> `Player_<n>`, drop `player.club`.
