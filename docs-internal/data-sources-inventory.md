@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-08-19
-verified-against-version: 8.9.0
+last-verified: 2026-09-11
+verified-against-version: 8.13.1
 status: current
 ---
 
@@ -21,6 +21,12 @@ pruefen, statt sie nur aus dem eigenen Quelltext abzuleiten:
 Was hier steht, ist damit belegbar. Was noch nie live gemessen wurde, sollte auch
 so gekennzeichnet sein.
 
+**Nachgeprueft 2026-09-11** (8.13.1, Pruefkonto Level 115, 24 Maedchen, im
+Club): auf 39 Seiten wurde jedes Global dieser Datei auf Existenz und Typ
+gelesen (keine Werte) und jeder statische Selektor gezaehlt, ohne HHauto. Das
+Ergebnis je Seite steht in Abschnitt 10. Wo eine Zeile davon abweicht, steht
+es in der Zeile; "gemessen" meint diese Probe.
+
 > Konventionen
 >
 > - "Datei" wird ohne `src/`-Praefix angegeben.
@@ -40,45 +46,53 @@ Siehe auch `src/index.ts` fuer die `Window`-Interface-Erweiterung, die alle hier
 | `unsafeWindow.shared.Hero` | Objekt (Hero-Daten) | jede Page nach Game-JS-Load | `Helper/HeroHelper.ts`, `Service/StartService.ts` | `getHero()`, `start()` | Existenz-Check + Retry-Loop; `getHero()` liefert dieses Objekt |
 | `unsafeWindow.shared.general.hh_ajax` | Function `(params, onSuccess, onError) => void` | jede Page nach Game-JS-Load | `Utils/Utils.ts` | `getHHAjax()` | Bruecke zur internen AJAX-Funktion des Spiels |
 | `unsafeWindow.shared.general.is_cheat_click` | Function (Cheat-Detector) | jede Page nach Game-JS-Load | `Utils/Utils.ts` | `replaceCheatClick()` (auskommentiert) | Vorbereitete Override-Stelle - aktuell deaktiviert (siehe Sektion 12) |
-| `unsafeWindow.shared.animations.loadingAnimation.start` | Function | Shop-Page (`pagesIDShop`) | `Module/Shop.ts` | `appendMenuSell()` | Save/Replace/Restore: Loading-Animation waehrend Bulk-Sell-Aktion unterdruecken |
+| `unsafeWindow.shared.animations.loadingAnimation.start` | Function | jede Seite (gemessen); gelesen auf der Shop-Page | `Module/Shop.ts` | `appendMenuSell()` | Save/Replace/Restore: Loading-Animation waehrend Bulk-Sell-Aktion unterdruecken |
 | `unsafeWindow.shared.animations.loadingAnimation.stop` | Function | Shop-Page | `Module/Shop.ts` | `appendMenuSell()` | Save/Replace/Restore (analog) |
-| `unsafeWindow.is_cheat_click` | Function (Cheat-Detector) | jede Page (alte Pfad-Variante) | `Utils/Utils.ts` | `replaceCheatClick()` (auskommentiert) | Veraltete Override-Stelle |
-| `unsafeWindow.hh_nutaku` | Boolean/Truthy | NHH/NPH Nutaku-Build | `Service/PageNavigationService.ts`, `Service/StartService.ts` | `addNutakuSession()`, `start()` | Nutaku-Spezialfall: Session-Token via `?sess=` injizieren; postMessage("ImAlive") an parent |
-| `unsafeWindow.hh_prices` | Objekt (Preis-Map z.B. `fight_cost_per_minute`) | jede Page (?) | `Module/Troll.ts` | `Troll.canBuyFight()`, `Troll.canBuyFightLoveRaid()` | Berechnung von `pricePerFight` fuer Auto-Buy von Combats |
-| `unsafeWindow.has_contests_datas` | Boolean | Activities-Tab `contests` | `Service/AutoLoopActions.ts` | Contest-Action `isReady` | Indikator dass Contest-Claims abholbar sind |
-| `unsafeWindow.contests_timer.next_contest` | Number (sec) | Contests-Page | `Module/Contest.ts` | `Contest.collectAndSchedule()` | Naechster Contest-Wechsel |
-| `unsafeWindow.contests_timer.duration` | Number (sec) | Contests-Page | `Module/Contest.ts` | `Contest.collectAndSchedule()` | Contest-Dauer |
-| `unsafeWindow.contests_timer.remaining_time` | Number (sec) | Contests-Page | `Module/Contest.ts` | `Contest.collectAndSchedule()` | Restzeit aktueller Contest |
-| `unsafeWindow.daily_goals_list` | Array (KKDailyGoal) | DailyGoals-Tab | `Module/DailyGoals.ts` | `DailyGoals.parse()` | Iteration ueber Daily-Goal-Tiers |
+| `unsafeWindow.is_cheat_click` | Function (Cheat-Detector) | auf keiner der 39 Seiten vorhanden (gemessen) | `Utils/Utils.ts` | `replaceCheatClick()` (auskommentiert) | Veraltete Override-Stelle |
+| `unsafeWindow.hh_nutaku` | Boolean/Truthy | NHH/NPH Nutaku-Build; auf www.hentaiheroes.com auf jeder Seite `null` (gemessen) | `Service/PageNavigationService.ts`, `Service/StartService.ts` | `addNutakuSession()`, `start()` | Nutaku-Spezialfall: Session-Token via `?sess=` injizieren; postMessage("ImAlive") an parent |
+| `unsafeWindow.hh_prices` | Objekt (Preis-Map z.B. `fight_cost_per_minute`) | jede Seite (gemessen, 39 von 39) | `Module/Troll.ts` | `Troll.canBuyFight()`, `Troll.canBuyFightLoveRaid()` | Berechnung von `pricePerFight` fuer Auto-Buy von Combats |
+| `unsafeWindow.has_contests_datas` | -- | **auf keiner Seite vorhanden** (gemessen, auch nicht auf `?tab=contests`) | `Service/Pipeline.config.ts` | Vorbedingung "Time to get contest rewards." | Eine von drei Oder-Bedingungen neben dem Timer `nextContestCollectTime` und `Contest.getClaimsButton()`; dieser Teil ist heute immer falsch, die beiden anderen tragen |
+| `unsafeWindow.contests_timer.next_contest` | Number (sec) | alle Activities-Tabs (gemessen) | `Module/Contest.ts` | `Contest.collectAndSchedule()` | Naechster Contest-Wechsel |
+| `unsafeWindow.contests_timer.duration` | Number (sec) | alle Activities-Tabs (gemessen) | `Module/Contest.ts` | `Contest.collectAndSchedule()` | Contest-Dauer |
+| `unsafeWindow.contests_timer.remaining_time` | Number (sec) | alle Activities-Tabs (gemessen) | `Module/Contest.ts` | `Contest.collectAndSchedule()` | Restzeit aktueller Contest |
+| `unsafeWindow.daily_goals_list` | Array (KKDailyGoal) | alle Activities-Tabs (gemessen, 11 Eintraege) | `Module/DailyGoals.ts` | `DailyGoals.parse()` | Iteration ueber Daily-Goal-Tiers |
 | `unsafeWindow.event_data` | Objekt (HHEventData) | Event-Page (`pagesIDEvent`) | `Module/Events/EventModule.ts` | `EventModule.run()`, `displayPrioInDailyMissionGirl()` | Event-Girls und Event-Metadaten |
-| `unsafeWindow.event_data.girls` | Array (KKEventGirl) | Event-Page | `Module/Events/EventModule.ts` | `displayPrioInDailyMissionGirl()` | Liste der Event-Girls fuer Prioritaeten-UI |
+| `unsafeWindow.event_data.girls` | Array (KKEventGirl) | Event-Page mit Event-Maedchen (gemessen auf `event_533`: 2; auf dem PoA-Tab nicht vorhanden) | `Module/Events/EventModule.ts` | `displayPrioInDailyMissionGirl()` | Liste der Event-Girls fuer Prioritaeten-UI |
 | `unsafeWindow.current_event` | Objekt (HHEventData) | Event-Page (Fallback) | `Module/Events/EventModule.ts` | `EventModule.run()` | Fallback wenn `event_data` nicht gesetzt |
-| `unsafeWindow.season_sec_untill_event_end` | Number (sec) | Season/SeasonArena-Page | `Module/Events/Season.ts` | `Season.getRemainingTime()` | Restzeit Season-Event |
-| `unsafeWindow.hero_data` | Objekt | SeasonArena-Page | `Module/Events/Season.ts` | `Season.parseSeasonOpponents()` | Hero-Block fuer Arena-Reload |
+| `unsafeWindow.season_sec_untill_event_end` | Number (sec) | `/season.html`; auf `/season-arena.html` nicht vorhanden (gemessen) | `Module/Events/Season.ts` | `Season.getRemainingTime()` | Restzeit Season-Event |
+| `unsafeWindow.hero_data` | Objekt | SeasonArena-Page, ausserdem alle Vorkampfseiten und edit-team (gemessen) | `Module/Events/Season.ts` | `Season.parseSeasonOpponents()` | Hero-Block fuer Arena-Reload |
 | `unsafeWindow.opponents` | Array | SeasonArena-Page | `Module/Events/Season.ts` | `Season.parseSeasonOpponents()` | Aktuelle Arena-Gegner-Liste |
-| `unsafeWindow.seasonal_event_active` | Boolean | jede Page (?) | `Module/Events/Seasonal.ts` | `Seasonal.isActiveEvent()` | Indikator: Seasonal-Event laeuft |
-| `unsafeWindow.seasonal_time_remaining` | Number (sec) | jede Page (?) | `Module/Events/Seasonal.ts` | `Seasonal.isActiveEvent()` | Restzeit Seasonal |
-| `unsafeWindow.mega_event_active` | Boolean | jede Page (?) | `Module/Events/Seasonal.ts` | `Seasonal.isActiveEvent()` | Indikator: Mega-Event laeuft |
-| `unsafeWindow.mega_event_time_remaining` | Number (sec) | jede Page (?) | `Module/Events/Seasonal.ts` | `Seasonal.isActiveEvent()` | Restzeit Mega-Event |
-| `unsafeWindow.mega_event_data` (via `getHHVars`) | Objekt mit `cards` | Seasonal-Page | `Module/Events/Seasonal.ts` | `Seasonal.run()` (`getHHVars(\"mega_event_data.cards\")`) | Owned Mega-Event-Karten |
+| `unsafeWindow.seasonal_event_active` | Boolean | auf keiner Seite vorhanden, solange ein Mega-Event laeuft (gemessen); ohne Mega-Event nicht geprueft | `Module/Events/Seasonal.ts` | `Seasonal.isActiveEvent()` | Indikator: Seasonal-Event laeuft |
+| `unsafeWindow.seasonal_time_remaining` | Number (sec) | wie `seasonal_event_active`: waehrend eines Mega-Events nirgends vorhanden (gemessen) | `Module/Events/Seasonal.ts` | `Seasonal.isActiveEvent()` | Restzeit Seasonal |
+| `unsafeWindow.mega_event_active` | Boolean | jede Seite (gemessen) | `Module/Events/Seasonal.ts` | `Seasonal.isActiveEvent()` | Indikator: Mega-Event laeuft |
+| `unsafeWindow.mega_event_time_remaining` | Number (sec) | jede Seite (gemessen) | `Module/Events/Seasonal.ts` | `Seasonal.isActiveEvent()` | Restzeit Mega-Event |
+| `unsafeWindow.mega_event_data` (via `getHHVars`) | Objekt; `cards` ist ein **String** (gemessen), der Code liest ihn mit `indexOf('1')` | Seasonal-Page | `Module/Events/Seasonal.ts` | `Seasonal.run()` (`getHHVars(\"mega_event_data.cards\")`) | Owned Mega-Event-Karten |
 | `unsafeWindow.current_tier_number` | Number | League-Page | `Module/League.ts` | `League.getLeagueCurrentLevel()` | Aktuelles League-Tier |
 | `unsafeWindow.opponents_list` (typed `KKPentaDrillOpponents[]`) | Array | PentaDrill-Page | `Module/PentaDrill.ts` | `PentaDrill.run()` | Penta-Drill-Gegner-Liste |
 | `unsafeWindow.penta_drill_data.cycle_data.seconds_until_event_end` | Number (sec) | PentaDrill-Page | `Module/PentaDrill.ts` | `PentaDrill.getRemainingTime()` | Restzeit Penta-Drill-Event |
 | `unsafeWindow.girl_squad` | Array (Labyrinth-Squad-Girls mit `remaining_ego_percent`) | Labyrinth-Pre-Battle / Labyrinth-Page | `Module/Labyrinth.ts` | `Labyrinth.chooseOpponent()` | Erkennt verletzte Squad-Girls |
-| `unsafeWindow.teams_data` | Array (Teams) | Battle-Teams-Page (`pagesIDBattleTeams`) | `Module/TeamModule.ts` | `TeamModule.getSelectedGirlsId()`, `getSelectedGirls()` | Team-Definitionen (girls_ids, girls) |
-| `unsafeWindow.pop_list` | Boolean | Activities-Tab `pop` (Powerplace-Liste sichtbar) | `Helper/PageHelper.ts` | `getPage()` | Erkennt: sind wir auf der Pop-Listen-Page |
-| `unsafeWindow.pop_index` | Number | Activities-Tab `pop` (Pop selektiert) | `Helper/PageHelper.ts` | `getPage()` | Aktuell selektierte Pop-Instanz |
+| `unsafeWindow.teams_data` | Objekt, nach Slot-Index geschluesselt (gemessen: 30 Eintraege) | Battle-Teams-Page (`pagesIDBattleTeams`) | `Module/TeamModule.ts` | `TeamModule.getSelectedGirlsId()`, `getSelectedGirls()` | Team-Definitionen (girls_ids, girls) |
+| `unsafeWindow.pop_list` | Boolean | alle Activities-Tabs (gemessen: `true` auf der PoP-Liste, `false` auf der Einzelseite) | `Helper/PageHelper.ts` | `getPage()` | Erkennt: sind wir auf der Pop-Listen-Page |
+| `unsafeWindow.pop_index` | Number | alle Activities-Tabs, gemessen immer `0`, auch auf der Einzelseite | `Helper/PageHelper.ts` | `getPage()` | Aktuell selektierte Pop-Instanz |
 | `unsafeWindow.harem.preselectedGirlId` (nur Kommentar-Hint) | Number | Harem-Page | `Module/harem/Harem.ts` | `fillCurrentGirlItem()` etc. | Im Code via `$('#harem_right .opened').attr('girl')` ersatzweise gelesen, der Kommentar dokumentiert die zugehoerige unsafeWindow-Variable |
 | `unsafeWindow.girl` | Objekt (KKHaremGirl) | GirlPage (`pagesIDGirlPage`) | `Module/harem/HaremGirl.ts` | `HaremGirl.getCurrentGirl()` | Aktuell angezeigtes Harem-Girl |
-| `unsafeWindow.id_girl` | Number/String | GirlPage | `Module/harem/HaremGirl.ts` | `HaremGirl` (Affection-Page-Back) | ID des Girls (fuer Navigation zurueck) |
-| `unsafeWindow.player_gems_amount` | Map `{element: {amount: number}}` | GirlPage | `Module/harem/HaremGirl.ts` | `awakGirl()`, `canAwakGirl()`, `canGiftGirl()` | Gem-Bestand pro Element fuer Awakening-Pruefung |
+| `unsafeWindow.id_girl` | Number | Questseite `/quest/<id>` (gemessen); auf `/girl/<id>` **nicht** vorhanden, siehe `live-verification-lessons.md` | `Module/harem/HaremGirl.ts` | `HaremGirl` (Affection-Page-Back) | ID des Girls (fuer Navigation zurueck) |
+| `unsafeWindow.player_gems_amount` | Map `{element: {amount: number}}` | GirlPage und `/characters.html` (gemessen, 8 Elemente) | `Module/harem/HaremGirl.ts` | `awakGirl()`, `canAwakGirl()`, `canGiftGirl()` | Gem-Bestand pro Element fuer Awakening-Pruefung |
 | `unsafeWindow.Hero.currencies.soft_currency` (auskommentiert) | Number | jede Page | `Module/Market.ts` (Kommentar) | - | Veralteter Direktzugriff (heute via `Hero.update`) |
-| `unsafeWindow.player_inventory.armor` | Array (Armor-Eintraege) | Market-Page (`pagesIDShop`) | `Module/EquipmentGear.ts` | `fetchInventory()` | Erste Seite des Ruestungs-Inventars; der Rest kommt ueber `market_get_armor`. Gemessen 2026-08-17: 204 Eintraege, 104 mythic / 100 legendary, alle `skin.wearer = "hero"`. Ein Eintrag traegt `id_member_armor` und **kein** `id_member_armor_equipped` |
-| `unsafeWindow.item_to_upgrade` | Objekt (Armor + `level`) | Mythic-Upgrade-Page | `Module/EquipmentGear.ts` | Upgrade-Schleife | **Falle:** `level` wird beim Seitenaufbau eingefroren und folgt einem Level-Up auf derselben Seite nicht. Das war einer der fuenf Fehler vom August 2026 |
-| `unsafeWindow.equipped_armor` | Map `{slot: Armor-Eintrag}` | Market-Page | (noch kein Konsument) | - | Die sechs getragenen Teile. Wird vom Skript heute ueber `#equiped .armor div[id_item]` aus dem DOM gelesen, nicht ueber dieses Global. Ein Eintrag traegt `id_member_armor_equipped` und **keinen** `id_member_armor`-Schluessel -- das Verwechseln der beiden Formen hat im August alle sechs getragenen Teile verworfen |
+| `unsafeWindow.player_inventory.armor` | Array (Armor-Eintraege) | Market-Page (`pagesIDShop`) | `Module/EquipmentGear.ts` | `fetchInventory()` | Erste Seite des Ruestungs-Inventars; der Rest kommt ueber `market_get_armor`. Gemessen 2026-08-17: 204 Eintraege, 104 mythic / 100 legendary, alle `skin.wearer = "hero"`. Ein Eintrag traegt `id_member_armor` und **kein** `id_member_armor_equipped`. 2026-09-11 auf dem Pruefkonto: 65 Eintraege |
+| `unsafeWindow.item_to_upgrade` | Objekt (Armor + `level`) | Mythic-Upgrade-Page (nicht nachgeprueft: die Seite braucht ein Teil als Parameter) | `Module/EquipmentGear.ts` | Upgrade-Schleife | **Falle:** `level` wird beim Seitenaufbau eingefroren und folgt einem Level-Up auf derselben Seite nicht. Das war einer der fuenf Fehler vom August 2026 |
+| `unsafeWindow.equipped_armor` | Map `{slot: Armor-Eintrag}` | Market-Page (gemessen: 6 Eintraege) | (noch kein Konsument) | - | Die sechs getragenen Teile. Wird vom Skript heute ueber `#equiped .armor div[id_item]` aus dem DOM gelesen, nicht ueber dieses Global. Ein Eintrag traegt `id_member_armor_equipped` und **keinen** `id_member_armor`-Schluessel -- das Verwechseln der beiden Formen hat im August alle sechs getragenen Teile verworfen |
 
 Zusaetzlich werden in `src/index.ts` (Window-Interface) folgende Properties typed - manche werden aktuell noch nicht ausgelesen, sind aber Teil der Bridge-Vertraege:
 `championData`, `Collect`, `HHTimers`, `league_tag`, `server_now_ts`, `love_raids`.
+
+Gemessen 2026-09-11: `Collect`, `HHTimers` und `league_tag` gibt es auf keiner
+der 39 Seiten, `server_now_ts` auf jeder, `championData` nur auf
+`/club-champion.html` (die Champion-Seite selbst war nicht erreichbar).
+`love_raids` ist ein Array auf `/map.html` (24 Eintraege), `/champions-map.html`
+und `/season.html`, auf `/love-raids.html` ein **leeres Objekt** und sonst nicht
+vorhanden. `LoveRaidManager.parseRaids` laeuft ueber `.length` und liest auf
+`/love-raids.html` deshalb 0 Raids.
 
 `server_now_ts` wird ueber `getHHVars('server_now_ts')` (siehe Sektion 2) gelesen, nicht direkt ueber `unsafeWindow`.
 
@@ -138,13 +152,13 @@ Zusaetzlich kann `ConfigHelper.getHHScriptVars(path,false)` einen Pfad-Override 
 | `championData.fight.participants` | `unsafeWindow.championData.fight.participants` | Liste Club-Champ-Teilnehmer | `Module/ClubChampion.ts` | ClubChamp-Logik |
 | `Chat_vars.CLUB_INFO.id_club` | `unsafeWindow.Chat_vars.CLUB_INFO.id_club` | Club-ID des Spielers | `Module/Club.ts` | Club-Status |
 | `opponents_list` | `unsafeWindow.opponents_list` | League-Gegner-Liste | `Module/League.ts` | League-Battle |
-| `availableGirls` | `unsafeWindow.availableGirls` | Map aller Girls (Variante 1) | `Module/TeamModule.ts`, `Module/harem/Harem.ts` | Girl-Daten-Quelle |
-| `girlsDataList` | `unsafeWindow.girlsDataList` | Map aller Girls (Variante 2) | `Module/harem/Harem.ts` | Girl-Daten-Quelle |
-| `girls_data_list` | `unsafeWindow.girls_data_list` | Map aller Girls (Variante 3 - PSH) | `Module/harem/Harem.ts` | Girl-Daten-Quelle (psh-Build) |
-| `shared.GirlSalaryManager.girlsMap` | `unsafeWindow.shared.GirlSalaryManager.girlsMap` | Live-Girl-Map des Salary-Managers | `Module/harem/Harem.ts` | Salary-Manager-Bridge |
-| `shared.GirlSalaryManager.girlsListSec` | `unsafeWindow.shared.GirlSalaryManager.girlsListSec` | Sekundaere Girl-Liste | `Module/harem/Harem.ts` | Salary-Manager-Bridge |
-| `salary_collect` | `unsafeWindow.salary_collect` | Aufsummierte Salary | `Module/harem/HaremSalary.ts` | Salary-Tag |
-| `current_event.event_data.puzzle_pieces` | `unsafeWindow.current_event.event_data.puzzle_pieces` | LivelyScene-Puzzle-Pieces | `Module/Events/LivelyScene.ts` | LivelyScene-Loesung |
+| `availableGirls` | `unsafeWindow.availableGirls` | Array aller Girls; gemessen nur auf `/edit-team.html` (24) | `Module/TeamModule.ts`, `Module/harem/Harem.ts` | Girl-Daten-Quelle |
+| `girlsDataList` | `unsafeWindow.girlsDataList` | Objekt aller Girls, nach id; gemessen auf `/home.html` und `/characters.html` (je 24) | `Module/harem/Harem.ts` | Girl-Daten-Quelle |
+| `girls_data_list` | `unsafeWindow.girls_data_list` | Array aller Girls; gemessen auf `/waifu.html` bei HentaiHeroes (24), also nicht nur im PSH-Build | `Module/harem/Harem.ts` | `getWaifuPageGirlsList()`, `moduleHaremCountMax()` |
+| `shared.GirlSalaryManager.girlsMap` | `unsafeWindow.shared.GirlSalaryManager.girlsMap` | Live-Girl-Map des Salary-Managers; gemessen auf jeder Seite (24 Eintraege) | `Module/harem/Harem.ts` | Salary-Manager-Bridge |
+| `shared.GirlSalaryManager.girlsListSec` | `unsafeWindow.shared.GirlSalaryManager.girlsListSec` | Sekundaere Girl-Liste; gemessen auf jeder Seite (4 Eintraege) | `Module/harem/Harem.ts` | Salary-Manager-Bridge |
+| `salary_collect` | `unsafeWindow.salary_collect` | Aufsummierte Salary; gemessen nur auf `/home.html` | `Module/harem/HaremSalary.ts` | Salary-Tag |
+| `current_event.event_data.puzzle_pieces` | `unsafeWindow.current_event.event_data.puzzle_pieces` | LivelyScene-Puzzle-Pieces; nicht geprueft (kein Lively-Scene-Event am 2026-09-11) | `Module/Events/LivelyScene.ts` | LivelyScene-Loesung |
 | `mega_event_data.cards` | `unsafeWindow.mega_event_data.cards` | Owned Mega-Event-Karten | `Module/Events/Seasonal.ts` | Seasonal-Event-Status |
 
 Hinweis: `getHHVars` liefert bei Nichtexistenz `null` und loggt (auf Wunsch unterdrueckbar via 2. Parameter `logging=false`). Beispiele dafuer im Code: `getHHVars("availableGirls", false)`, `getHHVars("Chat_vars.CLUB_INFO.id_club", false)`, `getHHVars("girlsDataList", false)`, `getHHVars("girls_data_list", false)`.
@@ -161,7 +175,7 @@ Die meisten Calls laufen ueber `getHHAjax()` (delegiert an `shared.general.hh_aj
 
 | action-String | Weitere Parameter | Datei | Symbol/Funktion | Wofuer |
 |---|---|---|---|---|
-| `hero_update_stats` | `carac: "carac1"|"carac2"|"carac3"`, `nb: <mult>` (1/10/30/60) | `Helper/HeroHelper.ts` | `doStatUpgrades()` | Stat-Punkt-Upgrade |
+| `hero_update_stats` | `carac: "carac1"|"carac2"|"carac3"`, `nb: <mult>` (1/10/30/60) | `Helper/HeroHelper.ts` | `doStatUpgrades()` | Stat-Punkt-Upgrade. Antwort gemessen 2026-09-11 (nb=1): `{success, currency:{soft_currency}, carac<N>, endurance, chance, statsPrices:{prices:{x1,x10,x30,x60}, base_stat, max}}` -- `carac<N>` ist der Gesamtwert mit Boni, `x1` der Preis des **naechsten** Punkts. `shared.Hero.infos.carac<N>` bewegt sich im laufenden Dokument nicht, erst nach dem Neuladen |
 | `market_equip_booster` | `id_item: <num>`, `type: "booster"` | `Helper/HeroHelper.ts` | `HeroHelper.equipBooster()` | Booster equippen (normal oder mythic) |
 | `champion_team_reorder` | `champion_id`, weitere Team-Felder, `champion_type: "club_champion"|"champion"` | `Module/Champion.ts` | `Champion.setChampionTeam()` | Champion-Team neu setzen |
 | `do_battles_leagues` | `opponent_id`, `number_of_battles` | `Module/League.ts` | `League` (Battle-Submit) | League-Battle starten (Mehrfach) |
@@ -233,6 +247,31 @@ Die vollstaendigen Anfrage- und Antwortformen stehen in `scripts/catalogue/out/o
 
 Was hier fehlt, fehlt aus einem Grund: es wurde in diesen 25 Minuten nicht gespielt. Champion, Club-Champion, Pantheon, Path-of-Attraction und die Event-Kaempfe sind noch nicht aufgezeichnet.
 
+**Zweite Aufnahme, 2026-09-11** (8.13.1, Pruefkonto, 20 Minuten HHauto mit
+`master=true` und den Einstellungen des Kontos, Mitschnitt im Harness). Elf
+Aktionen, Parameter- und Antwortschluessel ohne Werte:
+
+| Aktion | n | Parameter | Antwort |
+|---|---|---|---|
+| `do_battles_trolls` | 4 | `action, bb_team_index, id_opponent, number_of_battles` | `battle_result, hero_changes, objective_points, result, rewards, rounds, success` |
+| `do_battles_seasons` | 4 | `action, bb_team_index, id_opponent, number_of_battles` | wie Troll, `rounds` je Kampf |
+| `do_battles_penta_drill` | 1 | `action, id_opponent, number_of_battles` | `battle_result, hero_changes, multi_team_battles_result, result, rewards, team_rounds, success` |
+| (ohne `action`) `class: TeamBattle` | 2 | `attacker[team][], battle_type, battles_amount, class, defender_id` | `attacker, battle, defender, end, final, positions, success` |
+| `next` | 1 | `action, class, id_quest` | `adventure_name, adventure_type, changes, next_step, progress_to, redirect_to, should_be_registered, success` |
+| `start_pop` | 1 | `action, id_place_of_power, selected_girls[]` | `success` |
+| `claim_daily_goal_tier_reward` | 1 | `action, tier` | `objective_points, result, rewards, success` |
+| `process_rewards_queue` | 12 | `action, get_shop_update, lsk[], product_type` | `rewards, success` |
+| `load_payment_methods` | 3 | `action` | `data, success` |
+| `show_specific_girl_grade` | 1 | `action, check_only, class, girl_grade, id_girl` | `ava, ico, success` |
+| `tutorial_complete` | 3 | `action, tutorial` | `success` |
+
+Neu gegenueber der ersten Aufnahme ist `bb_team_index` an den Troll- und
+Season-Kaempfen. Kein `do_battles_leagues`: die Herausforderungsenergie stand
+am Anfang und am Ende bei 2. Ueber `getHHAjax()` hat HHauto in diesen 20
+Minuten nichts gesendet -- eine Markierung in `getHHAjax` blieb stumm; ob sie
+griff, ist nicht gegengeprueft. Die Kaempfe und Sammelaktionen kamen damit von
+den Spielseiten selbst, nach Klicks des Skripts.
+
 
 ## 4. AJAX-Response-Interceptors (`onAjaxResponse`)
 
@@ -254,9 +293,15 @@ Hinweis: `Booster.collectBoostersFromAjaxResponses()` wird einmalig in `StartSer
 `data-d` ist die zentrale Konvention der Spielseite, JSON-Item-Daten direkt am DOM-Knoten zu speichern.
 Felder im JSON: `quantity`, `item.{id_item, type, identifier, rarity, price, currency, value, carac1..3, endurance, chance, ego, damage, duration, skin, name, ico, display_price, name_add, subtype, ...}`.
 
+Gemessen 2026-09-11 auf `/shop.html`: Booster, Gifts und Potions des Haendlers
+tragen oben `id_item, id_member, index, item, price_buy, price_sell, quantity`,
+im `item` u. a. `identifier, rarity, type, value, price, default_market_price`.
+**Ruestung ist anders gebaut** (erste Tabellenzeile). Die Selektorzahlen je
+Seite stehen in Abschnitt 10.
+
 | jQuery-Selector | Inhalt-Schema (Felder) | Page | Datei | Symbol |
 |---|---|---|---|---|
-| `#shops div.armor.merchant-inventory-item .slot` | `{quantity, item:{id_item, type:"armor", identifier, rarity, name_add, subtype, carac1..3, ...}}` | Shop (`pagesIDShop`) | `Module/Shop.ts` | `Shop.collectShopFromMarket()` |
+| `#shops div.armor.merchant-inventory-item .slot` | Gemessen 2026-09-11: oben `id_member_armor, id_member, id_item_equip, id_item_skin, index, level, name, price_buy, price_sell, skin, caracs, carac1_equip..carac3_equip, chance_equip, ego_equip, endurance_equip, item`; im `item` `id_equip, id_item_equip, type, rarity, name_add, carac1..3, chance, currency, damage, ego, endurance, name, weight`. **Kein** `quantity`, `identifier` oder `subtype` | Shop (`pagesIDShop`) | `Module/Shop.ts` | `Shop.collectShopFromMarket()` |
 | `#shops div.booster.merchant-inventory-item .slot` | `{quantity, item:{id_item, type:"booster", identifier, rarity, value, name, ...}}` | Shop | `Module/Shop.ts` | `Shop.collectShopFromMarket()` |
 | `#shops div.gift.merchant-inventory-item .slot` | `{quantity, item:{id_item, type:"gift", value, ...}}` | Shop | `Module/Shop.ts` | `Shop.collectShopFromMarket()` |
 | `#shops div.potion.merchant-inventory-item .slot` | `{quantity, item:{id_item, type:"potion", value, ...}}` | Shop | `Module/Shop.ts` | `Shop.collectShopFromMarket()` |
@@ -289,8 +334,8 @@ wenn `usages_remaining` fehlt oder 0 ist -- in `shared.js`:
 `t.usages_remaining&&t.usages_remaining>0?t.usages_remaining:t.item.default_usages`.
 
 | `#player-inventory.armor .slot:not(.empty)[data-d*='"rarity":"mythic"']` (Selector-Inhalts-Match) | Filter ueber Substring-Match in `data-d` | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` |
-| `[data-d*='"name_add":<X>']` (dyn. Filter) | Filter nach Stat | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
-| `[data-d*='"subtype":<X>']` (dyn. Filter) | Filter nach Item-Subtyp | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
+| `[data-d*='"name_add":<X>']` (dyn. Filter) | Filter nach Stat. Gemessen 2026-09-11 in `#player-inventory.armor` (65 Teile): `name_add` steht als Zahl ohne Anfuehrungszeichen (`"name_add":16`); `buildSlotFilter` sucht `"name_add":"<X>"` und trifft damit nichts, der Verkaufs-Loop ohne Anfuehrungszeichen trifft | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
+| `[data-d*='"subtype":<X>']` (dyn. Filter) | Filter nach Item-Subtyp. Gemessen 2026-09-11: `subtype` steht nur in `skin` und als Zahl (`"subtype":6`); `buildSlotFilter` sucht `"subtype":"<X>"` und trifft nichts, `rarity` steht als String und trifft | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
 | `[data-d*='"rarity":"<X>"']` (dyn. Filter) | Filter nach Rarity | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
 | `#equiped .armor .slot[data-d*=<typesOfSets[idx]>]` | Equipped-Armor mit Set-Match | Shop (Sell-Loop) | `Module/Shop.ts` | Sell-Loop in Shop |
 | Sell-Loop: `availableItems.filter('.selected')[0].getAttribute('data-d')` | Selektiertes Item pruefen | Shop | `Module/Shop.ts` | Sell-Loop |
@@ -375,14 +420,14 @@ Entfernt am 2026-08-17: zwei Zeilen fuer `.matchRating-expected .matchRating-val
 | Selector | Was extrahiert | Page | Datei | Symbol |
 |---|---|---|---|---|
 | `#pre-battle .battle-buttons .green_button_L.battle-action-button.pantheon-single-battle-button[data-pantheon-id='<id>']` | Pantheon-Single-Battle-Button | PantheonPreBattle | `Module/Pantheon.ts` | `Pantheon.run()` |
-| `.champions-over__champion-info.champions-animation .champion-pose` | Champion-Pose-Bilder fuer `getPoses()` | ChampionsPage / ChampionsMap | `Module/Champion.ts` | `Champion.run()` (Fallback wenn `championData.champion.poses` fehlt) |
-| `div.club-champion-members-challenges .player-row .data-column:nth-of-type(3)` | Tickets-used pro Club-Member | ClubChampion | `Module/ClubChampion.ts` | `ClubChampion.run()` |
+| `.champions-over__champion-info.champions-animation .champion-pose` | Champion-Pose-Bilder fuer `getPoses()` | ChampionsPage / ChampionsMap; gemessen auf `/club-champion.html` (5) | `Module/Champion.ts` | `Champion.run()` (Fallback wenn `championData.champion.poses` fehlt) |
+| `div.club-champion-members-challenges .player-row .data-column:nth-of-type(3)` | Tickets-used pro Club-Member | Clubs-Seite, Champions-Reiter (`Club.ts`/`ClubChampion.ts` pruefen vorher `div.club-champion-members-challenges:visible`); auf `/club-champion.html` gemessen 0 Treffer. Am Aufrufort gemessen 2026-09-11: auf `/clubs.html` nach Klick auf `[data-tab=club_champions]` sichtbar 1 und `.player-row` 1, unveraendert von 12 ms bis 3 s; im Beobachtungslauf desselben Tages ging `handleClubChampion` von dort weiter und setzte ein Ticket ein | `Module/ClubChampion.ts` | `ClubChampion.run()` |
 
 ### 6.7 Pachinko
 
 | Selector | Was extrahiert | Page | Datei | Symbol |
 |---|---|---|---|---|
-| `#playzone-replace-info button[data-free="true"].blue_button_L` | Free-Pachinko-Button | Pachinko | `Module/Pachinko.ts` | `Pachinko.selectPachinko()` |
+| `#playzone-replace-info button[data-free="true"].blue_button_L` | Free-Pachinko-Button. 2026-09-11 auf `/pachinko.html` 0 Treffer: kein Knopf trug `data-free`, das Freispiel des Tages war laut Timer schon genommen (derselbe Tag, `handlePachinko` im Beobachtungslauf). Ob der Knopf beim naechsten Freispiel `data-free="true"` traegt, ist offen | Pachinko | `Module/Pachinko.ts` | `Pachinko.selectPachinko()` |
 | `[girlsRewards].attr("data-rewards")` (JSON) | Anzahl Girls als Reward | Pachinko | `Module/Pachinko.ts` | `Pachinko.run()` |
 
 ### 6.8 Troll-Battle / Pre-Battle
@@ -425,14 +470,14 @@ Entfernt am 2026-08-17: zwei Zeilen fuer `.matchRating-expected .matchRating-val
 | Selector | Was extrahiert | Page | Datei | Symbol |
 |---|---|---|---|---|
 | `.shop div.shop_count span[rel="expires"]` `.first().text()` | Shop-Refresh-Timer (HH:MM:SS) | Shop | `Module/Shop.ts` | `Shop.collectShopFromMarket()` (mit `convertTimeToInt`) |
-| `#girls_list .g1 .nav_placement span:not([contenteditable])` | Shop-Girl-Count | Shop | `config/HHEnvVariables.ts` | Konstante `shopGirlCountRequest` |
+| `#girls_list .g1 .nav_placement span:not([contenteditable])` | Shop-Girl-Count | Shop | `config/HHEnvVariables.ts` | Konstante `shopGirlCountRequest` -- von keinem Code gelesen; der Selektor im Code ist unvollstaendig (`span:not([contenteditable]` ohne `)`); gemessen 0 Treffer |
 | `#girls_list .g1 .nav_placement span[contenteditable]` | Aktueller Shop-Girl-Index | Shop | `config/HHEnvVariables.ts` | Konstante `shopGirlCurrentRequest` |
 
 ### 6.12 Sonstige UI-Lookups (Timer, Reward-Banner, etc.)
 
 | Selector | Was extrahiert | Page | Datei | Symbol |
 |---|---|---|---|---|
-| `#contains_all header .currency .daily-reward-notif` | Daily-Reward-Notification | jede Page | `config/HHEnvVariables.ts` | Konstante `dailyRewardNotifRequest` |
+| `#contains_all header .currency .daily-reward-notif` | Daily-Reward-Notification | jede Page (2026-09-11 auf keiner Seite getroffen; ob es an einer wartenden Tagesbelohnung haengt, ist nicht geprueft) | `config/HHEnvVariables.ts` | Konstante `dailyRewardNotifRequest` |
 | `#edit-team-page` (id-Selector) | EditTeam-Panel-Container | EditTeam | `config/HHEnvVariables.ts` | Konstante `IDpanelEditTeam` |
 | `#claim-all:not([disabled]):visible:not([style*='visibility: hidden;'])` | 'Claim All'-Button | beliebig | `config/HHEnvVariables.ts` | Konstante `selectorClaimAllRewards` |
 | `[PoVPoG-Slot].attr('data-time-stamp')` | Timestamp eines PoV/PoG-Tier-Slots | PoV / PoG | `config/HHEnvVariables.ts` | Konstante `PoVPoGTimestampAttributeName` |
@@ -463,18 +508,22 @@ sind in der Regel `Storage()`, Temp-Vars meist sessionStorage.
 Alle Stellen, an denen sessionStorage direkt verwendet wird (also nicht ueber getStoredValue/setStoredValue).
 Hintergrund: Der Wrapper sucht den Key in HHStoredVars und delegiert je nach storage-Feld an localStorage / sessionStorage / Storage(). Direkte Zugriffe umgehen diese Pruefung.
 
-| Datei | Symbol/Funktion | Operation | Key (mit Praefix) | Zweck |
-|---|---|---|---|---|
-| Helper/StorageHelper.ts | saveAllToFile (Log-Export) | read (getItem) | HHAuto_Temp_Logging (= HHStoredVarPrefixKey + Temp_Logging) | Log-Buffer zum Export einlesen (Bypass HHStoredVars-Wrapper) |
-| Helper/StorageHelper.ts | migrateHHVars | read+write+remove | beliebige oldVar/newVar | Migration alter Praefixe (HHAuto_ -> custom) |
-| Helper/StorageHelper.ts | debugDeleteAllVars | removeItem | alle Keys mit Praefix HHAuto_Setting_* und HHAuto_Temp_* (ausser TK.Logging) | Reset aller Vars |
-| Helper/StorageHelper.ts | getLocalStorageSize | hasOwnProperty + Read | beliebig | zaehlt total |
-| Module/PlaceOfPower.ts | cleanTempPopToStart, removePopFromPopToStart | removeItem | Temp_PopUnableToStart, Temp_PopToStart | Reset bei PoP-Setting-Change |
-| Service/AutoLoopActions.ts | (PoP-Run-Cleanup) | removeItem | Temp_PopToStart | Reset wenn Pop-Run abgeschlossen |
-| Service/ParanoiaService.ts | clearParanoiaSpendings | removeItem | Temp_paranoiaSpendings, Temp_NextSwitch, Temp_paranoiaQuestBlocked, Temp_paranoiaLeagueBlocked | Reset bei Paranoia-Disable |
-| Module/Events/EventModule.ts | parseEvents (Cleanup-Pfade) | removeItem | Temp_eventsGirlz, Temp_eventGirl, Temp_eventMythicGirl, Temp_eventsList, Temp_autoChampsEventGirls | Cleanup nach Event-Ende, Reset bei Champ-Konfig-Wechsel |
+Die Stellen stehen im Code und sind mit einer Suche zu finden:
 
-Kein direkter Zugriff auf sessionStorage ausserhalb dieser Stellen.
+```
+grep -rn 'sessionStorage\.\(getItem\|setItem\|removeItem\)\|sessionStorage\[' src
+```
+
+Stand 2026-09-11 sind es vier Gruppen, jede mit Grund: der Log-Ring in
+`Utils/LogStore.ts` (absichtlich an der Registry vorbei, siehe
+`storage-keys.md`), die Zaehler fuer Forbidden-Antworten und Hero-Neuladungen
+in `Service/StartService.ts` (laufen, bevor das Spiel geladen ist), das
+Aufraeumen der Event-Keys in `Module/Events/EventModule.ts` und eine
+Loeschschleife in `Module/Booster.ts`; dazu die Groessenzaehlung in
+`Helper/StorageHelper.ts`. Die fruehere Tabelle an dieser Stelle nannte
+`PlaceOfPower`, `AutoLoopActions`, `ParanoiaService`, `migrateHHVars` und
+`saveAllToFile` -- die gehen heute ueber den Wrapper, und die Tabelle war der
+Grund, warum diese Liste nicht mehr kopiert wird.
 
 
 ## 9. Spielzustands-Bridge-Funktionen
@@ -494,9 +543,9 @@ Counterpart: setHHVars(infoSearched, newValue) - gleicher Lookup-Algorithmus, am
 
 ### 9.2 getHHAjax() (Utils/Utils.ts)
 
-	s
+```ts
 return unsafeWindow.shared?.general?.hh_ajax;
-
+```
 
 Liefert die interne AJAX-Funktion des Spiels mit Signatur (params, onSuccess, onError) => void.
 params.action ist das spielinterne Action-Routing (siehe Sektion 3).
@@ -504,14 +553,14 @@ onSuccess(data), onError(err) sind die Callbacks.
 
 ### 9.3 getHero() (Helper/HeroHelper.ts)
 
-	s
+```ts
 if (unsafeWindow.shared?.Hero === undefined) {
-    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)) || 1000);
+    setTimeout(autoLoopKick, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)) || 1000);
 }
-return unsafeWindow.shared?.Hero;
+return unsafeWindow.shared?.Hero as KKHero;
+```
 
-
-Liefert das Hero-Objekt direkt aus shared. Bei Nichtverfuegbarkeit: schedule autoLoop und gib undefined zurueck.
+Liefert das Hero-Objekt direkt aus shared. Bei Nichtverfuegbarkeit: stoesst ueber `autoLoopKick` (vom Boot-Pfad per `setHeroAutoLoopKick` eingesetzt, statt eines Imports von AutoLoop) einen neuen Durchlauf an und gibt undefined zurueck.
 
 Die Klasse HeroHelper (gleiches File) bietet getter-Wrapper:
 
@@ -537,7 +586,7 @@ Die Klasse HeroHelper (gleiches File) bietet getter-Wrapper:
 | getStorageItem(type) | Helper/StorageHelper.ts | resolved "localStorage" / "sessionStorage" / "Storage()"-Tag in echte Storage-API |
 | addNutakuSession(togoto) | Service/PageNavigationService.ts | haengt ?sess=... an URL wenn unsafeWindow.hh_nutaku |
 | queryStringGetParam(qs, name) | Helper/UrlHelper.ts | URLSearchParams-Wrapper |
-| getPage(checkUnknown, checkPop) | Helper/PageHelper.ts | resolved canonical Page-ID aus <body page>+Tab+Pop-Detection (siehe Sektion 6.1) |
+| getPage(checkUnknown) | Helper/PageHelper.ts | resolved canonical Page-ID aus <body page>+Tab+Pop-Detection (siehe Sektion 6.1) |
 | ConfigHelper.getEnvironnement() | Helper/ConfigHelper.ts | matched window.location.hostname gegen HHKnownEnvironnements |
 | ConfigHelper.getHHScriptVars(id, logNotFound) | Helper/ConfigHelper.ts | env-spezifischer Lookup mit global als Fallback (siehe Sektion 11) |
 | ConfigHelper.isPshEnvironnement() | Helper/ConfigHelper.ts | true fuer PH_prod und NPH_prod |
@@ -547,92 +596,60 @@ Die Klasse HeroHelper (gleiches File) bietet getter-Wrapper:
 
 Fuer jede Page-ID (aus ConfigHelper.getHHScriptVars("pagesIDXxx")): welche unsafeWindow-Globals sind dort lesbar, welche DOM-Quellen relevant.
 
-| Page-ID-Konstante (Wert) | Verfuegbare unsafeWindow-Globals | Verfuegbare DOM-Quellen |
-|---|---|---|
-| pagesIDHome (home) | shared.Hero, hh_prices (?) | #contains_all header .currency .daily-reward-notif, #blessings_popup .blessings_wrapper (nach get_girls_blessings) |
-| pagesIDActivities (activities) | shared.Hero, pop_list, pop_index (wenn Pop-Tab) | #activities-tabs > div[data-tab=...], div.pop_list, .pop_thumb_selected[pop_id] |
-| pagesIDMissions (missions) | shared.Hero | Mission-DOM (Module/Missions.ts) |
-| pagesIDContests (contests) | contests_timer.{next_contest,duration,remaining_time}, has_contests_datas | Contest-Claim-Buttons |
-| pagesIDDailyGoals (daily_goals) | daily_goals_list | Tier-DOM in DailyGoals |
-| pagesIDPowerplacemain (powerplacemain) | pop_list, pop_index | div.pop_list, .pop_thumb_selected[pop_id] |
-| pagesIDQuest (quest) | shared.Hero, Hero.infos.questing.{id_world,id_quest,current_url} | Quest-DOM |
-| pagesIDHarem (harem) | shared.GirlSalaryManager.{girlsMap,girlsListSec}, availableGirls / girlsDataList / girls_data_list (variantenabhaengig) | #harem_right .opened .attr("girl"), .hhava, .select-group ... [data-index] |
-| pagesIDGirlPage (girl) | girl (KKHaremGirl), id_girl, player_gems_amount | .right-section .slot[data-d], #girl-leveler-tabs .switch-tab[data-tab=...] |
-| pagesIDMap (map) | shared.Hero | - |
-| pagesIDPachinko (pachinko) | shared.Hero | #playzone-replace-info button[data-free="true"], [girlsRewards].attr("data-rewards") |
-| pagesIDLeaderboard (leaderboard) | current_tier_number, opponents_list (League) | .league_content .data-list, .data-row.body-row, .data-column[column="..."] |
-| pagesIDShop (shop) | shared.animations.loadingAnimation, hh_prices | #shops div.{armor,booster,gift,potion}.merchant-inventory-item .slot[data-d], #shops div.{gift,potion,booster}.player-inventory-content .slot[data-d], #equiped .booster .slot, .shop div.shop_count span[rel="expires"] |
-| pagesIDClub (clubs) | Chat_vars.CLUB_INFO.id_club | Club-Status-UI |
-| pagesIDPantheon (pantheon) | Hero.energies.worship.* | - |
-| pagesIDPantheonPreBattle (pantheon-pre-battle) | Hero.energies.worship.* | #pre-battle .pantheon-single-battle-button[data-pantheon-id] |
-| pagesIDPantheonBattle (pantheon-battle) | - | - |
-| pagesIDLabyrinthEntrance (labyrinth-entrance) | - | - |
-| pagesIDLabyrinthPoolSelect (labyrinth-pool-select) | - | - |
-| pagesIDLabyrinth (labyrinth) | girl_squad | .team-hexagon .team-member-container[data-girl-id] |
-| pagesIDLabyrinthPreBattle (labyrinth-pre-battle) | - | .opponent-power .opponent-power-text[data-power] |
-| pagesIDLabyrinthBattle (labyrinth-battle) | - | - |
-| pagesIDChampionsPage (champions) | championData.{team,champion.id,champion.poses,freeDrafts,hero_damage,fight.{active,participants}} | .champions-over__champion-info ... .champion-pose |
-| pagesIDChampionsMap (champions_map) | championData.* | - |
-| pagesIDClubChampion (club_champion) | championData.fight.{active,participants} | div.club-champion-members-challenges .player-row .data-column:nth-of-type(3) |
-| pagesIDSeason (season) | season_sec_untill_event_end, Hero.energies.kiss.* | - |
-| pagesIDSeasonArena (season_arena) | season_sec_untill_event_end, hero_data, opponents | .season_arena_opponent_container[data-opponent=...], .slot.girl_ico[data-rewards] |
-| pagesIDSeasonBattle (season-battle) | Hero.energies.kiss.* | - |
-| pagesIDLeaguePreBattle (leagues-pre-battle) | Hero.energies.challenge.* | - |
-| pagesIDLeagueBattle (league-battle) | Hero.energies.challenge.* | - |
-| pagesIDTrollPreBattle (troll-pre-battle) | Hero.energies.fight.*, Hero.infos.questing.*, Hero.infos.hc_confirm | #pre-battle .battle-buttons button.autofight[data-battles="10"] / [data-battles="50"], .opponent_rewards .rewards_list .slot.girl_ico[data-rewards] |
-| pagesIDTrollBattle (troll-battle) | Hero.energies.fight.* | - |
-| pagesIDPentaDrill (penta_drill) | penta_drill_data.cycle_data.seconds_until_event_end, Hero.energies.drill.* | - |
-| pagesIDPentaDrillArena (penta_drill_arena) | opponents_list (KKPentaDrillOpponents[]) | - |
-| pagesIDEditPentaDrillTeam (edit-penta-drill-team) | - | .team-member-container[data-girl-id] |
-| pagesIDPentaDrillPreBattle (penta_drill_pre_battle) | - | - |
-| pagesIDPentaDrillBattle (penta-drill-battle) | - | - |
-| pagesIDEvent (event) | event_data (mit girls), current_event (Fallback) | [data-select-girl-id=...] |
-| pagesIDPoV (path-of-valor) | - | [data-time-stamp], Reward-Slots |
-| pagesIDPoG (path-of-glory) | - | [data-time-stamp], Reward-Slots |
-| pagesIDPoA (path_of_attraction) | - | [data-nc-reward-id], #poa-content .buttons:has(button[data-href="/champions-map.html"]) |
-| pagesIDSeasonalEvent (seasonal) | seasonal_event_active, seasonal_time_remaining, mega_event_active, mega_event_time_remaining, mega_event_data.cards | - |
-| pagesIDBossBang (boss-bang-battle) | (?) | - |
-| pagesIDSexGodPath (sex-god-path) | (?) | - |
-| pagesIDLoveRaid (love_raids) | love_raids (KKLoveRaid[]) | - |
-| pagesIDWaifu (waifu) | (?) | - |
-| pagesIDBattleTeams (teams) | teams_data[selectedTeam].{girls,girls_ids} | .team-slot-container.selected-team[data-team-index], .team-member-container[data-team-member-position=N][data-girl-id] |
-| pagesIDEditTeam (edit-team) | teams_data[...] | gleiche Selectoren wie BattleTeams + #edit-team-page |
-| pagesIDEditLabyrinthTeam (edit-labyrinth-team) | - | .team-member-container.selectable[data-team-member-position=...][data-girl-id] |
-| pagesIDMemberProgression (member-progression) | (?) | - |
-| pagesIDHeroPage (hero_pages) | shared.Hero | - |
-| pagesIDGirlEquipmentUpgrade (girl-equipment-upgrade) | (?) | .right-section .slot[data-d] |
+**Gemessen 2026-09-11** (Pruefkonto Level 115, 24 Maedchen, im Club; ein Mega-Event lief, kein Lively-Scene-, Sultry- oder Boss-Bang-Event). Je Seite: welche Globals aus den Abschnitten 1 und 2 existierten und welche statischen Selektoren aus den Abschnitten 5 und 6 trafen. Typen statt Werte.
 
-Hinweis: (?) steht fuer "im Source nicht eindeutig nachweisbar".
+Auf **jeder** der 39 Seiten vorhanden und deshalb unten nicht wiederholt: `shared`, `shared.Hero` samt allen hier genannten `infos`-, `currencies`- und `energies`-Feldern (kiss, fight, challenge, quest, worship, drill je mit `amount`, `max_regen_amount`, `next_refresh_ts`, `seconds_per_point`), `shared.general.hh_ajax`, `shared.general.is_cheat_click`, `shared.animations.loadingAnimation`, `hh_prices`, `hh_nutaku` (`null`), `server_now_ts`, `mega_event_active`, `mega_event_time_remaining`, `shared.GirlSalaryManager.girlsMap`/`girlsListSec`, `Chat_vars.CLUB_INFO.id_club`.
+
+Auf **keiner** Seite: `is_cheat_click` (ohne `shared.general`), `Hero` (ohne `shared`), `league_tag`, `HHTimers`, `Collect`, `has_contests_datas`, `seasonal_event_active`, `seasonal_time_remaining`, `sm_event_data`, `current_event.event_data.puzzle_pieces`, `item_to_upgrade`. Nicht besucht: die Champion-Seite (kein Link auf der Karte), Kampfseiten (loesen einen Kampf aus), die Mythic-Upgrade-Seite (braucht Parameter).
+
+| Seite (`body[page]`) | Globals ausser den ueberall vorhandenen | Selektoren aus Abschnitt 5/6 mit Treffern |
+|---|---|---|
+| `/home.html` (`home`) | `girlsDataList` Obj, `salary_collect` Zahl | -- |
+| `/activities.html?tab=contests` (`activities`) | `contests_timer.next_contest` Zahl, `contests_timer.duration` Zahl, `contests_timer.remaining_time` Zahl, `daily_goals_list` Array[11], `pop_list` Bool, `pop_index` Zahl | -- |
+| `/activities.html?tab=missions` (`activities`) | `contests_timer.next_contest` Zahl, `contests_timer.duration` Zahl, `contests_timer.remaining_time` Zahl, `daily_goals_list` Array[11], `pop_list` Bool, `pop_index` Zahl | -- |
+| `/activities.html?tab=daily_goals` (`activities`) | `contests_timer.next_contest` Zahl, `contests_timer.duration` Zahl, `contests_timer.remaining_time` Zahl, `daily_goals_list` Array[11], `pop_list` Bool, `pop_index` Zahl | -- |
+| `/activities.html?tab=pop` (`activities`) | `contests_timer.next_contest` Zahl, `contests_timer.duration` Zahl, `contests_timer.remaining_time` Zahl, `daily_goals_list` Array[11], `pop_list` Bool, `pop_index` Zahl | -- |
+| `/activities.html?tab=pop&pop_id=1` (`activities`) | `contests_timer.next_contest` Zahl, `contests_timer.duration` Zahl, `contests_timer.remaining_time` Zahl, `daily_goals_list` Array[11], `pop_list` Bool, `pop_index` Zahl | -- |
+| `/characters.html` (`harem`) | `player_gems_amount` Obj, `girlsDataList` Obj | `#harem_right .opened` 1 |
+| `/girl/<n>` (`girl`) | `girl` Obj, `player_gems_amount` Obj | `#girl-leveler-tabs .switch-tab[data-tab]` 5, `.right-section .slot[data-d]` 17 |
+| `/girl/<n>?resource=equipment` (`girl`) | `girl` Obj, `player_gems_amount` Obj | `#girl-leveler-tabs .switch-tab[data-tab]` 5 |
+| `/map.html` (`map`) | `love_raids` Array[24] | -- |
+| `/pachinko.html` (`pachinko`) | -- | -- |
+| `/leagues.html` (`leaderboard`) | `current_tier_number` Zahl, `opponents_list` Array[141] | `.league_content .data-list` 1, `.data-list .data-row.body-row` 141, `.data-list .data-row.body-row a` 123, `.data-column.head-column` 10, `.body-row .data-column[column="power"]` 141, `.data-list .data-row.body-row.player-row .data-column[column="place"]` 1, `.data-list .data-row.body-row.player-row .data-column[column="player_league_points"]` 1 |
+| `/shop.html` (`shop`) | `player_inventory.armor` Array[65], `player_inventory.booster` Array[4], `equipped_armor` Obj | `#shops div.armor.merchant-inventory-item .slot` 9, `#shops div.booster.merchant-inventory-item .slot` 9, `#shops div.gift.merchant-inventory-item .slot` 9, `#shops div.potion.merchant-inventory-item .slot` 9, `#shops div.gift.player-inventory-content .slot` 18, `#shops div.potion.player-inventory-content .slot` 18, `#shops div.booster.player-inventory-content .slot` 9, `#equiped .booster .slot:not(.empty):not(.mythic)` 4, `#equiped .booster .slot:not(.empty).mythic` 1, `#player-inventory-booster .slot` 9, `#equiped .armor div[id_item]` 6, `#equiped .armor .slot` 6, `.shop div.shop_count span[rel="expires"]` 4 |
+| `/clubs.html` (`clubs`) | -- | `.data-list .data-row.body-row` 46, `.data-list .data-row.body-row a` 47, `.data-column.head-column` 5 |
+| `/pantheon.html` (`pantheon`) | -- | -- |
+| `/pantheon-pre-battle.html?id_opponent=26` (`pantheon-pre-battle`) | `hero_data` Obj | `.team-member-container[data-team-member-position="0"]` 2, `.player-panel .team-hexagon .team-member-container[data-girl-id]` 7, `#pre-battle .battle-buttons .green_button_L.battle-action-button` 1, `#pre-battle .battle-buttons button.autofight[data-battles="10"]` 1, `#pre-battle .battle-buttons .pantheon-single-battle-button[data-pantheon-id]` 1 |
+| `/labyrinth.html` (`labyrinth`) | `girl_squad` Array[24] | -- |
+| `/champions-map.html` (`champions_map`) | `love_raids` Array[1] | -- |
+| `/club-champion.html` (`club_champion`) | `championData` Obj, `championData.team` Array[10], `championData.champion.id` Zahl, `championData.champion.poses` Array[5], `championData.freeDrafts` Zahl, `championData.hero_damage` Zahl, `championData.fight.active` Bool, `championData.fight.participants` Array[12] | `.champions-over__champion-info.champions-animation .champion-pose` 5 |
+| `/season.html` (`season`) | `love_raids` Array[3], `season_sec_untill_event_end` Zahl | `#claim-all` 1 |
+| `/season-arena.html` (`season_arena`) | `hero_data` Obj, `opponents` Array[3] | `.team-member-container[data-team-member-position="0"]` 4, `.season_arena_opponent_container[data-opponent]` 3, `.season_arena_opponent_container .slot.girl_ico[data-rewards]` 3 |
+| `/leagues-pre-battle.html?id_opponent=<n>` (`leagues-pre-battle`) | `hero_data` Obj | `.team-member-container[data-team-member-position="0"]` 2, `.player-panel .team-hexagon .team-member-container[data-girl-id]` 7, `#pre-battle .battle-buttons .green_button_L.battle-action-button` 2 |
+| `/troll-pre-battle.html?id_opponent=1` (`troll-pre-battle`) | `hero_data` Obj | `.team-member-container[data-team-member-position="0"]` 2, `.player-panel .team-hexagon .team-member-container[data-girl-id]` 7, `#pre-battle .battle-buttons .green_button_L.battle-action-button` 1, `#pre-battle .battle-buttons button.autofight[data-battles="10"]` 1, `#pre-battle .battle-buttons button.autofight[data-battles="50"]` 1, `#pre-battle .oponnent-panel .opponent_rewards .rewards_list .slot.girl_ico[data-rewards]` 1 |
+| `/penta-drill.html` (`penta_drill`) | `penta_drill_data.cycle_data.seconds_until_event_end` Zahl | `#claim-all` 1 |
+| `/penta-drill-arena.html` (`penta_drill_arena`) | `opponents_list` Array[4] | -- |
+| `/penta-drill-pre-battle?<n>` (`penta_drill_pre_battle`) | `penta_drill_data.cycle_data.seconds_until_event_end` Zahl | `.team-member-container[data-team-member-position="0"]` 2, `.player-panel .team-hexagon .team-member-container[data-girl-id]` 7 |
+| `/event.html?tab=event_533` (`event`) | `event_data` Obj, `event_data.girls` Array[2], `current_event` Obj | `[data-select-girl-id]` 2 |
+| `/event.html?tab=path_event_110` (`event`) | `event_data` Obj, `current_event` Obj, `event_ends_in` String | `[data-nc-reward-id]` 52 |
+| `/path-of-valor.html` (`path-of-valor`) | -- | `.free-slot .slot,.free-slot .shards_girl_ico` 53 |
+| `/path-of-glory.html` (`path-of-glory`) | -- | `.free-slot .slot,.free-slot .shards_girl_ico` 65 |
+| `/seasonal.html` (`seasonal`) | `mega_event_data.cards` String | `.free-slot .slot,.free-slot .shards_girl_ico` 115 |
+| `/love-raids.html` (`love_raids`) | `love_raids` Obj | -- |
+| `/waifu.html` (`waifu`) | `girls_data_list` Array[24] | -- |
+| `/teams.html?battle_type=leagues` (`teams`) | `teams_data` Obj | `.team-member-container[data-team-member-position="0"]` 1, `.team-slot-container.selected-team` 1 |
+| `/edit-team.html?battle_type=leagues` (`edit-team`) | `hero_data` Obj, `availableGirls` Array[24] | `.team-member-container[data-team-member-position="0"]` 1, `#contains_all section .player-panel .player-team .team-hexagon .team-member-container.selectable` 7, `#edit-team-page` 1, `.player-panel .team-hexagon .team-member-container[data-girl-id]` 7 |
+| `/member-progression.html` (`member-progression`) | -- | `.free-slot .slot,.free-slot .shards_girl_ico` 50, `#claim-all` 2 |
+| `/hero/profile.html` (`hero_pages`) | -- | -- |
+| `/god-path.html` (`god-path`) | -- | -- |
+| `/quest/<aktuell>` (`quest`) | `id_girl` Zahl | -- |
+
 
 
 ## 11. Per-Game-Unterschiede
 
 Erkennung: ConfigHelper.getEnvironnement() matched window.location.hostname gegen HHKnownEnvironnements.
-Bekannte Hosts (aus den getEnv()-Methoden in src/config/game/):
-
-| Hostname | Env-Name | gameID (HTML <body id>) | baseImgPath |
-|---|---|---|---|
-| www.hentaiheroes.com | HH_prod | hh_hentai | (default https://hh2.hh-content.com) |
-| test.hentaiheroes.com | HH_test | hh_hentai | (default) |
-| nutaku.haremheroes.com | NHH_prod | hh_hentai | (default) |
-| thrix.hentaiheroes.com | THH_prod | hh_hentai | (default) |
-| eroges.hentaiheroes.com | EHH_prod | hh_hentai | (default) |
-| esprit.hentaiheroes.com | OGHH_prod | hh_hentai | (default) |
-| www.comixharem.com | CH_prod | hh_comix | https://ch.hh-content.com |
-| nutaku.comixharem.com | NCH_prod | hh_comix | (default) |
-| www.gayharem.com | GH_prod | hh_gay | (default) |
-| nutaku.gayharem.com | NGH_prod | hh_gay | (default) |
-| eroges.gayharem.com | EGH_prod | hh_gay | (default) |
-| www.pornstarharem.com | PH_prod | hh_star | https://th.hh-content.com |
-| nutaku.pornstarharem.com | NPH_prod | hh_star | https://th.hh-content.com |
-| www.transpornstarharem.com | TPH_prod | hh_startrans | https://images.hh-content.com/startrans |
-| nutaku.transpornstarharem.com | NTPH_prod | hh_startrans | https://images.hh-content.com/startrans |
-| www.gaypornstarharem.com | GPSH_prod | hh_stargay | https://images.hh-content.com/stargay |
-| nutaku.gaypornstarharem.com | NGPSH_prod | hh_stargay | https://images.hh-content.com/stargay |
-| www.mangarpg.com | MRPG_prod | hh_mangarpg | https://mh.hh-content.com |
-| nutaku.mangarpg.com | NMRPG_prod | hh_mangarpg | https://mh.hh-content.com |
-| www.amouragent.com | AA_prod | hh_amour | (default) |
-| www.hornyheroes.com | SH_prod | hh_sexy | (default; manuell in HHEnvVariables.ts registriert, kein eigenes Game-File) |
+Die bekannten Hosts stehen in den `getEnv()`-Methoden der Dateien in `src/config/game/` (Name, `gameID`, optional `baseImgPath`); HornyHeroes ist direkt in `HHEnvVariables.ts` eingetragen. Eine Kopie der Liste stand hier und ist entfernt. `gameID` ist die `id` des `<body>` -- gemessen 2026-09-11 auf www.hentaiheroes.com (`hh_hentai`); die anderen Hosts sind nicht geprueft.
 
 Folgende Felder werden in HHEnvVariables.ts per for (var key in <Game>.getEnv()) ueberschrieben:
 
@@ -654,7 +671,7 @@ Folgende Felder werden in HHEnvVariables.ts per for (var key in <Game>.getEnv())
 
 Datenzugriffs-Unterschiede:
 
-- **Girl-Daten-Quelle**: HH-Family liest availableGirls oder girlsDataList; PSH-Build liefert die Liste unter girls_data_list (Module/harem/Harem.ts faellt auf alle drei Pfade in Reihenfolge zurueck).
+- **Girl-Daten-Quelle**: welche der drei Listen es gibt, haengt an der Seite, nicht am Spiel -- gemessen bei HentaiHeroes: `availableGirls` auf edit-team, `girlsDataList` auf home und characters, `girls_data_list` auf waifu (Module/harem/Harem.ts faellt auf alle drei Pfade in Reihenfolge zurueck).
 - **shared.Hero vs Hero**: Auf modernen Builds aller Variants ist unsafeWindow.shared definiert -> getHHVars("Hero.x") haengt automatisch shared. davor (siehe Sektion 9.1).
 - **Iframe**: Nutaku-Builds (unsafeWindow.hh_nutaku === true) leben in einem iframe; HHAuto sendet postMessage({ImAlive:true},"*") an window.top und haengt ?sess=... an interne Navigationen an.
 - **Endpoint-Unterschiede**: AJAX-Endpoint ist immer derselbe Host wie das Spiel (relativ zur Hostname).
@@ -666,19 +683,7 @@ Im Spiel-Code ist shared.general.is_cheat_click eine Funktion, die bei verdaecht
 
 In HHAuto:
 
-- Utils/Utils.ts enthaelt replaceCheatClick(). Body komplett auskommentiert:
-
-  	s
-  export function replaceCheatClick()
-  {
-      // unsafeWindow.is_cheat_click=function(e) {
-      //     return false;
-      // };
-      // unsafeWindow.shared.general.is_cheat_click =function(e) {
-      //     return false;
-      // };
-  }
-  
+- `Utils/Utils.ts` enthaelt `replaceCheatClick()` mit leerem Rumpf; die frueher auskommentierten Zeilen sind entfernt.
 
 - Service/StartService.ts ruft replaceCheatClick() einmalig in start() auf - aktuell ein No-Op.
 
@@ -695,13 +700,13 @@ src/index.ts ruft hardened_start() direkt nach Modul-Load. Tampermonkey injizier
 Schritte in hardened_start() (Service/StartService.ts):
 
 1. Registriert GM_registerMenuCommand("Save Debug Log", saveHHDebugLog).
-2. Pruefung unsafeWindow.jQuery == undefined -> falls fehlt: ggf. "Forbidden"-Page erkennen (innerText der body); bei Forbidden: reload nach randomInterval(60, 300) Sekunden; sonst Abbruch (kein Crash).
+2. Pruefung unsafeWindow.jQuery == undefined -> falls fehlt: ggf. "Forbidden"-Page erkennen (innerText der body); bei Forbidden: Neuladen mit wachsendem Abstand (`ForbiddenBackoff.nextForbiddenDelaySeconds`, Zaehler in sessionStorage, #1598); sonst Abbruch (kein Crash).
 3. started Lock + start()-Aufruf.
 
 In start():
 
 1. **Hero-Retry-Loop**: Wenn unsafeWindow.shared?.Hero === undefined:
-   - heroRetryCount++. Maximal HERO_MAX_RETRIES = 15 Versuche, dann Abbruch ("Try reloading the page.").
+   - heroRetryCount++. Maximal HERO_MAX_RETRIES = 15 Versuche; danach laedt die Seite sich selbst neu, begrenzt durch `HERO_GIVEUP_MAX_RELOADS` (Zaehler in sessionStorage, #1788), und erst wenn auch das ausgeschoepft ist, gibt der Start auf.
    - setTimeout(hardened_start, 5000) -> alle 5 Sekunden neu versuchen.
    - started = false zurueckgesetzt, damit ein erneuter Aufruf zaehlt.
    - Diese Loop entspraeche bis zu 75 Sekunden Wartezeit.
@@ -743,15 +748,15 @@ Booster.waitForBattleResponse() / Booster.notifyBattleResponseProcessed() (Modul
 
 ### 13.5 Timer-System
 
-- TK.Timers haelt eine JSON-Map name -> {endAt, startedAt}. Geschrieben von Helper/TimerHelper.ts, gelesen von StartService.ts beim Start (setTimers(...)).
+- TK.Timers haelt eine JSON-Map name -> Endzeitpunkt (`Timers[name] = ND` in `setTimer`). Geschrieben von Helper/TimerHelper.ts, gelesen von StartService.ts beim Start (setTimers(...)).
 - Beim Skript-Start wird setTimers(getStoredJSON(TK.Timers, {})) ausgefuehrt; persistierte Timer leben also ueber Reloads weg.
 - getSecondsLeft(name) / setTimer(name, seconds) / clearTimer(name) / checkTimer(name) sind die Wrapper.
 - convertTimeToInt(text) parsed das Game-DOM-Timer-Format (HH:MM:SS) z.B. fuer Shop-Refresh.
 
 ### 13.6 Bekannte Edge-Cases
 
-- **Erstaufruf vor Game-Load**: 15x 5s-Retry-Loop (siehe oben).
-- **Forbidden-Page**: 1-5min Random-Reload (Anti-Bot-Backoff).
+- **Erstaufruf vor Game-Load**: 15x 5-s-Retry, danach begrenztes automatisches Neuladen (siehe oben).
+- **Forbidden-Page**: Neuladen mit verdoppeltem Abstand je weiterem Forbidden in Folge (`Service/ForbiddenBackoff.ts`).
 - **Tab-Wechsel und SK.settPerTab=true**: Settings landen in sessionStorage, also pro Tab. Migration zwischen Tabs ist nicht implementiert.
 - **boosterStatusLastUpdate TTL**: 10 Minuten (Booster.BOOSTER_STATUS_TTL_MS = 10 * 60 * 1000).
 - **unsafeWindow.shared.GirlSalaryManager.girlsMap**: Kann erst nach Salary-Manager-Init genutzt werden. Code prueft mit getHHVars(..., false) (silent).
