@@ -46,11 +46,11 @@ and add the date plus commit hash in the Status field.
 ## Context
 
 - Repo: OldRon1977/HHauto, userscript for a browser game.
-- 28k LoC TypeScript, 39 spec files / 556 tests.
-- Coverage: 30% statements / 17% branches / 24% functions.
+- Counted 2026-09-11: about 43k lines of TypeScript under `src/` (without
+  specs) and 105 spec files. The May figures (28k, 39 files) were the
+  starting point of this plan.
+- Coverage: the gate in `jest.config.ts` (`coverageThreshold` 39/30/35/40).
 - Test stack: Jest + ts-jest + jsdom + mock-local-storage.
-- Path: `c:\\Users\\StephanMesser\\.kiro\\Arbeitsplatz\\HHAuto`
-- File writes only via Python+UTF8 (workspace rule 05_File_Write_Workaround).
 
 ## Review consensus (5:1 or better)
 
