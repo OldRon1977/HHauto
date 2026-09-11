@@ -442,7 +442,7 @@ HHAuto baut Bless-bewusste Kandidaten-Teams pro erkannter Blessing (Kandidaten-M
 | Saison-Dauer | 1 Woche (Donnerstag 13:00 UTC+1 reset) |
 | Gruppengroesse | 100-199 Spieler |
 | Anzahl Leagues | 9 (Wanker I/II/III, Sexpert I/II/III, Dicktator I/II/III) |
-| Punkte pro Win | 15-25 (Skala mit Rest-Ego) |
+| Punkte pro Win | 15-25 (Skala mit Rest-Ego); gemessen 2026-09-11 an einem Sieg: +22, Simulator-Erwartung 22,1 (`bdsm-battle-simulator.md`) |
 | Punkte pro Loss | 3-13 |
 | Token-Regen | 1 alle 35 Min (`seconds_per_point` 2100, gemessen); Grenze gemessen 2026-09-11 auf dem Pruefkonto: `max_regen_amount` 18, nicht 15 |
 | 15x-Performance-Button | gegen Lowest-Level-noch-nicht-gefightete Gegner |
