@@ -178,11 +178,57 @@ export class LoveRaidManager {
 
         return raid;
     }
+    /**
+     * The raid list of the current page. /map.html declares it as a `var`, a
+     * window property. /love-raids.html declares `const love_raids = [...]`
+     * (measured 2026-09-11, 26 raids), which is no window property, and
+     * window.love_raids there is the empty module object of the game's
+     * love_raids.js. A userscript with @grant only reaches window properties,
+     * so on that page the list is read from the inline script.
+     */
+    static readPageRaids(): KKLoveRaid[] {
+        const fromWindow: unknown = unsafeWindow.love_raids;
+        if (Array.isArray(fromWindow)) return fromWindow as KKLoveRaid[];
+        for (const script of Array.from(document.querySelectorAll('script:not([src])'))) {
+            const text = script.textContent || '';
+            const declaration = /\b(?:const|let|var)\s+love_raids\s*=\s*\[/.exec(text);
+            if (!declaration) continue;
+            const list = LoveRaidManager.readArrayLiteral(text, declaration.index + declaration[0].length - 1);
+            if (list) return list as KKLoveRaid[];
+        }
+        return [];
+    }
+    /** JSON array starting at `start` (a `[`), found by bracket depth outside strings. */
+    static readArrayLiteral(text: string, start: number): unknown[] | null {
+        let depth = 0;
+        let inString = false;
+        for (let i = start; i < text.length; i++) {
+            const c = text[i];
+            if (inString) {
+                if (c === '\\') i++;
+                else if (c === '"') inString = false;
+            } else if (c === '"') {
+                inString = true;
+            } else if (c === '[' || c === '{') {
+                depth++;
+            } else if (c === ']' || c === '}') {
+                depth--;
+                if (depth === 0) {
+                    try {
+                        const parsed: unknown = JSON.parse(text.slice(start, i + 1));
+                        return Array.isArray(parsed) ? parsed : null;
+                    } catch {
+                        return null;
+                    }
+                }
+            }
+        }
+        return null;
+    }
     static parseRaids(raidNotStarted = false): LoveRaid[] {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const raids: LoveRaid[] = [];
-        // eslint-disable-next-line eqeqeq -- intentional loose != to catch both null and undefined from the game global
-        const kkRaids: KKLoveRaid[] = love_raids != undefined ? love_raids : [];
+        const kkRaids: KKLoveRaid[] = LoveRaidManager.readPageRaids();
 
         for (let index = 0; index < kkRaids.length; index++) {
             const kkRaid = kkRaids[index];

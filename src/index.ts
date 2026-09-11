@@ -37,7 +37,6 @@ import type { KKHaremGirl } from "./model/KK/KKHaremGirl";
 import type { HHEventData } from "./model/HHEvent";
 
 declare global {
-    var love_raids: KKLoveRaid[] | undefined;
     interface Window {
         // Game globals injected by the page, read via unsafeWindow. These
         // declarations only inform the TS compiler; the shapes are the
