@@ -157,6 +157,12 @@ waere. Es ist keine, wenn es dieselbe Funktion ist:
 
   Der Block kommt durch sein Tor und faellt im Step durch, weil die
   eigentliche Frage erst dort gestellt wird.
+
+  Nachgemessen 2026-09-11 (8.13.1, Pruefkonto, 20 Minuten mit den
+  Kontoeinstellungen): `handleTrollBattle` 251 Starts bei 4 Kaempfen
+  (`do_battles_trolls`), `handleQuest` 480 Starts bei einem Questschritt
+  (`next`) -- ein Start alle 2,5 s, obwohl die Quest nach der ersten Minute
+  auf Ressourcen wartete. Zusammen 731 der 769 Block-Starts des Laufs.
 - `handleQuest`: hier entsteht wirklich neue Logik, weil es heute keine
   gibt. Das ist der einzige Block, bei dem "Kopie, die auseinanderlaeuft"
   ueberhaupt ein Thema waere -- und der Grund, ihn zuletzt zu machen.
