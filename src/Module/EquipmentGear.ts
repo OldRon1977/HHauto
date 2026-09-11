@@ -820,21 +820,19 @@ export class EquipmentGear {
      *  under either query parameter, so there is no version of this that can
      *  offer to level the rest of what the player wears. */
     private static noTargetsMessage(empty: NoUpgradeSummary): string {
-        const hint = '<p style="color:#aaa;">Put the pieces you want to develop on first'
-            + ' &mdash; "Possible Best Gear" does exactly that.</p>';
+        const text = (key: string) => esc(getTextForUI(key, 'elementText'));
         switch (empty.reason) {
             case 'none-equipped':
-                return `<p>You own ${empty.inInventory} mythic piece(s), but none of them is`
-                    + ' equipped, and only worn gear is levelled here.</p>' + hint;
+                // The count is appended, not interpolated: the translations
+                // carry no placeholders anywhere, and "label: N" reads the
+                // same in all four languages.
+                return `<p>${text('HHGearUpgradeNoneEquipped')}</p>`
+                    + `<p style="color:#aaa;">${text('HHGearUpgradeInInventory')}: ${empty.inInventory}</p>`;
             case 'no-mythic-owned':
-                return '<p>You are not wearing any mythic gear, so there is nothing to level.</p>'
-                    + '<p style="color:#aaa;">Only mythic pieces gain levels. Legendary and epic'
-                    + ' ones carry a fixed value tied to your own level, and the game turns the'
-                    + ' upgrade page away for them.</p>';
+                return `<p>${text('HHGearUpgradeNoneOwned')}</p>`;
             case 'all-at-cap':
             default:
-                return `<p>Every mythic you are wearing is already at level ${MYTHIC_MAX_LEVEL}.</p>`
-                    + hint;
+                return `<p>${text('HHGearUpgradeAllAtCap')}</p>`;
         }
     }
 

@@ -577,6 +577,10 @@ HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Curr
 HHAuto_ToolTips.en['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Possible Best Gear", tooltip: "Equip the armor that will be strongest once it is levelled to the max, matching your class and your team's theme. Shows what the switch costs you today." };
 HHAuto_ToolTips.en['HHGearUpgrade'] = { version: "8.8.0", elementText: "Upgrade Gear", tooltip: "Level the mythic items you are wearing towards the cap, using legendary and epic items as material. Mythics are never consumed. Shows what it costs before anything is spent." };
 HHAuto_ToolTips.en['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Mark Keepers", tooltip: "<p>Marks the mythic pieces worth keeping with a star, so <b>everything unmarked is safe to spend by hand as upgrade material</b>.</p><p>One piece is kept per slot and element. Which one: your own class first, then <code>damage</code> before <code>defence</code> before <code>ego</code> before <code>harmony</code>, then the higher level.</p><p>An element you own only on a foreign class keeps its best piece anyway -- otherwise that element would vanish from the slot entirely.</p><p>Display only: nothing is equipped, sold or consumed, and the automation never feeds mythics to anything.</p>" };
+HHAuto_ToolTips.en['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Every mythic item you are wearing is already at the maximum level. Only mythic items can be levelled.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "You have not equipped any mythic item yet. Only mythic items can be levelled -- put them on first; Possible Best Gear does exactly that.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearUpgradeNoneOwned'] = { version: "8.13.0", elementText: "You do not own any mythic item yet. Only mythic items can be levelled; legendary and epic pieces carry a fixed value tied to your own level.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearUpgradeInInventory'] = { version: "8.13.0", elementText: "Mythic items in your inventory", tooltip: "" };
 HHAuto_ToolTips.en['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Estimated cost (5M per skill):", tooltip: "Estimated cost of the team stuff operation" };
 HHAuto_ToolTips.en['StuffTeamMoney'] = { version: "7.30.0", elementText: "Money to keep", tooltip: "(Integer)<br>Minimum money to keep." };
 HHAuto_ToolTips.en['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Auto select girl equipment." };
@@ -1031,6 +1035,10 @@ HHAuto_ToolTips.fr['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Meil
 HHAuto_ToolTips.fr['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Meilleur équipement possible", tooltip: "Équipe l'armure qui sera la plus forte une fois montée au niveau maximum, en accord avec votre classe et le thème de votre équipe. Affiche ce que le changement vous coûte aujourd'hui." };
 HHAuto_ToolTips.fr['HHGearUpgrade'] = { version: "8.8.0", elementText: "Améliorer l'équipement", tooltip: "Monte au maximum possible les objets mythiques que vous portez, en utilisant des objets légendaires et épiques comme matériau. Les mythiques ne sont jamais consommés. Affiche le coût avant toute dépense." };
 HHAuto_ToolTips.fr['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Marquer à garder", tooltip: "<p>Marque d'une étoile les pièces mythiques qui valent la peine d'être gardées, de sorte que <b>tout ce qui n'est pas marqué peut être dépensé à la main comme matériau d'amélioration</b>.</p><p>Une pièce est gardée par emplacement et par élément. Laquelle : votre propre classe d'abord, puis <code>dégâts</code> avant <code>défense</code>, avant <code>ego</code>, avant <code>harmonie</code>, et enfin le niveau le plus élevé.</p><p>Un élément que vous ne possédez que sur une classe étrangère garde tout de même sa meilleure pièce, sans quoi cet élément disparaîtrait complètement de l'emplacement.</p><p>Purement indicatif : rien n'est équipé, vendu ni consommé, et l'automatisation ne donne jamais de mythique comme matériau.</p>" };
+HHAuto_ToolTips.fr['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Tous les objets mythiques que vous portez sont déjà au niveau maximum. Seuls les objets mythiques peuvent monter de niveau.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Vous n'avez encore équipé aucun objet mythique. Seuls les objets mythiques peuvent monter de niveau : équipez-les d'abord, « Meilleur équipement possible » s'en charge.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearUpgradeNoneOwned'] = { version: "8.13.0", elementText: "Vous ne possédez encore aucun objet mythique. Seuls les objets mythiques peuvent monter de niveau ; les pièces légendaires et épiques ont une valeur fixe liée à votre niveau.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearUpgradeInInventory'] = { version: "8.13.0", elementText: "Objets mythiques dans l'inventaire", tooltip: "" };
 HHAuto_ToolTips.fr['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Coût estimé (5 M par compétence) :", tooltip: "Coût estimé de l'équipement de l'équipe." };
 HHAuto_ToolTips.fr['StuffTeamMoney'] = { version: "7.30.0", elementText: "Argent à conserver", tooltip: "(Entier)<br>Argent minimum à conserver." };
 HHAuto_ToolTips.fr['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Donner l'équipement", tooltip: "Sélectionne automatiquement l'équipement des filles." };
@@ -1441,6 +1449,10 @@ HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktu
 HHAuto_ToolTips.de['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mögliche beste Ausrüstung", tooltip: "Legt die Rüstung an, die nach vollem Aufleveln die stärkste wäre, passend zu deiner Klasse und deinem Team-Thema." };
 HHAuto_ToolTips.de['HHGearUpgrade'] = { version: "8.8.0", elementText: "Ausrüstung aufwerten", tooltip: "Levelt die getragenen Mythic-Teile Richtung Maximum und nutzt legendäre und epische Teile als Material." };
 HHAuto_ToolTips.de['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Behalten markieren", tooltip: "<p>Markiert die mythischen Teile, die du behalten solltest, mit einem Stern &mdash; <b>alles Unmarkierte kannst du gefahrlos von Hand als Material verwenden</b>.</p><p>Behalten wird je Slot und Element genau eines. Welches: zuerst deine eigene Klasse, dann <code>damage</code> vor <code>defence</code> vor <code>ego</code> vor <code>harmony</code>, dann das höhere Level.</p><p>Ein Element, das du nur mit fremder Klasse besitzt, behält trotzdem sein bestes Teil &mdash; sonst würde das Element ganz aus dem Slot verschwinden.</p><p>Reine Anzeige: es wird nichts angelegt, verkauft oder verbraucht, und die Automatik fasst Mythics ohnehin nie an.</p>" };
+HHAuto_ToolTips.de['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Alle angelegten Mythic-Items sind bereits auf Maximallevel. Nur Mythic-Items können gelevelt werden.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Du hast noch kein Mythic-Item angelegt. Nur Mythic-Items können gelevelt werden – leg sie zuerst an, „Mögliche beste Ausrüstung“ erledigt das.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearUpgradeNoneOwned'] = { version: "8.13.0", elementText: "Du hast noch keine Mythic-Items. Nur Mythic-Items können gelevelt werden; legendäre und epische Teile haben einen festen Wert, der an dein Level gebunden ist.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearUpgradeInInventory'] = { version: "8.13.0", elementText: "Mythic-Items im Inventar", tooltip: "" };
 HHAuto_ToolTips.de['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Geschätzte Kosten (5 Mio. pro Skill):", tooltip: "Geschätzte Kosten für das Bestücken des Teams" };
 HHAuto_ToolTips.de['StuffTeamMoney'] = { version: "7.30.0", elementText: "Geld behalten", tooltip: "(Ganzzahl)<br>Mindestbetrag, der behalten wird." };
 HHAuto_ToolTips.de['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Wählt die Mädel-Ausrüstung automatisch." };
@@ -1770,6 +1782,10 @@ HHAuto_ToolTips.es['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Mejo
 HHAuto_ToolTips.es['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mejor equipo posible", tooltip: "Equipa la armadura que será más fuerte una vez subida al máximo, acorde con tu clase y con el tema de tu equipo. Muestra lo que te cuesta el cambio hoy." };
 HHAuto_ToolTips.es['HHGearUpgrade'] = { version: "8.8.0", elementText: "Mejorar equipo", tooltip: "Sube al máximo posible los objetos míticos que llevas puestos, usando objetos legendarios y épicos como material. Los míticos nunca se consumen. Muestra el coste antes de gastar nada." };
 HHAuto_ToolTips.es['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Marcar los que conservar", tooltip: "<p>Marca con una estrella las piezas míticas que merece la pena conservar, de modo que <b>todo lo no marcado se puede gastar a mano como material de mejora sin riesgo</b>.</p><p>Se conserva una pieza por ranura y elemento. Cuál: primero tu propia clase, después <code>daño</code> antes que <code>defensa</code>, antes que <code>ego</code>, antes que <code>armonía</code>, y por último el nivel más alto.</p><p>Un elemento que sólo tengas en una clase ajena conserva igualmente su mejor pieza; de lo contrario ese elemento desaparecería por completo de la ranura.</p><p>Sólo informativo: no se equipa, vende ni consume nada, y la automatización nunca usa míticos como material.</p>" };
+HHAuto_ToolTips.es['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Todos los objetos míticos que llevas puestos ya están al nivel máximo. Solo los objetos míticos pueden subir de nivel.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Todavía no llevas puesto ningún objeto mítico. Solo los objetos míticos pueden subir de nivel: equípalos primero, «Mejor equipo posible» lo hace por ti.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearUpgradeNoneOwned'] = { version: "8.13.0", elementText: "Todavía no tienes ningún objeto mítico. Solo los objetos míticos pueden subir de nivel; las piezas legendarias y épicas tienen un valor fijo ligado a tu nivel.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearUpgradeInInventory'] = { version: "8.13.0", elementText: "Objetos míticos en el inventario", tooltip: "" };
 HHAuto_ToolTips.es['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Coste estimado (5 M por habilidad):", tooltip: "Coste estimado de preparar el equipo." };
 HHAuto_ToolTips.es['StuffTeamMoney'] = { version: "7.30.0", elementText: "Dinero a conservar", tooltip: "(Entero)<br>Dinero mínimo que se conserva." };
 HHAuto_ToolTips.es['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Dar equipo", tooltip: "Selecciona automáticamente el equipo de las chicas." };
@@ -25570,21 +25586,19 @@ class EquipmentGear {
      *  under either query parameter, so there is no version of this that can
      *  offer to level the rest of what the player wears. */
     static noTargetsMessage(empty) {
-        const hint = '<p style="color:#aaa;">Put the pieces you want to develop on first'
-            + ' &mdash; "Possible Best Gear" does exactly that.</p>';
+        const text = (key) => esc(getTextForUI(key, 'elementText'));
         switch (empty.reason) {
             case 'none-equipped':
-                return `<p>You own ${empty.inInventory} mythic piece(s), but none of them is`
-                    + ' equipped, and only worn gear is levelled here.</p>' + hint;
+                // The count is appended, not interpolated: the translations
+                // carry no placeholders anywhere, and "label: N" reads the
+                // same in all four languages.
+                return `<p>${text('HHGearUpgradeNoneEquipped')}</p>`
+                    + `<p style="color:#aaa;">${text('HHGearUpgradeInInventory')}: ${empty.inInventory}</p>`;
             case 'no-mythic-owned':
-                return '<p>You are not wearing any mythic gear, so there is nothing to level.</p>'
-                    + '<p style="color:#aaa;">Only mythic pieces gain levels. Legendary and epic'
-                    + ' ones carry a fixed value tied to your own level, and the game turns the'
-                    + ' upgrade page away for them.</p>';
+                return `<p>${text('HHGearUpgradeNoneOwned')}</p>`;
             case 'all-at-cap':
             default:
-                return `<p>Every mythic you are wearing is already at level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}.</p>`
-                    + hint;
+                return `<p>${text('HHGearUpgradeAllAtCap')}</p>`;
         }
     }
     static showUpgradePlan(targets, stock, theme, empty) {
