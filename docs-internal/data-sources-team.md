@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-09-09
-verified-against-version: 8.12.18
+last-verified: 2026-09-11
+verified-against-version: 8.13.1
 status: current
 ---
 
@@ -22,7 +22,12 @@ Access: ``getHHVars("availableGirls")`` or ``unsafeWindow.availableGirls``.
 Available on the Edit-Team page (``pagesIDEditTeam``).
 Type: ``Array<GirlData>``.
 
-Field list verified against a HentaiHeroes live dump (2026-05-05).
+Field list measured 2026-09-11 on ``/edit-team.html?battle_type=leagues``
+(test account, 24 girls): an array of 24, each entry with 62 fields -- every
+field listed below and no others. ``caracs`` carries ``carac1..3``,
+``blessing_bonuses`` carries ``pvp_v3`` and ``pvp_v4``, and ``element_data``
+the eight keys shown further down. ``availableGirls`` does not exist on
+``/teams.html``, and ``teams_data`` does not exist on the edit-team page.
 
 ### Identity & basic info
 
@@ -171,8 +176,14 @@ fixtures and a live dump; role blessing that week: "Week of the Bugger"
 | ``stone`` | Physical |
 | ``sun`` | Playful |
 | ``darkness`` | Dominatrix |
-| ``psychic`` | Submissive |
-| ``light`` | Voyeur |
+| ``psychic`` | Voyeur |
+| ``light`` | Submissive |
+
+Measured 2026-09-11 from ``element_data.flavor`` of all 24 girls on the
+edit-team page -- this table had the last two rows swapped until then. Two
+places in the code still carry the swapped pair: ``BlessingService.parseElement``
+(``'submissive' -> 'psychic'``, ``'voyeur' -> 'light'``) and the display names in
+``TeamModule.CLASS_NAME``.
 
 ### Trait data
 
@@ -239,11 +250,14 @@ Measured 2026-09-09 on a live account with one unlocked team of three girls:
 | ``max_team_size`` | ``7`` | **capacity**, stated separately |
 | ``total_power`` | ``2969.89`` | matches the page's "Total Power 2,970" |
 | ``slot_index`` | | which of the team slots this is |
-| further | ``caracs``, ``remaining_ego``, ``hitter_girl_id``, ``id_team``, ``theme``, ``synergies``, ``theme_elements``, ``power_display`` | |
+| further | ``caracs``, ``remaining_ego``, ``hitter_girl_id``, ``id_team``, ``theme``, ``synergies``, ``theme_elements``, ``power_display``, ``id_member``, ``locked``, ``min_team_size``, ``selected_for_battle_type`` | the last four measured 2026-09-11 |
 
 The account had 30 entries in ``teams_data`` (one unlocked, the rest empty
 with ``girls_ids: []``); the page shows 16 slots, 4 open and 12 padlocked
-behind a Monthly Card.
+behind a Monthly Card. Re-measured 2026-09-11 on the same account: still 30
+entries, 29 of them empty; the selected team now full (``girls_ids`` 7,
+``girls`` 7, ``max_team_size`` 7), and 30 ``.team-slot-container`` in the DOM.
+``teams_data`` is an object keyed by slot index, not an array.
 
 **Capacity is not occupancy.** Reading a short ``girls`` array as a broken
 team is what v8.12.18 fixed: the array is short because the team is not full,
@@ -261,6 +275,8 @@ the team's Total Power from **2,970 to 3,459**.
 Access: ``$('.girl_img', element).attr('data-new-girl-tooltip')`` -> ``JSON.parse``.
 Set by the game itself, available on Edit-Team-Page DOM elements with ``div[id_girl]``.
 Used by ``setTopTeamLegacy`` when ``availableGirls`` is missing.
+Measured 2026-09-11: 31 such attributes on the edit-team page, each with
+exactly the eleven fields below.
 
 | Field | Type |
 |---|---|
@@ -324,8 +340,23 @@ Response shape:
 | Slot | Type | League-relevant |
 |---|---|---|
 | 1 | Element OR Position OR Hair/Eye Color | yes |
-| 2 | Zodiac | yes |
+| 2 | Zodiac, **or Rarity** (see below) | yes |
 | 3 | Role | no -- Love-Labyrinth only |
+
+Measured 2026-09-11 (``action=get_girls_blessings``, response keys
+``active``, ``upcoming``, ``success``; three active, three upcoming, each
+with ``title``, ``description``, ``remaining_time``, ``starts_in``): the
+conditions that week were ``Favorite position 69`` (+25%), ``Rarity
+Legendary`` (+25%) and ``Role Pleasurelock`` (+30%). Slot 2 is therefore not
+always a zodiac. ``BlessingService.parseTraits`` and ``parseBlessedValues``
+know eye colour, hair colour, zodiac and position (element through
+``parseElement``), not rarity: the cache written that day held
+``blessedTraits: ["position"]`` and nothing for the rarity blessing.
+The per-girl numbers do carry it: all five legendary girls had
+``pvp_v3.carac1 = [25]``, and ``can_be_blessed`` was true for exactly the
+girls with a non-empty ``pvp_v3`` (24 of 24). Scoring that reads
+``blessing_bonuses`` sees the rarity bonus; only the trait list built from the
+API text does not.
 
 Labyrinth-only blessings are filtered by ``BlessingService.parseTraits``
 with ``!desc.includes('bonus on all attributes') || desc.includes('labyrinth')``.
@@ -335,7 +366,8 @@ with ``!desc.includes('bonus on all attributes') || desc.includes('labyrinth')``
 - Condition type from ``<span class="blessing-condition">...</span>``.
 - Bonus value from ``<span class="blessing-bonus">+ XX%</span>``.
 - Observed condition kinds: ``Element ...``, ``Zodiac sign ...``,
-  ``Favourite/Favorite position ...``, ``Role ...``.
+  ``Favourite/Favorite position ...``, ``Role ...``, ``Rarity ...``
+  (2026-09-11).
 - Rarely observed: ``Hair color ...``, ``Eye color ...``.
 
 ---
@@ -351,3 +383,7 @@ Returned by ``BlessingService.getCached()``:
 | ``blessedTraits`` | string[] | ``['eyeColor', 'zodiac']`` |
 | ``blessedValues`` | object | ``{eyeColor: 'golden', zodiac: 'sagittarius'}`` |
 | ``blessedElement`` | string | Optional, ``'fire'`` / ``'sun'`` / ... when an element blessing is active |
+
+Measured 2026-09-11 in ``localStorage``: keys ``timestamp``, ``raw``,
+``blessedTraits``, ``blessedValues`` (no ``blessedElement`` -- no element
+blessing that week), five hours old, written on a home-page visit.
