@@ -1,7 +1,7 @@
 ---
 title: "Konzept: Wann ist ein Block fertig?"
 status: Entwurf zur Entscheidung
-last-verified: 2026-08-28
+last-verified: 2026-09-11
 betrifft: "Issue #1841, ADR-009 (Fokussierte Aktivitaet), ADR-010 (Navigation ist kein Stopp)"
 ---
 
@@ -235,17 +235,18 @@ dieser neun ein Fehlgriff der Heuristik.
 Ausgeliefert wurde all das mit dem Release v8.10.0 (2026-08-28). Das
 Konzept ist damit nicht erledigt, sondern vertagt.
 
-## 10. Offene Messung
+## 10. Messung: Energien auf jeder Seite
 
-Die Sonde, ob `Hero.energies.*` wirklich auf jeder Spielseite lesbar ist
-(die Voraussetzung fuer "wantsMore ist seitenunabhaengig"), konnte ich am
-2026-08-25 nicht fahren: die Profil-Session war ausgeloggt
-(`is_guest_player`, kein `Hero`-Objekt). Aus dem Code spricht alles dafuer
--- `handleChampionTicket` liest `QuestHelper.getEnergy()` in seiner
-Precondition auf beliebigen Seiten, `handleSeason` liest
-`Hero.energies.kiss.next_refresh_ts` im Step --, gemessen ist es nicht.
-Die Sonde ist read-only (kein Klick, kein Kampf) und dauert zwei Minuten,
-sobald die Session wieder eingeloggt ist.
+Die Voraussetzung fuer "wantsMore ist seitenunabhaengig" ist, dass
+`Hero.energies.*` auf jeder Spielseite lesbar ist. Gemessen 2026-09-11
+(8.13.1, Pruefkonto, ohne HHauto): auf allen 39 besuchten Seiten, die das
+Spiel-Wurzelelement tragen, standen `shared.Hero.energies.{kiss, fight,
+challenge, quest, worship, drill}` jeweils mit `amount`, `max_regen_amount`,
+`next_refresh_ts` und `seconds_per_point` -- darunter Kampf-Vorseiten,
+Event-Reiter, Harem, Markt und die Questseite. Ausgenommen sind nur Seiten
+ohne dieses Element (Kampfseiten, Vorkampfseiten ohne Parameter); dort laeuft
+auch HHauto nicht an. Die Liste je Seite steht in `data-sources-inventory.md`,
+Abschnitt 10.
 
 ## 11. Zu entscheiden
 
