@@ -410,6 +410,12 @@ point = max(3, 3 + ceil(10 * (opponentMaxHP - opponentHP) / opponentMaxHP))
 
 (opponentMaxHP - opponentHP) ist der dem Gegner zugefuegte Schaden. Bereich: 3 (kein Schaden) .. 13 (Gegner fast tot).
 
+**An einem echten Kampf gemessen (2026-09-11, Pruefkonto):** HHauto
+simulierte 127 Liga-Gegner in 5 s; fuer den gewaehlten Gegner `win` 1,0,
+`scoreClass` `plus`, Verteilung 17 bis 24 Punkte, Erwartungswert 22,1. Ein
+Einzelkampf gegen ihn brachte **+22** Ligapunkte (1309 -> 1331). Ein Kampf ist
+keine Rate; er liegt aber im Erwartungswert und in der Sieg-Formel oben.
+
 ### Aggregation
 
 Jede Endknoten-Auswertung tracked points: {[point]: 1} und wird ueber mergeResult mit Wahrscheinlichkeit gewichtet zu einer Punkte-Verteilung gemerged. Aufrufer berechnen den Erwartungswert selbst:
