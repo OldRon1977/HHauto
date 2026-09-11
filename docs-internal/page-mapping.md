@@ -126,6 +126,7 @@ Spiel-Updates zu bemerken.
 
 Gemessen 2026-09-11 ueber 38 verschiedene `getPage()`-Werte: unbekannt war nur
 `powerplace1`. Die Einzel-PoP-IDs entstehen zur Laufzeit (`"powerplace" + id`)
-und stehen deshalb in keiner Liste; jede besuchte Einzel-PoP landet so einmal
-in `unknownPagesList`, ohne dass sich am Spiel etwas geaendert haette.
+und stehen deshalb in keiner Liste. `getPage(true)` nimmt `powerplace<N>` seit
+8.13.1 aus; vorher landete jede besuchte Einzel-PoP einmal in
+`unknownPagesList`, ohne dass sich am Spiel etwas geaendert haette.
 
