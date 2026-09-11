@@ -523,6 +523,15 @@ Die **+30 % sind konstant**, die Kosten nicht -- sie haengen am Maedchen.
 Gehaltssumme ueber `girlsDataList` auf `/home.html`: 51.600 vor dem ersten
 Grade, 116.600 nach zweien.
 
+**Das kuenftige Gehalt nennt das Spiel nirgends** (gemessen 2026-09-11 an
+einem Maedchen mit Grade 2 von 5 und `can_upgrade = true`). Das `girl`-Objekt
+traegt nur das aktuelle `salary`, `salary_per_hour` und `pay_time`;
+`grade_offset_values` sind Bildversatzwerte, keine Gehaelter. Der Gifts-Reiter
+zeigt nur den Zuneigungsbedarf (*Until grade 5 : 6719*), die Bezahlseite
+`/quest/<n>?grade=<k>` nur die beiden Preise -- hier 450K Geld oder 18 Kobans.
+Wie viel Gehalt ein Grade bringt, laesst sich deshalb nur durch Vorher/Nachher
+an einem echten Upgrade messen.
+
 ### `salary` ist keine Rate
 
 `salary` und die Anzeige *Income: N/h* sind zwei Groessen. Gemessen 2026-09-09
