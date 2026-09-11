@@ -353,6 +353,11 @@ die Ligenliste hoerte beim ersten solchen Gegner auf, sich zu fuellen. Das
 Ergebnis traegt jetzt immer `points`; die Pruefung im Aufrufer steht trotzdem,
 weil der try/catch bei einem anderen Fehler weiterhin `{}` liefern kann.
 
+Gemessen in einer Liga mit 122 offenen Gegnern, gespeicherte Liste vorher
+geloescht, sichtbares Fenster mit GPU: alle 122 in 5 s neu berechnet und
+gespeichert, kein Gegner uebersprungen, kein ungueltiger Wert in der Liste.
+Der Hauptthread war 6-mal blockiert, am laengsten 162 ms, zusammen 511 ms.
+
 ### Aggregation
 
 Am Ende:
