@@ -24,7 +24,7 @@ gekennzeichnet. Kontokennungen und Spielernamen stehen nicht drin.
 | `id` | Bedeutung | Kosten |
 |---|---|---|
 | `free` | naechster Schritt ohne Kosten | - |
-| `pay` | naechster Schritt gegen Ressource | Geld (100-250 in Welt 1-3, 12.0K gemessen auf `/quest/420`) oder Quest-Energie |
+| `pay` | naechster Schritt gegen Ressource | Geld (100-250 in Welt 1-3; gemessen 12.0K auf `/quest/420`, 13.0K auf `/quest/433`, 17.0K auf `/quest/505`) oder Quest-Energie |
 | `use_item` | Questgegenstand einsetzen | der Gegenstand |
 | `battle` | Questschritt verlangt einen Kampf | Kampfenergie |
 | `end_play` | Quest zu Ende, danach Reward-Popup | - |
@@ -86,7 +86,7 @@ Knopf schaut, meldet einen Haenger, der keiner ist.
 | `#simple_text_popup.popup` (Wartungsmeldung) | `close.closable` |
 | `#no_HC` | `close.closable` |
 | `#rewards_popup` | `button.blue_button_L` / `button.purple_button_L` |
-| `#not_enough_SC_popup.popup` (zu wenig Geld) | `close.closable` -- laesst den Knopf aktiv, siehe unten |
+| `#not_enough_SC_popup.popup` (zu wenig Geld) | `close.closable` -- der Knopf bleibt danach grau, siehe unten |
 
 `close` als **Elementname** existiert also wirklich; die Selektoren in
 `Quest.ts`, die danach suchen, sind kein Tippfehler. Fuer `#level_up` greifen
@@ -105,22 +105,50 @@ Quest weg. Nach Text zu greifen scheidet aus: die Oberflaeche ist mehrsprachig.
 `shared.general.notEnoughSoftCurrency(fehlbetrag)`; sonst `hc_confirm` und
 darin `startLoading()` samt Anfrage an den Server.
 
-Gemessen 2026-09-11, Popup per Aufruf von `notEnoughSoftCurrency(5928)` auf
-einer Questseite erzeugt: `#not_enough_SC_popup` in `#common-popups`, der
-Fehlbetrag in `span[rel="money"]`, einziges Bedienelement ausser dem
-Harem-Link ist `close.closable`. Nach dem Schliessen ist das Popup aus dem DOM
-verschwunden. Auf diesem Weg bleibt der Weiter-Knopf **aktiv**.
+Gemessen 2026-09-11 mit einem echten Klick auf einen Geld-Schritt (17.0K
+bei 7.063 Guthaben): Der Browser lehnt selbst ab, es geht **keine** Anfrage an
+den Server. `#not_enough_SC_popup` erscheint in `#common-popups`, der
+Fehlbetrag steht in `span[rel="money"]` (`9,937`), einziges Bedienelement
+ausser dem Harem-Link ist `close.closable`. Der Weiter-Knopf ist schon mit dem
+Popup grau und bleibt es nach dem Schliessen; das Popup ist dann aus dem DOM
+verschwunden. Erst ein Seitenwechsel stellt den Knopf wieder her.
 
-Grau wird der Knopf nur durch `startLoading()` im anderen Zweig -- wenn die
-Pruefung im Browser bestanden war. Ein grauer Knopf unter diesem Popup heisst
-daher: Browser und Skript hielten das Guthaben fuer ausreichend, der Server
-nicht. Das ist aus `quest.js` **geschlossen**, nicht beobachtet. Beide lesen
-dieselbe Variable, und ein veralteter Hero-Schnappschuss (siehe "Zwei
-Messfallen") erklaert den Unterschied. Die Vorpruefung in `Quest.ts` kann
-diesen Fall also nicht verhindern; `Quest.ts` schliesst das Popup deshalb,
-merkt sich die volle Schrittgebuehr als `$<kosten>` und laesst die Quest 20
-Minuten ruhen (`QuestHelper.NO_MONEY_TIMER`), statt einen Takt spaeter wieder
-auf dasselbe Guthaben zu vertrauen.
+Ein grauer Knopf unter diesem Popup sagt also nichts darueber, ob der Server
+gefragt wurde. Die Vorpruefung in `Quest.ts` liest dasselbe Guthaben wie das
+Spiel; kommt das Popup trotzdem, war ihr Wert falsch -- ein veralteter
+Hero-Schnappschuss (siehe "Zwei Messfallen") erklaert das. `Quest.ts` prueft
+das Popup deshalb vor dem grauen Knopf, schliesst es, merkt sich die volle
+Schrittgebuehr als `$<kosten>` und laesst die Quest 20 Minuten ruhen
+(`QuestHelper.NO_MONEY_TIMER`). Weil der Knopf grau bleibt, darf der Bot nicht
+auf der Seite warten: der `$`-Zweig in `handleQuest` schickt ihn im naechsten
+Takt nach home.
+
+Was dabei im Spiel steht, gemessen am 2026-09-11 auf `/quest/505`
+(17.0K Preis, 7.063 Guthaben, englische Oberflaeche):
+
+| Was | Selektor oder Variable | Wert |
+|---|---|---|
+| Weiter-Knopf | `#controls button#pay` | Text `Use 17.0K` |
+| Preis | `#controls button#pay .action-cost .price` | `17.0K` -- gekuerzt, `parsePrice` macht 17000 daraus |
+| Waehrung | `.action-cost .soft_currency_icn` (Geld), `.action-cost .energy_quest_icn` (Quest-Energie) | genau eines von beiden im Knopf |
+| Knopf gesperrt | Attribut `disabled` am Knopf | vor dem Klick `false`, ab dem Klick `true`, auch nach dem Schliessen |
+| Guthaben | `shared.Hero.currencies.soft_currency` | `7063`; kann beim Seitenladen veraltet sein |
+| Popup | `#not_enough_SC_popup` | erscheint beim Klick, ohne Anfrage an `ajax.php` |
+| Fehlbetrag | `#not_enough_SC_popup span[rel="money"]` | `9,937` -- mit Tausender-Komma, `parsePrice` macht 9937 daraus |
+| Popup-Text | Text des Popups | `You lack 9,937 to complete this action! You can collect from the harem, do missions, battles and contests - ...` |
+| Schliessen | `close.closable` im Popup | `$('close.closable', popup).trigger('click')` (die Zeile aus `Quest.ts`) schliesst es; danach ist das Popup aus dem DOM |
+
+Was HHauto daraus macht, steht im Code, nicht in dieser Messung -- ein
+HHauto-Lauf gegen diesen Zustand ist noch nicht beobachtet:
+
+| Was | Ort | Wert |
+|---|---|---|
+| Anforderung | `HHAuto_Temp_questRequirement` (sessionStorage) | `$17000` -- volle Schrittgebuehr, nicht der Fehlbetrag |
+| Sperre | Timer `nextQuestMoneyAttempt` in `HHAuto_Temp_Timers` | `QuestHelper.NO_MONEY_BACKOFF_SECS` = 1200 s; nur auf dem Popup-Weg |
+| Log, Vorpruefung greift | `Quest.ts` | `Need 17000 Money to proceed.` |
+| Log, Popup kam | `Quest.ts` | `Quest step refused for money: 9937 missing, need 17000. Not trying again for 20 minutes.` |
+| Log, Heimweg | `handleQuest` in `Pipeline.config.ts` | `Quest waiting for resources, returning home.` |
+| Weiter | `$`-Zweig in `handleQuest` | erst wenn die Sperre abgelaufen ist **und** das Guthaben ueber `$<kosten>` liegt |
 
 ## Questgegenstand
 
