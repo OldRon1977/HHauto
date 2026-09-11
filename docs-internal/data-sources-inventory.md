@@ -96,10 +96,11 @@ steht es gemessen als `const love_raids = [...]` im Inline-Skript: im
 Seiten-Scope ein Array (26 Raids, troll, season und champion; `/map.html` hatte
 zur selben Zeit 23, nur troll), aber **keine** Fenster-Property.
 `window.love_raids` ist dort das leere Modul-Objekt des Spiel-Skripts
-`love_raids.js` (0 Schluessel). `parseRaids` liest den nackten Namen
-`love_raids`. Abgeleitet, nicht gemessen: unter Tampermonkey mit `@grant`
-laeuft das Skript nicht im Seiten-Scope, sieht also das leere Objekt und liest
-0 Raids; der Harness spritzt das Bundle in den Seiten-Scope und sieht die 26.
+`love_raids.js` (0 Schluessel). Ein Userscript mit `@grant` erreicht nur
+Fenster-Properties; `parseRaids` las bis 8.13.1 den nackten Namen und sah dort
+(abgeleitet) das leere Objekt. `LoveRaidManager.readPageRaids()` nimmt
+`unsafeWindow.love_raids`, wenn es ein Array ist, und liest sonst das Array aus
+dem Inline-Skript der Seite.
 
 `server_now_ts` wird ueber `getHHVars('server_now_ts')` (siehe Sektion 2) gelesen, nicht direkt ueber `unsafeWindow`.
 

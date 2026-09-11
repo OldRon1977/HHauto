@@ -46,6 +46,9 @@ Older entries below were migrated 1:1 from `README.md`.
 - **Troll battles:** when the waifu page gives no usable girl list, the script no
   longer goes waifu -> home -> waifu every few seconds; it waits ten minutes
   before asking that page again.
+- **Love Raids:** the raid page declares its raid list in a way an installed
+  userscript cannot see as a page variable, so the script read no raids there
+  and chose no Love Raid fights. It now reads the list from the page itself.
 - **Log:** a single Place of Power page is no longer reported as an unknown page.
 - **Troll battles:** with *First/Last troll with girl*, the script could
   reload the waifu page every few seconds without end. It happened after an
