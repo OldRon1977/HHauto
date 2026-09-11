@@ -54,6 +54,14 @@ needs ten girls, the armour inventory was empty, the labyrinth was locked, and
 the three league checks flip between runs because the game serves a stale hero
 snapshot about half the time (see `docs-internal/adventure-quest-flow.md`).
 
+The same account at level 115 in world 5, with 24 girls and the labyrinth
+open, measured 2026-09-11: 16 OK, 0 DRIFT, 7 SKIP (the manual entries) --
+every `requires` met, every automatic check holding, the league checks
+included. Two of the manual entries were measured read-only the same day:
+`girl-equipment-slots` (six `.equipment_slot`, `slot` 1 to 6, on
+`?resource=equipment`; none on the books tab) and `gift-button`
+(`#girl-leveler-max-out-affection` present and visible on an upgradable girl).
+
 Add `requires` to any check whose page only renders past an unlock. It costs a
 sentence and saves the investigation that a bare `0` starts.
 
