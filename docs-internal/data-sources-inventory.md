@@ -175,7 +175,7 @@ Die meisten Calls laufen ueber `getHHAjax()` (delegiert an `shared.general.hh_aj
 
 | action-String | Weitere Parameter | Datei | Symbol/Funktion | Wofuer |
 |---|---|---|---|---|
-| `hero_update_stats` | `carac: "carac1"|"carac2"|"carac3"`, `nb: <mult>` (1/10/30/60) | `Helper/HeroHelper.ts` | `doStatUpgrades()` | Stat-Punkt-Upgrade. Antwort gemessen 2026-09-11 (nb=1): `{success, currency:{soft_currency}, carac<N>, endurance, chance, statsPrices:{prices:{x1,x10,x30,x60}, base_stat, max}}` -- `carac<N>` ist der Gesamtwert mit Boni, `x1` der Preis des **naechsten** Punkts. `shared.Hero.infos.carac<N>` bewegt sich im laufenden Dokument nicht, erst nach dem Neuladen |
+| `hero_update_stats` | `carac: "carac1"|"carac2"|"carac3"`, `nb: <mult>` (1/10/30/60) | `Helper/HeroHelper.ts` | `doStatUpgrades()` | Stat-Punkt-Upgrade. Antwort gemessen 2026-09-11 (nb=1): `{success, currency:{soft_currency}, carac<N>, endurance, chance, statsPrices:{prices:{x1,x10,x30,x60}, base_stat, max}}` -- `carac<N>` ist der Gesamtwert mit Boni, `x1` der Preis des **naechsten** Punkts. `shared.Hero.infos.carac<N>` bewegt sich im laufenden Dokument nicht, erst nach dem Neuladen; `doStatUpgrades` zaehlt einen bestaetigten Kauf deshalb selbst hoch und nimmt `statsPrices.max` als Grenze (seit 8.13.1) |
 | `market_equip_booster` | `id_item: <num>`, `type: "booster"` | `Helper/HeroHelper.ts` | `HeroHelper.equipBooster()` | Booster equippen (normal oder mythic) |
 | `champion_team_reorder` | `champion_id`, weitere Team-Felder, `champion_type: "club_champion"|"champion"` | `Module/Champion.ts` | `Champion.setChampionTeam()` | Champion-Team neu setzen |
 | `do_battles_leagues` | `opponent_id`, `number_of_battles` | `Module/League.ts` | `League` (Battle-Submit) | League-Battle starten (Mehrfach) |
@@ -338,8 +338,8 @@ wenn `usages_remaining` fehlt oder 0 ist -- in `shared.js`:
 `t.usages_remaining&&t.usages_remaining>0?t.usages_remaining:t.item.default_usages`.
 
 | `#player-inventory.armor .slot:not(.empty)[data-d*='"rarity":"mythic"']` (Selector-Inhalts-Match) | Filter ueber Substring-Match in `data-d` | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` |
-| `[data-d*='"name_add":<X>']` (dyn. Filter) | Filter nach Stat. Gemessen 2026-09-11 in `#player-inventory.armor` (65 Teile): `name_add` steht als Zahl ohne Anfuehrungszeichen (`"name_add":16`); `buildSlotFilter` sucht `"name_add":"<X>"` und trifft damit nichts, der Verkaufs-Loop ohne Anfuehrungszeichen trifft | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
-| `[data-d*='"subtype":<X>']` (dyn. Filter) | Filter nach Item-Subtyp. Gemessen 2026-09-11: `subtype` steht nur in `skin` und als Zahl (`"subtype":6`); `buildSlotFilter` sucht `"subtype":"<X>"` und trifft nichts, `rarity` steht als String und trifft | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
+| `[data-d*='"name_add":<X>']` (dyn. Filter) | Filter nach Stat. Gemessen 2026-09-11 in `#player-inventory.armor` (65 Teile): `name_add` steht als Zahl ohne Anfuehrungszeichen (`"name_add":16`); stets gefolgt von einem Komma. `buildSlotFilter` und die Verkaufsschleife suchen seit 8.13.1 `"name_add":<X>,`; vorher traf der Filter mit Anfuehrungszeichen nichts, und die Schleife zaehlte ohne Komma Stat 1 zusammen mit 10 bis 16 | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
+| `[data-d*='"subtype":<X>']` (dyn. Filter) | Filter nach Item-Subtyp. Gemessen 2026-09-11: `subtype` steht nur in `skin` und als Zahl (`"subtype":6`); `buildSlotFilter` sucht seit 8.13.1 `"subtype":<X>,` (vorher in Anfuehrungszeichen, ohne Treffer); `rarity` steht als String | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
 | `[data-d*='"rarity":"<X>"']` (dyn. Filter) | Filter nach Rarity | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
 | `#equiped .armor .slot[data-d*=<typesOfSets[idx]>]` | Equipped-Armor mit Set-Match | Shop (Sell-Loop) | `Module/Shop.ts` | Sell-Loop in Shop |
 | Sell-Loop: `availableItems.filter('.selected')[0].getAttribute('data-d')` | Selektiertes Item pruefen | Shop | `Module/Shop.ts` | Sell-Loop |
@@ -483,8 +483,6 @@ sie nicht: der Einzelkampf laeuft ueber `gotoPage(pagesIDLeagueBattle,
 | Selector | Was extrahiert | Page | Datei | Symbol |
 |---|---|---|---|---|
 | `.shop div.shop_count span[rel="expires"]` `.first().text()` | Shop-Refresh-Timer (HH:MM:SS) | Shop | `Module/Shop.ts` | `Shop.collectShopFromMarket()` (mit `convertTimeToInt`) |
-| `#girls_list .g1 .nav_placement span:not([contenteditable])` | Shop-Girl-Count | Shop | `config/HHEnvVariables.ts` | Konstante `shopGirlCountRequest` -- von keinem Code gelesen; der Selektor im Code ist unvollstaendig (`span:not([contenteditable]` ohne `)`); gemessen 0 Treffer |
-| `#girls_list .g1 .nav_placement span[contenteditable]` | Aktueller Shop-Girl-Index | Shop | `config/HHEnvVariables.ts` | Konstante `shopGirlCurrentRequest` |
 
 ### 6.12 Sonstige UI-Lookups (Timer, Reward-Banner, etc.)
 

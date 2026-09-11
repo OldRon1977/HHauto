@@ -180,10 +180,10 @@ fixtures and a live dump; role blessing that week: "Week of the Bugger"
 | ``light`` | Submissive |
 
 Measured 2026-09-11 from ``element_data.flavor`` of all 24 girls on the
-edit-team page -- this table had the last two rows swapped until then. Two
-places in the code still carry the swapped pair: ``BlessingService.parseElement``
-(``'submissive' -> 'psychic'``, ``'voyeur' -> 'light'``) and the display names in
-``TeamModule.CLASS_NAME``.
+edit-team page -- this table had the last two rows swapped until then. The code
+carried the same swap in ``BlessingService.parseElement`` (so an element
+blessing for Submissive was read as psychic) and in the display names of
+``TeamModule.CLASS_NAME``; both follow the game since 8.13.1.
 
 ### Trait data
 
@@ -350,13 +350,13 @@ conditions that week were ``Favorite position 69`` (+25%), ``Rarity
 Legendary`` (+25%) and ``Role Pleasurelock`` (+30%). Slot 2 is therefore not
 always a zodiac. ``BlessingService.parseTraits`` and ``parseBlessedValues``
 know eye colour, hair colour, zodiac and position (element through
-``parseElement``), not rarity: the cache written that day held
-``blessedTraits: ["position"]`` and nothing for the rarity blessing.
-The per-girl numbers do carry it: all five legendary girls had
+``parseElement``) -- and, until 8.13.1, not rarity: the cache written that day
+held ``blessedTraits: ["position"]`` and nothing for the rarity blessing. Both
+functions read ``Rarity ...`` now (trait ``rarity``, value e.g. ``legendary``).
+The per-girl numbers carried it all along: all five legendary girls had
 ``pvp_v3.carac1 = [25]``, and ``can_be_blessed`` was true for exactly the
 girls with a non-empty ``pvp_v3`` (24 of 24). Scoring that reads
-``blessing_bonuses`` sees the rarity bonus; only the trait list built from the
-API text does not.
+``blessing_bonuses`` saw the rarity bonus either way.
 
 Labyrinth-only blessings are filtered by ``BlessingService.parseTraits``
 with ``!desc.includes('bonus on all attributes') || desc.includes('labyrinth')``.

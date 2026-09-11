@@ -71,11 +71,13 @@ Preis steigt mit jedem Kauf des selben Stats. Das Skript verwendet diesen Mechan
 die Antwort auf `hero_update_stats` nennt `statsPrices.base_stat` 575 und
 `statsPrices.max` 4025. 575 + 30 x 115 = 4025 -- die Obergrenze je Stat ist
 also Grundwert plus 30 je Level (aus dieser einen Messung geschlossen).
-`doStatUpgrades` begrenzt mit `level * 30` ohne den Grundwert. Der Punkt kostete
-6.173; die Formel in `doStatUpgrades` ergibt fuer den Stand 2541 6.169, fuer
-2542 6.173 -- sie liegt eine Stufe zu niedrig. `statsPrices.prices.x1` (6.177)
-ist der Preis des **naechsten** Punkts. `shared.Hero.infos.carac3` blieb im
-laufenden Dokument bei 2541, erst nach dem Neuladen stand 2542.
+Der Punkt kostete 6.173, den Kurvenwert der erreichten Stufe 2542;
+`statsPrices.prices.x1` (6.177) ist der Preis des **naechsten** Punkts.
+`shared.Hero.infos.carac3` blieb im laufenden Dokument bei 2541, erst nach dem
+Neuladen stand 2542. `doStatUpgrades` rechnet seit 8.13.1 jeden Punkt zum Wert
+der erreichten Stufe (`statBuyPrice`), nimmt die Grenze aus `statsPrices.max`,
+sobald eine Antwort da ist (davor `level * 30`, ohne den Grundwert), und zaehlt
+einen bestaetigten Kauf selbst hoch, weil das Spiel es im Dokument nicht tut.
 
 ---
 
