@@ -266,7 +266,11 @@ Aktionen, Parameter- und Antwortschluessel ohne Werte:
 | `tutorial_complete` | 3 | `action, tutorial` | `success` |
 
 Neu gegenueber der ersten Aufnahme ist `bb_team_index` an den Troll- und
-Season-Kaempfen. Kein `do_battles_leagues`: die Herausforderungsenergie stand
+Season-Kaempfen. Ein von Hand ausgeloester Liga-Einzelkampf am selben Tag
+("Challenge! x1" auf der Vorkampfseite) schickte `do_battles_leagues` mit
+`action, id_opponent, bb_team_index, number_of_battles` (=1); die Antwort trug
+`rewards, result, hero_changes, battle_result, rounds, objective_points,
+success` -- dieselbe Form wie Troll und Season. Kein `do_battles_leagues`: die Herausforderungsenergie stand
 am Anfang und am Ende bei 2. Ueber `getHHAjax()` hat HHauto in diesen 20
 Minuten nichts gesendet -- eine Markierung in `getHHAjax` blieb stumm; ob sie
 griff, ist nicht gegengeprueft. Die Kaempfe und Sammelaktionen kamen damit von
@@ -414,6 +418,15 @@ Alle anderen relevanten DOM-Reads. Aufgeteilt nach Domain.
 Entfernt am 2026-08-17: zwei Zeilen fuer `.matchRating-expected .matchRating-value` und die Plain-Power-Variante. Beide wurden ausschliesslich von einem auskommentierten `getPowerOrPoints`-Block gelesen; der Block ist geloescht (Commit `chore: delete commented-out code`), und ein `grep` bestaetigt, dass kein lebender Code die Selektoren anfasst.
 | `.data-list .data-row.body-row.player-row .data-column[column="place"]` `.text()` | Eigener Rank | Leaderboard | `Module/League.ts` | League-Stop-Logic |
 | `.data-list .data-row.body-row.player-row .data-column[column="player_league_points"]` `.text()` | Eigener Score | Leaderboard | `Module/League.ts` | League-Stop-Logic |
+
+Liga-Vorkampfseite (`/leagues-pre-battle.html?id_opponent=<n>`), gemessen
+2026-09-11: die Kampfknoepfe sind `div`, keine `button` --
+`div.green_button_L.battle-action-button.league-single-battle-button`
+("Challenge! x1") und `...league-multiple-battle-button` ("Challenge! x3"),
+beide mit `data-league-id`; sie stehen 66 ms nach dem DOM-Laden. HHauto klickt
+sie nicht: der Einzelkampf laeuft ueber `gotoPage(pagesIDLeagueBattle,
+{number_of_battles: 1, id_opponent})`, der Mehrfachkampf ueber
+`do_battles_leagues` (`League.ts`).
 
 ### 6.6 Pantheon / Champion / Club Champion
 

@@ -61,6 +61,10 @@ included. Two of the manual entries were measured read-only the same day:
 `girl-equipment-slots` (six `.equipment_slot`, `slot` 1 to 6, on
 `?resource=equipment`; none on the books tab) and `gift-button`
 (`#girl-leveler-max-out-affection` present and visible on an upgradable girl).
+`edit-team-payload` was measured with a real save of the unchanged league team
+(`#validate-team` on `/edit-team.html?battle_type=leagues`): the request
+carried `class=Hero`, `action=edit_team`, `girls[]` and `battle_type=leagues`
+and no `id_team`; the answer was `{success: true}`.
 
 Add `requires` to any check whose page only renders past an unlock. It costs a
 sentence and saves the investigation that a bare `0` starts.
