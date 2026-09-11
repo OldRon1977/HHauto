@@ -137,6 +137,17 @@ DOM, or disable the setting that triggers navigation. The League UI injection,
 for instance, is gated on `showCalculatePower`, not on `autoLeagues` -- so the
 UI can be verified without fighting.
 
+**The harness sees what the page's own scripts see; Tampermonkey does not.**
+The harness evaluates the bundle in the page's scope, so a bare global name
+also finds the page's `const` and `let` declarations. A userscript with
+`@grant` runs sandboxed and reaches the page only through window properties.
+On `/love-raids.html` the game declares `const love_raids = [...]` (26 raids)
+while `window.love_raids` is an empty module object -- the harness reads the
+raids, an installed script would not.
+*Guard:* for a page global, measure `window.<name>` (what `unsafeWindow`
+returns), not the bare name, and do not take a harness pass as proof for a
+bare-name read.
+
 **Suppressing a block is not the same as idling it.**
 Setting `autoTrollThreshold` to a huge value to observe "idle ticks" made the
 precondition fail, so the block was skipped entirely (1 start in 90s instead of
@@ -390,7 +401,8 @@ tree's -- that is how a branch is compared against `main` under the same
 account and the same settings. They inject the built
 `HHAuto.user.js` with Tampermonkey shims (`GM_addStyle`, `GM.info`,
 `unsafeWindow`) via `addInitScript`, so the script survives navigations the way
-it does under Tampermonkey.
+it does under Tampermonkey -- but in the page's scope, not in a sandbox (see
+the pitfall on bare global names above).
 
 `HHAuto_Setting_master = "false"` is **not** a complete dry-run switch, contrary
 to what this document said until 2026-08-31. `handlePageSpecific` runs outside
