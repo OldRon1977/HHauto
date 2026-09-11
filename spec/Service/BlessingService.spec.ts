@@ -235,3 +235,33 @@ describe('BlessingService -- the three real cases, unmodified', () => {
         expect(BlessingService.getEffectiveMultiplier(unblessed, 'labyrinth')).toBeCloseTo(1);
     });
 });
+
+describe("BlessingService reading the blessing text", () => {
+    const blessing = (condition: string, bonus = 25) => ({
+        title: 'x',
+        description: `All girls with <span class="blessing-condition">${condition}</span> gain <span class="blessing-bonus">+ ${bonus}%</span> bonus on all attributes.`,
+        remaining_time: 1,
+        starts_in: -1,
+    });
+    function fetchWith(active: object[]) {
+        unsafeWindow.shared!.general!.hh_ajax = (...args: unknown[]) =>
+            (args[1] as (data: object) => void)({ active, upcoming: [], success: true });
+        BlessingService.fetchAndCache();
+        return BlessingService.getCached()!;
+    }
+    afterEach(() => localStorage.clear());
+
+    it("names the elements the way the game's element_data.flavor does", () => {
+        // Measured 2026-09-11 on 24 girls: light is Submissive, psychic is Voyeur.
+        expect(fetchWith([blessing('Element Submissive')]).blessedElement).toBe('light');
+        expect(fetchWith([blessing('Element Voyeur')]).blessedElement).toBe('psychic');
+        expect(fetchWith([blessing('Element Dominatrix')]).blessedElement).toBe('darkness');
+    });
+
+    it("knows a rarity blessing", () => {
+        // The week of 2026-09-11 carried "Rarity Legendary +25%" as a league blessing.
+        const cached = fetchWith([blessing('Favorite position 69'), blessing('Rarity Legendary')]);
+        expect(cached.blessedTraits).toEqual(['position', 'rarity']);
+        expect(cached.blessedValues.rarity).toBe('legendary');
+    });
+});

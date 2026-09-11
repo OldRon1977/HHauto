@@ -57,8 +57,6 @@ HHEnvVariables["global"].livelySceneEventIDReg = "lively_scene_event_";
 HHEnvVariables["global"].girlToolTipData = "data-new-girl-tooltip";
 HHEnvVariables["global"].dailyRewardNotifRequest = "#contains_all header .currency .daily-reward-notif";
 HHEnvVariables["global"].IDpanelEditTeam = "#edit-team-page"
-HHEnvVariables["global"].shopGirlCountRequest = '#girls_list .g1 .nav_placement span:not([contenteditable]';
-HHEnvVariables["global"].shopGirlCurrentRequest = '#girls_list .g1 .nav_placement span[contenteditable]';
 HHEnvVariables["global"].selectorFilterNotDisplayNone = ':not([style*="display:none"]):not([style*="display: none"])';
 HHEnvVariables["global"].selectorClaimAllRewards = "#claim-all:not([disabled]):visible:not([style*='visibility: hidden;'])"; // KK use visibility: hidden or visibility: visible to display this button
 HHEnvVariables["global"].HaremMaxSizeExpirationSecs = 7*24*60*60;//7 days

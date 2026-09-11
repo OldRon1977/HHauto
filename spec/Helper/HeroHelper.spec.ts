@@ -260,6 +260,12 @@ describe("HeroHelper", function() {
       return Hero;
     }
 
+    /** hh_ajax stand-in that answers every buy with `data`. */
+    function answering(data: object) {
+      return jest.fn((...args: unknown[]) => (args[1] as (d: object) => void)(data));
+    }
+    const nbOf = (ajax: jest.Mock, call: number) => (ajax.mock.calls[call][0] as { nb: number }).nb;
+
     beforeEach(() => {
       MockHelper.mockDomain();
       jest.useFakeTimers();
@@ -271,17 +277,64 @@ describe("HeroHelper", function() {
       sessionStorage.clear();
     });
 
-    it("stops when a stat buy does not advance the shared Hero value", async function() {
+    it("stops when a stat buy is never confirmed", async function() {
       setupHero();
-      // ajax "succeeds" but never updates shared.Hero -> value stays frozen,
-      // reproducing the issue-1735 condition.
-      const ajax = jest.fn((params: any, cb: any) => cb({ success: true }));
+      // No answer at all -- the issue-1735 condition (level-up reward screen).
+      const ajax = jest.fn();
       unsafeWindow.shared!.general!.hh_ajax = ajax;
 
       const doStatUpgrades = await loadDoStatUpgrades();
       doStatUpgrades(); // first buy issued
-      doStatUpgrades(); // frozen value -> no-progress guard stops, no second buy
+      doStatUpgrades(); // nothing confirmed -> no-progress guard stops, no second buy
       expect(ajax).toHaveBeenCalledTimes(1);
+    });
+
+    it("stops after a buy the game refuses", async function() {
+      setupHero();
+      const ajax = answering({ success: false });
+      unsafeWindow.shared!.general!.hh_ajax = ajax;
+
+      const doStatUpgrades = await loadDoStatUpgrades();
+      doStatUpgrades();
+      doStatUpgrades();
+      expect(ajax).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps buying after a confirmed buy although the game leaves shared.Hero as it was", async function() {
+      // Measured 2026-09-11 on /waifu.html: success, money charged,
+      // shared.Hero.infos.carac3 unchanged until the page was reloaded. The
+      // old guard read that as "did not advance" after every single buy.
+      const Hero = setupHero();
+      const ajax = answering({ success: true });
+      unsafeWindow.shared!.general!.hh_ajax = ajax;
+
+      const doStatUpgrades = await loadDoStatUpgrades();
+      doStatUpgrades();
+      doStatUpgrades();
+      expect(ajax).toHaveBeenCalledTimes(2);
+      expect(Hero.infos.carac3).toBe(100 + nbOf(ajax, 0) + nbOf(ajax, 1));
+    });
+
+    it("takes the stat cap from the game's answer once it has one", async function() {
+      // Cap = base stat + 30 per level (measured 575 + 30 x 115 = 4025); level * 30 alone is too low.
+      const Hero = setupHero();
+      Object.assign(Hero.infos, { level: 10, carac1: 0, carac2: 0, carac3: 250 });
+      const ajax = answering({ success: true, statsPrices: { max: 400 } });
+      unsafeWindow.shared!.general!.hh_ajax = ajax;
+
+      const doStatUpgrades = await loadDoStatUpgrades();
+      doStatUpgrades(); // level * 30 = 300: +60 would pass it, +30 does not
+      doStatUpgrades(); // the answer said 400: +60 fits now
+      expect(nbOf(ajax, 0)).toBe(30);
+      expect(nbOf(ajax, 1)).toBe(60);
+    });
+
+    it("prices each point at the level it reaches (measured 2026-09-11)", async function() {
+      jest.resetModules();
+      const { statBuyPrice } = await import("../../src/Helper/HeroHelper");
+      expect(statBuyPrice(2541, 1)).toBe(6173); // what 2541 -> 2542 cost
+      expect(statBuyPrice(2542, 1)).toBe(6177); // what the answer quoted for the next point
+      expect(statBuyPrice(2541, 2)).toBe(6173 + 6177);
     });
 
     it("keeps buying while the stat actually advances", async function() {

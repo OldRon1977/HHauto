@@ -136,17 +136,22 @@ export class Shop {
      * moduleShopActions (Shop review I4) so it can be unit-tested. "*" means
      * "any" for carac/type/rarity; inLockedValue true/"locked" selects locked
      * slots, anything else selects unlocked.
+     *
+     * `name_add` and `subtype` are numbers in data-d and are always followed
+     * by a comma (measured 2026-09-11 on all 65 armour slots of an
+     * inventory). Quoting them, as this did before, matched nothing; leaving
+     * the comma off lets "name_add":1 match 10 to 16 as well.
      */
     private static buildSlotFilter(inCaracsValue: string, inTypeValue: string, inRarityValue: string, inLockedValue: string | boolean): string
     {
         let filter='#player-inventory.armor .slot:not(.empty)';
         if (inCaracsValue !== "*" )
         {
-            filter+='[data-d*=\'"name_add":"'+inCaracsValue+'"\']';
+            filter+='[data-d*=\'"name_add":'+inCaracsValue+',\']';
         }
         if (inTypeValue !== "*" )
         {
-            filter+='[data-d*=\'"subtype":"'+inTypeValue+'"\']';
+            filter+='[data-d*=\'"subtype":'+inTypeValue+',\']';
         }
         if (inRarityValue !== "*" )
         {
@@ -249,13 +254,14 @@ export class Shop {
                 if(c === 'mythic') {
                     filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"rarity":"mythic"\']');
                 } else {
-                    filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"name_add":'+c+'\']');
+                    // The comma closes the number: without it carac 1 also counted 10 to 16.
+                    filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"name_add":'+c+',\']');
                 }
-    
+
                 itemsList[c] = {};
                 for (const t of itemsType)
                 {
-                    const filteredType = filteredCarac.filter('[data-d*=\'"subtype":'+t+'\']');
+                    const filteredType = filteredCarac.filter('[data-d*=\'"subtype":'+t+',\']');
                     itemsList[c][t] = {};
                     for (const r of itemsRarity)
                     {

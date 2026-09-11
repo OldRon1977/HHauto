@@ -560,7 +560,7 @@ export class PlaceOfPower {
 
     static chooseGirlsTeam(powerText:number, girlsList:{id: number; power: number}[])
     {
-        //Debug can be enabled by manually setting "HHAuto_Temp_Debug" to true in browser console
+        //Debug can be enabled by setting sessionStorage "HHAuto_Temp_Debug" to "true" in the browser console (a localStorage value is not read)
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey+TK.Debug)==='true';
         let startTime = 0;
         if (debugEnabled) {

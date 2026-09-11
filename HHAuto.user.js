@@ -587,6 +587,56 @@ HHAuto_ToolTips.en['HHGearMsgReading'] = { version: "8.13.1", elementText: "Read
 HHAuto_ToolTips.en['HHGearMsgNoInventory'] = { version: "8.13.1", elementText: "Could not read the inventory. Nothing was changed -- see the log.", tooltip: "" };
 HHAuto_ToolTips.en['HHGearMsgNoInventoryMark'] = { version: "8.13.1", elementText: "Could not read the inventory. Nothing was marked -- see the log.", tooltip: "" };
 HHAuto_ToolTips.en['HHGearMsgFailed'] = { version: "8.13.1", elementText: "Failed, nothing was changed. See the log.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearSlotHead'] = { version: "8.13.1", elementText: "Head", tooltip: "" };
+HHAuto_ToolTips.en['HHGearSlotBody'] = { version: "8.13.1", elementText: "Body", tooltip: "" };
+HHAuto_ToolTips.en['HHGearSlotLegs'] = { version: "8.13.1", elementText: "Legs", tooltip: "" };
+HHAuto_ToolTips.en['HHGearSlotFlag'] = { version: "8.13.1", elementText: "Flag", tooltip: "" };
+HHAuto_ToolTips.en['HHGearSlotPet'] = { version: "8.13.1", elementText: "Pet", tooltip: "" };
+HHAuto_ToolTips.en['HHGearSlotWeapon'] = { version: "8.13.1", elementText: "Weapon", tooltip: "" };
+HHAuto_ToolTips.en['HHGearTierClassTheme'] = { version: "8.13.1", elementText: "mythic, class + theme", tooltip: "" };
+HHAuto_ToolTips.en['HHGearTierClass'] = { version: "8.13.1", elementText: "mythic, class", tooltip: "" };
+HHAuto_ToolTips.en['HHGearTierTheme'] = { version: "8.13.1", elementText: "mythic, theme", tooltip: "" };
+HHAuto_ToolTips.en['HHGearTierMythic'] = { version: "8.13.1", elementText: "mythic", tooltip: "" };
+HHAuto_ToolTips.en['HHGearTierNone'] = { version: "8.13.1", elementText: "no capped mythic for this slot", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColSlot'] = { version: "8.13.1", elementText: "Slot", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColItem'] = { version: "8.13.1", elementText: "Item", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColWhy'] = { version: "8.13.1", elementText: "why", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColCaracs'] = { version: "8.13.1", elementText: "caracs", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColResonance'] = { version: "8.13.1", elementText: "resonance", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColResonanceAtCap'] = { version: "8.13.1", elementText: "resonance at cap", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColLevel'] = { version: "8.13.1", elementText: "level", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColWorth'] = { version: "8.13.1", elementText: "why it is worth it", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColElement'] = { version: "8.13.1", elementText: "Element", tooltip: "" };
+HHAuto_ToolTips.en['HHGearColFree'] = { version: "8.13.1", elementText: "Free", tooltip: "" };
+HHAuto_ToolTips.en['HHGearNoItemOwned'] = { version: "8.13.1", elementText: "no item owned", tooltip: "" };
+HHAuto_ToolTips.en['HHGearKeepLabel'] = { version: "8.13.1", elementText: "keep", tooltip: "" };
+HHAuto_ToolTips.en['HHGearCurveWarning'] = { version: "8.13.1", elementText: "This item does not follow the known mythic curve", tooltip: "" };
+HHAuto_ToolTips.en['HHGearNowLabel'] = { version: "8.13.1", elementText: "now", tooltip: "" };
+HHAuto_ToolTips.en['HHGearHeroClass'] = { version: "8.13.1", elementText: "Hero class", tooltip: "" };
+HHAuto_ToolTips.en['HHGearTeamTheme'] = { version: "8.13.1", elementText: "team theme", tooltip: "" };
+HHAuto_ToolTips.en['HHGearRankingNote'] = { version: "8.13.1", elementText: "Ranked by priority, not by a stat score: a capped mythic matching your class and your team's theme first, then class, then theme, then any capped mythic, and only then everything else. At the cap every mythic has the same stats, so the resonance is the whole difference.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearCaracPoints'] = { version: "8.13.1", elementText: "Carac points", tooltip: "" };
+HHAuto_ToolTips.en['HHGearActiveResonance'] = { version: "8.13.1", elementText: "active resonance", tooltip: "" };
+HHAuto_ToolTips.en['HHGearCaracPointsToday'] = { version: "8.13.1", elementText: "Carac points today", tooltip: "" };
+HHAuto_ToolTips.en['HHGearResonanceOnceLevelled'] = { version: "8.13.1", elementText: "Resonance once levelled to the cap", tooltip: "" };
+HHAuto_ToolTips.en['HHGearGapNote'] = { version: "8.13.1", elementText: "Every mythic reaches the same stats at the cap. The gap is deliberate: these are the better targets, not the better items today.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearNothingToChange'] = { version: "8.13.1", elementText: "Nothing to change: every slot already holds the best item.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearEquipPlanned'] = { version: "8.13.1", elementText: "Equip the planned items", tooltip: "" };
+HHAuto_ToolTips.en['HHGearAjaxMissing'] = { version: "8.13.1", elementText: "The game's request function is unavailable. Nothing was changed.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearEquippingSlot'] = { version: "8.13.1", elementText: "Equipping slot", tooltip: "" };
+HHAuto_ToolTips.en['HHGearRefusedAtSlot'] = { version: "8.13.1", elementText: "The game refused the swap at slot", tooltip: "" };
+HHAuto_ToolTips.en['HHGearDoneReload'] = { version: "8.13.1", elementText: "Done. Reload the page to see the new stats. Slots changed:", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMarkedCount'] = { version: "8.13.1", elementText: "Marked to keep", tooltip: "" };
+HHAuto_ToolTips.en['HHGearFreeCount'] = { version: "8.13.1", elementText: "free to use as material by hand", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMarkNote'] = { version: "8.13.1", elementText: "A marked piece is the one to keep for that slot and element. Nothing was changed in the game.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearUpgradeIntro'] = { version: "8.13.1", elementText: "Worn mythics below the maximum level, best-matching first; material goes where it grows the most resonance. Maximum level", tooltip: "" };
+HHAuto_ToolTips.en['HHGearUpgradeNoThemeNote'] = { version: "8.13.1", elementText: "No team theme known, so the order below only separates items that match your class from those that do not. Every worn mythic is upgraded either way. Open your team page once (\"Change team\" on the league page) and the theme sharpens the order next time.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMaterialLegendary'] = { version: "8.13.1", elementText: "Legendary material", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMaterialEpic'] = { version: "8.13.1", elementText: "epic material", tooltip: "" };
+HHAuto_ToolTips.en['HHGearMythicsNeverUsed'] = { version: "8.13.1", elementText: "Mythics are never consumed.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearUpgradeFootnote'] = { version: "8.13.1", elementText: "One item is taken to the maximum level before the next one starts. The upgrade page states each item's exact requirement, and the run stops by itself once the material is spent.", tooltip: "" };
+HHAuto_ToolTips.en['HHGearUpgradeStart'] = { version: "8.13.1", elementText: "Level all worn mythics", tooltip: "" };
+HHAuto_ToolTips.en['HHGearStartingWith'] = { version: "8.13.1", elementText: "starting with", tooltip: "" };
 HHAuto_ToolTips.en['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Estimated cost (5M per skill):", tooltip: "Estimated cost of the team stuff operation" };
 HHAuto_ToolTips.en['StuffTeamMoney'] = { version: "7.30.0", elementText: "Money to keep", tooltip: "(Integer)<br>Minimum money to keep." };
 HHAuto_ToolTips.en['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Auto select girl equipment." };
@@ -1051,6 +1101,56 @@ HHAuto_ToolTips.fr['HHGearMsgReading'] = { version: "8.13.1", elementText: "Lect
 HHAuto_ToolTips.fr['HHGearMsgNoInventory'] = { version: "8.13.1", elementText: "Impossible de lire l'inventaire. Rien n'a été modifié – voir le journal.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearMsgNoInventoryMark'] = { version: "8.13.1", elementText: "Impossible de lire l'inventaire. Rien n'a été marqué – voir le journal.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearMsgFailed'] = { version: "8.13.1", elementText: "Échec, rien n'a été modifié. Voir le journal.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearSlotHead'] = { version: "8.13.1", elementText: "Tête", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearSlotBody'] = { version: "8.13.1", elementText: "Corps", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearSlotLegs'] = { version: "8.13.1", elementText: "Jambes", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearSlotFlag'] = { version: "8.13.1", elementText: "Drapeau", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearSlotPet'] = { version: "8.13.1", elementText: "Compagnon", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearSlotWeapon'] = { version: "8.13.1", elementText: "Arme", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearTierClassTheme'] = { version: "8.13.1", elementText: "mythique, classe + thème", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearTierClass'] = { version: "8.13.1", elementText: "mythique, classe", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearTierTheme'] = { version: "8.13.1", elementText: "mythique, thème", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearTierMythic'] = { version: "8.13.1", elementText: "mythique", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearTierNone'] = { version: "8.13.1", elementText: "aucun mythique au niveau maximal pour cet emplacement", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColSlot'] = { version: "8.13.1", elementText: "Emplacement", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColItem'] = { version: "8.13.1", elementText: "Objet", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColWhy'] = { version: "8.13.1", elementText: "pourquoi", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColCaracs'] = { version: "8.13.1", elementText: "caractéristiques", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColResonance'] = { version: "8.13.1", elementText: "résonance", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColResonanceAtCap'] = { version: "8.13.1", elementText: "résonance au niveau maximal", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColLevel'] = { version: "8.13.1", elementText: "niveau", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColWorth'] = { version: "8.13.1", elementText: "pourquoi cela vaut la peine", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColElement'] = { version: "8.13.1", elementText: "Élément", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearColFree'] = { version: "8.13.1", elementText: "Libres", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearNoItemOwned'] = { version: "8.13.1", elementText: "aucun objet possédé", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearKeepLabel'] = { version: "8.13.1", elementText: "garder :", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearCurveWarning'] = { version: "8.13.1", elementText: "Cet objet ne suit pas la courbe mythique connue", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearNowLabel'] = { version: "8.13.1", elementText: "maintenant", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearHeroClass'] = { version: "8.13.1", elementText: "Classe du héros", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearTeamTheme'] = { version: "8.13.1", elementText: "thème de l'équipe", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearRankingNote'] = { version: "8.13.1", elementText: "Classement par priorité, pas par un score de caractéristiques : d'abord un mythique au niveau maximal qui correspond à votre classe et au thème de votre équipe, puis la classe, puis le thème, puis tout mythique au niveau maximal, et seulement ensuite le reste. Au niveau maximal, tous les mythiques ont les mêmes caractéristiques ; seule la résonance fait la différence.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearCaracPoints'] = { version: "8.13.1", elementText: "Points de caractéristiques", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearActiveResonance'] = { version: "8.13.1", elementText: "résonance active", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearCaracPointsToday'] = { version: "8.13.1", elementText: "Points de caractéristiques aujourd'hui", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearResonanceOnceLevelled'] = { version: "8.13.1", elementText: "Résonance une fois au niveau maximal", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearGapNote'] = { version: "8.13.1", elementText: "Au niveau maximal, chaque mythique atteint les mêmes caractéristiques. L'écart est voulu : ce sont les meilleures cibles, pas les meilleurs objets d'aujourd'hui.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearNothingToChange'] = { version: "8.13.1", elementText: "Rien à changer : chaque emplacement porte déjà le meilleur objet.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearEquipPlanned'] = { version: "8.13.1", elementText: "Équiper les objets prévus", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearAjaxMissing'] = { version: "8.13.1", elementText: "La fonction de requête du jeu n'est pas disponible. Rien n'a été modifié.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearEquippingSlot'] = { version: "8.13.1", elementText: "Équipement de l'emplacement", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearRefusedAtSlot'] = { version: "8.13.1", elementText: "Le jeu a refusé l'échange à l'emplacement", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearDoneReload'] = { version: "8.13.1", elementText: "Terminé. Rechargez la page pour voir les nouvelles caractéristiques. Emplacements modifiés :", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMarkedCount'] = { version: "8.13.1", elementText: "Marqués à garder", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearFreeCount'] = { version: "8.13.1", elementText: "utilisables à la main comme matériau", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMarkNote'] = { version: "8.13.1", elementText: "Une pièce marquée est celle à garder pour cet emplacement et cet élément. Rien n'a été modifié dans le jeu.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearUpgradeIntro'] = { version: "8.13.1", elementText: "Mythiques portés sous le niveau maximal, les mieux assortis d'abord ; le matériau va là où il apporte le plus de résonance. Niveau maximal", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearUpgradeNoThemeNote'] = { version: "8.13.1", elementText: "Aucun thème d'équipe connu : l'ordre ci-dessous sépare seulement les objets qui correspondent à votre classe des autres. Chaque mythique porté est amélioré dans tous les cas. Ouvrez une fois votre page d'équipe (« Change team » sur la page de ligue) et le thème affinera l'ordre la prochaine fois.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMaterialLegendary'] = { version: "8.13.1", elementText: "Matériau légendaire", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMaterialEpic'] = { version: "8.13.1", elementText: "matériau épique", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearMythicsNeverUsed'] = { version: "8.13.1", elementText: "Les mythiques ne sont jamais consommés.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearUpgradeFootnote'] = { version: "8.13.1", elementText: "Un objet est porté au niveau maximal avant que le suivant ne commence. La page d'amélioration indique le besoin exact de chaque objet, et le passage s'arrête de lui-même une fois le matériau épuisé.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearUpgradeStart'] = { version: "8.13.1", elementText: "Améliorer tous les mythiques portés", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearStartingWith'] = { version: "8.13.1", elementText: "en commençant par", tooltip: "" };
 HHAuto_ToolTips.fr['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Coût estimé (5 M par compétence) :", tooltip: "Coût estimé de l'équipement de l'équipe." };
 HHAuto_ToolTips.fr['StuffTeamMoney'] = { version: "7.30.0", elementText: "Argent à conserver", tooltip: "(Entier)<br>Argent minimum à conserver." };
 HHAuto_ToolTips.fr['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Donner l'équipement", tooltip: "Sélectionne automatiquement l'équipement des filles." };
@@ -1471,6 +1571,56 @@ HHAuto_ToolTips.de['HHGearMsgReading'] = { version: "8.13.1", elementText: "Inve
 HHAuto_ToolTips.de['HHGearMsgNoInventory'] = { version: "8.13.1", elementText: "Das Inventar ließ sich nicht lesen. Nichts wurde geändert – siehe Log.", tooltip: "" };
 HHAuto_ToolTips.de['HHGearMsgNoInventoryMark'] = { version: "8.13.1", elementText: "Das Inventar ließ sich nicht lesen. Nichts wurde markiert – siehe Log.", tooltip: "" };
 HHAuto_ToolTips.de['HHGearMsgFailed'] = { version: "8.13.1", elementText: "Fehlgeschlagen, nichts wurde geändert. Siehe Log.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearSlotHead'] = { version: "8.13.1", elementText: "Kopf", tooltip: "" };
+HHAuto_ToolTips.de['HHGearSlotBody'] = { version: "8.13.1", elementText: "Körper", tooltip: "" };
+HHAuto_ToolTips.de['HHGearSlotLegs'] = { version: "8.13.1", elementText: "Beine", tooltip: "" };
+HHAuto_ToolTips.de['HHGearSlotFlag'] = { version: "8.13.1", elementText: "Flagge", tooltip: "" };
+HHAuto_ToolTips.de['HHGearSlotPet'] = { version: "8.13.1", elementText: "Begleiter", tooltip: "" };
+HHAuto_ToolTips.de['HHGearSlotWeapon'] = { version: "8.13.1", elementText: "Waffe", tooltip: "" };
+HHAuto_ToolTips.de['HHGearTierClassTheme'] = { version: "8.13.1", elementText: "Mythic, Klasse + Thema", tooltip: "" };
+HHAuto_ToolTips.de['HHGearTierClass'] = { version: "8.13.1", elementText: "Mythic, Klasse", tooltip: "" };
+HHAuto_ToolTips.de['HHGearTierTheme'] = { version: "8.13.1", elementText: "Mythic, Thema", tooltip: "" };
+HHAuto_ToolTips.de['HHGearTierMythic'] = { version: "8.13.1", elementText: "Mythic", tooltip: "" };
+HHAuto_ToolTips.de['HHGearTierNone'] = { version: "8.13.1", elementText: "kein Mythic auf Maximalstufe für diesen Platz", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColSlot'] = { version: "8.13.1", elementText: "Platz", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColItem'] = { version: "8.13.1", elementText: "Gegenstand", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColWhy'] = { version: "8.13.1", elementText: "warum", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColCaracs'] = { version: "8.13.1", elementText: "Werte", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColResonance'] = { version: "8.13.1", elementText: "Resonanz", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColResonanceAtCap'] = { version: "8.13.1", elementText: "Resonanz auf Maximalstufe", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColLevel'] = { version: "8.13.1", elementText: "Stufe", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColWorth'] = { version: "8.13.1", elementText: "warum es sich lohnt", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColElement'] = { version: "8.13.1", elementText: "Element", tooltip: "" };
+HHAuto_ToolTips.de['HHGearColFree'] = { version: "8.13.1", elementText: "Frei", tooltip: "" };
+HHAuto_ToolTips.de['HHGearNoItemOwned'] = { version: "8.13.1", elementText: "kein Gegenstand vorhanden", tooltip: "" };
+HHAuto_ToolTips.de['HHGearKeepLabel'] = { version: "8.13.1", elementText: "behalten:", tooltip: "" };
+HHAuto_ToolTips.de['HHGearCurveWarning'] = { version: "8.13.1", elementText: "Dieser Gegenstand folgt nicht der bekannten Mythic-Kurve", tooltip: "" };
+HHAuto_ToolTips.de['HHGearNowLabel'] = { version: "8.13.1", elementText: "jetzt", tooltip: "" };
+HHAuto_ToolTips.de['HHGearHeroClass'] = { version: "8.13.1", elementText: "Heldenklasse", tooltip: "" };
+HHAuto_ToolTips.de['HHGearTeamTheme'] = { version: "8.13.1", elementText: "Team-Thema", tooltip: "" };
+HHAuto_ToolTips.de['HHGearRankingNote'] = { version: "8.13.1", elementText: "Geordnet nach Priorität, nicht nach einer Wertesumme: zuerst ein Mythic auf Maximalstufe, das zu deiner Klasse und zum Thema deines Teams passt, dann Klasse, dann Thema, dann jedes Mythic auf Maximalstufe und erst danach alles andere. Auf Maximalstufe haben alle Mythics dieselben Werte, der Unterschied ist allein die Resonanz.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearCaracPoints'] = { version: "8.13.1", elementText: "Wertepunkte", tooltip: "" };
+HHAuto_ToolTips.de['HHGearActiveResonance'] = { version: "8.13.1", elementText: "aktive Resonanz", tooltip: "" };
+HHAuto_ToolTips.de['HHGearCaracPointsToday'] = { version: "8.13.1", elementText: "Wertepunkte heute", tooltip: "" };
+HHAuto_ToolTips.de['HHGearResonanceOnceLevelled'] = { version: "8.13.1", elementText: "Resonanz nach dem Leveln auf Maximalstufe", tooltip: "" };
+HHAuto_ToolTips.de['HHGearGapNote'] = { version: "8.13.1", elementText: "Auf Maximalstufe erreicht jedes Mythic dieselben Werte. Die Lücke ist gewollt: das sind die besseren Ziele, nicht die heute besseren Gegenstände.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearNothingToChange'] = { version: "8.13.1", elementText: "Nichts zu ändern: jeder Platz trägt schon den besten Gegenstand.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearEquipPlanned'] = { version: "8.13.1", elementText: "Geplante Gegenstände anlegen", tooltip: "" };
+HHAuto_ToolTips.de['HHGearAjaxMissing'] = { version: "8.13.1", elementText: "Die Anfragefunktion des Spiels ist nicht verfügbar. Nichts wurde geändert.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearEquippingSlot'] = { version: "8.13.1", elementText: "Lege an, Platz", tooltip: "" };
+HHAuto_ToolTips.de['HHGearRefusedAtSlot'] = { version: "8.13.1", elementText: "Das Spiel hat den Tausch abgelehnt, Platz", tooltip: "" };
+HHAuto_ToolTips.de['HHGearDoneReload'] = { version: "8.13.1", elementText: "Fertig. Lade die Seite neu, um die neuen Werte zu sehen. Geänderte Plätze:", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMarkedCount'] = { version: "8.13.1", elementText: "Zum Behalten markiert", tooltip: "" };
+HHAuto_ToolTips.de['HHGearFreeCount'] = { version: "8.13.1", elementText: "von Hand als Material verwendbar", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMarkNote'] = { version: "8.13.1", elementText: "Ein markiertes Teil ist das, das du für diesen Platz und dieses Element behältst. Im Spiel wurde nichts geändert.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearUpgradeIntro'] = { version: "8.13.1", elementText: "Angelegte Mythics unter der Maximalstufe, die passendsten zuerst; das Material geht dorthin, wo es die meiste Resonanz bringt. Maximalstufe", tooltip: "" };
+HHAuto_ToolTips.de['HHGearUpgradeNoThemeNote'] = { version: "8.13.1", elementText: "Kein Team-Thema bekannt, daher trennt die Reihenfolge unten nur Gegenstände, die zu deiner Klasse passen, von den übrigen. Jedes angelegte Mythic wird trotzdem gelevelt. Öffne einmal deine Teamseite („Change team“ auf der Ligaseite), dann schärft das Thema die Reihenfolge beim nächsten Mal.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMaterialLegendary'] = { version: "8.13.1", elementText: "Legendäres Material", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMaterialEpic'] = { version: "8.13.1", elementText: "episches Material", tooltip: "" };
+HHAuto_ToolTips.de['HHGearMythicsNeverUsed'] = { version: "8.13.1", elementText: "Mythics werden nie verbraucht.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearUpgradeFootnote'] = { version: "8.13.1", elementText: "Ein Gegenstand wird bis zur Maximalstufe gebracht, bevor der nächste beginnt. Die Upgrade-Seite nennt den genauen Bedarf jedes Gegenstands, und der Lauf hält von selbst an, sobald das Material aufgebraucht ist.", tooltip: "" };
+HHAuto_ToolTips.de['HHGearUpgradeStart'] = { version: "8.13.1", elementText: "Alle angelegten Mythics leveln", tooltip: "" };
+HHAuto_ToolTips.de['HHGearStartingWith'] = { version: "8.13.1", elementText: "beginnend mit", tooltip: "" };
 HHAuto_ToolTips.de['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Geschätzte Kosten (5 Mio. pro Skill):", tooltip: "Geschätzte Kosten für das Bestücken des Teams" };
 HHAuto_ToolTips.de['StuffTeamMoney'] = { version: "7.30.0", elementText: "Geld behalten", tooltip: "(Ganzzahl)<br>Mindestbetrag, der behalten wird." };
 HHAuto_ToolTips.de['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Wählt die Mädel-Ausrüstung automatisch." };
@@ -1810,6 +1960,56 @@ HHAuto_ToolTips.es['HHGearMsgReading'] = { version: "8.13.1", elementText: "Leye
 HHAuto_ToolTips.es['HHGearMsgNoInventory'] = { version: "8.13.1", elementText: "No se pudo leer el inventario. No se cambió nada – mira el log.", tooltip: "" };
 HHAuto_ToolTips.es['HHGearMsgNoInventoryMark'] = { version: "8.13.1", elementText: "No se pudo leer el inventario. No se marcó nada – mira el log.", tooltip: "" };
 HHAuto_ToolTips.es['HHGearMsgFailed'] = { version: "8.13.1", elementText: "Falló, no se cambió nada. Mira el log.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearSlotHead'] = { version: "8.13.1", elementText: "Cabeza", tooltip: "" };
+HHAuto_ToolTips.es['HHGearSlotBody'] = { version: "8.13.1", elementText: "Cuerpo", tooltip: "" };
+HHAuto_ToolTips.es['HHGearSlotLegs'] = { version: "8.13.1", elementText: "Piernas", tooltip: "" };
+HHAuto_ToolTips.es['HHGearSlotFlag'] = { version: "8.13.1", elementText: "Bandera", tooltip: "" };
+HHAuto_ToolTips.es['HHGearSlotPet'] = { version: "8.13.1", elementText: "Mascota", tooltip: "" };
+HHAuto_ToolTips.es['HHGearSlotWeapon'] = { version: "8.13.1", elementText: "Arma", tooltip: "" };
+HHAuto_ToolTips.es['HHGearTierClassTheme'] = { version: "8.13.1", elementText: "mítico, clase + tema", tooltip: "" };
+HHAuto_ToolTips.es['HHGearTierClass'] = { version: "8.13.1", elementText: "mítico, clase", tooltip: "" };
+HHAuto_ToolTips.es['HHGearTierTheme'] = { version: "8.13.1", elementText: "mítico, tema", tooltip: "" };
+HHAuto_ToolTips.es['HHGearTierMythic'] = { version: "8.13.1", elementText: "mítico", tooltip: "" };
+HHAuto_ToolTips.es['HHGearTierNone'] = { version: "8.13.1", elementText: "ningún mítico al nivel máximo para esta ranura", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColSlot'] = { version: "8.13.1", elementText: "Ranura", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColItem'] = { version: "8.13.1", elementText: "Objeto", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColWhy'] = { version: "8.13.1", elementText: "por qué", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColCaracs'] = { version: "8.13.1", elementText: "características", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColResonance'] = { version: "8.13.1", elementText: "resonancia", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColResonanceAtCap'] = { version: "8.13.1", elementText: "resonancia al nivel máximo", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColLevel'] = { version: "8.13.1", elementText: "nivel", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColWorth'] = { version: "8.13.1", elementText: "por qué vale la pena", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColElement'] = { version: "8.13.1", elementText: "Elemento", tooltip: "" };
+HHAuto_ToolTips.es['HHGearColFree'] = { version: "8.13.1", elementText: "Libres", tooltip: "" };
+HHAuto_ToolTips.es['HHGearNoItemOwned'] = { version: "8.13.1", elementText: "ningún objeto disponible", tooltip: "" };
+HHAuto_ToolTips.es['HHGearKeepLabel'] = { version: "8.13.1", elementText: "conservar:", tooltip: "" };
+HHAuto_ToolTips.es['HHGearCurveWarning'] = { version: "8.13.1", elementText: "Este objeto no sigue la curva mítica conocida", tooltip: "" };
+HHAuto_ToolTips.es['HHGearNowLabel'] = { version: "8.13.1", elementText: "ahora", tooltip: "" };
+HHAuto_ToolTips.es['HHGearHeroClass'] = { version: "8.13.1", elementText: "Clase del héroe", tooltip: "" };
+HHAuto_ToolTips.es['HHGearTeamTheme'] = { version: "8.13.1", elementText: "tema del equipo", tooltip: "" };
+HHAuto_ToolTips.es['HHGearRankingNote'] = { version: "8.13.1", elementText: "Ordenado por prioridad, no por una suma de características: primero un mítico al nivel máximo que coincida con tu clase y con el tema de tu equipo, luego la clase, luego el tema, luego cualquier mítico al nivel máximo y solo después todo lo demás. Al nivel máximo todos los míticos tienen las mismas características, así que la resonancia es toda la diferencia.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearCaracPoints'] = { version: "8.13.1", elementText: "Puntos de características", tooltip: "" };
+HHAuto_ToolTips.es['HHGearActiveResonance'] = { version: "8.13.1", elementText: "resonancia activa", tooltip: "" };
+HHAuto_ToolTips.es['HHGearCaracPointsToday'] = { version: "8.13.1", elementText: "Puntos de características hoy", tooltip: "" };
+HHAuto_ToolTips.es['HHGearResonanceOnceLevelled'] = { version: "8.13.1", elementText: "Resonancia al llegar al nivel máximo", tooltip: "" };
+HHAuto_ToolTips.es['HHGearGapNote'] = { version: "8.13.1", elementText: "Al nivel máximo todos los míticos alcanzan las mismas características. La diferencia es intencionada: son los mejores objetivos, no los mejores objetos de hoy.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearNothingToChange'] = { version: "8.13.1", elementText: "Nada que cambiar: cada ranura ya lleva el mejor objeto.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearEquipPlanned'] = { version: "8.13.1", elementText: "Equipar los objetos previstos", tooltip: "" };
+HHAuto_ToolTips.es['HHGearAjaxMissing'] = { version: "8.13.1", elementText: "La función de peticiones del juego no está disponible. No se cambió nada.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearEquippingSlot'] = { version: "8.13.1", elementText: "Equipando la ranura", tooltip: "" };
+HHAuto_ToolTips.es['HHGearRefusedAtSlot'] = { version: "8.13.1", elementText: "El juego rechazó el cambio en la ranura", tooltip: "" };
+HHAuto_ToolTips.es['HHGearDoneReload'] = { version: "8.13.1", elementText: "Hecho. Recarga la página para ver las nuevas características. Ranuras cambiadas:", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMarkedCount'] = { version: "8.13.1", elementText: "Marcados para conservar", tooltip: "" };
+HHAuto_ToolTips.es['HHGearFreeCount'] = { version: "8.13.1", elementText: "utilizables a mano como material", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMarkNote'] = { version: "8.13.1", elementText: "Una pieza marcada es la que conviene conservar para esa ranura y ese elemento. No se cambió nada en el juego.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearUpgradeIntro'] = { version: "8.13.1", elementText: "Míticos equipados por debajo del nivel máximo, los que mejor encajan primero; el material va donde más resonancia aporta. Nivel máximo", tooltip: "" };
+HHAuto_ToolTips.es['HHGearUpgradeNoThemeNote'] = { version: "8.13.1", elementText: "No se conoce el tema del equipo, así que el orden de abajo solo separa los objetos que coinciden con tu clase de los demás. Todos los míticos equipados se mejoran igualmente. Abre una vez tu página de equipo («Change team» en la página de la liga) y el tema afinará el orden la próxima vez.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMaterialLegendary'] = { version: "8.13.1", elementText: "Material legendario", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMaterialEpic'] = { version: "8.13.1", elementText: "material épico", tooltip: "" };
+HHAuto_ToolTips.es['HHGearMythicsNeverUsed'] = { version: "8.13.1", elementText: "Los míticos nunca se consumen.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearUpgradeFootnote'] = { version: "8.13.1", elementText: "Un objeto se lleva al nivel máximo antes de empezar con el siguiente. La página de mejora indica el requisito exacto de cada objeto, y el proceso se detiene solo cuando se agota el material.", tooltip: "" };
+HHAuto_ToolTips.es['HHGearUpgradeStart'] = { version: "8.13.1", elementText: "Subir de nivel todos los míticos equipados", tooltip: "" };
+HHAuto_ToolTips.es['HHGearStartingWith'] = { version: "8.13.1", elementText: "empezando por", tooltip: "" };
 HHAuto_ToolTips.es['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Coste estimado (5 M por habilidad):", tooltip: "Coste estimado de preparar el equipo." };
 HHAuto_ToolTips.es['StuffTeamMoney'] = { version: "7.30.0", elementText: "Dinero a conservar", tooltip: "(Entero)<br>Dinero mínimo que se conserva." };
 HHAuto_ToolTips.es['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Dar equipo", tooltip: "Selecciona automáticamente el equipo de las chicas." };
@@ -2492,7 +2692,7 @@ const SK = {
     autoPoVCollectablesList: "Setting_autoPoVCollectablesList",
     // Love Raid
     autoLoveRaidSelectedIndex: "Setting_autoLoveRaidSelectedIndex",
-    plusLoveRaidMythic: "Setting_autoLoveRaidMythicOnly", // now stores min grade (0=off, 3, 5, 6) instead of boolean
+    plusLoveRaidMythic: "Setting_autoLoveRaidMythicOnly", // raid-stars selection: off | exact3 | min3 | exact5 (key name kept from the old boolean)
     // Bundles
     autoFreeBundlesCollect: "Setting_autoFreeBundlesCollect",
     autoFreeBundlesCollectablesList: "Setting_autoFreeBundlesCollectablesList",
@@ -7071,7 +7271,11 @@ function getPage(checkUnknown = false) {
                 isKnown = true;
             }
         }
-        if (!isKnown && page) {
+        // A single place of power resolves to "powerplace" + its id, which no
+        // pagesKnownList entry can name. Recording it as unknown logged
+        // "Page unknown for script : powerplace0" on every visit although
+        // nothing about the game had changed (measured 2026-09-11).
+        if (!isKnown && page && !/^powerplace\d+$/.test(page)) {
             const unknownPageList = getStoredJSON(HHStoredVarPrefixKey + TK.unknownPagesList, {});
             // Idempotent write: skip the JSON.stringify+setStoredValue round-trip
             // when this page was already recorded with the same pathname (avoids
@@ -8068,29 +8272,49 @@ function getHero() {
     // type stays non-optional (WART-001).
     return (_b = unsafeWindow.shared) === null || _b === void 0 ? void 0 : _b.Hero;
 }
-// Tracks the last stat-buy attempt so a buy that does not advance the
-// shared Hero values (issue #1735: on some pages, e.g. the level-up reward
-// screen, the buy never reflects in shared.Hero) stops the self-rescheduling
-// loop instead of repeating forever. Timestamp-gated so a later, unrelated
-// run on the same page load is not mistaken for no-progress.
+// The game answers hero_update_stats but does not move
+// shared.Hero.infos.caracN in the running document -- measured 2026-09-11 on
+// /waifu.html: the value changed only after a reload. A confirmed buy
+// therefore advances the local value itself, the way the money is already
+// deducted locally. A buy that is never confirmed (issue #1735: the level-up
+// reward screen) leaves the value where it was, and the next call stops
+// instead of repeating forever. Timestamp-gated so a later, unrelated run on
+// the same page load is not mistaken for no-progress.
 let lastStatAttempt = null;
+// The stat cap the game sends back with every buy (statsPrices.max). It is the
+// hero's base stat plus 30 per level -- measured 575 + 30 x 115 = 4025 -- so
+// level * 30 alone stops one base stat short of it. Used once an answer is in.
+let gameStatMax = null;
+/**
+ * Money for raising a stat from `stat` by `count` points. The game charges
+ * each point at the curve value of the level it reaches: measured 2026-09-11,
+ * 2541 -> 2542 cost 6,173, the curve value of 2542, and the answer then quoted
+ * 6,177 (the value of 2543) for the next point.
+ */
+function statBuyPrice(stat, count) {
+    let total = 0;
+    for (let k = 1; k <= count; k++) {
+        const s = stat + k;
+        total += 5 + s * 2 + Math.max(0, s - 2000) * 2 + Math.max(0, s - 4000) * 2 + Math.max(0, s - 6000) * 2 + Math.max(0, s - 8000) * 2;
+    }
+    return total;
+}
 function doStatUpgrades() {
     //Stats?
     var Hero = getHero();
-    var stats = [getHHVars('Hero.infos.carac1'), getHHVars('Hero.infos.carac2'), getHHVars('Hero.infos.carac3')];
+    var stats = [getHHVars('Hero.infos.carac1'), getHHVars('Hero.infos.carac2'), getHHVars('Hero.infos.carac3')].map(Number);
     var money = HeroHelper.getMoney();
     var M = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoStats));
     var MainStat = stats[HeroHelper.getClass() - 1];
-    var Limit = HeroHelper.getLevel() * 30; //HeroHelper.getLevel()*19+Math.min(HeroHelper.getLevel(),25)*21;
+    var Limit = gameStatMax !== null && gameStatMax !== void 0 ? gameStatMax : HeroHelper.getLevel() * 30;
     var carac = HeroHelper.getClass();
     var mp = 0;
     var mults = [60, 30, 10, 1];
     for (var car = 0; car < 3; car++) {
         var s = stats[carac - 1];
-        for (var mu = 0; mu < 5; mu++) {
+        for (var mu = 0; mu < mults.length; mu++) {
             var mult = mults[mu];
-            var price = 5 + s * 2 + (Math.max(0, s - 2000) * 2) + (Math.max(0, s - 4000) * 2) + (Math.max(0, s - 6000) * 2) + (Math.max(0, s - 8000) * 2);
-            price *= mult;
+            var price = statBuyPrice(s, mult);
             if (carac == HeroHelper.getClass()) {
                 mp = price;
             }
@@ -8100,9 +8324,8 @@ function doStatUpgrades() {
                     && (nowTs - lastStatAttempt.ts) < 3000
                     && lastStatAttempt.carac === carac
                     && lastStatAttempt.value === stats[carac - 1]) {
-                    logHHAuto('doStatUpgrades: stat carac' + carac + '=' + stats[carac - 1]
-                        + ' did not advance after the last buy (page=' + location.pathname
-                        + '); stopping to avoid an infinite loop.');
+                    logHHAuto('doStatUpgrades: the last buy of carac' + carac + ' was not confirmed by the game'
+                        + ' (page=' + location.pathname + '); stopping to avoid an infinite loop.');
                     lastStatAttempt = null;
                     return;
                 }
@@ -8114,13 +8337,24 @@ function doStatUpgrades() {
                     action: "hero_update_stats",
                     nb: mult
                 };
+                const bought = carac;
+                const boughtBy = mult;
+                const cost = price;
                 getHHAjax()(params, function (data) {
+                    var _a;
                     logHHAuto('doStatUpgrades resp: success=' + !!(data && data.success)
                         + ' page=' + location.pathname
-                        + ' carac' + carac + '=' + getHHVars('Hero.infos.carac' + carac)
+                        + ' carac' + bought + '=' + getHHVars('Hero.infos.carac' + bought)
                         + ' money=' + HeroHelper.getMoney()
                         + ' data=' + JSON.stringify(data).slice(0, 300));
-                    Hero.update("soft_currency", 0 - price, true);
+                    if (!data || !data.success)
+                        return;
+                    const infos = Hero.infos;
+                    infos['carac' + bought] = Number(infos['carac' + bought]) + boughtBy;
+                    const max = Number((_a = data.statsPrices) === null || _a === void 0 ? void 0 : _a.max);
+                    if (max > 0)
+                        gameStatMax = max;
+                    Hero.update("soft_currency", 0 - cost, true);
                 });
                 setTimeout(doStatUpgrades, randomInterval(300, 500));
                 return;
@@ -10903,8 +11137,6 @@ HHEnvVariables["global"].livelySceneEventIDReg = "lively_scene_event_";
 HHEnvVariables["global"].girlToolTipData = "data-new-girl-tooltip";
 HHEnvVariables["global"].dailyRewardNotifRequest = "#contains_all header .currency .daily-reward-notif";
 HHEnvVariables["global"].IDpanelEditTeam = "#edit-team-page";
-HHEnvVariables["global"].shopGirlCountRequest = '#girls_list .g1 .nav_placement span:not([contenteditable]';
-HHEnvVariables["global"].shopGirlCurrentRequest = '#girls_list .g1 .nav_placement span[contenteditable]';
 HHEnvVariables["global"].selectorFilterNotDisplayNone = ':not([style*="display:none"]):not([style*="display: none"])';
 HHEnvVariables["global"].selectorClaimAllRewards = "#claim-all:not([disabled]):visible:not([style*='visibility: hidden;'])"; // KK use visibility: hidden or visibility: visible to display this button
 HHEnvVariables["global"].HaremMaxSizeExpirationSecs = 7 * 24 * 60 * 60; //7 days
@@ -13951,6 +14183,17 @@ class EventModule {
         const isLivelyScene = inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'));
         const isCumback = "cumback" === eventType;
         const isKinky = "kinky" === eventType;
+        // Double Penetration, Lively Scene and Path of Attraction are events
+        // the script only collects on. A visit is worth it when one of their
+        // collect switches is on or a manual collect-all is waiting; without
+        // that the run parsed the page and did nothing there -- measured
+        // 2026-09-11, with every auto* switch off except autoQuest, the run
+        // went to a Path of Attraction twelve seconds in. The type flags stay
+        // as they are: on the event page itself the buttons are still drawn.
+        const on = (key) => getStoredValue(HHStoredVarPrefixKey + key) === "true";
+        const wantsDP = on(SK.autodpEventCollect) || on(SK.autodpEventCollectAll);
+        const wantsLivelyScene = on(SK.autoLivelySceneEventCollect) || on(SK.autoLivelySceneEventCollectAll) || on(TK.lseManualCollectAll);
+        const wantsPoa = on(SK.autoPoACollect) || on(SK.autoPoACollectAll) || on(TK.poaManualCollectAll);
         return {
             eventTypeKnown: eventType !== '',
             eventId: inEventID,
@@ -13964,7 +14207,8 @@ class EventModule {
             isPoa: isPoa, // and activated
             isCumback: isCumback,
             isKinky: isKinky,
-            isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent || isDPEvent || isPoa || isLivelyScene
+            isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent
+                || (isDPEvent && wantsDP) || (isPoa && wantsPoa) || (isLivelyScene && wantsLivelyScene)
         };
     }
     static getEventIDsByType(inType) {
@@ -14538,7 +14782,9 @@ class LoveRaidManager {
                     if (debugEnabled && ((_c = kkRaid.girl_data) === null || _c === void 0 ? void 0 : _c.shards) >= 100) {
                         logHHAuto(`Girl won, may have skin to win, ignore for now`);
                     }
-                    // nb_grades = number of star slots (3=rare, 5=legendary, 6=mythic)
+                    // nb_grades = number of star slots of this girl. It belongs to the
+                    // girl, not the rarity (measured: legendary girls with 3, commons
+                    // with 1, 3 or 5); 6 only occurs on mythics.
                     // Graded is a string of star symbols (e.g. "☆☆☆"), graded = completed awakenings
                     raid.girlGrade = Number((_d = kkRaid.girl_data) === null || _d === void 0 ? void 0 : _d.nb_grades) || 0;
                     raid.isMythic = ((_e = kkRaid.girl_data) === null || _e === void 0 ? void 0 : _e.rarity) === 'mythic' || raid.girlGrade >= 6;
@@ -16453,7 +16699,10 @@ class Troll {
      * the list getGirlsList() handed over held 22, and with no stored
      * snapshot getTrollIdToFight reloaded the page every four seconds. Read
      * for the same account, the page listed all 24. Where the 22 came from is
-     * not established; getGirlsList() prefers OCD's stored map over the page.
+     * not established. It was not OCD's stored map, which getGirlsList()
+     * prefers over the page: that map existed neither in the reporting
+     * browser nor on the test account (checked 2026-09-11), and girlsDataList
+     * on the home page carried all 24 from its first appearance.
      */
     static getTrollWithGirls() {
         const waifuPageGirls = Harem.getWaifuPageGirlsList();
@@ -16658,6 +16907,16 @@ class Troll {
                     if (logging)
                         logHHAuto("The waifu page gave no usable girl list either; no troll target for now.");
                     waifuGaveNoList = true;
+                    // Hold the way back as well: handleGoHome takes the run home,
+                    // and from there this branch sent it straight back -- measured
+                    // 2026-09-11 as a waifu<->home cycle every ~14 s.
+                    if (allowSideEffects)
+                        setTimer(Troll.WAIFU_LIST_RETRY_TIMER, Troll.WAIFU_LIST_RETRY_SECS);
+                }
+                else if (!checkTimer(Troll.WAIFU_LIST_RETRY_TIMER)) {
+                    if (logging)
+                        logHHAuto("The waifu page gave no usable girl list a moment ago; not going back before its timer runs out.");
+                    waifuGaveNoList = true;
                 }
                 else {
                     if (logging)
@@ -16853,6 +17112,11 @@ class Troll {
             let TTF = Troll.getTrollIdToFight();
             const trollz = ConfigHelper.getHHScriptVars("trollzList");
             const currentPage = getPage();
+            // -1: getTrollIdToFight is on its way to the waifu page for the girl
+            // list. That is not "no target"; saying so in the log read like a
+            // decision right after the navigation line.
+            if (TTF === -1)
+                return false;
             if (!TTF || TTF <= 0) {
                 const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
                 // The retry-then-troll-1 path below assumes some troll is unlocked.
@@ -17320,6 +17584,10 @@ class Troll {
         });
     }
 }
+/** Timer set when the waifu page gave no usable girl list; while it runs,
+ *  no other page sends the run back there for the list. */
+Troll.WAIFU_LIST_RETRY_TIMER = 'nextTrollWaifuListAttempt';
+Troll.WAIFU_LIST_RETRY_SECS = 600;
 
 ;// ./src/Helper/menu/MenuOrder.ts
 // MenuOrder.ts
@@ -20774,7 +21042,7 @@ class PlaceOfPower {
         ;
     }
     static chooseGirlsTeam(powerText, girlsList) {
-        //Debug can be enabled by manually setting "HHAuto_Temp_Debug" to true in browser console
+        //Debug can be enabled by setting sessionStorage "HHAuto_Temp_Debug" to "true" in the browser console (a localStorage value is not read)
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         let startTime = 0;
         if (debugEnabled) {
@@ -22765,6 +23033,9 @@ class BlessingService {
                 traits.push('zodiac');
             if (desc.includes('favourite position') || desc.includes('favorite position'))
                 traits.push('position');
+            // Measured 2026-09-11: "Rarity Legendary +25%" as a league blessing.
+            if (desc.includes('rarity'))
+                traits.push('rarity');
         }
         return traits;
     }
@@ -22798,6 +23069,9 @@ class BlessingService {
             else if (condition.toLowerCase().startsWith('favourite position') || condition.toLowerCase().startsWith('favorite position')) {
                 values['position'] = condition.replace(/favou?rite? position\s*/i, '').trim().toLowerCase();
             }
+            else if (condition.toLowerCase().startsWith('rarity')) {
+                values['rarity'] = condition.replace(/rarity\s*/i, '').trim().toLowerCase();
+            }
             else if (condition.toLowerCase().startsWith('element')) {
                 // Element blessing handled by parseElement
             }
@@ -22808,10 +23082,13 @@ class BlessingService {
         const active = response.active;
         if (!Array.isArray(active))
             return undefined;
+        // Class names as the game's own element_data.flavor gives them
+        // (measured 2026-09-11 on 24 girls): light is Submissive, psychic is
+        // Voyeur. The two were swapped here before.
         const elementMap = {
             'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
             'physical': 'stone', 'playful': 'sun', 'dominatrix': 'darkness',
-            'submissive': 'psychic', 'voyeur': 'light',
+            'submissive': 'light', 'voyeur': 'psychic',
         };
         for (const blessing of active) {
             const desc = (blessing.description || '').toLowerCase();
@@ -25031,6 +25308,16 @@ const TIER_NAMES = {
     4: 'mythic',
     5: 'no capped mythic for this slot',
 };
+// The same two tables as language keys for the popups; the English names
+// above stay for the log, which is what bug reports are read from.
+const SLOT_KEYS = {
+    1: 'HHGearSlotHead', 2: 'HHGearSlotBody', 3: 'HHGearSlotLegs',
+    4: 'HHGearSlotFlag', 5: 'HHGearSlotPet', 6: 'HHGearSlotWeapon',
+};
+const TIER_KEYS = {
+    1: 'HHGearTierClassTheme', 2: 'HHGearTierClass', 3: 'HHGearTierTheme',
+    4: 'HHGearTierMythic', 5: 'HHGearTierNone',
+};
 class EquipmentGear {
     /**
      * Inject the two gear buttons next to the armor inventory, or take them
@@ -25466,49 +25753,50 @@ class EquipmentGear {
     }
     static showPlan(modeName, theme, plan, mode) {
         var _a;
+        // Numbers are appended to the labels, not interpolated into them: the
+        // translations carry no placeholders (see noTargetsMessage).
+        const t = (key) => EquipmentGear.gearText(key);
         const rows = plan.picks.map(pick => {
             var _a;
-            const slot = `${pick.slot} ${SLOT_NAMES[pick.slot]}`;
+            const slot = `${pick.slot} ${t(SLOT_KEYS[pick.slot])}`;
             if (!pick.chosen) {
-                return `<tr><td>${slot}</td><td colspan="4" style="color:#aaa;">no item owned</td></tr>`;
+                return `<tr><td>${slot}</td><td colspan="4" style="color:#aaa;">${t('HHGearNoItemOwned')}</td></tr>`;
             }
             const label = `${esc(pick.chosen.name)} (${pick.chosen.rarity} lvl${pick.chosen.level})`;
-            const tier = `<span style="color:#aaa;">${esc(TIER_NAMES[pick.tier])}</span>`;
+            const tier = `<span style="color:#aaa;">${t(TIER_KEYS[pick.tier])}</span>`;
             if (!pick.changed) {
-                return `<tr style="color:#aaa;"><td>${slot}</td><td>keep ${label}</td>`
+                return `<tr style="color:#aaa;"><td>${slot}</td><td>${t('HHGearKeepLabel')} ${label}</td>`
                     + `<td>${tier}</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>`;
             }
             const warn = pick.projectionUnreliable
-                ? ' <span style="color:#fc6;" title="Item does not follow the known mythic curve">&#9888;</span>'
+                ? ` <span style="color:#fc6;" title="${t('HHGearCurveWarning')}">&#9888;</span>`
                 : '';
             const resonance = mode === 'possible'
                 ? `${fmtSignedPct((_a = pick.projectedResonanceDelta) !== null && _a !== void 0 ? _a : 0)}`
-                    + `<br/><span style="color:#aaa;font-size:10px;">now ${fmtSignedPct(pick.resonanceDelta)}</span>`
+                    + `<br/><span style="color:#aaa;font-size:10px;">${t('HHGearNowLabel')} ${fmtSignedPct(pick.resonanceDelta)}</span>`
                 : fmtSignedPct(pick.resonanceDelta);
             return `<tr><td>${slot}</td><td>${label}${warn}</td><td>${tier}</td>`
                 + `<td class="num" style="color:${pick.caracDelta < 0 ? '#f88' : '#7f7'};">${fmtSigned(pick.caracDelta)}</td>`
                 + `<td class="num">${resonance}</td></tr>`;
         }).join('');
         const summary = mode === 'possible'
-            ? `<p><b>Today this costs ${fmtSigned(plan.totalCaracDelta)} carac points.</b>`
-                + ` Levelled to the cap it is worth ${fmtSignedPct((_a = plan.totalProjectedResonanceDelta) !== null && _a !== void 0 ? _a : 0)} of resonance,`
-                + ` and every mythic reaches the same stats there. The gap is deliberate &mdash;`
-                + ` these are the better targets, not the better items today.</p>`
-            : `<p><b>${fmtSigned(plan.totalCaracDelta)} carac points, ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.</b></p>`;
-        const resonanceHead = mode === 'possible' ? 'resonance at cap' : 'resonance';
+            ? `<p><b>${t('HHGearCaracPointsToday')}: ${fmtSigned(plan.totalCaracDelta)}</b><br/>`
+                + `${t('HHGearResonanceOnceLevelled')}: ${fmtSignedPct((_a = plan.totalProjectedResonanceDelta) !== null && _a !== void 0 ? _a : 0)}</p>`
+                + `<p>${t('HHGearGapNote')}</p>`
+            : `<p><b>${t('HHGearCaracPoints')}: ${fmtSigned(plan.totalCaracDelta)},`
+                + ` ${t('HHGearActiveResonance')}: ${fmtSignedPct(plan.totalResonanceDelta)}</b></p>`;
+        const resonanceHead = t(mode === 'possible' ? 'HHGearColResonanceAtCap' : 'HHGearColResonance');
         const button = plan.changes.length === 0
-            ? '<p style="color:#7f7;">Nothing to change &mdash; every slot already holds the best item.</p>'
+            ? `<p style="color:#7f7;">${t('HHGearNothingToChange')}</p>`
             : `<label class="myButton" id="HHGearExecute" style="font-size:14px;width:100%;text-align:center;">`
-                + `Equip ${plan.changes.length} item(s)</label>`;
+                + `${t('HHGearEquipPlanned')} (${plan.changes.length})</label>`;
         fillHHPopUp('HHGearPreview', modeName, `
         <div id="HHGearPreview" style="padding:10px;max-width:760px;font-size:13px;">
-            <p>Hero class <b>${HeroHelper.getClass()}</b>, team theme <b>${esc(theme)}</b>.
-               Ranked by priority, not by a stat score: a capped mythic matching your class
-               and your team's theme first, then class, then theme, then any capped mythic,
-               and only then everything else. At the cap every mythic has the same stats,
-               so the resonance is the whole difference.</p>
+            <p>${t('HHGearHeroClass')}: <b>${HeroHelper.getClass()}</b>, ${t('HHGearTeamTheme')}: <b>${esc(theme)}</b>.
+               ${t('HHGearRankingNote')}</p>
             <table>
-                <tr><th>Slot</th><th>Item</th><th>why</th><th>caracs</th><th>${resonanceHead}</th></tr>
+                <tr><th>${t('HHGearColSlot')}</th><th>${t('HHGearColItem')}</th><th>${t('HHGearColWhy')}</th>`
+            + `<th>${t('HHGearColCaracs')}</th><th>${resonanceHead}</th></tr>
                 ${rows}
             </table>
             ${summary}
@@ -25571,13 +25859,14 @@ class EquipmentGear {
                         logHHAuto(`  slot ${g.slot} ${g.element}: keeping ${g.keptId}, ${g.freed} free`);
                     }
                 }
+                const t = (key) => EquipmentGear.gearText(key);
                 const rows = decision.groups
                     .map(g => `<tr><td>${g.slot}</td><td>${g.element}</td><td class="num">${g.freed}</td></tr>`)
                     .join('');
-                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'), `<p>${decision.keep.size} marked, ${freed} free to use as material by hand.</p>`
-                    + '<p>A marked piece is the one to keep for that slot and element.'
-                    + ' Nothing was changed in the game.</p>'
-                    + '<table id="HHGearPreview"><tr><th>Slot</th><th>Element</th><th>Free</th></tr>'
+                EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearMarkKeep'), `<p>${t('HHGearMarkedCount')}: ${decision.keep.size}, ${t('HHGearFreeCount')}: ${freed}</p>`
+                    + `<p>${t('HHGearMarkNote')}</p>`
+                    + `<table id="HHGearPreview"><tr><th>${t('HHGearColSlot')}</th><th>${t('HHGearColElement')}</th>`
+                    + `<th>${t('HHGearColFree')}</th></tr>`
                     + rows + '</table>');
             }
             catch (err) {
@@ -25743,30 +26032,26 @@ class EquipmentGear {
             EquipmentGear.showMessage(EquipmentGear.gearTitle('HHGearUpgrade'), EquipmentGear.noTargetsMessage(empty));
             return;
         }
-        const rows = targets.map(t => `<tr><td>${t.slot} ${SLOT_NAMES[t.slot]}</td><td>${esc(t.name)}</td>`
-            + `<td class="num">lvl ${t.level}</td>`
-            + `<td style="color:#aaa;">${esc(TIER_NAMES[t.tier])}</td></tr>`).join('');
+        const t = (key) => EquipmentGear.gearText(key);
+        const rows = targets.map(target => `<tr><td>${target.slot} ${t(SLOT_KEYS[target.slot])}</td><td>${esc(target.name)}</td>`
+            + `<td class="num">lvl ${target.level}</td>`
+            + `<td style="color:#aaa;">${t(TIER_KEYS[target.tier])}</td></tr>`).join('');
         fillHHPopUp('HHGearPreview', EquipmentGear.gearTitle('HHGearUpgrade'), `
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
-            <p>Worn mythics below level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}, best-matching first &mdash;
-               material goes where it grows the most resonance.</p>
-            ${theme ? '' : `<p style="color:#aaa;">No team theme known, so the order below only
-               separates items that match your class from those that do not. Every worn mythic
-               is upgraded either way. Open your team page once ("Change team" on the league
-               page) and the theme sharpens the order next time.</p>`}
+            <p>${t('HHGearUpgradeIntro')} (${(/* inlined export .MYTHIC_MAX_LEVEL */20)})</p>
+            ${theme ? '' : `<p style="color:#aaa;">${t('HHGearUpgradeNoThemeNote')}</p>`}
             <table>
-                <tr><th>Slot</th><th>Item</th><th>level</th><th>why it is worth it</th></tr>
+                <tr><th>${t('HHGearColSlot')}</th><th>${t('HHGearColItem')}</th><th>${t('HHGearColLevel')}</th>`
+            + `<th>${t('HHGearColWorth')}</th></tr>
                 ${rows}
             </table>
-            <p><b>Material:</b> ${stock.legendary.toLocaleString()} legendary and
-               ${stock.epic.toLocaleString()} epic items. Mythics are never consumed.</p>
-            <p style="color:#aaa;font-size:11px;">One item is taken to level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}
-               before the next one starts. The upgrade page states each item's exact
-               requirement, and the run stops by itself once the material is spent.</p>
+            <p><b>${t('HHGearMaterialLegendary')}:</b> ${stock.legendary.toLocaleString()},
+               <b>${t('HHGearMaterialEpic')}:</b> ${stock.epic.toLocaleString()}. ${t('HHGearMythicsNeverUsed')}</p>
+            <p style="color:#aaa;font-size:11px;">${t('HHGearUpgradeFootnote')}</p>
             <p id="HHGearStatus" style="color:#ffb827;"></p>
             <label class="myButton" id="HHGearUpgradeStart" style="font-size:14px;width:100%;text-align:center;">
-                Level all ${targets.length} item(s), starting with ${esc(targets[0].name)}
-                (slot ${targets[0].slot})</label>
+                ${t('HHGearUpgradeStart')} (${targets.length}), ${t('HHGearStartingWith')} ${esc(targets[0].name)}
+                (${t('HHGearColSlot')} ${targets[0].slot})</label>
         </div>`);
         $('#HHGearUpgradeStart').on('click', function () {
             $(this).attr('disabled', 'disabled').css('opacity', '0.5');
@@ -26034,14 +26319,14 @@ class EquipmentGear {
             const ajax = getHHAjax();
             if (!ajax) {
                 logHHAuto('Gear: shared.general.hh_ajax disappeared, aborting -- nothing was changed.');
-                $('#HHGearStatus').text('hh_ajax is unavailable. Nothing was changed.');
+                $('#HHGearStatus').text(getTextForUI('HHGearAjaxMissing', 'elementText'));
                 return;
             }
             const swapLog = getStoredJSON(HHStoredVarPrefixKey + TK.gearSwapLog, []);
             let done = 0;
             for (const pick of plan.changes) {
                 const item = pick.chosen;
-                $('#HHGearStatus').text(`Equipping slot ${pick.slot} (${done + 1}/${plan.changes.length})...`);
+                $('#HHGearStatus').text(`${getTextForUI('HHGearEquippingSlot', 'elementText')} ${pick.slot} (${done + 1}/${plan.changes.length})...`);
                 const data = yield new Promise(resolve => {
                     ajax({
                         action: 'market_equip_armor',
@@ -26051,8 +26336,8 @@ class EquipmentGear {
                 }).catch(err => { logHHAuto('Gear: equip call failed: ' + err); return null; });
                 if (!data || data.success === false) {
                     logHHAuto(`Gear: slot ${pick.slot} refused by the game, stopping after ${done} swap(s).`);
-                    $('#HHGearStatus').text(`Stopped at slot ${pick.slot}: the game refused the swap.`
-                        + ` ${done} of ${plan.changes.length} done.`);
+                    $('#HHGearStatus').text(`${getTextForUI('HHGearRefusedAtSlot', 'elementText')} ${pick.slot}.`
+                        + ` ${done}/${plan.changes.length}`);
                     break;
                 }
                 const removedId = (_b = (_a = data === null || data === void 0 ? void 0 : data.unequipped_armor) === null || _a === void 0 ? void 0 : _a.id_member_armor) !== null && _b !== void 0 ? _b : null;
@@ -26075,7 +26360,7 @@ class EquipmentGear {
                 }
             }
             if (done === plan.changes.length) {
-                $('#HHGearStatus').text(`Done: ${done} slot(s) changed. Reload the page to see the new stats.`);
+                $('#HHGearStatus').text(`${getTextForUI('HHGearDoneReload', 'elementText')} ${done}`);
                 logHHAuto(`Gear: finished, ${done} slot(s) changed.`);
             }
         });
@@ -27583,14 +27868,19 @@ class Shop {
      * moduleShopActions (Shop review I4) so it can be unit-tested. "*" means
      * "any" for carac/type/rarity; inLockedValue true/"locked" selects locked
      * slots, anything else selects unlocked.
+     *
+     * `name_add` and `subtype` are numbers in data-d and are always followed
+     * by a comma (measured 2026-09-11 on all 65 armour slots of an
+     * inventory). Quoting them, as this did before, matched nothing; leaving
+     * the comma off lets "name_add":1 match 10 to 16 as well.
      */
     static buildSlotFilter(inCaracsValue, inTypeValue, inRarityValue, inLockedValue) {
         let filter = '#player-inventory.armor .slot:not(.empty)';
         if (inCaracsValue !== "*") {
-            filter += '[data-d*=\'"name_add":"' + inCaracsValue + '"\']';
+            filter += '[data-d*=\'"name_add":' + inCaracsValue + ',\']';
         }
         if (inTypeValue !== "*") {
-            filter += '[data-d*=\'"subtype":"' + inTypeValue + '"\']';
+            filter += '[data-d*=\'"subtype":' + inTypeValue + ',\']';
         }
         if (inRarityValue !== "*") {
             filter += '[data-d*=\'"rarity":"' + inRarityValue + '"\']';
@@ -27671,11 +27961,12 @@ class Shop {
                     filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"rarity":"mythic"\']');
                 }
                 else {
-                    filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"name_add":' + c + '\']');
+                    // The comma closes the number: without it carac 1 also counted 10 to 16.
+                    filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"name_add":' + c + ',\']');
                 }
                 itemsList[c] = {};
                 for (const t of itemsType) {
-                    const filteredType = filteredCarac.filter('[data-d*=\'"subtype":' + t + '\']');
+                    const filteredType = filteredCarac.filter('[data-d*=\'"subtype":' + t + ',\']');
                     itemsList[c][t] = {};
                     for (const r of itemsRarity) {
                         const filteredRarity = filteredType.filter('[data-d*=\'"rarity":"' + r + '"\']');
@@ -30526,7 +30817,8 @@ TeamModule.TRAIT_EMOJI = {
 };
 TeamModule.CLASS_NAME = {
     fire: 'Eccentric', water: 'Sensual', nature: 'Exhibitionist', stone: 'Physical',
-    sun: 'Playful', darkness: 'Dominatrix', psychic: 'Submissive', light: 'Voyeur',
+    // element_data.flavor, measured 2026-09-11: light is Submissive, psychic Voyeur.
+    sun: 'Playful', darkness: 'Dominatrix', psychic: 'Voyeur', light: 'Submissive',
 };
 TeamModule.PLAYER_CLASS_NAME = {
     1: 'Hardcore',
