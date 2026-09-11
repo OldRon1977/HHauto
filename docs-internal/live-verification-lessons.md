@@ -203,8 +203,13 @@ certificate directly.
 Headless Chromium draws canvas on the CPU (SwiftShader). Without any script,
 `/home.html` measured 67 % main-thread load, `/season.html` 99 % and event pages
 100 %, against 0.1-0.4 % for list pages such as the shop or the league.
-*Guard:* only compare with and without the script on the same page; absolute
-percentages do not carry over to a browser with a GPU.
+In a visible window on the same machine -- `headless: false`, Playwright's
+`--enable-unsafe-swiftshader` dropped via `ignoreDefaultArgs`, WebGL renderer
+ANGLE on an NVIDIA GPU -- the same pages measured 1.1 % (home), 2.0 % (league)
+and 5.7 % (season).
+*Guard:* compare with and without the script on the same page, or measure in a
+visible window; read the WebGL renderer first -- "SwiftShader" means the CPU is
+still drawing.
 
 **The script's own popup overlay swallows coordinate clicks.**
 `#HHAutoPopupGlobal` covers the viewport, so a Playwright click on a button
