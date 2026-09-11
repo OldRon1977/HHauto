@@ -1,5 +1,5 @@
 ---
-last-verified: 2026-08-17
+last-verified: 2026-09-11
 status: current
 ---
 
@@ -94,6 +94,16 @@ Ein Objekt traegt **entweder** die eine ID **oder** die andere, nie beide
 - ``bonus``: Prozentpunkte.
 - ``caracs.chance`` kommt mal als Zahl, mal als **String** (`"4634.57"`).
   Immer durch `Number()` schicken.
+
+Nachgemessen 2026-09-11 auf dem Pruefkonto (Level 115): ``hero_items`` traegt
+die Schluessel ``1``..``6``, jeder Eintrag mit ``id_member_armor_equipped`` und
+ohne ``id_member_armor``, ``skin.subtype`` 1..6; ``caracs`` traegt zusaetzlich
+``ego``; ``caracs.chance`` war in allen 71 Teilen (angelegt und Inventar) ein
+String. Das Konto besitzt **kein** mythisches Teil -- sechs legendaere angelegt
+(Level 61 bis 84, ohne ``resonance_bonuses``), im Inventar 32 legendaere, 14
+epische, 25 seltene. Die Regeln der beiden folgenden Abschnitte (Bonus je Level,
+Rohwerte je Stufe) sind auf diesem Konto deshalb nicht pruefbar; Voraussetzung
+ist ein mythisches Spieler-Item.
 
 ### Der Bonus skaliert mit dem Item-Level
 
@@ -450,8 +460,9 @@ Prozentpunkte, exakt die 0,1 pro Level aus Abschnitt 2.
 Das Pagineren des Inventars nutzt `{action:'market_get_armor',
 id_member_armor}` und erwartet `{items: [...], success}`; leere `items`
 beenden die Liste. Das ist derselbe Vertrag, auf dem `Shop.ts`
-(`checkAjaxComplete`) schon laeuft, aber fuer den Optimierer nicht eigens
-live nachgemessen.
+(`checkAjaxComplete`) schon laeuft. Live nachgemessen 2026-09-11: mit der
+letzten ID der ersten Inventarseite (65 Teile) antwortet der Aufruf
+`{items: [], success: true}`.
 
 ---
 
@@ -477,7 +488,9 @@ live nachgemessen.
 ## Girl-Ausruestung (gemessen 2026-09-01)
 
 Die Recruit-Seite ist eigenstaendig gemessen, nicht aus der Spieler-Ausruestung
-abgeleitet.
+abgeleitet. Am 2026-09-11 nicht nachgemessen: auf den Ausruestungsreitern von
+drei ausgeruesteten Maedchen des Pruefkontos fand sich kein Link zur
+Upgrade-Seite.
 
 **Achsen.** Ein mythisches Girl-Item traegt **drei** Resonanzen, ein legendaeres
 **zwei**:
