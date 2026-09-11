@@ -24,7 +24,7 @@ gekennzeichnet. Kontokennungen und Spielernamen stehen nicht drin.
 | `id` | Bedeutung | Kosten |
 |---|---|---|
 | `free` | naechster Schritt ohne Kosten | - |
-| `pay` | naechster Schritt gegen Ressource | Geld (100-250) oder 1 Quest-Energie |
+| `pay` | naechster Schritt gegen Ressource | Geld (100-250 in Welt 1-3, 12.0K gemessen auf `/quest/420`) oder Quest-Energie |
 | `use_item` | Questgegenstand einsetzen | der Gegenstand |
 | `battle` | Questschritt verlangt einen Kampf | Kampfenergie |
 | `end_play` | Quest zu Ende, danach Reward-Popup | - |
@@ -86,6 +86,7 @@ Knopf schaut, meldet einen Haenger, der keiner ist.
 | `#simple_text_popup.popup` (Wartungsmeldung) | `close.closable` |
 | `#no_HC` | `close.closable` |
 | `#rewards_popup` | `button.blue_button_L` / `button.purple_button_L` |
+| `#not_enough_SC_popup.popup` (zu wenig Geld) | `close.closable` -- laesst den Knopf aktiv, siehe unten |
 
 `close` als **Elementname** existiert also wirklich; die Selektoren in
 `Quest.ts`, die danach suchen, sind kein Tippfehler. Fuer `#level_up` greifen
@@ -95,6 +96,31 @@ Ab Level 30 traegt `#level_up` **zwei** Knoepfe: "Ok" und "Go to Hero
 Leveling", in dieser Reihenfolge. Der Fix nimmt `.first()` und trifft damit
 "Ok". Kehrt das Spiel die Reihenfolge um, navigiert das Skript mitten in der
 Quest weg. Nach Text zu greifen scheidet aus: die Oberflaeche ist mehrsprachig.
+
+### Zu wenig Geld
+
+`quest.js` prueft vor dem Absenden selbst. `gradeQuestNext` vergleicht
+`shared.Hero.currencies.soft_currency` mit den **exakten** Kosten
+`currentStepData.cost.$` und ruft bei zu wenig Geld
+`shared.general.notEnoughSoftCurrency(fehlbetrag)`; sonst `hc_confirm` und
+darin `startLoading()` samt Anfrage an den Server.
+
+Gemessen 2026-09-11, Popup per Aufruf von `notEnoughSoftCurrency(5928)` auf
+einer Questseite erzeugt: `#not_enough_SC_popup` in `#common-popups`, der
+Fehlbetrag in `span[rel="money"]`, einziges Bedienelement ausser dem
+Harem-Link ist `close.closable`. Nach dem Schliessen ist das Popup aus dem DOM
+verschwunden. Auf diesem Weg bleibt der Weiter-Knopf **aktiv**.
+
+Grau wird der Knopf nur durch `startLoading()` im anderen Zweig -- wenn die
+Pruefung im Browser bestanden war. Ein grauer Knopf unter diesem Popup heisst
+daher: Browser und Skript hielten das Guthaben fuer ausreichend, der Server
+nicht. Das ist aus `quest.js` **geschlossen**, nicht beobachtet. Beide lesen
+dieselbe Variable, und ein veralteter Hero-Schnappschuss (siehe "Zwei
+Messfallen") erklaert den Unterschied. Die Vorpruefung in `Quest.ts` kann
+diesen Fall also nicht verhindern; `Quest.ts` schliesst das Popup deshalb,
+merkt sich die volle Schrittgebuehr als `$<kosten>` und laesst die Quest 20
+Minuten ruhen (`QuestHelper.NO_MONEY_TIMER`), statt einen Takt spaeter wieder
+auf dasselbe Guthaben zu vertrauen.
 
 ## Questgegenstand
 

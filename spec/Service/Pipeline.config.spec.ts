@@ -45,6 +45,7 @@ jest.mock('../../src/Module/Quest', () => ({
   QuestHelper: {
     getEnergy: jest.fn().mockReturnValue(0),
     run: jest.fn(),
+    NO_MONEY_TIMER: 'nextQuestMoneyAttempt',
   },
 }));
 
@@ -888,6 +889,70 @@ describe('Pipeline.config', () => {
 
       ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
       QuestHelperMock.getEnergy.mockReturnValue(0);
+    });
+
+    // After the game refused a step for money, QuestHelper.run records the
+    // step cost as '$<cost>' and arms NO_MONEY_TIMER. The balance that let the
+    // refused click through is the reading this branch would trust again, so
+    // it has to wait the back-off out before looking at the money at all.
+    describe("the '$' branch after the game refused a step for money", () => {
+      const gotoPageMock = () => jest.requireMock('../../src/Service/PageNavigationService').gotoPage as jest.Mock;
+      const configMock = () => (jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock }).getHHScriptVars;
+      const questMock = () => jest.requireMock('../../src/Module/Quest').QuestHelper as Record<string, jest.Mock>;
+      const checkTimerMock = () => jest.requireMock('../../src/Helper/TimerHelper').checkTimer as jest.Mock;
+      const getHHVarsMock = () => jest.requireMock('../../src/Helper/HHHelper').getHHVars as jest.Mock;
+
+      function setup(opts: { backoffOver: boolean; money: number; page: string }): AutoLoopContext {
+        gotoPageMock().mockClear();
+        questMock().run.mockReset();
+        questMock().run.mockReturnValue(true);
+        checkTimerMock().mockClear();
+        configMock().mockImplementation((key: string) => key);
+        checkTimerMock().mockImplementation((name: string) => name === 'nextQuestMoneyAttempt' ? opts.backoffOver : false);
+        getHHVarsMock().mockImplementation((path: string) => path === 'Hero.currencies.soft_currency' ? opts.money : 100);
+        getStoredValueMock.mockImplementation((key: string) => {
+          if (key.endsWith('autoTrollBattleSaveQuest')) return 'false';
+          if (key.endsWith('Temp_questRequirement')) return '$12000';
+          return undefined;
+        });
+        return makeCtx({ canCollectCompetitionActive: true, currentPage: opts.page });
+      }
+
+      afterEach(() => {
+        configMock().mockImplementation(() => true);
+        checkTimerMock().mockReturnValue(false);
+        getHHVarsMock().mockReturnValue(100);
+        questMock().run.mockReset();
+      });
+
+      it('stays away while the back-off runs, even when the balance reads high enough, and goes home', async () => {
+        const ctx = setup({ backoffOver: false, money: 51926, page: 'pagesIDQuest' });
+
+        await handler.steps[0].fn(ctx);
+
+        expect(checkTimerMock()).toHaveBeenCalledWith('nextQuestMoneyAttempt');
+        expect(questMock().run).not.toHaveBeenCalled();
+        expect(gotoPageMock()).toHaveBeenCalledWith('pagesIDHome');
+      });
+
+      it('resumes once the back-off is over and the balance covers the step', async () => {
+        const ctx = setup({ backoffOver: true, money: 51926, page: 'pagesIDHome' });
+
+        await handler.steps[0].fn(ctx);
+
+        expect(questMock().run).toHaveBeenCalled();
+        expect(setStoredValueMock.mock.calls).toContainEqual([
+          expect.stringContaining('Temp_questRequirement'), 'none',
+        ]);
+      });
+
+      it('keeps waiting after the back-off while the balance is still short', async () => {
+        const ctx = setup({ backoffOver: true, money: 5000, page: 'pagesIDHome' });
+
+        await handler.steps[0].fn(ctx);
+
+        expect(questMock().run).not.toHaveBeenCalled();
+      });
     });
 
     it('derives busy from QuestHelper.run() so a failed nav does not starve later handlers (issue #1752)', async () => {

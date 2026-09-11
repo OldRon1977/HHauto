@@ -19,6 +19,18 @@ existing player: with only *Collect all* on for Path of Glory, the sweep now
 runs in the final window before the event ends instead of continuously -- what
 the switch has always said it does, and what Path of Valor already did.
 
+#### A quest step the game refuses for money no longer stalls the run
+
+A quest step that costs money could end with the game's "You lack ... to
+complete this action!" popup over a greyed-out button, and the script waiting
+on that button indefinitely. The script checks the balance before it clicks,
+but it reads the same value the game checks in the browser, and that value can
+be stale -- half of all page loads carry an old hero snapshot. When the game
+refuses, the script now closes the popup, remembers the full cost of the step,
+leaves the quest alone for 20 minutes -- about as long as the money usually
+takes to come back -- and goes back home. After that it tries again once the
+balance reads high enough.
+
 #### The script's own icons load again
 
 The menu button, the power-calc markers next to opponents in League, Season
