@@ -1,7 +1,11 @@
 # Inspector PII Share-Mode -- Canonical Reference
 
 Status: 2026-05-09. Implemented in inspector v4.8.0
-(`bonus-scripts/HHAuto_debug_inspector.user.js`).
+(`bonus-scripts/HHAuto_debug_inspector.user.js`). Checked 2026-09-11 against
+the source of v4.11.0: `PII_MODE`, the `DUMP FOR SHARING` button, the FNV-1a
+hash, the layer list, `SHARE_PIPELINE_VERSION = 2` and the warning text are as
+described below; the settings whitelist holds 92 keys. Read from the source,
+not run: no share dump was produced for this check.
 
 This document is the canonical reference for issue triagers and
 contributors who need to know what a public share-mode dump
@@ -153,7 +157,7 @@ Fields:
 |---|---|---|
 | `mode` | string | always `"share"` |
 | `pipeline_version` | int | currently `2` |
-| `inspector_version` | string | currently `"4.8.0"` |
+| `inspector_version` | string | the script's `VERSION` constant (`"4.11.0"` on 2026-09-11) |
 | `pages_processed` | int | bundle.pages.length |
 | `layers_applied` | string[] | `["top_level_whitelist", "plain_text_strip", "settings_whitelist", "id_hash_and_pseudonymise", "rounding"]` |
 | `layer_counts.top_level_keys_dropped` | int | per-page top-level keys discarded by the whitelist |
@@ -170,7 +174,8 @@ Fields:
 ## Verifier
 
 A Python verifier lives in `docs-internal/skripte/verify_share_dump.py`
-(local-only, gitignored). It checks the audit block, runs the
+(local-only, gitignored -- it is not in a fresh clone, and was not present on
+the machine this was checked on, 2026-09-11). It checks the audit block, runs the
 plain-text and id-pseudonym patterns, validates rounding, and
 exits non-zero on any violation.
 
