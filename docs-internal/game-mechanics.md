@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-09-09
-verified-against-version: HentaiHeroes BDSM (release 2021-07-21), v8.12.11 HHAuto
+last-verified: 2026-09-11
+verified-against-version: HentaiHeroes BDSM (release 2021-07-21), v8.13.1 HHAuto
 status: current
 sources:
   - INPUT/Your Performance Handbook!*.pdf (Slynia, 2021-11-20+)
@@ -66,6 +66,16 @@ Nur der Haupt-Stat erhoeht **Damage** und **Endurance** (Endurance = +1 Ego pro 
 
 Pro Level: 30 zusaetzliche Stat-Punkte pro Stat (max Level 500 -> 15.000 pro Stat = 45.000 total).
 Preis steigt mit jedem Kauf des selben Stats. Das Skript verwendet diesen Mechanismus in HeroHelper.doStatUpgrades() mit Multiplikatoren 1/10/30/60.
+
+**Gemessen 2026-09-11** (Pruefkonto, Level 115, ein Kauf von carac3 2541 -> 2542):
+die Antwort auf `hero_update_stats` nennt `statsPrices.base_stat` 575 und
+`statsPrices.max` 4025. 575 + 30 x 115 = 4025 -- die Obergrenze je Stat ist
+also Grundwert plus 30 je Level (aus dieser einen Messung geschlossen).
+`doStatUpgrades` begrenzt mit `level * 30` ohne den Grundwert. Der Punkt kostete
+6.173; die Formel in `doStatUpgrades` ergibt fuer den Stand 2541 6.169, fuer
+2542 6.173 -- sie liegt eine Stufe zu niedrig. `statsPrices.prices.x1` (6.177)
+ist der Preis des **naechsten** Punkts. `shared.Hero.infos.carac3` blieb im
+laufenden Dokument bei 2541, erst nach dem Neuladen stand 2542.
 
 ---
 
@@ -144,6 +154,15 @@ Verifiziert am 2026-08-16 gegen die `synergies`-Payload der Edit-Team-Seite
 | Light | Submissive | +2% Defense | 14% | bis 7% |
 | Psychic | Voyeur | +2% Harmony | 14% | bis 7% |
 
+Nachgemessen 2026-09-11 an der `synergies`-Nutzlast eines Teams auf
+`/teams.html` (Felder `bonus_identifier`, `bonus_multiplier`, `element`,
+`team_bonus_per_girl`, `team_bonus_max_amount`, `team_bonus_multiplier`,
+`team_girls_count` und dieselben vier mit `harem_`): Werte je Maedchen und
+Team-Deckel wie in der Tabelle; der Harem-Anteil je Maedchen ist Fire 0,0035,
+Water und Nature 0,001, die uebrigen 0,0007, gedeckelt bei 35 %, 10 % und 7 %.
+Die Zuordnung Element -> Klassen-Name (`element_data.flavor`) stimmt mit der
+Tabelle ueberein, auch fuer Light = Submissive und Psychic = Voyeur.
+
 **Die Synergie wirkt linear ab dem ERSTEN Girl** -- nicht erst ab dreien. Zwei
 Darkness-Girls ergeben `team_bonus_multiplier = 0.04`, sieben ergeben 0.14
 (Deckel). Team- und Harem-Anteil sind additiv (`bonus_multiplier`).
@@ -168,7 +187,7 @@ Bei Match: pro getroffenem Gegner-Element +10% Ego UND +10% Attack auf der eigen
 fire -> nature -> stone -> sun -> water -> fire
 `
 
-| Element | wird besiegt von |
+| Element | dominiert |
 |---------|------------------|
 | fire | nature |
 | nature | stone |
@@ -257,7 +276,15 @@ HHAuto's Leader-Priority bei der Team-Auswahl (verifiziert in TeamScoringService
 | Cordyceps | Damage | +300 | +1050 | +3675 | +10% |
 | Jujubes | Harmony | +400 | +1400 | +4900 | +20% |
 
-Common-Legendary-Booster halten 24h, Mythic Booster halten eine bestimmte Anzahl von Performances (Sandalwood / MB1 = 5 Uses).
+Common-Legendary-Booster halten 24h, Mythic Booster halten eine bestimmte Anzahl von Performances.
+
+Gemessen im Markt (2026-09-11): Ginseng rare +350, Chlorella rare +4200 und
+epic +14700, Ginseng legendary 6 (%), Chlorella und Cordyceps legendary 10 (%)
+-- wie in der Tabelle; `duration` 1440 Minuten = 24 h. Common und Jujubes waren
+nicht im Angebot. Die Zahl der Anwendungen eines Mythic steht als
+`item.default_usages` in der Nutzlast: MB2 100 (2026-09-11), MB1 (Sandalwood)
+11 (2026-09-07, `data-sources-inventory.md`). Die fruehere Angabe "MB1 = 5 Uses"
+stimmte damit nicht.
 
 ### Mythic-Booster (Auswahl)
 
@@ -328,6 +355,13 @@ Legendary: 1 Star -> 5 Stars (3-Star und 5-Star sind verbreitet)
 Mythic:    1 Star -> 6 Stars
 `
 
+Die Sternzahl eines Maedchens (`nb_grades`) haengt am Maedchen, nicht an der
+Seltenheit. Gemessen 2026-09-11 in `girls_data_list` (24 Maedchen): common mit
+1, 3 und 5 Sternen, starting mit 3 und 5, rare mit 3, legendary mit 3. Die
+Liste oben nennt das Maximum je Seltenheit. Der Kommentar in
+`LoveRaidManager.parseRaids` ("3=rare, 5=legendary, 6=mythic") beschreibt
+dasselbe Maximum, nicht den Einzelfall.
+
 ### Affection / XP per Battle
 
 In Season-Battles erhalten alle Team-Girls XP und Affection abhaengig vom Level des Gegners:
@@ -375,7 +409,7 @@ Blessing-Typen:
 | Typ | Bedeutung |
 |-----|-----------|
 | Common-Blessing | Standard wird gewuerfelt |
-| League-Blessings (``pvp_v3``) | Die zwei woechentlichen League-Blessings, Array [20, 30] = 20% + 30% |
+| League-Blessings (``pvp_v3``) | Die zwei woechentlichen League-Blessings, Array [20, 30] = 20% + 30%. Gemessen 2026-09-11: Bedingungen "Favorite position 69" und "Rarity Legendary", je +25 %; die fuenf legendaeren Maedchen trugen `pvp_v3` = [25] |
 | Labyrinth-Set (``pvp_v4``) | == ``pvp_v3`` PLUS die Slot-3-Role-Blessing (gilt nur im Love Labyrinth) |
 
 Verifiziert 2026-07-13 (Fixture-Diff + Live-Dump): ``pvp_v4`` ist kein
@@ -410,7 +444,7 @@ HHAuto baut Bless-bewusste Kandidaten-Teams pro erkannter Blessing (Kandidaten-M
 | Anzahl Leagues | 9 (Wanker I/II/III, Sexpert I/II/III, Dicktator I/II/III) |
 | Punkte pro Win | 15-25 (Skala mit Rest-Ego) |
 | Punkte pro Loss | 3-13 |
-| Token-Regen | 1 alle 35 Min, max 15 |
+| Token-Regen | 1 alle 35 Min (`seconds_per_point` 2100, gemessen); Grenze gemessen 2026-09-11 auf dem Pruefkonto: `max_regen_amount` 18, nicht 15 |
 | 15x-Performance-Button | gegen Lowest-Level-noch-nicht-gefightete Gegner |
 
 Promote: Top 15 in der Gruppe. Demote: Bottom 15 oder 0 Punkte. Ausnahme: Dicktator III hat keine Promote.
@@ -424,7 +458,7 @@ Promote: Top 15 in der Gruppe. Demote: Bottom 15 oder 0 Punkte. Ausnahme: Dickta
 | Aspekt | Wert |
 |--------|------|
 | Saison-Dauer | 1 Monat (1. des Monats 13:00 UTC+1) |
-| Currency | Kisses (1 pro Stunde, max 10) |
+| Currency | Kisses (1 pro Stunde, `seconds_per_point` 3600); Grenze gemessen 2026-09-11 auf dem Pruefkonto: `max_regen_amount` 20, nicht 10 |
 | Ranking | Mojo (Elo-System) |
 | Mojo-Range pro Battle | -40 bis +40, abhaengig vom Mojo-Diff |
 
@@ -554,7 +588,9 @@ exakt fuer jedes der 13 Maedchen. Dabei ist
 6490.
 
 **Die Zyklen sind nicht gleich lang.** Auf dem Konto kamen 1800, 5400 und
-16200 Sekunden vor. Eine Summe ueber `salary` mischt sie und ist deshalb keine
+16200 Sekunden vor. Nachgemessen 2026-09-11 mit 24 Maedchen: die Formel stimmt
+fuer alle 24, die Zyklen waren 1800 (15 Maedchen), 5400 (5), 16200 (1) und
+25200 (3). Eine Summe ueber `salary` mischt sie und ist deshalb keine
 Einnahme je Zeit: 451.125 als Summe der Auszahlungen stehen 210.250 pro Stunde
 gegenueber, und die zwei Maedchen mit 4,5-Stunden-Zyklus machen 70 % der
 `salary`-Summe aus, aber nur 33 % der Stundeneinnahme.
@@ -574,6 +610,12 @@ besessenen Maedchen, jede Seite in einer eigenen Ladung:
 | `/home.html` | `girlsDataList` | 9 | nur `salary` und `pay_in` |
 | `/teams.html` | keine | - | die Seite traegt keine Liste |
 | ueberall | `shared.GirlSalaryManager.girlsListSec` | 7 | zaehlt zu niedrig |
+
+Nachgemessen 2026-09-11 auf demselben Konto mit **24** besessenen Maedchen:
+`girls_data_list` 24 (64 Felder je Eintrag), `girlsDataList` auf
+`/characters.html` 24, auf `/home.html` 24 mit je 2 Feldern -- in fuenf Ladungen
+schon beim ersten Auftauchen (130 bis 235 ms nach dem Laden) vollstaendig --,
+`shared.GirlSalaryManager.girlsMap` 24 auf jeder Seite, `girlsListSec` 4.
 
 Entscheidend fuer jede Zaehlung: die Datensaetze auf `/characters.html` tragen
 **kein** `shards`, `level` oder `graded` -- dort ist ein bekanntes Maedchen von
