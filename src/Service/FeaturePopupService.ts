@@ -41,12 +41,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
 // ===, so a mismatch means the popup silently never appears, and adding a
 // paragraph without moving this number changes nothing on screen. If the
 // release number changes, change it here and in the title too.
-const FEATURE_POPUP_VERSION: string = "8.11.0";
+const FEATURE_POPUP_VERSION: string = "8.13.0";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.11.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.13.0";
 
 /**
  * HTML content for the feature popup.
@@ -55,12 +55,17 @@ const FEATURE_POPUP_TITLE = "HHAuto v8.11.0";
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Boosters to buy: one field, one amount each</p>
-    <p style="margin-bottom:10px;">The <i>Filter</i> and <i>Max Booster</i> settings are now a single field. Each booster carries the number you want to keep, written after a colon: <code>MB1:5;B4:50;MB6:2</code> &mdash; no spaces, and each booster only once. Equipped boosters do not count towards it, <code>0</code> means no limit as before, and a booster you do not list is never bought.</p>
-    <p style="margin-bottom:10px;"><b>Your existing setting was carried over</b> &mdash; the old filter and the old number were combined for you, so nothing changes about what gets bought.</p>
-    <p style="margin-bottom:10px;">One thing is new: if the field turns <b style="color:#c33;">red</b>, buying boosters stops until you correct it. A list that cannot be read would otherwise have to guess, and guessing here spends kobans. Everything else, equipping included, carries on.</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">What changed</p>
+    <ul style="margin:0 0 10px 18px; padding:0;">
+      <li style="margin-bottom:6px;"><b>Young accounts:</b> features the account has not unlocked yet are skipped instead of visited on every tick, so a new account runs cleanly while it grows.</li>
+      <li style="margin-bottom:6px;"><b>League power calc</b> no longer freezes the page. A fight it cannot decide now shows <b>50%</b>.</li>
+      <li style="margin-bottom:6px;"><b>Menu button and opponent markers</b> show again &mdash; the icons now ship inside the script.</li>
+      <li style="margin-bottom:6px;">A <b>quest step the game refuses for money</b> no longer stalls the run: the script closes the message, waits 20 minutes and goes home.</li>
+      <li style="margin-bottom:6px;"><b>Path of Glory:</b> with only <i>Collect all</i> on, it now collects in the final window before the event ends, like Path of Valor.</li>
+      <li>Under the hood: internal clean-up and a number of further bug fixes.</li>
+    </ul>
 
-    <p style="margin-bottom:0; font-size:11px; color:#888;">The <i>Max Booster</i> field is gone from the menu &mdash; its number lives in the list now. No other setting was changed. Full details in the CHANGELOG.</p>
+    <p style="margin-bottom:0; font-size:11px; color:#888;">Full details in the <a href="https://github.com/OldRon1977/HHauto/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG</a>.</p>
   </div>
 `;
 
