@@ -224,6 +224,25 @@ style instead. And an `<img>` without a `src` reports `complete` with
 `naturalWidth` 0 -- Season uses one as an invisible spacer, 0 px high -- which a
 broken-image count reads as a failure.
 
+**The script spends or earns what a test set up by hand.**
+A test of the quest's money shortage needs less money than the next step
+costs. One run with `master` on collected about 56,500 in harem salaries on its
+first ticks and the state was gone; setting it up again took a player several
+minutes.
+*Guard:* switch the collecting modules off for the run and, in addition, abort
+the collecting requests at the network layer (`ctx.route('**/ajax.php*')`,
+action names matching `salar|claim|collect|reward`), logging each one. The
+second line catches a module the first one missed.
+
+**"Only one module on" is not what switching the others off gives you.**
+With `master` on and every `HHAuto_Setting_auto*` set to false except
+`autoQuest`, the script still navigated to `/event.html` a few seconds after
+the quest had gone home. A reading taken at the end of such a run can land on a
+page load and fail with "Execution context was destroyed".
+*Guard:* take the result from the log lines as they arrive, not from a final
+read. Save every `HHAuto_Setting_*` before the run and write them back in a
+`finally`; leave `master` off afterwards so a later injection starts nothing.
+
 ## Where the ground truth actually lives
 
 Two sources settled questions that DOM inspection could not:

@@ -138,8 +138,13 @@ Was dabei im Spiel steht, gemessen am 2026-09-11 auf `/quest/505`
 | Popup-Text | Text des Popups | `You lack 9,937 to complete this action! You can collect from the harem, do missions, battles and contests - ...` |
 | Schliessen | `close.closable` im Popup | `$('close.closable', popup).trigger('click')` (die Zeile aus `Quest.ts`) schliesst es; danach ist das Popup aus dem DOM |
 
-Was HHauto daraus macht, steht im Code, nicht in dieser Messung -- ein
-HHauto-Lauf gegen diesen Zustand ist noch nicht beobachtet:
+Was HHauto in diesem Zustand tut. Den Weg ueber die Vorpruefung hat ein
+HHauto-Lauf am 2026-09-11 gegen genau diesen Zustand gezeigt (gemessen: auf
+`/quest/505` "Need 17000 Money to proceed.", `$17000` gespeichert, nicht
+geklickt, gut 1 s spaeter nach home, Guthaben unveraendert). Den Popup-Weg
+braucht das Skript nur bei veraltetem Hero-Schnappschuss; fuer ihn sind die
+Zeilen unten aus dem Code, die Schliess-Zeile selbst ist oben am echten Popup
+gemessen:
 
 | Was | Ort | Wert |
 |---|---|---|
