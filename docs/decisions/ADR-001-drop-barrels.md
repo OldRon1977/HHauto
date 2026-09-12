@@ -1,68 +1,66 @@
-# ADR-001: Keine Barrel-Dateien, direkte Importe
+# ADR-001: No barrel files, direct imports
 
 ## Status
 Accepted
 
-## Datum
+## Date
 2026-05-13
 
-## Kontext
+## Context
 
-Eine Zyklen-Untersuchung zählte 227 zirkuläre Import-Ketten in `src/`. Fast
-jede lief über eine der elf `index.ts`-Barrels (`Helper/index.ts`,
-`Module/index.ts`, `Utils/index.ts` …):
+A cycle survey counted 227 circular import chains in `src/`. Nearly every one
+ran through one of the eleven `index.ts` barrels (`Helper/index.ts`,
+`Module/index.ts`, `Utils/index.ts` ...):
 
 ```
 Helper/BDSMHelper.ts
   -> Helper/ConfigHelper.ts
-  -> Utils/index.ts        (Barrel re-exportiert HHPopup, Utils, ...)
+  -> Utils/index.ts        (barrel re-exports HHPopup, Utils, ...)
   -> Utils/HHPopup.ts
   -> Utils/Utils.ts
-  -> Helper/index.ts       (Barrel re-exportiert BDSMHelper)
-  -> zurueck zu Helper/BDSMHelper.ts
+  -> Helper/index.ts       (barrel re-exports BDSMHelper)
+  -> back to Helper/BDSMHelper.ts
 ```
 
-Der Grund ist das `export *`: es zieht jede Nachbardatei in den Importgraphen
-jedes Konsumenten, der aus dem Ordner irgendetwas importiert. Damit koppeln
-Barrels die gesamte Modulfläche, schwächen Tree-Shaking und verbergen, welche
-Datei ein Symbol besitzt.
+The cause is `export *`: it pulls every neighbouring file into the import
+graph of every consumer that imports anything from the folder. Barrels thereby
+couple the whole module surface, weaken tree shaking, and hide which file owns
+a symbol.
 
-Zyklen sind in diesem Projekt nicht kosmetisch: wird ein Modul innerhalb eines
-Zyklus früh erreicht, bevor `config/HHStoredVars` fertig initialisiert ist,
-wirft es einen TDZ-ReferenceError und das ganze Userscript startet nicht
-(Lesson `zirkulaerer-import-tdz-crash`).
+Cycles are not cosmetic in this project: if a module inside a cycle is reached
+early, before `config/HHStoredVars` has finished initialising, it throws a TDZ
+ReferenceError and the whole userscript fails to start (lesson
+`zirkulaerer-import-tdz-crash`).
 
-## Entscheidung
+## Decision
 
-Alle `index.ts`-Barrels unter `src/` löschen, jeden Import auf die Datei
-zeigen lassen, die das Symbol deklariert, und die Rückkehr per ESLint
-verbieten (`no-restricted-imports`, Gruppe `*/index` plus die Ordnerpfade).
-Die Umschreibung hat ein einmaliger ts-morph-Codemod gemacht; er ist nach
-getaner Arbeit wieder aus dem Baum geflogen.
+Delete all `index.ts` barrels under `src/`, point every import at the file
+that declares the symbol, and forbid the return with ESLint
+(`no-restricted-imports`, group `*/index` plus the folder paths). A one-off
+ts-morph codemod did the rewriting; it left the tree again once done.
 
-## Verworfene Alternativen
+## Rejected alternatives
 
-**Einseitige Barrel-Hierarchie** (Barrels behalten, aber nur in eine Richtung
-importieren): löst die Zyklen nur, solange sich alle an die Richtung halten,
-und niemand sieht der Import-Zeile an, ob sie eingehalten ist.
+**A one-way barrel hierarchy** (keep barrels, but import in one direction
+only): solves the cycles only as long as everyone honours the direction, and
+no import line shows whether it was honoured.
 
-**Nichts tun, Baseline einfrieren:** kein Refactor-Risiko, aber `export *`
-bleibt zwischen Tree-Shaking und Lesbarkeit stehen, und `LanguageHelper.ts`
-hinge weiter an der Export-Reihenfolge von `i18n/index.ts`, damit die
-Übersetzungstabellen per Seiteneffekt gefüllt werden.
+**Do nothing, freeze the baseline:** no refactoring risk, but `export *` keeps
+standing between tree shaking and readability, and `LanguageHelper.ts` would
+still depend on the export order of `i18n/index.ts` to have the translation
+tables filled as a side effect.
 
-## Konsequenzen
+## Consequences
 
-- Jede Import-Zeile nennt die Datei, die das Symbol deklariert.
-- `LanguageHelper.ts` lädt seine Sprachdateien explizit; die Ladereihenfolge
-  ist ablesbar statt Konvention.
-- Die ESLint-Regel verhindert neue Barrels, auch in neuen Ordnern.
-- Die von madge gemeldete Zyklenzahl **stieg** dabei von 227 auf 544. Das ist
-  keine Verschlechterung: dieselben Kanten existierten vorher, die Barrels
-  fassten nur viele Pfade zu wenigen Ketten zusammen. Der eigentliche Abbau
-  ist ADR-008.
+- Every import line names the file that declares the symbol.
+- `LanguageHelper.ts` loads its language files explicitly; the load order is
+  readable instead of conventional.
+- The ESLint rule prevents new barrels, in new folders too.
+- The cycle count madge reports **rose** from 227 to 544 in the process. That
+  is not a regression: the same edges existed before, the barrels merely
+  gathered many paths into few chains. The actual reduction is ADR-008.
 
-## Referenzen
+## References
 
-- ADR-008 (Zyklen-Abbau mit Baseline)
+- ADR-008 (cycle reduction with a baseline)
 - `eslint.config.mjs` (`no-restricted-imports`)
