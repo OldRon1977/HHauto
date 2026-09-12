@@ -199,6 +199,6 @@ reverted:
 - Splitting a full dump into per-page JSON files. Curated mini fixtures of
   5-20 lines per case instead.
 - A pre-commit hook that runs the suite; CI does that. The hook in `.githooks`
-  only stops player data, for the reason `CLAUDE.md` gives.
+  only stops player data, for the reason the repository guide gives.
 - Tests for one-line `isEnabled` getters.
 - A live checker that writes.
