@@ -1,31 +1,30 @@
-# Architekturentscheidungen
+# Architecture decisions
 
-Eine Ablage, durchnummeriert nach Datum. Jede Datei hält eine Entscheidung fest:
-was entschieden wurde, warum, und was verworfen wurde.
+A record, numbered by date. Each file holds one decision: what was decided,
+why, and what was rejected.
 
-| # | Entscheidung | Datum | Wofür man sie liest |
+| # | Decision | Date | What you read it for |
 | --- | --- | --- | --- |
-| [001](ADR-001-drop-barrels.md) | Keine `index.ts`-Barrels, direkte Dateiimporte | 2026-05-13 | die Begründung hinter der ESLint-Regel `no-restricted-imports` (Gruppe `*/index`) |
-| [002](ADR-002-pipeline-cooldown-persistence.md) | Cool-down des Schedulers übersteht Reloads (`Temp_pipelineLastRunAt`) | 2026-05-19 | warum `minIntervalMs` in sessionStorage landet statt nur im Speicher |
-| [003](ADR-003-ajax-post-mutex.md) | Globaler Mutex auf state-changing `/ajax.php`-POSTs | 2026-05-20 | warum PlaceOfPower, BossBang und AutoLoop ihre POSTs serialisieren (#1598) |
-| [004](ADR-004-pipeline-block-architecture.md) | Reload-feste Blöcke statt `lastActionPerformed` | 2026-06-12 | das Modell hinter `BlockScheduler`, `BlockTypes`, `BlockRunStore` |
-| [005](ADR-005-block-slot-hold-until-home.md) | Ein Block hält den Slot, bis er im Leerlauf ist | 2026-06-13 | warum `applySlotHold` einen navigierenden Handler festhält |
-| [006](ADR-006-nothing-bundled-nothing-split.md) | Weder gebündelt noch zerlegt — die Handler bleiben einzeln | 2026-06-14 | bevor jemand Season + SeasonCollect zusammenlegt oder PoP in Multi-Step-Blöcke zerlegt |
-| [008](ADR-008-import-cycle-reduction.md) | Zyklen-Abbau mit eingefrorener Baseline | 2026-07-05 | warum `npm run deps:circular:check` in der CI steht und was ein neuer Zyklus kostet |
-| [009](ADR-009-focused-activity.md) | Eine Aktivität behält die Pipeline, bis ihre Arbeit getan ist | 2026-08-22 | warum ein Block nach jedem Kampf den Fokus behält (#1841) |
-| [010](ADR-010-navigation-is-not-a-stop.md) | Navigation verwirft den laufenden Run nicht | 2026-08-26 | warum ein ausgeschalteter Auto-Loop den Run nicht sofort killt |
-| [011](ADR-011-a-dedicated-account-may-write.md) | Ein eigenes Prüfkonto darf schreiben | 2026-09-09 | warum die Regel „schreibende Prüfungen bleiben Handarbeit" nur noch für das Konto des Maintainers gilt |
-| [012](ADR-012-one-table-of-unlock-conditions.md) | Eine Tabelle für alle Freischaltbedingungen | 2026-09-09 | bevor jemand eine neunte `isEnabled`-Bedingung von Hand schreibt oder eine globale Level-Sperre vorschlägt |
+| [001](ADR-001-drop-barrels.md) | No `index.ts` barrels, direct file imports | 2026-05-13 | the reasoning behind the ESLint rule `no-restricted-imports` (group `*/index`) |
+| [002](ADR-002-pipeline-cooldown-persistence.md) | The scheduler's cool-down survives reloads (`Temp_pipelineLastRunAt`) | 2026-05-19 | why `minIntervalMs` goes to sessionStorage instead of memory alone |
+| [003](ADR-003-ajax-post-mutex.md) | A global mutex on state-changing `/ajax.php` POSTs | 2026-05-20 | why PlaceOfPower, BossBang and AutoLoop serialise their POSTs (#1598) |
+| [004](ADR-004-pipeline-block-architecture.md) | Reload-proof blocks instead of `lastActionPerformed` | 2026-06-12 | the model behind `BlockScheduler`, `BlockTypes`, `BlockRunStore` |
+| [005](ADR-005-block-slot-hold-until-home.md) | A block holds the slot until it is idle | 2026-06-13 | why `applySlotHold` keeps a navigating handler |
+| [006](ADR-006-nothing-bundled-nothing-split.md) | Neither bundled nor split -- the handlers stay separate | 2026-06-14 | before anyone merges Season + SeasonCollect or splits PoP into multi-step blocks |
+| [008](ADR-008-import-cycle-reduction.md) | Cycle reduction against a frozen baseline | 2026-07-05 | why `npm run deps:circular:check` is in CI and what a new cycle costs |
+| [009](ADR-009-focused-activity.md) | One activity keeps the pipeline until its work is done | 2026-08-22 | why a block keeps the focus after each fight (#1841) |
+| [010](ADR-010-navigation-is-not-a-stop.md) | Navigation does not discard the running run | 2026-08-26 | why switching the auto loop off does not kill the run immediately |
+| [011](ADR-011-a-dedicated-account-may-write.md) | A dedicated test account may write | 2026-09-09 | why the rule "writing checks stay manual" now applies only to the maintainer's account |
+| [012](ADR-012-one-table-of-unlock-conditions.md) | One table for all unlock conditions | 2026-09-09 | before anyone hand-writes a ninth `isEnabled` condition or proposes a global level gate |
 
-Offen daneben: [`docs-internal/exit-condition-concept.md`](../../docs-internal/exit-condition-concept.md)
-schlägt vor, den schwächsten Teil von ADR-009 abzulösen — drei Entscheidungsfragen,
-noch nicht entschieden.
+Open beside it: [`docs-internal/exit-condition-concept.md`](../../docs-internal/exit-condition-concept.md)
+proposes replacing the weakest part of ADR-009 -- three questions, not decided
+yet.
 
-## Konventionen
+## Conventions
 
-- Eine Nummer wird nicht wiederverwendet. Neue Entscheidung, nächste freie
-  Nummer. 007 ist frei geblieben: dieser Eintrag ist in 006 aufgegangen.
-- Der Dateiname trägt die Nummer und ein kurzes Stichwort; Code-Kommentare
-  verweisen auf den Dateinamen, nicht auf die Nummer allein.
-- Eine überholte Entscheidung wird nicht gelöscht, sondern von der neuen ADR
-  benannt, die sie ablöst.
+- A number is never reused. New decision, next free number. 007 stayed empty:
+  that entry was absorbed into 006.
+- The file name carries the number and a short keyword; code comments point at
+  the file name, not at the number alone.
+- A superseded decision is not deleted. The new ADR that replaces it names it.

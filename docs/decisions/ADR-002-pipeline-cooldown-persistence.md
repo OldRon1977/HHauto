@@ -1,65 +1,61 @@
-# ADR-002: Der Cool-down des Schedulers übersteht einen Reload
+# ADR-002: The scheduler's cool-down survives a reload
 
 ## Status
 Accepted
 
-## Datum
+## Date
 2026-05-19
 
-## Kontext
+## Context
 
-Jeder Handler trägt ein `minIntervalMs`, das ihn davon abhält, sofort wieder zu
-laufen. Liegt diese Uhr nur im Speicher, stirbt sie mit der Seite — und jedes
-`gotoPage()` lädt das Skript neu. Der erste Tick nach dem Reload sieht den
-Handler dann, als hätte er nie gearbeitet.
+Every handler carries a `minIntervalMs` that keeps it from running again right
+away. If that clock lives in memory only, it dies with the page -- and every
+`gotoPage()` reloads the script. The first tick after the reload then sees the
+handler as if it had never worked.
 
-In #1700 ergab das ein Ping-Pong zwischen `handleEventParsing` und
-`handleLeague`: jede Navigation setzte den Cool-down zurück, beide
-Preconditions feuerten im nächsten Tick, beide navigierten, alle 3-5 Sekunden
-von vorn.
+In #1700 that produced a ping-pong between `handleEventParsing` and
+`handleLeague`: every navigation reset the cool-down, both preconditions fired
+on the next tick, both navigated, and it started over every 3-5 seconds.
 
-Die klassischen Timer (`Helper/TimerHelper.ts`) lösen dasselbe Problem für die
-imperativen Handler längst, indem sie bei jedem `setTimer` in den
-sessionStorage schreiben. Bei der Übernahme in die Pipeline kam die Semantik
-mit, die Persistenz nicht.
+The classic timers (`Helper/TimerHelper.ts`) had long solved the same problem
+for the imperative handlers, by writing to sessionStorage on every `setTimer`.
+When the semantics moved into the pipeline, the persistence did not come along.
 
-## Entscheidung
+## Decision
 
-Die `lastRunAt`-Map wird unter `Temp_pipelineLastRunAt` im sessionStorage
-gehalten: beim Start gelesen, nach jedem Run geschrieben, Format
-`{handlerName: epochMs}`. Kaputte Einträge werden still verworfen — dann
-verhält sich der Handler wie nach einem frischen Skriptstart, was die sichere
-Voreinstellung ist. Handler-Autoren deklarieren weiterhin nur `minIntervalMs`
-und müssen von Storage nichts wissen.
+The `lastRunAt` map is kept in sessionStorage under `Temp_pipelineLastRunAt`:
+read at start, written after every run, format `{handlerName: epochMs}`.
+Broken entries are dropped silently -- the handler then behaves as after a
+fresh script start, which is the safe default. Handler authors still declare
+only `minIntervalMs` and need to know nothing about storage.
 
-**Wo das heute liegt:** `BlockPipeline.blockPorts` liest und schreibt den
-Schlüssel (`getLastRunAt` / `setLastRunAt`), `BlockScheduler` fragt ihn in
-`eligibility` ab. Die Entscheidung hat die Klasse überlebt, für die sie
-geschrieben wurde: `Scheduler.ts` ist inzwischen gelöscht.
+**Where this lives today:** `BlockPipeline.blockPorts` reads and writes the key
+(`getLastRunAt` / `setLastRunAt`), and `BlockScheduler` asks for it in
+`eligibility`. The decision outlived the class it was written for:
+`Scheduler.ts` has since been deleted.
 
-## Verworfene Alternativen
+## Rejected alternatives
 
-**Die klassischen Timer je Handler nutzen:** einheitlicher Mechanismus, aber
-die Cool-down-Logik wandert aus der deklarativen Konfiguration zurück in jeden
-Handler-Rumpf. `minIntervalMs` ist ein Feld der Konfiguration und gehört
-zentral aufgelöst.
+**Use the classic timers per handler:** one uniform mechanism, but the
+cool-down logic moves out of the declarative configuration back into every
+handler body. `minIntervalMs` is a field of the configuration and belongs
+resolved in one place.
 
-**Cool-downs im AutoLoop-Tick verwalten:** verschiebt das Problem, denn
-AutoLoop ist selbst eine Funktion, deren Speicher der Reload wegnimmt.
+**Manage cool-downs in the AutoLoop tick:** moves the problem, because AutoLoop
+is itself a function whose memory the reload takes away.
 
-**Persistenz nur für Handler, die sie anfordern:** zwei Cool-down-Modelle
-nebeneinander, ohne dass ein Fall bekannt wäre, der die In-Memory-Variante
-braucht.
+**Persistence only for handlers that ask for it:** two cool-down models side by
+side, with no known case that needs the in-memory one.
 
-## Konsequenzen
+## Consequences
 
-- `minIntervalMs` wirkt über Reloads hinweg; das Ping-Pong aus #1700 ist
-  strukturell weg.
-- Ein Schreibzugriff mehr pro abgeschlossenem Run.
-- Werden die Einträge einmal unlesbar, liest der Scheduler `{}` und schreibt im
-  nächsten Tick neu. Kein Rückfall in den Loop.
+- `minIntervalMs` holds across reloads; the ping-pong from #1700 is gone
+  structurally.
+- One more write per completed run.
+- Should the entries become unreadable, the scheduler reads `{}` and writes
+  again on the next tick. No fallback into the loop.
 
-## Referenzen
+## References
 
 - Issue #1700
-- `Helper/TimerHelper.ts` (Vorbild für die sessionStorage-Persistenz)
+- `Helper/TimerHelper.ts` (the model for the sessionStorage persistence)

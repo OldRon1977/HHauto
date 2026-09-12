@@ -1,182 +1,173 @@
-# ADR-009: Ein Block behaelt die Pipeline, bis seine Arbeit getan ist
+# ADR-009: A block keeps the pipeline until its work is done
 
 ## Status
 Accepted
 
-## Datum
+## Date
 2026-08-22
 
-## Release-Linie
-v8.10.27 (Issue #1841)
+## Release line
+v8.10.27 (issue #1841)
 
-## Verfeinert
-ADR-005 (Slot-Hold) -- schliesst dessen offene Folgearbeit ab.
+## Refines
+ADR-005 (slot hold) -- closes its open follow-up work.
 
-## Kontext
+## Context
 
-Franck-75 meldete in #1841, dass das Skript zwischen Aktivitaeten springt: ein
-Troll-Kampf, ein Season-Kampf, ein Pantheon-Kampf, wieder von vorn. Sein Log
-belegt es: 262 Runs, davon 143 `handleSeason`, 59 `handleTrollBattle`, 57
-`handleGenericBattle` -- praktisch nur Wechsel.
+Franck-75 reported in #1841 that the script jumps between activities: a troll
+fight, a season fight, a pantheon fight, and around again. His log shows it:
+262 runs, of which 143 `handleSeason`, 59 `handleTrollBattle`, 57
+`handleGenericBattle` -- almost nothing but switching.
 
-Die Ursache ist eine Doppelbedeutung von `precondition` im Scheduler. Sie
-beantwortet zwei verschiedene Fragen:
+The cause is a double meaning of `precondition` in the scheduler. It answers
+two different questions:
 
-1. *"Darf dieser Block jetzt starten?"* -- `findNext`. Dafuer ist sie gedacht.
-2. *"Ist dieser Block fertig?"* -- `continueRun` gibt den Slot frei, sobald sie
-   false wird.
+1. *"May this block start now?"* -- `findNext`. That is what it is for.
+2. *"Is this block finished?"* -- `continueRun` frees the slot as soon as it
+   turns false.
 
-`handleTrollBattle` gibt Kampfergebnis-Seiten bewusst an `handleGenericBattle`
-ab, damit das Belohnungs-Popup ausgelesen wird (#1740):
+`handleTrollBattle` deliberately hands battle result pages to
+`handleGenericBattle`, so that the reward popup is read (#1740):
 
 ```ts
 if (isGenericBattleResultPage(ctx.currentPage)) return false;
 ```
 
-Nach jedem Kampf steht der Held auf genau so einer Seite. Der Block sagt "nicht
-ich" und meint "gleich wieder" -- der Scheduler liest "fertig", gibt den Slot
-frei und waehlt die Reihenfolge von oben neu. `handleGenericBattle` steht kurz
-vor `handleGoHome` ganz hinten, `handleSeason` davor: Season gewinnt und
-navigiert weg. Dasselbe Muster fuer jede Kampf-Aktivitaet.
+After every fight the hero stands on exactly such a page. The block says "not
+me" and means "again in a moment" -- the scheduler reads "finished", frees the
+slot and picks from the top of the order again. `handleGenericBattle` sits at
+the very back just before `handleGoHome`, `handleSeason` ahead of it: Season
+wins and navigates away. The same pattern for every fighting activity.
 
-ADR-005 hatte genau das als offene Folgearbeit benannt ("Handler, die ihre
-Arbeit beenden OHNE nach Home zu navigieren, releasen off-home ... Bis dahin
-faengt handleGoHome / der naechste Block den off-home-Release ab -- degradiert,
-aber sicher"). Dieses ADR schliesst sie.
+ADR-005 had named exactly this as open follow-up work ("handlers that finish
+their work WITHOUT navigating home release off-home ... until then handleGoHome
+or the next block catches the off-home release -- degraded, but safe"). This
+ADR closes it.
 
-## Entscheidung
+## Decision
 
-Der Scheduler fuehrt einen **Fokus**: die Aktivitaet, die die Pipeline gerade
-zu Ende bringt. Persistiert in `sessionStorage` (`Temp_blockFocus`), weil der
-interessante Fall ueber Reloads laeuft.
+The scheduler keeps a **focus**: the activity that is currently finishing the
+pipeline's work. Persisted in `sessionStorage` (`Temp_blockFocus`), because the
+interesting case runs across reloads.
 
-- Beendet ein Block einen Run, wird er der fokussierte Block.
-- Solange der Fokus steht, waehlt `findNext` bevorzugt ihn; ist er nur durch
-  sein eigenes `minInterval`/Cooldown blockiert, wartet die Pipeline (bis
-  `focusWaitMs`), statt den Slot fuer einen Tick wegzugeben -- diese Uebergabe
-  IST das Springen.
-- Der Fokus faellt, sobald der Block aus einem anderen Grund als seiner eigenen
-  Uhr nicht mehr laufen will: keine Energie, Schwelle erreicht, Timer gesetzt.
-  Dann entscheidet wieder die Reihenfolge, und der naechste Block laeuft
-  seinerseits bis zu seinem Ende durch.
+- When a block ends a run, it becomes the focused block.
+- While the focus stands, `findNext` prefers it; if it is blocked only by its
+  own `minInterval`/cooldown, the pipeline waits (up to `focusWaitMs`) instead
+  of giving the slot away for one tick -- that handover IS the jumping.
+- The focus drops as soon as the block no longer wants to run for a reason
+  other than its own clock: no energy, threshold reached, timer set. Then the
+  order decides again, and the next block runs to its own end in turn.
 
-Zwei Arten von Bloecken duerfen dazwischen (`runsDuringFocus`, und sie
-uebernehmen den Fokus nie):
+Two kinds of block may come in between (`runsDuringFocus`, and they never take
+the focus):
 
-- **Die sechs Collect-Bloecke.** Ihre Belohnungen verfallen mit dem Event
-  (`...RemainingTime < getLimitTimeBeforeEnd()`), sie duerfen nicht hinter einem
-  Kampf warten, der laeuft, solange Energie da ist. Sie werden VOR dem
-  fokussierten Block angeboten. Jeder setzt seinen eigenen Next-Timer, kann die
-  Aktivitaet also nicht aushungern. (Nutzer-Entscheidung: "die collectall
-  buttons MUeSSEN laufen duerfen".)
-- **`handleGenericBattle`.** Die Kampfergebnis-Seite ist genau der Ort, an dem
-  der fokussierte Block feststeckt; ihn auszusperren waere ein Deadlock.
+- **The six collect blocks.** Their rewards expire with the event
+  (`...RemainingTime < getLimitTimeBeforeEnd()`), so they must not wait behind
+  a fight that runs as long as there is energy. They are offered BEFORE the
+  focused block. Each sets its own next timer and therefore cannot starve the
+  activity. (User decision: "the collect-all buttons MUST be allowed to run".)
+- **`handleGenericBattle`.** The battle result page is exactly where the
+  focused block is stuck; locking it out would be a deadlock.
 
-**Nur ein Run, der etwas getan hat, haelt den Fokus.** Eine Precondition sagt,
-dass ein Block laufen DARF, nicht dass er Arbeit hat: `handleTrollBattle` kommt
-durch sein Tor und faellt durch, wenn die Kampfkraft unter der Schwelle liegt
-oder kein Event-Maedchen da ist -- live gemessen 47 solche Ticks von 75
-(Kommentar am Handler). Ein solcher Leerlauf-Run darf den Fokus nicht erneuern.
-Als "getan" zaehlt, dass ein Step den Slot gehalten hat (`repeat`) -- das
-Slot-Hold-Signal aus ADR-005, mit dem der Handler sagt, dass er navigiert,
-gekaempft oder gesammelt hat (`BlockRun.acted`).
+**Only a run that did something keeps the focus.** A precondition says a block
+MAY run, not that it has work: `handleTrollBattle` passes its gate and falls
+through when the fighting power is below the threshold or no event girl is
+there -- measured live, 47 such ticks out of 75 (comment at the handler). Such
+an idle run must not renew the focus. What counts as "did something" is that a
+step held the slot (`repeat`) -- the slot-hold signal from ADR-005, with which
+the handler says it navigated, fought or collected (`BlockRun.acted`).
 
-Das ist nicht theoretisch: ohne diese Bedingung parkte 8.10.27 die Pipeline auf
-`handleTrollBattle`. Der Block lief alle vier Sekunden an, tat nichts, erneuerte
-dabei den Fokus -- womit auch `focusStaleMs` nie greifen konnte, weil es an
-genau diesem Zeitstempel haengt -- und in den Pausen dazwischen bekam kein
-anderer Block den Slot ueberhaupt angeboten.
+This is not theoretical: without that condition, 8.10.27 parked the pipeline on
+`handleTrollBattle`. The block started every four seconds, did nothing, renewed
+the focus in the process -- which also kept `focusStaleMs` from ever taking
+hold, since it hangs on exactly that timestamp -- and in the pauses between, no
+other block was even offered the slot.
 
-**Wo `acted` gesetzt wird, ist nicht beliebig.** Der naheliegende Ort -- nach
-der Rueckkehr des Steps -- reicht nicht: ein kaempfender Handler `await`et den
-Kampf-POST, dessen Antwort die Seite navigiert, und der Step kehrt nie zurueck.
-Der Schreibvorgang stirbt mit der Seite, der Run kommt nach dem Reload ohne
-Marker zurueck und wird als Leerlauf behandelt. Gemessen in 8.10.29: drei
-Troll-Runs gaben nach einem echten Kampf den Fokus als "ran without doing
-anything" frei, und genau drei fremde Bloecke (League, Quest, Season) starteten
-danach auf `troll-battle`.
+**Where `acted` is set is not arbitrary.** The obvious place -- after the step
+returns -- is not enough: a fighting handler awaits the battle POST whose
+answer navigates the page, and the step never returns. The write dies with the
+page, the run comes back after the reload without the marker and is treated as
+idle. Measured in 8.10.29: three troll runs released the focus as "ran without
+doing anything" after a real fight, and exactly three foreign blocks (League,
+Quest, Season) started afterwards on `troll-battle`.
 
-Deshalb wird der Marker an zwei Stellen gesetzt: beim `repeat` (Handler, die
-zurueckkehren, bevor sie navigieren) und **beim gueltigen Resume nach einem
-Reload** -- denn wieder da zu sein beweist, dass navigiert wurde. Die zweite
-Stelle schreibt auf einer frischen Seite und ueberlebt daher.
+The marker is therefore set in two places: on `repeat` (handlers that return
+before they navigate) and **on a valid resume after a reload** -- because being
+back proves that navigation happened. The second place writes on a fresh page
+and therefore survives.
 
-**Dritte Stelle: der Handler, der handelt und den Slot trotzdem abgibt.**
-`handleLeague` startet seine Kaempfe, stellt `nextLeaguesTime` und gibt danach
-absichtlich frei -- Halten auf der Kampfergebnis-Seite wuerde
-`handleGenericBattle` aushungern (#1796). Der Run ist beendet, bevor der Reload
-kommt, es gibt also auch kein Resume, an dem der Marker haengen koennte.
-Gemessen in 8.10.30: League startete drei Kaempfe, gab frei, und `handleSeason`
-navigierte von der Leaderboard-Seite weg.
+**A third place: the handler that acts and gives the slot away anyway.**
+`handleLeague` starts its fights, sets `nextLeaguesTime` and then releases on
+purpose -- holding on the battle result page would starve `handleGenericBattle`
+(#1796). The run is over before the reload arrives, so there is no resume for
+the marker to hang on either. Measured in 8.10.30: League started three fights,
+released, and `handleSeason` navigated away from the leaderboard page.
 
-Signal dafuer ist der ausgeschaltete Auto-Loop: `gotoPage`, `safeReload` und die
-Kampfpfade setzen ihn ab, kurz bevor die Seite verschwindet. `applySlotHold`
-liest ihn nach dem Step und setzt `acted`, **ohne** die Halte-Entscheidung zu
-aendern -- der Block gibt weiter frei, aber die Aktivitaet ueberlebt es und der
-Fokus holt ihn nach dem Reload zurueck.
+The signal for it is the switched-off auto loop: `gotoPage`, `safeReload` and
+the battle paths turn it off shortly before the page disappears. `applySlotHold`
+reads it after the step and sets `acted` **without** changing the hold
+decision -- the block still releases, but the activity survives it and the focus
+brings it back after the reload.
 
-Gegen einen Fokus, der nie bedient werden kann, gibt es zusaetzlich
-`focusStaleMs` (5 min ohne Run des fokussierten Blocks): dann faellt der Fokus,
-und das Verhalten degradiert exakt auf den Stand vor diesem ADR.
+Against a focus that can never be served there is also `focusStaleMs` (5 min
+without a run of the focused block): the focus then drops, and the behaviour
+degrades exactly to the state before this ADR.
 
-## Kein Sonderfall fuer Uhrzeiten
+## No special case for clock times
 
-Geprueft, weil die naheliegende Sorge ist, dass ein langer Fokus etwas
-Fristgebundenes verpasst:
+Checked, because the obvious worry is that a long focus misses something with a
+deadline:
 
-- `waitforContest` ist eine **Bremse, keine Frist**: `canCollectCompetitionActive`
-  wird false, wenn der laufende Contest in weniger als `safeSecondsForContest`
-  endet UND ein naechster ansteht -- also "noch nicht, heb es auf". Sie wirkt
-  ohnehin durch die Preconditions; ein gebremster Block ist nicht bereit und
-  verliert den Fokus.
-- Die Collect-Fenster sind echte Fristen, aber `getLimitTimeBeforeEnd()` ist
-  `collectAllTimer` in **Stunden** (Standard 12). Ein Fokus dauert Minuten.
-  Trotzdem duerfen sie unterbrechen, siehe oben.
+- `waitforContest` is a **brake, not a deadline**: `canCollectCompetitionActive`
+  turns false when the running contest ends in less than `safeSecondsForContest`
+  AND another one follows -- so "not yet, save it up". It works through the
+  preconditions anyway; a braked block is not ready and loses the focus.
+- The collect windows are real deadlines, but `getLimitTimeBeforeEnd()` is
+  `collectAllTimer` in **hours** (12 by default). A focus lasts minutes. They
+  may interrupt regardless, see above.
 
-Damit braucht der Fokus keine Zeit-Ausnahme.
+So the focus needs no time exception.
 
-## Verworfene Alternativen
+## Rejected alternatives
 
-### Jedem Kampf-Block einen eigenen Ruecklauf von der Ergebnisseite geben
-Der Wortlaut der ADR-005-Folgearbeit. Der Block wuerde die Ergebnisseite selbst
-verlassen und damit den Slot nie freigeben.
-- Contra: Er muesste dort das Belohnungs-Popup auslesen -- genau die Logik, die
-  #1740 bewusst in `handleGenericBattle` zentralisiert hat. Die Duplizierung in
-  sieben Handlern holt den Bug zurueck, den #1740 geschlossen hat.
-- Verworfen: falscher Ort. Die Freigabe-Entscheidung ist ein Scheduler-Thema.
+### Give every fighting block its own way back from the result page
+The wording of the ADR-005 follow-up. The block would leave the result page
+itself and therefore never free the slot.
+- Against: it would have to read the reward popup there -- exactly the logic
+  #1740 deliberately centralised in `handleGenericBattle`. Duplicating it into
+  seven handlers brings back the bug #1740 closed.
+- Rejected: wrong place. The release decision is a scheduler matter.
 
-### Bloecke buendeln (Kampf + GenericBattle als ein Block)
-- Contra: ADR-006 hat Buendelung verworfen, und die Gruende gelten weiter --
-  die Mitglieder stehen nicht nebeneinander, Buendeln erzwingt eine
-  Reihenfolge-Aenderung.
-- Verworfen: ADR-006 bleibt unangetastet, der Fokus braucht keine Buendelung.
+### Bundle blocks (fight + GenericBattle as one block)
+- Against: ADR-006 rejected bundling, and the reasons still hold -- the members
+  are not adjacent, and bundling forces an order change.
+- Rejected: ADR-006 stays untouched, and the focus needs no bundling.
 
-### `precondition` in zwei Praedikate pro Handler aufteilen
-Ein zusaetzliches `wantsMore(ctx)` je Block ("habe ich noch Arbeit"), getrennt
-von "darf ich jetzt".
-- Pro: sagt die Absicht am deutlichsten.
-- Contra: jeder Handler muesste ein zweites Praedikat bekommen, das seine interne
-  Ressourcenlogik (Energie, Schwellen, Timer) nach aussen spiegelt -- eine
-  Kopie, die auseinanderlaufen kann. Der Fokus braucht sie nicht: die
-  bestehende Precondition beantwortet die Frage bereits, sobald man aufhoert,
-  ihr "false" als "fertig" zu lesen.
-- Verworfen: doppelte Wahrheit fuer keinen zusaetzlichen Nutzen.
+### Split `precondition` into two predicates per handler
+An additional `wantsMore(ctx)` per block ("do I still have work"), separate from
+"may I run now".
+- For: states the intent most clearly.
+- Against: every handler would need a second predicate mirroring its internal
+  resource logic (energy, thresholds, timers) outward -- a copy that can drift.
+  The focus does not need it: the existing precondition already answers the
+  question, once one stops reading its "false" as "finished".
+- Rejected: a second truth for no additional benefit.
 
-## Konsequenzen
+## Consequences
 
-- Eine Aktivitaet laeuft bis zu ihrem eigenen Ende durch, dann die naechste.
-- Nebenbei behoben: ein fremder Block konnte auf einer Kampfergebnis-Seite
-  starten und wegnavigieren, bevor die Belohnung ausgelesen war. Im Log von
-  #1841 zu sehen (`handleSeason ... page=troll-battle ev=start`). Nur
-  `handleTrollBattle` hatte den Seiten-Verzicht aus #1740; jetzt schuetzt der
-  Fokus die Seite unabhaengig davon, welcher Block kaempft.
-- Die Pipeline kann kurz leerlaufen, waehrend sie das `minInterval` des
-  fokussierten Blocks abwartet (4 s bei Trollen, 2 s sonst). Das ist der Preis
-  dafuer, den Slot nicht fuer einen Tick wegzugeben.
-- Neuer Log-Event `ev=focus` mit dem Grund der Freigabe -- ohne
-  Diagnose-Schalter sichtbar, damit der naechste Nutzer-Log zeigt, ob der Fokus
-  greift.
+- One activity runs to its own end, then the next.
+- Fixed along the way: a foreign block could start on a battle result page and
+  navigate away before the reward was read. Visible in the log of #1841
+  (`handleSeason ... page=troll-battle ev=start`). Only `handleTrollBattle` had
+  the page waiver from #1740; now the focus protects the page no matter which
+  block is fighting.
+- The pipeline can idle briefly while it waits out the `minInterval` of the
+  focused block (4 s for trolls, 2 s otherwise). That is the price of not
+  giving the slot away for one tick.
+- A new log event `ev=focus` carries the reason for the release -- visible
+  without the diagnostics switch, so the next user log shows whether the focus
+  holds.
 
-## Referenzen
-- Issue #1841 (Log: `HH_DebugLog_1787359678332.log`), Issue #1740.
-- ADR-004 (Block-Modell), ADR-005 (Slot-Hold), ADR-006 (keine Buendelung).
+## References
+- Issue #1841 (log: `HH_DebugLog_1787359678332.log`), issue #1740.
+- ADR-004 (block model), ADR-005 (slot hold), ADR-006 (no bundling).

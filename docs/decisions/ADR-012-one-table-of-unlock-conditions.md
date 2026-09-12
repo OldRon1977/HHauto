@@ -1,151 +1,144 @@
-# ADR-012: Eine Tabelle für alle Freischaltbedingungen
+# ADR-012: One table for all unlock conditions
 
 ## Status
 Accepted
 
-## Datum
+## Date
 2026-09-09
 
-## Kontext
+## Context
 
-Acht Module beantworteten dieselbe Frage — *hat dieses Konto die Funktion
-überhaupt freigeschaltet?* — mit acht handgeschriebenen Bedingungen:
+Eight modules answered the same question -- *has this account unlocked the
+feature at all?* -- with eight hand-written conditions:
 
-| Modul | Bedingung |
+| Module | Condition |
 | --- | --- |
 | `League` | `isEnabledLeagues && getLevel() >= LEVEL_MIN_LEAGUE` |
-| `Pantheon` | dasselbe, über `Pantheon.pure.decideIsEnabled` |
-| `PathOfGlory`, `PathOfValue` | dasselbe, ausgeschrieben |
-| `SultryMysteries` | nur Level, ohne Flag |
-| `DoublePenetration` | nur Level — mit dem Kommentar `// And 10 gilrs` daneben |
-| `PlaceOfPower` | 10 Mädchen und Welt > 2, plus eigene Log-Drosselung |
-| `PathOfAttraction` | 10 Mädchen und Welt >= 2 |
+| `Pantheon` | the same, through `Pantheon.pure.decideIsEnabled` |
+| `PathOfGlory`, `PathOfValue` | the same, written out |
+| `SultryMysteries` | level only, without the flag |
+| `DoublePenetration` | level only -- with the comment `// And 10 gilrs` beside it |
+| `PlaceOfPower` | 10 girls and world > 2, plus its own log throttling |
+| `PathOfAttraction` | 10 girls and world >= 2 |
 
-Sie sind auseinandergelaufen. `DoublePenetration` nennt eine Bedingung im
-Kommentar, die der Code nicht prüft. `LoveRaidManager` trägt seine
-Levelprüfung auskommentiert. Die Zehn stand bis v8.12.14 zweimal als Literal
-im Code.
+They had drifted apart. `DoublePenetration` names a condition in a comment
+that the code does not check. `LoveRaidManager` carries its level check
+commented out. The ten stood twice as a literal in the code until v8.12.14.
 
-Schwerer wiegt, dass jede Bedingung ihre Zahlen selbst liest — und **die
-Zahlen sind der Teil, der schiefgeht**. Zwei der neun Fehler aus dem
-8.12.9‑bis‑8.12.18‑Durchgang steckten in einer solchen Bedingung, nicht in
-der Funktion dahinter:
+Worse, every condition reads its numbers itself -- and **the numbers are the
+part that goes wrong**. Two of the nine bugs from the 8.12.9-to-8.12.18 pass
+sat in such a condition, not in the feature behind it:
 
-- **v8.12.11**: `Harem.getGirlCount()` lieferte auf der Harem-Seite 24 für ein
-  Konto mit 9 Mädchen. Ein Tor auf dieser Grundlage öffnet sich falsch.
-- **v8.12.13/14**: dieselbe Zahl stand einen Tag lang auf 3, während die Seite
-  13 auslieferte. Ein Tor auf dieser Grundlage bleibt falsch zu, und Place of
-  Power blieb einem Konto verschlossen, das die Bedingung erfüllte.
+- **v8.12.11**: `Harem.getGirlCount()` returned 24 on the harem page for an
+  account with 9 girls. A gate on that basis opens wrongly.
+- **v8.12.13/14**: the same number stood at 3 for a day while the page
+  delivered 13. A gate on that basis stays wrongly shut, and Place of Power
+  stayed closed to an account that met the condition.
 
-## Entscheidung
+## Decision
 
-**Eine Tabelle nennt die Bedingung je Modul, eine Stelle liest die Zahlen,
-eine reine Funktion entscheidet.**
+**One table names the condition per module, one place reads the numbers, one
+pure function decides.**
 
-- `Service/FeatureGate.pure.ts` — die Entscheidung, ohne Globals, Storage
-  oder DOM: `decideUnlocked(requirement, state)`.
-- `Service/FeatureGate.ts` — die Tabelle `GATES`, aufgelöst gegen
-  `ConfigHelper` (die `LEVEL_MIN_*`-Schwellen sind je Spielvariante
-  überschreibbar und bleiben deshalb Schlüssel, keine Zahlen), und der
-  Zugriff auf `HeroHelper.getLevel()`, `Harem.getGirlCount()` und
-  `id_world`.
-- Die acht `isEnabled()` rufen nur noch `FeatureGate.isUnlocked(name)`.
+- `Service/FeatureGate.pure.ts` -- the decision, without globals, storage or
+  DOM: `decideUnlocked(requirement, state)`.
+- `Service/FeatureGate.ts` -- the `GATES` table, resolved against
+  `ConfigHelper` (the `LEVEL_MIN_*` thresholds are overridable per game
+  variant and therefore stay keys, not numbers), and the access to
+  `HeroHelper.getLevel()`, `Harem.getGirlCount()` and `id_world`.
+- The eight `isEnabled()` only call `FeatureGate.isUnlocked(name)`.
 
-Drei Regeln, die die Tabelle trägt:
+Three rules the table carries:
 
-1. **Ein Wert, der keine Antwort ist, ist keine niedrige Antwort.** `0`,
-   `NaN`, `undefined`, ein negativer Wert — alle werden zu 0, und 0 erfüllt
-   keine positive Bedingung. Das Spiel liefert diese Zahlen ungleichmäßig:
-   `getLevel()` ist 0, bevor eine Seite geparst wurde, `getGirlCount()` ist 0
-   auch für „auf dieser Seite keine Quelle", `id_world` fehlt abseits der
-   Questseiten.
-2. **Nur lesen, was die Bedingung braucht.** Ein Levelprüfer holt die
-   Mädchenzahl nicht — sie kostet Storage und, ohne Zwischenspeicher, die
-   Seiten-Globals.
-3. **Eine gesperrte Funktion sagt einmal, warum.** Nicht je Tick: dieselbe
-   Zeile füllte einmal 692 von 2532 Logzeilen (v8.12.12). Die Meldung nennt
-   Bedingung und Ist-Wert („needs 10 girls, the harem holds 9").
+1. **A value that is not an answer is not a low answer.** `0`, `NaN`,
+   `undefined`, a negative value -- all become 0, and 0 satisfies no positive
+   condition. The game delivers these numbers unevenly: `getLevel()` is 0
+   before a page has been parsed, `getGirlCount()` is 0 for "no source on this
+   page" too, and `id_world` is missing away from the quest pages.
+2. **Read only what the condition needs.** A level check does not fetch the
+   girl count -- that costs storage and, without a cache, the page globals.
+3. **A locked feature says why, once.** Not per tick: the same line once filled
+   692 of 2532 log lines (v8.12.12). The message names the condition and the
+   actual value ("needs 10 girls, the harem holds 9").
 
-Die `isEnabledX`-Flags der Spielvariante gehören mit in die Tabelle, aber als
-eigene Bedingung: sie werden **zuerst** geprüft, und eine Funktion, die es in
-dieser Spielvariante nicht gibt, wird nicht protokolliert — das wäre auf
-dieser Variante konstantes Rauschen und nicht die Schuld des Kontos.
+The game variant's `isEnabledX` flags belong in the table too, but as their own
+condition: they are checked **first**, and a feature that does not exist in
+this game variant is not logged -- that would be constant noise on this variant
+and not the account's fault.
 
-### Was ausdrücklich nicht in die Tabelle kommt
+### What deliberately does not go into the table
 
-**Eine Bedingung, die niemand gemessen hat.** `DoublePenetration` bleibt bei
-der Levelprüfung. Der Kommentar `// And 10 gilrs` verschwindet, die Frage
-steht als offener Punkt in `docs-internal/adventure-quest-flow.md`. Ein Test
-hält fest, dass dort keine Mädchenbedingung steht, damit sie niemand aus dem
-alten Kommentar heraus nachträgt.
+**A condition nobody measured.** `DoublePenetration` stays with the level
+check. The comment `// And 10 gilrs` goes, and the question stands as an open
+point in `docs-internal/adventure-quest-flow.md`. A test records that there is
+no girl condition there, so that nobody adds one from the old comment.
 
-**„Steht gerade auf der Seite" ist keine Freischaltbedingung.** Bei
-`PlaceOfPower` bleibt diese Klausel im Modul: sie hält einen Lauf, der schon
-dort ist, davon ab, mitten in der Arbeit weggeschickt zu werden.
+**"Currently on the page" is not an unlock condition.** For `PlaceOfPower`
+that clause stays in the module: it keeps a run that is already there from
+being sent away mid-work.
 
-## Verworfene Alternativen
+## Rejected alternatives
 
-### Eine globale Sperre — das Skript unter Level 30 ganz oder teilweise abschalten
+### A global gate -- switch the script off, whole or in part, below level 30
 
-Der Vorschlag, der zu dieser ADR geführt hat: statt jeden Fall einzeln
-abzufangen, das Skript unterhalb einer Schwelle sperren.
+The proposal that led to this ADR: instead of catching every case
+individually, lock the script below a threshold.
 
-Gegen die neun Fehler des 8.12.9‑bis‑8.12.18‑Durchgangs durchgerechnet hätte
-eine solche Sperre **einen** verdeckt (v8.12.12, Logspam), **einen** betrifft
-sie selbst (v8.12.13/14 — sie *ist* das Tor), und **einen** hätte sie
-versteckt statt behoben (v8.12.11). Sechs blieben:
+Worked through against the nine bugs of the 8.12.9-to-8.12.18 pass, such a
+gate would have covered **one** (v8.12.12, log spam), **one** it is itself
+about (v8.12.13/14 -- it *is* the gate), and **one** it would have hidden
+instead of fixed (v8.12.11). Six would remain:
 
-- Bundle-Reiter und Knopffarbe (8.12.9) — trifft jedes Konto
-- Questkampf bei `autoTrollBattle=false` (8.12.10) — hängt am Schalter
-- dreifacher Bundle-Lauf (8.12.15) — level-unabhängig
-- `#skip-quest` (8.12.16) — nicht gezeigt, dass es niedrige Level betrifft
-- PoA-Timer (8.12.17) — PoA verlangt ohnehin schon zehn Mädchen
-- Team unter sieben (8.12.18) — **Level 52, 13 Mädchen, trotzdem Dreierteam**
+- the bundle tab and button colour (8.12.9) -- hits every account
+- a quest fight with `autoTrollBattle=false` (8.12.10) -- hangs on the switch
+- the triple bundle run (8.12.15) -- level-independent
+- `#skip-quest` (8.12.16) -- not shown to affect low levels
+- the PoA timer (8.12.17) -- PoA already demands ten girls anyway
+- a team below seven (8.12.18) -- **level 52, 13 girls, and still a team of
+  three**
 
-Der letzte Punkt ist der entscheidende: die falsche Annahme hieß „sieben",
-nicht „Level 30". Eine Sperre hätte sie unsichtbar gemacht, bis sie ein Konto
-mit Level 300 trifft.
+The last point is the decisive one: the wrong assumption was "seven", not
+"level 30". A gate would have made it invisible until it hit an account at
+level 300.
 
-Dazu kommt: eine Sperre muss eine Zahl lesen, und genau diese Zahlen waren
-zweimal der Fehler. Mehr Tore auf derselben Grundlage vervielfachen die
-Stellen, an denen eine falsche Zahl entscheidet.
+On top of that: a gate has to read a number, and exactly those numbers were
+the bug twice. More gates on the same basis multiply the places where a wrong
+number decides.
 
-Verworfen. Was von der Idee bleibt, ist diese ADR: **weniger Tore, besser
-gespeist, an einer Stelle.**
+Rejected. What remains of the idea is this ADR: **fewer gates, better fed, in
+one place.**
 
-### Die Bedingungen ganz nach `HHEnvVariables` schieben
+### Move the conditions into `HHEnvVariables` entirely
 
-Die Schwellen stehen schon dort. Die *Zusammensetzung* („Level UND Mädchen
-UND Welt") ist aber eine Entscheidung, keine Konstante, und `HHEnvVariables`
-hat keine Tests.
+The thresholds are already there. But the *composition* ("level AND girls AND
+world") is a decision, not a constant, and `HHEnvVariables` has no tests.
 
-Verworfen: die Tabelle steht neben der Funktion, die sie auswertet, und beide
-sind geprüft.
+Rejected: the table sits next to the function that evaluates it, and both are
+tested.
 
-### Ein Tor je Modul, nur mit gemeinsamer Hilfsfunktion
+### One gate per module, only with a shared helper
 
-Wäre der kleinere Eingriff gewesen. Hätte aber genau das gelassen, was
-schiefging: acht Orte, an denen jemand eine Bedingung ergänzt oder vergisst.
-Der `DoublePenetration`-Kommentar ist der Beleg, dass das passiert.
+Would have been the smaller intervention. But it would have left exactly what
+went wrong: eight places where somebody adds or forgets a condition. The
+`DoublePenetration` comment is the proof that this happens.
 
-## Konsequenzen
+## Consequences
 
-- Eine neue Funktion mit Freischaltbedingung bekommt eine Zeile in `GATES`;
-  ein Name in `FeatureName` ohne Zeile fällt im Test durch.
-- Die Schwellen stehen an einer Stelle im Test (`league` 20, `pathOfGlory`
-  30, `placeOfPower` 10 Mädchen und Welt 3 …). Ändert das Spiel eine, ist die
-  Fundstelle eindeutig.
-- Neue Logzeilen: sieben Funktionen, die vorher stumm gesperrt waren, sagen
-  jetzt einmal je Zustandswechsel, woran es liegt.
-- `Pantheon.pure.decideIsEnabled` ist entfallen; seine Fälle stehen in
+- A new feature with an unlock condition gets a line in `GATES`; a name in
+  `FeatureName` without a line fails the test.
+- The thresholds stand in one place in the test (`league` 20, `pathOfGlory`
+  30, `placeOfPower` 10 girls and world 3 ...). If the game changes one, the
+  place to look is unambiguous.
+- New log lines: seven features that were silently locked before now say once
+  per state change what is missing.
+- `Pantheon.pure.decideIsEnabled` is gone; its cases live in
   `spec/Service/FeatureGate.pure.spec.ts`.
-- Kein neuer Importzyklus: `deps:circular:check` bleibt bei 84 gegen die
-  eingefrorene Baseline.
+- No new import cycle: `deps:circular:check` stays at 84 against the frozen
+  baseline.
 
-## Referenzen
+## References
 - `src/Service/FeatureGate.ts`, `src/Service/FeatureGate.pure.ts`
 - `spec/Service/FeatureGate.spec.ts`, `spec/Service/FeatureGate.pure.spec.ts`
-- `docs-internal/adventure-quest-flow.md` — die ungemessene
-  Zehn-Mädchen-Frage bei Double Penetration
-- `CHANGELOG.md`, v8.12.11 bis v8.12.18 — die Fehler, aus denen die Regeln
-  stammen
+- `docs-internal/adventure-quest-flow.md` -- the unmeasured ten-girls question
+  for Double Penetration
+- `CHANGELOG.md`, v8.12.11 to v8.12.18 -- the bugs the rules come from

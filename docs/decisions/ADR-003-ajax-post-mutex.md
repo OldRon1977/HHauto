@@ -1,34 +1,45 @@
-# ADR-003: Globaler Mutex auf state-changing /ajax.php-POSTs
+# ADR-003: A global mutex on state-changing /ajax.php POSTs
 
 ## Status
 
 Accepted
 
-## Datum
+## Date
 
 2026-05-20
 
-## Kontext
+## Context
 
-Issue #1598 beschreibt 403 Forbidden auf Place of Power und anderen Modulen, vor allem auf Konten mit grossen Rostern (Reporter Franck-75, 2400+ girls). Vier Fix-Iterationen sind bereits in main gemerged (v7.35.22, v7.35.29, v7.35.30, v7.35.35), die 403-Rate sinkt schrittweise, der Bug ist aber nicht weg. Drei eigene Fix-Versuche (v7.35.48, v7.35.49 lokal) sind durch Sniffer-Daten widerlegt worden.
+Issue #1598 describes 403 Forbidden on Place of Power and other modules, above
+all on accounts with large rosters (reporter Franck-75, 2400+ girls). Four fix
+iterations are already merged into main (v7.35.22, v7.35.29, v7.35.30,
+v7.35.35), the 403 rate drops step by step, but the bug is not gone. Three of
+our own fix attempts (v7.35.48, v7.35.49, local) were refuted by sniffer data.
 
-Kurzfassung der Diagnose:
+The diagnosis in short:
 
-- Server-side Bot-Detection bestraft mehrere ueberlappende state-changing POSTs auf `/ajax.php`.
-- Auf kleinen Konten dauert ein POST <1s; AutoLoop-Tick (~1s) holt selten zwei in eine Verarbeitung.
-- Auf 2400-girls-Konto dauert ein POST 5-7s; AutoLoop-Tick laeuft mehrfach durch, mehrere Handler feuern parallele POSTs (Capture: drei Stueck `closeHomeAds`-POSTs in 1.1s).
-- Server antwortet auf alle parallelen POSTs mit 403; Skript bekommt das nicht aktiv mit, feuert weiter Requests in einen rate-limit-gehaltenen Server.
-- User reproduziert den 403 manuell durch Doppelclick (Home, dann Home waehrend Page-Load).
+- Server-side bot detection punishes several overlapping state-changing POSTs
+  on `/ajax.php`.
+- On small accounts a POST takes <1s; the AutoLoop tick (~1s) rarely catches
+  two in one pass.
+- On the 2400-girls account a POST takes 5-7s; the AutoLoop tick runs several
+  times, and multiple handlers fire parallel POSTs (capture: three
+  `closeHomeAds` POSTs in 1.1s).
+- The server answers all parallel POSTs with 403; the script does not notice
+  and keeps firing requests into a rate-limited server.
+- The user reproduces the 403 by hand with a double click (Home, then Home
+  again during page load).
 
-Bestehende Schutzmechanismen sind nicht ausreichend:
+The existing protections are not enough:
 
-| Mechanismus | Was er macht | Was er nicht macht |
+| Mechanism | What it does | What it does not do |
 |---|---|---|
-| `navInFlight` (PageNavigationService.ts) | Schuetzt vor zweiter Page-Navigation im selben Tick | Schuetzt nicht vor `/ajax.php`-POSTs |
-| `waitForAjaxIdle` (AjaxTracker.ts) | Wartet bis kein XHR mehr pending | Wartet nicht, bis Server-Verarbeitung server-seitig fertig (HTTP-loadend kommt frueher als DB-Write) |
-| Forbidden-Backoff (StartService.ts) | Reagiert auf `<body>Forbidden</body>` Page | Reagiert nicht auf `403`-Status auf XHR-Antworten |
+| `navInFlight` (PageNavigationService.ts) | Protects against a second page navigation in the same tick | Does not protect `/ajax.php` POSTs |
+| `waitForAjaxIdle` (AjaxTracker.ts) | Waits until no XHR is pending | Does not wait until the server has finished processing (HTTP loadend comes before the DB write) |
+| Forbidden backoff (StartService.ts) | Reacts to a `<body>Forbidden</body>` page | Does not react to a `403` status on XHR answers |
 
-Sechs+ Code-Pfade triggern state-changing POSTs ohne globale Koordination:
+Six or more code paths trigger state-changing POSTs without global
+coordination:
 
 - `closeHomeAds` (handlePageSpecific)
 - `pop_thumb_claim`, `pop_action`, `pop_auto_assign` (PlaceOfPower)
@@ -36,38 +47,52 @@ Sechs+ Code-Pfade triggern state-changing POSTs ohne globale Koordination:
 - `champion_reorder`, `champion_team_build`, BossBang
 - `boost_equip`, `harem_pay`
 
-Eine Punkt-Loesung pro Modul (z.B. nur PoP-Pause) deckt das Pattern nicht ab. Die naechste Forbidden-Welle traefe einen anderen Pfad.
+A point fix per module (a PoP-only pause, say) does not cover the pattern. The
+next Forbidden wave would hit another path.
 
-## Entscheidung
+## Decision
 
-Ein globaler Mutex auf state-changing `/ajax.php`-POSTs in `Service/AjaxTracker.ts`, plus drei begleitende Aenderungen.
+A global mutex on state-changing `/ajax.php` POSTs in `Service/AjaxTracker.ts`,
+plus three accompanying changes.
 
-### Komponenten
+### Components
 
-1. **Mutex-API in AjaxTracker:**
+1. **Mutex API in AjaxTracker:**
    ```ts
-   acquirePostMutex(): boolean    // true wenn frei, false wenn schon held
+   acquirePostMutex(): boolean    // true if free, false if already held
    releasePostMutex(): void
    isPostInFlight(): boolean
    ```
-   Stale-Lock-Release nach 30s, falls ein Holder die Release-Funktion vergessen hat.
+   Stale-lock release after 30s, in case a holder forgot the release call.
 
-2. **AjaxTracker-Hook erkennt POSTs zu `/ajax.php`** und ruft Mutex automatisch an `send` und `loadend`. Damit werden auch Spiel-eigene Game-XHRs (die das Skript nicht selbst feuert) als "in-flight" registriert -- aber sie werden nicht geblockt. Geblockt werden nur Skript-Aufrufe, die explizit `acquirePostMutex` vor ihrem trigger aufrufen.
+2. **The AjaxTracker hook recognises POSTs to `/ajax.php`** and drives the
+   mutex automatically at `send` and `loadend`. That also registers the game's
+   own XHRs (which the script does not fire itself) as "in flight" -- but they
+   are not blocked. Blocked are only script calls that explicitly call
+   `acquirePostMutex` before their trigger.
 
-3. **Helper `awaitServerSettleAfterPost(claimXhrDurationMs)`** in einer neuen Service-Datei. Pause = `max(2000, claimXhrDurationMs * 4)`. Empirisch aus Frank-Capture: claim-XHR 6.7s -> Settle 27s. Auf kleinen Konten 0.3s -> 2s Mindest-Cap.
+3. **A helper `awaitServerSettleAfterPost(claimXhrDurationMs)`** in a new
+   service file. Pause = `max(2000, claimXhrDurationMs * 4)`. Empirical, from
+   Frank's capture: claim XHR 6.7s -> settle 27s. On small accounts 0.3s -> the
+   2s minimum cap.
 
-4. **AutoLoop-Tick-Mutex** am Anfang von `autoLoop()`: wenn `isPostInFlight() === true`, naechster Tick statt Action-Handler-Durchlauf. Verhindert Burst von 3-4 Handlern in einer Tick-Verarbeitung.
+4. **An AutoLoop tick mutex** at the start of `autoLoop()`: if
+   `isPostInFlight() === true`, take the next tick instead of running the
+   action handlers. Prevents a burst of 3-4 handlers in one tick.
 
-5. **XHR-403-Detection im AjaxTracker:** wenn `loadend` mit Status 403, sofort `ForbiddenBackoff.recordForbidden()` und Master-Switch in `Backoff`-Mode. Verhindert, dass das Skript in einen brennenden Server weiter Requests pumpt.
+5. **XHR 403 detection in AjaxTracker:** on `loadend` with status 403, call
+   `ForbiddenBackoff.recordForbidden()` at once and put the master switch into
+   backoff mode. Keeps the script from pumping requests into a burning server.
 
-### Pflicht-Aufrufe in den Modulen
+### Required calls in the modules
 
-Module, die einen state-changing POST triggern, muessen vor dem Trigger den Mutex erwerben:
+Modules that trigger a state-changing POST must acquire the mutex before the
+trigger:
 
 ```ts
 if (!ajaxTracker.acquirePostMutex()) {
-    // ein anderer Pfad haelt den Mutex, naechster Tick versucht erneut
-    return true; // busy=true, AutoLoop-Tick zaehlt fertig
+    // another path holds the mutex, the next tick tries again
+    return true; // busy=true, the AutoLoop tick counts as done
 }
 const claimStart = Date.now();
 $(button).trigger('click');
@@ -77,92 +102,115 @@ ajaxTracker.releasePostMutex();
 await awaitServerSettleAfterPost(claimDuration);
 ```
 
-Erste Iteration: PlaceOfPower. Zweite Iteration (separater PR): BossBang, Champion, Troll, Booster.
+First iteration: PlaceOfPower. Second iteration (separate PR): BossBang,
+Champion, Troll, Booster.
 
-## Verworfene Alternativen
+## Rejected alternatives
 
-### Alternative 1: Per-Modul-Pause nach POST
+### Alternative 1: a per-module pause after a POST
 
-Jede `state-changing`-Stelle bekommt einen `await sleep(2000)` vor der naechsten Aktion.
+Every state-changing site gets an `await sleep(2000)` before the next action.
 
-- Pro: minimal-invasiv, einfach zu reviewen.
-- Contra: Pause-Wert muss pro Modul gepflegt werden, Drift sicher. Schuetzt nicht vor parallelen POSTs aus zwei verschiedenen Modulen im selben Tick (z.B. PoP-Claim und gleichzeitig closeHomeAds aus handlePageSpecific). Auf 2400-girls-Konto reicht 2s nicht; Capture zeigt 27s noetig.
-- Verworfen: Pattern-Fix muss in der Architektur sein, nicht punktuell.
+- For: minimally invasive, easy to review.
+- Against: the pause value has to be maintained per module, and will drift. It
+  does not protect against parallel POSTs from two different modules in the
+  same tick (a PoP claim and `closeHomeAds` from handlePageSpecific, say). On
+  the 2400-girls account 2s is not enough; the capture shows 27s are needed.
+- Rejected: a pattern fix belongs in the architecture, not in single spots.
 
-### Alternative 2: Manuelle Tick-Drosselung (autoLoopTimeMili hoch)
+### Alternative 2: manual tick throttling (raise autoLoopTimeMili)
 
-`autoLoopTimeMili` von 1000 auf 5000 setzen, kein Code-Change.
+Set `autoLoopTimeMili` from 1000 to 5000, no code change.
 
-- Pro: kein neuer Code. User kann das selbst machen.
-- Contra: bremst auf kleinen Konten unnoetig, bremst auf grossen Konten zu wenig (Claim dauert 7s, Tick mit 5s laeuft trotzdem dazwischen). Loest das Problem nicht, schiebt es nur. Mehrere Module pro Tick koennen weiter parallel feuern.
-- Verworfen: behandelt Symptom, nicht Ursache.
+- For: no new code. The user can do it themselves.
+- Against: slows small accounts down for nothing and large accounts too little
+  (a claim takes 7s, a 5s tick still runs in between). It does not solve the
+  problem, only postpones it. Several modules per tick can still fire in
+  parallel.
+- Rejected: treats the symptom, not the cause.
 
-### Alternative 3: Pause nur in PoP-Modul, keine Architektur
+### Alternative 3: a pause in the PoP module only, no architecture
 
-Den Fix in `PlaceOfPower.collectAndUpdate` einbauen, andere Module ignorieren.
+Build the fix into `PlaceOfPower.collectAndUpdate`, ignore other modules.
 
-- Pro: kleiner Patch, weniger Reviewlast.
-- Contra: Capture zeigt: 403 entsteht in `closeHomeAds` schon **vor** PoP-Touch. Die naechste Forbidden-Welle wuerde aus `handleSeason`, `handleTrollBattle` oder `handlePoVCollect` kommen und der Reporter waere zurueck im Loop.
-- Verworfen: das Pattern ist universell, der Fix muss universell sein.
+- For: a small patch, less review load.
+- Against: the capture shows the 403 arises in `closeHomeAds` **before** PoP is
+  touched. The next Forbidden wave would come from `handleSeason`,
+  `handleTrollBattle` or `handlePoVCollect`, and the reporter would be back in
+  the loop.
+- Rejected: the pattern is universal, so the fix has to be.
 
-### Alternative 4: Komplett auf jQuery's `$.ajax`-Queue umstellen
+### Alternative 4: move everything to jQuery's `$.ajax` queue
 
-jQuery hat eine eingebaute Request-Queue. Alle Skript-eigenen XHRs gehen darueber.
+jQuery has a built-in request queue. All script XHRs would go through it.
 
-- Pro: built-in, keine Eigenentwicklung.
-- Contra: Spiel-internes JavaScript verwendet eigene XHRs, die nicht durch jQuery gehen. Die wuerden den Mutex nicht respektieren. Refactoring-Aufwand fuer alle bestehenden XHR-Stellen ist erheblich.
-- Verworfen: Aufwand-Nutzen-Verhaeltnis schlecht, deckt zudem Game-eigene XHRs nicht ab.
+- For: built in, nothing of our own.
+- Against: the game's own JavaScript uses XHRs that do not go through jQuery.
+  Those would not respect the mutex. The refactoring effort for all existing
+  XHR sites is considerable.
+- Rejected: poor effort-to-benefit ratio, and it does not cover the game's own
+  XHRs.
 
-## Konsequenzen
+## Consequences
 
-### Positiv
+### Positive
 
-- Eine einzige Stelle (AjaxTracker) verwaltet POST-Concurrency.
-- Funktioniert fuer alle bestehenden und neuen Module ohne weitere Code-Aenderungen.
-- Server-Settle-Wait macht das Skript "human-shaped": Pausen nach state-changing Aktionen analog zu User-Klickverhalten.
-- 403-Detection auf XHR-Ebene macht das Skript ehrlich-reaktiv. Kein Weiter-Pumpen in einen brennenden Server.
+- One single place (AjaxTracker) manages POST concurrency.
+- Works for all existing and new modules without further code changes.
+- The server-settle wait makes the script human-shaped: pauses after
+  state-changing actions, like a user's click behaviour.
+- 403 detection at the XHR level makes the script honestly reactive. No more
+  pumping into a burning server.
 
-### Negativ / Trade-Offs
+### Negative / trade-offs
 
-- **Performance auf grossen Konten:** PoP-Phase 1 dauert mit Settle-Wait laenger. Bei 5 PoPs und 27s Settle: ~3 Minuten zusaetzlich. Acceptable.
-- **Performance auf kleinen Konten:** Mindest-Cap 2s nach jedem POST kostet ~10s pro Phase. Bei 5 PoPs und 2s Settle: ~10s zusaetzlich, kaum merkbar.
-- **Architektur-Komplexitaet:** AjaxTracker wird vom passiven Counter zu aktivem Mutex-Manager. Test-Surface waechst.
-- **Mutex-Stale-Risiko:** wenn ein Holder vergisst, `releasePostMutex` zu rufen, blockiert Skript fuer 30s. Mitigation: Stale-Lock-Release.
+- **Speed on large accounts:** PoP phase 1 takes longer with the settle wait.
+  With 5 PoPs and a 27s settle: about 3 minutes more. Acceptable.
+- **Speed on small accounts:** the 2s minimum cap after every POST costs about
+  10s per phase. With 5 PoPs and a 2s settle: about 10s more, hardly
+  noticeable.
+- **Architectural complexity:** AjaxTracker turns from a passive counter into
+  an active mutex manager. The test surface grows.
+- **Stale-mutex risk:** if a holder forgets to call `releasePostMutex`, the
+  script blocks for 30s. Mitigation: the stale-lock release.
 
-### Skill-Anforderungen
+### Skill requirements
 
-Keine. Erweitert bestehenden TypeScript / JavaScript / Jest-Skill-Set des Repos.
+None. It extends the repository's existing TypeScript / JavaScript / Jest set.
 
-## Verifikation
+## Verification
 
-1. **Unit-Tests** in `spec/Service/AjaxTracker.spec.ts`:
-   - Mutex-Akquise/Release roundtrip.
-   - Stale-Detection nach 30s.
-   - 403-Detection ruft ForbiddenBackoff.
-2. **Frank-Account-Capture (Sniffer aktiv):**
-   - 0 Forbidden ueber 5+ PoP-Claims in einer Phase.
-   - XHR-Sequenz zeigt **keine** Ueberlappung von POST-Starts.
-   - Nach Claim erscheinen 25-30s Pausen vor naechster Aktion (Log: `awaitServerSettle`).
-3. **Klein-Account-Test (kein 2400-girls-Konto):**
-   - Skript-Performance nicht spuerbar verschlechtert.
-   - Cap-Pausen <= 2s pro POST.
-4. **Andere Module-Pfade:** wenn der erste Branch (PoP) sauber ist, zweiter Branch fuer Champion / BossBang / Troll. Capture nach jedem Branch.
+1. **Unit tests** in `spec/Service/AjaxTracker.spec.ts`:
+   - mutex acquire/release round trip.
+   - stale detection after 30s.
+   - 403 detection calls ForbiddenBackoff.
+2. **Capture on Frank's account (sniffer on):**
+   - 0 Forbidden across 5+ PoP claims in one phase.
+   - the XHR sequence shows **no** overlap of POST starts.
+   - after a claim, 25-30s pauses appear before the next action (log:
+     `awaitServerSettle`).
+3. **Small-account test (not the 2400-girls account):**
+   - script speed not noticeably worse.
+   - cap pauses <= 2s per POST.
+4. **Other module paths:** once the first branch (PoP) is clean, a second
+   branch for Champion / BossBang / Troll. A capture after each branch.
 
-## Risiken
+## Risks
 
-| Risiko | Mitigation |
+| Risk | Mitigation |
 |---|---|
-| Mutex zu aggressiv, blockt legitime Concurrency | Stale-Lock-Release, Logging, schrittweise Module-Migration |
-| 27s Settle-Wait fuehlt sich fuer User langsam an | UI-Indikator im Sniffer/Inspector, dass Skript in "Settle" ist |
-| Game-internes JavaScript reagiert auf den Mutex (durch geaendertes XHR-Timing) | Game-XHRs werden nicht geblockt, nur registriert |
-| Settle-Wait-Faktor (4) zu niedrig | Empirisch in zweitem Capture nachjustieren |
-| 403-Detection greift bei normalem User-Pause-Verhalten | Detection nur auf XHR-Status 403, nicht auf Page-Load 403 (vorhandener Pfad) |
+| The mutex is too aggressive and blocks legitimate concurrency | stale-lock release, logging, module migration step by step |
+| A 27s settle wait feels slow to the user | an indicator in the sniffer/inspector that the script is settling |
+| The game's own JavaScript reacts to the mutex (through changed XHR timing) | game XHRs are registered, never blocked |
+| The settle factor (4) is too low | readjust it from a second capture |
+| 403 detection fires on normal user pauses | detection only on XHR status 403, not on a page-load 403 (the existing path) |
 
-## Referenzen
+## References
 
 - Issue: https://github.com/OldRon1977/HHauto/issues/1598
-- Sniffer-Tool: `bonus-scripts/HHAuto_network_sniffer.user.js` (urspruenglich PR #1712 fuer Issue #1598, generalisiert in PR #1721)
-- Bestehende verwandte Files:
+- Sniffer tool: `bonus-scripts/HHAuto_network_sniffer.user.js` (originally
+  PR #1712 for issue #1598, generalised in PR #1721)
+- Related files:
   - `src/Service/AjaxTracker.ts`
   - `src/Service/PageNavigationService.ts`
   - `src/Service/ForbiddenBackoff.ts`

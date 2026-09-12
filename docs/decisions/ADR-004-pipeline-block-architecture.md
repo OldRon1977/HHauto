@@ -1,140 +1,136 @@
-# ADR-004: Pipeline-Block-Architektur (reload-feste Ablaufsteuerung)
+# ADR-004: Pipeline block architecture (reload-proof flow control)
 
 - Status: Accepted
-- Datum: 2026-06-12
-- Umgesetzt in: `BlockTypes.ts`, `BlockScheduler.ts`, `BlockPipeline.ts`, `BlockRunStore.ts`, `OrderResolver.ts`
+- Date: 2026-06-12
+- Implemented in: `BlockTypes.ts`, `BlockScheduler.ts`, `BlockPipeline.ts`, `BlockRunStore.ts`, `OrderResolver.ts`
 
-## Kontext
+## Context
 
-HHAuto steuert ein Browser-Game ueber Seiten-Reloads. Die Ablauflogik startet
-pro Reload praktisch bei null und merkt sich ihren Fortschritt nur ueber einen
-einzigen globalen Token `lastActionPerformed`, der zwischen zwei Reloads
-verloren gehen kann.
+HHAuto drives a browser game through page reloads. The flow logic starts from
+almost nothing on every reload and remembers its progress only through a single
+global token, `lastActionPerformed`, which can be lost between two reloads.
 
-Stand vor diesem Refactor (Code `4524911`, v7.36.0, verifiziert):
+State before this refactor (code `4524911`, v7.36.0, verified):
 
-- Der Scheduler waehlt pro Tick einen Handler aus dem
-  `pipeline`-Array (Array-Position = Prioritaet), prueft precondition +
-  `minIntervalMs` und fuehrt Steps aus.
-- Das Laufzeit-Gedaechtnis `ActiveChain { config, stepIdx, startedAt }` lebt
-  NUR im Speicher. Nur `lastRunAt` wird in sessionStorage persistiert. Ein
-  Page-Reload verliert den laufenden Chain-Fortschritt -- Wurzel der
-  Multi-Reload-Bugs.
-- Continuation laeuft ueber `ctx.lastActionPerformed` (in 13 Files
-  referenziert), das am Tick-Ende auf `none` zurueckgesetzt wird.
-- Die Handler in `Pipeline.config.ts` (HandlerConfig + `fromDescriptor`-Wrapper).
-- Der Scheduler hat einen SOFT/HARD-Interrupt-Pfad (shouldSoftAbort /
+- The scheduler picks one handler per tick from the `pipeline` array (array
+  position = priority), checks the precondition plus `minIntervalMs` and runs
+  steps.
+- The runtime memory `ActiveChain { config, stepIdx, startedAt }` lives in
+  memory ONLY. Only `lastRunAt` is persisted to sessionStorage. A page reload
+  loses the running chain's progress -- the root of the multi-reload bugs.
+- Continuation runs through `ctx.lastActionPerformed` (referenced in 13 files),
+  which is reset to `none` at the end of the tick.
+- The handlers sit in `Pipeline.config.ts` (HandlerConfig plus the
+  `fromDescriptor` wrapper).
+- The scheduler has a SOFT/HARD interrupt path (shouldSoftAbort /
   findHigherPriorityReady / abortAtSafePoint).
 
-Folgeprobleme (dokumentiert in den `_lessons/pipeline-*`-Files): mehrstufige
-Funktionen (Quest, PoP, BossBang, Mythic-First-Visit) verlieren ueber Reloads
-ihren Kontext, starten neu, werden verdraengt oder bleiben haengen.
+Consequences (written up in the `_lessons/pipeline-*` files): multi-step
+functions (Quest, PoP, BossBang, mythic first visit) lose their context across
+reloads, start over, are displaced, or get stuck.
 
-## Entscheidung
+## Decision
 
-Die Ablaufsteuerung wird auf ein **daten-getriebenes Block-Modell mit
-reload-festem Block-Run** umgebaut. Kernpunkte:
+Flow control is rebuilt as a **data-driven block model with a reload-proof
+block run**. The core points:
 
-1. **Block statt Handler.** Jede user-sichtbare Funktion (Liga, Quest, Geld,
-   ...) ist ein gekapselter `Block` aus benannten `Step`s mit deklarierten
-   Metadaten (Abhaengigkeiten, `userMovable`-Flag, Timeouts). Die heutigen 33
-   Handler werden 1:1 als Steps abgebildet.
+1. **Block instead of handler.** Every user-visible function (league, quest,
+   money, ...) is an encapsulated `Block` of named `Step`s with declared
+   metadata (dependencies, the `userMovable` flag, timeouts). The 33 handlers
+   of today map one to one onto steps.
 
-   **Verworfen in ADR-006:** die hier geplante Buendelung (Season,
-   PentaDrill, Seasonal, Pachinko, Champion, BossBang) wurde nie gebaut. Der
-   Slot-Hold aus ADR-005 loest das Ping-Pong, fuer das die Buendel gedacht
-   waren. Jeder Handler ist heute ein eigener Single-Step-Block.
+   **Rejected in ADR-006:** the bundling planned here (Season, PentaDrill,
+   Seasonal, Pachinko, Champion, BossBang) was never built. The slot hold from
+   ADR-005 solves the ping-pong the bundles were meant for. Every handler is
+   its own single-step block today.
 
-2. **Reihenfolge als Daten.** Eine `Registry` (alle Block-Definitionen) ist
-   getrennt von einer `Order`-Liste (geordnete Block-IDs). Umordnen = nur die
-   ID-Liste aendern. Default-Order im Code; effektive Order in der bestehenden
-   Settings-Storage (Teil von Export/Import), Fallback auf Code-Default bei
-   Cache-Leerung.
+2. **Order as data.** A `Registry` (all block definitions) is separate from an
+   `Order` list (ordered block IDs). Reordering = changing the ID list only.
+   The default order lives in the code; the effective order lives in the
+   existing settings storage (part of export/import), falling back to the code
+   default when the cache is cleared.
 
-3. **Reload-fester Block-Run.** `ActiveChain` (in-memory) wird zu einem
-   persistenten `BlockRun { blockId, stepIdx, startedAt, stepStartedAt,
-   dispatched, data }` in sessionStorage. Er ueberlebt geplante UND ungeplante
-   Reloads/Verbindungsabbrueche. Die Continuation eines laufenden Blocks lebt
-   im BlockRun.
+3. **A reload-proof block run.** `ActiveChain` (in memory) becomes a persistent
+   `BlockRun { blockId, stepIdx, startedAt, stepStartedAt, dispatched, data }`
+   in sessionStorage. It survives planned AND unplanned reloads and dropped
+   connections. The continuation of a running block lives in the BlockRun.
 
-   **Nicht umgesetzt:** `lastActionPerformed` sollte danach entfernt werden.
-   Es steht weiter im `AutoLoopContext` und dient als Gate auf
-   Descriptor-Ebene (siehe ADR-006) -- die Multi-Step-Zerlegung, die es
-   ersetzt haette, entfiel.
+   **Not carried out:** `lastActionPerformed` was to be removed afterwards. It
+   is still in `AutoLoopContext` and serves as a gate at descriptor level (see
+   ADR-006) -- the multi-step split that would have replaced it never happened.
 
-4. **Hoechstens ein aktiver Block-Run.** Ein begonnener Block laeuft
-   ununterbrochen bis zum Ende (einzige Ausnahme: Watchdog). Der SOFT/HARD-
-   Interrupt-Pfad wird abgebaut.
+4. **At most one active block run.** A block that has started runs
+   uninterrupted to the end (the only exception: the watchdog). The SOFT/HARD
+   interrupt path is removed.
 
-5. **At-most-once-Semantik.** Zustandsaendernde Steps werden vor dem Absenden
-   als `dispatched` markiert + persistiert (persist-before-act); beim Resume
-   gilt ein dispatched-aber-unbestaetigter Step als erledigt (lieber eine
-   Aktion verpassen als doppelt feuern).
+5. **At-most-once semantics.** State-changing steps are marked `dispatched` and
+   persisted before they are sent (persist before act); on resume, a dispatched
+   but unconfirmed step counts as done (better to miss an action than to fire
+   it twice).
 
-6. **Deklarierte, durchgesetzte Abhaengigkeiten.** Bloecke deklarieren harte
-   Ordnungs-Constraints (runsAfter/runsBefore, beforeAll/afterAll). Ein
-   Validator prueft die effektive Order gegen harte Constraints + Zyklen/
-   Widersprueche; ungueltige Konfiguration faellt sicher auf die Default-Order
-   zurueck (nie gebrickt).
+6. **Declared, enforced dependencies.** Blocks declare hard ordering
+   constraints (runsAfter/runsBefore, beforeAll/afterAll). A validator checks
+   the effective order against hard constraints, cycles and contradictions; an
+   invalid configuration falls back safely to the default order (never
+   bricked).
 
-7. **Watchdog.** Step- und Run-Gesamt-Timeout; persistenter Fehlerzaehler pro
-   Fehler-Signatur; Auto-Deaktivierung bei Schwelle (persistent, Reset bei
-   Skript-Versionswechsel oder Reaktivierung); `<ERROR>`-Markierung auf der
-   Home-Seite.
+7. **Watchdog.** Step and whole-run timeouts; a persistent error counter per
+   error signature; automatic deactivation at a threshold (persistent, reset on
+   a script version change or on reactivation); an `<ERROR>` marker on the home
+   page.
 
-8. **Strukturiertes, reload-festes Logging.** `[PIPE]`-Format (key=value, ein
-   Ereignis pro Zeile, Korrelations-IDs), nicht-rotierender Kontext-Block,
-   Ring-Buffer mit write-through, in die bestehende Log-Pipeline integriert.
-   Lean immer aktiv, Diagnose per Menue-Toggle. (Der Ring liegt heute bei 64
-   Chunks a 128 KB, siehe `LogStore.ts`.)
+8. **Structured, reload-proof logging.** The `[PIPE]` format (key=value, one
+   event per line, correlation IDs), a non-rotating context block, a ring
+   buffer with write-through, integrated into the existing log pipeline. Lean
+   always on, diagnostics behind a menu toggle. (The ring holds 64 chunks of
+   128 KB today, see `LogStore.ts`.)
 
-## Verhaltensneutralitaet
+## Behavioural neutrality
 
-Dies ist ein **echter Refactor**, KEIN type-only/`@version`-Bundle-Invariant.
-Die Migration ist verhaltensneutral am Happy-Path: gleiche Aktionen, gleiche
-Reihenfolge bei Default-Order. Die EINZIGEN beabsichtigten
-Verhaltensaenderungen sind die dokumentierten Continuation-Bug-Fixes
-(Quest-Loop, Mythic-First-Visit, Stuck-on-Page). Verifikation ueber
-Verhaltensvergleich + Tests + Live-Lauf, pro verhaltensnahem Cluster gegen
-einen Production-Account. Keine bestehende Bot-Faehigkeit wird entfernt oder
-hinzugefuegt. Die Pro-Feature-Timer-Anzeige (pInfo) bleibt erhalten.
+This is a **real refactor**, NOT a type-only or `@version` bundle invariant.
+The migration is behaviour-neutral on the happy path: same actions, same order
+under the default order. The ONLY intended behaviour changes are the documented
+continuation bug fixes (quest loop, mythic first visit, stuck on page).
+Verification through behaviour comparison, tests and a live run, per
+behaviour-related cluster against a production account. No existing bot
+capability is removed or added. The per-feature timer display (pInfo) stays.
 
-## Was davon gebaut wurde
+## What of it was built
 
-Punkte 2-8 stehen im Code (`BlockTypes`, `BlockScheduler`, `BlockPipeline`,
-`BlockRunStore`, `OrderResolver`, `PipeLogger`), einschliesslich des
-Reorder-UI. Nicht gebaut wurden die Buendelung (ADR-006), die Multi-Step-
-Zerlegung von PoP/Quest/BossBang/ChampionTicket (beide ADR-006) und die Entfernung
-von `lastActionPerformed`. Der SOFT/HARD-Interrupt-Pfad ist mit dem alten
-Scheduler aus dem Lauf verschwunden.
+Points 2-8 are in the code (`BlockTypes`, `BlockScheduler`, `BlockPipeline`,
+`BlockRunStore`, `OrderResolver`, `PipeLogger`), including the reorder UI. Not
+built: the bundling (ADR-006), the multi-step split of
+PoP/Quest/BossBang/ChampionTicket (also ADR-006) and the removal of
+`lastActionPerformed`. The SOFT/HARD interrupt path left with the old
+scheduler.
 
-## Alternativen
+## Alternatives
 
-- **Status quo behalten (`lastActionPerformed`).** Verworfen: die
-  Multi-Reload-Bugs sind strukturell und nur mit reload-fester Continuation
-  loesbar; punktuelle Interim-Fixes (siehe `_lessons/pipeline-*`) behandeln nur
-  Symptome.
-- **Vollstaendiger Rewrite der Ablaufsteuerung in einem Schritt.** Verworfen:
-  zu hoher Blast-Radius, keine inkrementelle Live-Verifikation moeglich,
-  widerspricht der verhaltensneutralen Migrationsvorgabe.
-- **localStorage statt sessionStorage fuer den Block-Run.** Verworfen:
-  sessionStorage ueberlebt den Reload im selben Tab (ausreichend); bei
-  Tab-Crash ist ein frischer Start gewuenscht, nicht das Resume eines veralteten
-  Runs. Das Diagnose-Log liegt bewusst in localStorage (ueberlebt Tab-Neustart).
+- **Keep the status quo (`lastActionPerformed`).** Rejected: the multi-reload
+  bugs are structural and solvable only with reload-proof continuation; the
+  interim point fixes (see `_lessons/pipeline-*`) treat symptoms.
+- **A complete rewrite of the flow control in one step.** Rejected: too large a
+  blast radius, no incremental live verification, and it contradicts the
+  behaviour-neutral migration requirement.
+- **localStorage instead of sessionStorage for the block run.** Rejected:
+  sessionStorage survives the reload in the same tab, which is enough; after a
+  tab crash a fresh start is wanted, not the resume of a stale run. The
+  diagnostic log deliberately lives in localStorage (it survives a tab
+  restart).
 
-## Konsequenzen
+## Consequences
 
-Positiv: mehrstufige Funktionen ueberleben Reloads; kein Verdraengen/Neustart;
-deterministische, aus dem Logfile reproduzierbare Ablaeufe; spaetere
-User-Steuerung der Reihenfolge ohne Architektur-Umbau moeglich; ein einzelner
-haengender Block stoppt den Bot nicht mehr.
+Positive: multi-step functions survive reloads; no displacement or restart;
+deterministic runs, reproducible from the log file; user control of the order
+becomes possible later without an architectural rebuild; a single stuck block
+no longer stops the bot.
 
-Negativ/Kosten: hoehere Komplexitaet im Scheduler (Resume-Validierung,
-At-most-once, Repeat-Cursor, Watchdog); zusaetzliche Storage-Keys; die
-inkrementelle Migration erfordert pro verhaltensnahem Cluster einen Live-Test.
+Negative / cost: more complexity in the scheduler (resume validation,
+at-most-once, repeat cursor, watchdog); additional storage keys; the
+incremental migration needs a live test per behaviour-related cluster.
 
-## Validierung
+## Validation
 
-Validiert Requirements 9.1 (verhaltensneutraler Happy-Path) und 9.3
-(inkrementelle Migration mit Koexistenz). Die uebrigen Requirements werden
-umgesetzt und je Baustein verifiziert.
+Validates requirements 9.1 (behaviour-neutral happy path) and 9.3 (incremental
+migration with coexistence). The remaining requirements are implemented and
+verified per building block.
