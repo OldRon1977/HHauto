@@ -4,188 +4,186 @@ verified-against-version: 8.13.1
 status: current
 ---
 
-# Runtime Architecture
+# Runtime architecture
 
-Wie HHAuto im Browser tatsaechlich laeuft: Frames, Spielzustand, Ajax,
-Seitenerkennung, Start. Gemessen ist, was als gemessen markiert ist (Pruefkonto
-auf www.hentaiheroes.com, 2026-09-11); der Rest ist aus dem Code gelesen.
+How HHAuto actually runs in the browser: frames, game state, ajax, page
+detection, start. What is marked as measured was measured (test account on
+www.hentaiheroes.com, 2026-09-11); the rest is read from the code.
 
 ---
 
-## 1. Frames: Huelle und Spielseite
+## 1. Frames: the shell and the game page
 
-**Gemessen 2026-09-11** (angemeldet, `www.hentaiheroes.com`):
+**Measured 2026-09-11** (logged in, `www.hentaiheroes.com`):
 
 ```
-https://www.hentaiheroes.com/            <- Huelle: <body id="hh_hentai">, KEIN page-Attribut,
-  |                                          kein window.shared.Hero
-  +-- <iframe id="hh_game" src="/home.html">   <- die Spielseite
+https://www.hentaiheroes.com/            <- shell: <body id="hh_hentai">, NO page attribute,
+  |                                          no window.shared.Hero
+  +-- <iframe id="hh_game" src="/home.html">   <- the game page
   +-- about:blank
 ```
 
-Die Spielseiten selbst (`/home.html`, `/leagues.html`, ...) sind eigenstaendige
-Dokumente mit `<body id="hh_hentai" page="...">` und dem vollen Spielzustand.
-Sie lassen sich auch direkt als oberstes Dokument oeffnen -- so liefen alle
-Messungen dieses Tages, und das Spiel verhielt sich dabei gleich. Die Kennung
-`hh_hentai` ist also die `id` des `<body>`, nicht die eines Iframes; das Iframe
-der Huelle heisst `hh_game`.
+The game pages themselves (`/home.html`, `/leagues.html`, ...) are standalone
+documents with `<body id="hh_hentai" page="...">` and the full game state. They
+can also be opened directly as the top document -- that is how all measurements
+of that day ran, and the game behaved the same. The identifier `hh_hentai` is
+therefore the `id` of the `<body>`, not of an iframe; the shell's iframe is
+called `hh_game`.
 
-Die `gameID` je Spielvariante steht in `getEnv()` der Dateien unter
-`src/config/game/`; HornyHeroes ist direkt in `HHEnvVariables.ts` eingetragen.
-Gemessen ist nur `hh_hentai` auf www.hentaiheroes.com. Wie die Nutaku-Seiten
-einbetten, ist mit dem Pruefkonto nicht pruefbar.
+The `gameID` per game variant is in `getEnv()` of the files under
+`src/config/game/`; HornyHeroes is entered directly in `HHEnvVariables.ts`.
+Only `hh_hentai` on www.hentaiheroes.com is measured. How the Nutaku pages
+embed cannot be checked with the test account.
 
-### Wie HHAuto.user.js damit umgeht
+### How HHAuto.user.js deals with it
 
-Das Skript hat kein `@noframes` und laeuft deshalb in **jedem** Frame, dessen
-URL auf ein `@match` passt (zehn Domains, siehe Kopf von `HHAuto.user.js`).
-`unsafeWindow` ist dort jeweils das Fenster dieses Frames.
+The script has no `@noframes` and therefore runs in **every** frame whose URL
+matches an `@match` (ten domains, see the header of `HHAuto.user.js`).
+`unsafeWindow` is that frame's window in each case.
 
-Gemessen 2026-09-11 mit dem Bundle in allen drei Frames der Huelle:
+Measured 2026-09-11 with the bundle in all three frames of the shell:
 
-| Frame | Ausgabe |
+| Frame | Output |
 |---|---|
-| Huelle `/` | `Not a game page (/), skipping init in this frame.` -- `StartService.start()` bricht bei `location.pathname === '/'` ab, bevor es auf `shared.Hero` wartet |
-| Iframe `/home.html` | normaler Start (`Hero object available (page=/home.html)`) |
-| `about:blank` | `HHAUTO WARNING: No jQuery found.` -- `hardened_start` endet dort |
+| Shell `/` | `Not a game page (/), skipping init in this frame.` -- `StartService.start()` aborts at `location.pathname === '/'`, before it waits for `shared.Hero` |
+| Iframe `/home.html` | a normal start (`Hero object available (page=/home.html)`) |
+| `about:blank` | `HHAUTO WARNING: No jQuery found.` -- `hardened_start` ends there |
 
-Kopf-Stand 8.13.1: `@grant GM_addStyle`, `GM_registerMenuCommand`,
-`GM_unregisterMenuCommand`, `GM_xmlhttpRequest`, `GM_setClipboard`; kein
-`@grant unsafeWindow` -- Tampermonkey stellt `unsafeWindow` auch ohne Grant
-bereit. `npm run check:gm-grants` haelt die Grants gegen die Nutzung.
+Header state 8.13.1: `@grant GM_addStyle`, `GM_registerMenuCommand`,
+`GM_unregisterMenuCommand`, `GM_xmlhttpRequest`, `GM_setClipboard`; no
+`@grant unsafeWindow` -- Tampermonkey provides `unsafeWindow` without the grant
+too. `npm run check:gm-grants` holds the grants against the usage.
 
-### Der Debug-Inspector
+### The debug inspector
 
-`bonus-scripts/HHAuto_debug_inspector.user.js` (4.11.0) hat `@noframes`,
-laeuft also nur im obersten Dokument, und sucht den Spielzustand selbst -- ueber
-bekannte Frame-IDs oder einen Scan nach `shared`/`Hero`/`availableGirls` -- und
-schaltet dann auf dessen `contentWindow` um.
+`bonus-scripts/HHAuto_debug_inspector.user.js` (4.11.0) has `@noframes`, so it
+runs only in the top document, and finds the game state itself -- through known
+frame IDs or a scan for `shared`/`Hero`/`availableGirls` -- and then switches to
+that frame's `contentWindow`.
 
 ---
 
-## 2. unsafeWindow.shared -- der Spielzustand
+## 2. unsafeWindow.shared -- the game state
 
-Was frueher `window.Hero` hiess, liegt unter `window.shared.Hero`. Gemessen:
-`window.Hero` gibt es auf keiner der 39 besuchten Seiten.
+What used to be `window.Hero` lives under `window.shared.Hero`. Measured:
+`window.Hero` exists on none of the 39 visited pages.
 
-`HHHelper.getHHVars()` macht das transparent: `prefixIfNeeded` haengt vor jeden
-Pfad, der mit `Hero.` beginnt, `shared.` an, sobald `unsafeWindow.shared`
-existiert. Immer `getHHVars()` benutzen.
+`HHHelper.getHHVars()` makes that transparent: `prefixIfNeeded` prepends
+`shared.` to every path starting with `Hero.` as soon as `unsafeWindow.shared`
+exists. Always use `getHHVars()`.
 
-### Unter `shared` (gemessen auf jeder Spielseite)
+### Under `shared` (measured on every game page)
 
-| Pfad | Inhalt |
+| Path | Content |
 |---|---|
-| `shared.Hero` | Stats, Energien, Waehrungen des Spielers |
-| `shared.general.hh_ajax` | der Ajax-Wrapper des Spiels |
-| `shared.general.is_cheat_click` | Klick-Pruefung des Spiels |
-| `shared.GirlSalaryManager.girlsMap` | alle besessenen Maedchen (gemessen 24 von 24) |
-| `shared.GirlSalaryManager.girlsListSec` | Teilliste (gemessen 4) |
-| `shared.animations.loadingAnimation.{start,stop}` | Lade-Animation |
+| `shared.Hero` | the player's stats, energies and currencies |
+| `shared.general.hh_ajax` | the game's ajax wrapper |
+| `shared.general.is_cheat_click` | the game's click check |
+| `shared.GirlSalaryManager.girlsMap` | all owned girls (measured 24 of 24) |
+| `shared.GirlSalaryManager.girlsListSec` | a partial list (measured 4) |
+| `shared.animations.loadingAnimation.{start,stop}` | the loading animation |
 
-### Direkt auf `unsafeWindow`
+### Directly on `unsafeWindow`
 
-Wo welche Variable existiert, ist je Seite gemessen und steht in
-`data-sources-inventory.md`, Abschnitt 10. Die Faustregeln daraus:
+Which variable exists where is measured per page and stands in
+`data-sources-inventory.md`, section 10. The rules of thumb from it:
 
-- Die Maedchenliste haengt an der Seite, nicht am Spiel: `availableGirls` auf
-  edit-team, `girlsDataList` auf home und characters, `girls_data_list` auf
+- The girl list belongs to the page, not to the game: `availableGirls` on
+  edit-team, `girlsDataList` on home and characters, `girls_data_list` on
   waifu.
-- `teams_data` nur auf `/teams.html`, `opponents_list` auf der Liga und in der
-  Penta-Drill-Arena (verschiedene Formen), `hero_data`/`opponents` in der
-  Season-Arena.
-- `pop_list` ist ein Boolean und `pop_index` immer 0 -- welche PoP gezeigt wird,
-  sagt die URL (`pop_id`), siehe `page-mapping.md`.
-- `id_girl` gibt es auf der Questseite, nicht auf `/girl/<id>`.
-- `has_contests_datas`, `seasonal_event_active` und `seasonal_time_remaining`
-  gab es am 2026-09-11 auf keiner Seite (ein Mega-Event lief).
+- `teams_data` only on `/teams.html`, `opponents_list` on the league and in the
+  penta drill arena (different shapes), `hero_data`/`opponents` in the season
+  arena.
+- `pop_list` is a boolean and `pop_index` always 0 -- which PoP is shown is what
+  the URL says (`pop_id`), see `page-mapping.md`.
+- `id_girl` exists on the quest page, not on `/girl/<id>`.
+- `has_contests_datas`, `seasonal_event_active` and `seasonal_time_remaining`
+  existed on no page on 2026-09-11 (a mega event was running).
 
 ---
 
 ## 3. Ajax
 
-`getHHAjax()` in `Utils/Utils.ts` liefert `unsafeWindow.shared?.general?.hh_ajax`.
-Ein `unsafeWindow.hh_ajax` gibt es nicht. Direkte `fetch`/`XMLHttpRequest`
-umgehen das Session-Handling des Spiels.
+`getHHAjax()` in `Utils/Utils.ts` returns
+`unsafeWindow.shared?.general?.hh_ajax`. There is no `unsafeWindow.hh_ajax`.
+Direct `fetch`/`XMLHttpRequest` bypasses the game's session handling.
 
-Ausnahme: `HaremGirl.equipItem()` (`girl_equipment_equip`) ruft jQuery `$.ajax`
-direkt.
+The exception: `HaremGirl.equipItem()` (`girl_equipment_equip`) calls jQuery
+`$.ajax` directly.
 
-### Nutaku-Session
+### The Nutaku session
 
-Auf Nutaku-Seiten (`unsafeWindow.hh_nutaku` gesetzt; auf www.hentaiheroes.com
-gemessen `null`) haengt `addNutakuSession()` den `sess`-Parameter an Aufrufe
-und Navigationen an.
+On Nutaku pages (`unsafeWindow.hh_nutaku` set; measured `null` on
+www.hentaiheroes.com) `addNutakuSession()` appends the `sess` parameter to calls
+and navigations.
 
-### Referer vor Ajax
+### The referer before an ajax call
 
-Vor einigen Aufrufen setzt der Code per `window.history.replaceState` die URL
-der Seite, von der das Spiel den Aufruf erwartet, und stellt sie danach zurueck.
-Die Stellen findet `grep -rln history.replaceState src` -- heute
-`HeroHelper.ts` (Booster), `Market.ts` (Kaeufe), `TeamModule.ts` (Stuff Team),
-`Harem.ts` (Skill-Reset) und `League.ts`.
+Before some calls the code sets, through `window.history.replaceState`, the URL
+of the page the game expects the call from, and restores it afterwards. The
+places are found with `grep -rln history.replaceState src` -- today
+`HeroHelper.ts` (boosters), `Market.ts` (purchases), `TeamModule.ts` (stuff
+team), `Harem.ts` (skill reset) and `League.ts`.
 
-Welche Aktionen im Spiel tatsaechlich unterwegs sind, mit Parametern und
-Antwortform, steht in `data-sources-inventory.md`, Abschnitt 3.3 (zwei
-Aufnahmen, 2026-08-17 und 2026-09-11).
+Which actions actually travel in the game, with parameters and answer shapes,
+is in `data-sources-inventory.md`, section 3.3 (two captures, 2026-08-17 and
+2026-09-11).
 
 ---
 
-## 4. Seitenerkennung
+## 4. Page detection
 
-`getPage()` in `PageHelper.ts` liest das Attribut `page` des Elements mit der
-ID `gameID` -- gemessen das `<body>` der Spielseite. Auf `/activities.html`
-entscheidet der URL-Parameter `tab`. Einzelheiten, gemessene Werte und die
-PoP-Seiten stehen in `page-mapping.md`.
+`getPage()` in `PageHelper.ts` reads the `page` attribute of the element with
+the ID `gameID` -- measured, the `<body>` of the game page. On
+`/activities.html` the URL parameter `tab` decides. Details, measured values
+and the PoP pages are in `page-mapping.md`.
 
-`getPage(true)` traegt unbekannte IDs in `Temp_unknownPagesList`
-(sessionStorage) ein; gemessen trifft das nur die Einzel-PoP-IDs
+`getPage(true)` records unknown IDs in `Temp_unknownPagesList`
+(sessionStorage); measured, that only affects the single PoP IDs
 (`powerplaceN`).
 
 ---
 
 ## 5. Start
 
-`StartService.start()` (gelesen):
+`StartService.start()` (read from the code):
 
-1. oberstes Dokument auf `/`: abbrechen (siehe Abschnitt 1)
-2. `shared.Hero` fehlt: `setTimeout(hardened_start, 5000)`, bis zu
-   `HERO_MAX_RETRIES` = 15 Versuche; danach laedt die Seite sich selbst neu,
-   begrenzt durch `HERO_GIVEUP_MAX_RELOADS` (#1788), und erst dann gibt der
-   Start auf
-3. Login-Anker `a[rel='phoenix_member_login']` vorhanden: nicht angemeldet,
-   abbrechen
+1. top document on `/`: abort (see section 1)
+2. `shared.Hero` missing: `setTimeout(hardened_start, 5000)`, up to
+   `HERO_MAX_RETRIES` = 15 attempts; then the page reloads itself, limited by
+   `HERO_GIVEUP_MAX_RELOADS` (#1788), and only then does the start give up
+3. the login anchor `a[rel='phoenix_member_login']` present: not logged in,
+   abort
 
-Die ausgeloggte Seite traegt ein `shared.Hero` mit Platzhalterwerten (600
-Kobans, volle Energien) -- wer misst, prueft `shared.Hero.infos.id` **und** den
-Login-Anker (`live-verification-lessons.md`).
+The logged-out page carries a `shared.Hero` with placeholder values (600
+kobans, full energies) -- whoever measures checks `shared.Hero.infos.id` **and**
+the login anchor (`live-verification-lessons.md`).
 
 ---
 
 ## 6. localStorage
 
-Huelle und Spielseite liegen auf derselben Origin, teilen also denselben
-Storage. HHAuto-eigene Keys tragen das Praefix `HHStoredVarPrefixKey`
-(`HHAuto_`, definiert in `config/StorageKeys.ts`). Wo jeder Key liegt, steht in
-`storage-keys.md`; gemessen lagen 240 von 245 dort, wo die Registry sie
-vorsieht.
+The shell and the game page are on the same origin and therefore share the
+storage. HHauto's own keys carry the prefix `HHStoredVarPrefixKey` (`HHAuto_`,
+defined in `config/StorageKeys.ts`). Where each key lives is in
+`storage-keys.md`; measured, 240 of 245 lay where the registry says.
 
 ---
 
-## 7. Cheat-Click
+## 7. Cheat click
 
-`shared.general.is_cheat_click` prueft im Spiel, ob ein Klick echt ist.
-`Utils.replaceCheatClick()` hat einen leeren Rumpf und wird von
-`StartService` aufgerufen -- eine vorbereitete, heute wirkungslose Stelle.
+`shared.general.is_cheat_click` checks in the game whether a click is real.
+`Utils.replaceCheatClick()` has an empty body and is called by `StartService` --
+a prepared place with no effect today.
 
 ---
 
-## 8. Checkliste fuer neue Skripte und Werkzeuge
+## 8. Checklist for new scripts and tools
 
-- [ ] Im Frame der Spielseite laufen (oder deren `contentWindow` ansprechen),
-      nicht in der Huelle
-- [ ] Daten ueber `getHHVars()` lesen
-- [ ] Ajax ueber `getHHAjax()`
-- [ ] Auf Nutaku `addNutakuSession()` vor Ajax und Navigation
-- [ ] Vor dem Lesen: `shared.Hero.infos.id` gesetzt und kein Login-Anker
-- [ ] Seitenwechsel ueber `gotoPage()`
+- [ ] Run in the game page's frame (or address its `contentWindow`), not in the
+      shell
+- [ ] Read data through `getHHVars()`
+- [ ] Ajax through `getHHAjax()`
+- [ ] On Nutaku, `addNutakuSession()` before ajax and navigation
+- [ ] Before reading: `shared.Hero.infos.id` set and no login anchor
+- [ ] Change pages through `gotoPage()`
