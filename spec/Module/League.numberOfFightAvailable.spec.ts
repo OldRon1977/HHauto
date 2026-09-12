@@ -6,7 +6,7 @@ import type { KKLeagueOpponent } from "../../src/model/KK/KKLeagueOpponent";
 /**
  * How many fights are left against one league opponent.
  *
- * This is the function the repository guide warns about by name: the game renamed the
+ * This is the function `CONTRIBUTING.md` warns about by name: the game renamed the
  * `match_history` column **in the DOM** and kept the key **in the JSON**.
  * Reading the DOM finding into the data makes this return 0, and a 0 here is
  * silent -- no error, no log line, the league simply never fights. League

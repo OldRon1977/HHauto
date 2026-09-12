@@ -119,8 +119,8 @@ and in `live-verification-lessons.md`.
 
 The write paths ADR-011 keeps a game account for were checked for that:
 
-- `LeagueHelper.numberOfFightAvailable` is tested, including the trap the
-  repository guide names: the game renamed the `match_history` column in the
+- `LeagueHelper.numberOfFightAvailable` is tested, including the trap
+  `CONTRIBUTING.md` names: the game renamed the `match_history` column in the
   DOM and kept the key in the JSON. The fixtures carry both, so the trap is in
   the test.
 - `PlaceOfPower.girlPower` / `chooseGirlsTeam` are tested, including that
@@ -199,6 +199,6 @@ reverted:
 - Splitting a full dump into per-page JSON files. Curated mini fixtures of
   5-20 lines per case instead.
 - A pre-commit hook that runs the suite; CI does that. The hook in `.githooks`
-  only stops player data, for the reason the repository guide gives.
+  only stops player data, for the reason `CONTRIBUTING.md` gives.
 - Tests for one-line `isEnabled` getters.
 - A live checker that writes.
