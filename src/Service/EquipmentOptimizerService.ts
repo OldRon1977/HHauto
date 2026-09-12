@@ -2,7 +2,7 @@
 // equipment (the six armor slots of the hero, not girl equipment).
 //
 // Mechanics, data model, endpoints and the measurement traps behind all of
-// this: docs-internal/equipment-resonance.md. The two decisions that shape
+// this: docs/reference/equipment-resonance.md. The two decisions that shape
 // this file and are NOT obvious from the code alone:
 //
 //   1. Items are ranked by PRIORITY TIERS, not by a computed stat score.

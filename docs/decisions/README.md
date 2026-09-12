@@ -17,7 +17,7 @@ why, and what was rejected.
 | [011](ADR-011-a-dedicated-account-may-write.md) | A dedicated test account may write | 2026-09-09 | why the rule "writing checks stay manual" now applies only to the maintainer's account |
 | [012](ADR-012-one-table-of-unlock-conditions.md) | One table for all unlock conditions | 2026-09-09 | before anyone hand-writes a ninth `isEnabled` condition or proposes a global level gate |
 
-Open beside it: [`docs-internal/exit-condition-concept.md`](../../docs-internal/exit-condition-concept.md)
+Open beside it: [`docs/reference/exit-condition-concept.md`](../reference/exit-condition-concept.md)
 proposes replacing the weakest part of ADR-009 -- three questions, not decided
 yet.
 

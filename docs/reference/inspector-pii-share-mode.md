@@ -173,7 +173,7 @@ Fields:
 
 ## Verifier
 
-A Python verifier lives in `docs-internal/skripte/verify_share_dump.py`
+A Python verifier lives in `docs/reference/skripte/verify_share_dump.py`
 (local-only, gitignored -- it is not in a fresh clone, and was not present on
 the machine this was checked on, 2026-09-11). It checks the audit block, runs the
 plain-text and id-pseudonym patterns, validates rounding, and
@@ -182,7 +182,7 @@ exits non-zero on any violation.
 Usage:
 
 ```
-python docs-internal/skripte/verify_share_dump.py <dump.json> [--nickname NAME]
+python docs/reference/skripte/verify_share_dump.py <dump.json> [--nickname NAME]
 ```
 
 The `--nickname` argument is optional; pass it to also check that

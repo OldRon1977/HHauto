@@ -38,7 +38,7 @@ writing pass shows:
 None of these is findable with a reading test. All four show up in the
 second step of an action that has already changed the server state.
 
-`docs-internal/live-verification-lessons.md` holds the other half: a
+`docs/reference/live-verification-lessons.md` holds the other half: a
 measurement in the wrong place invents a bug nobody has. Three such
 findings were withdrawn, one of them only after it had been implemented.
 
@@ -98,7 +98,7 @@ Watch the script and log what it *would* do.
 ### Put the test account in a different game
 Comix Harem instead of Hentai Heroes -- a separate account, not a second
 account in the same game.
-- Against: fixtures, `docs-internal` and `scripts/live-check/checks.json`
+- Against: fixtures, `docs/reference` and `scripts/live-check/checks.json`
   come from Hentai Heroes. Every difference would have to be measured
   before a finding says anything about the shipped configuration.
 - Rejected by the maintainer in favour of the same data base. The risk of
@@ -124,7 +124,7 @@ account in the same game.
 
 ## References
 - `CONTRIBUTING.md`, section "Measuring live against the game"
-- `docs-internal/live-verification-lessons.md` -- why a measurement in the
+- `docs/reference/live-verification-lessons.md` -- why a measurement in the
   wrong place invents a bug
 - `scripts/live-check/README.md` -- the reading checker, which stays what
   it is

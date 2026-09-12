@@ -15,7 +15,7 @@
 // calls.
 //
 // Background, data model and the measurement traps:
-// docs-internal/equipment-resonance.md.
+// docs/reference/equipment-resonance.md.
 //
 // Used by: Service/AutoLoopPageHandlers.ts (market page, and the upgrade
 // page the Level-up button navigates to)

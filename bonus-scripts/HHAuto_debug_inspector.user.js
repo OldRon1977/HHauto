@@ -46,7 +46,7 @@
     // regardless of PII_MODE, so the user does not need to edit the
     // script to file a bug. AUTO TOUR honours PII_MODE.
     //
-    // Reference: docs-internal/inspector-pii-share-mode.md
+    // Reference: docs/reference/inspector-pii-share-mode.md
     //
     'use strict';
 

@@ -2,6 +2,37 @@
 
 Kept short. Everything here cost time once.
 
+## What is in the repository, and what stays local
+
+Two questions decide it: does somebody need this to **use** the script, or to
+**contribute** to it? Everything else stays on the machine it was made on.
+
+| In the repository | Why |
+| --- | --- |
+| `HHAuto.user.js` | the delivery -- users install this file, so it is committed together with the source it was built from |
+| `README.md`, `CHANGELOG.md`, `LICENSE` | how to install it, what changed, the terms |
+| `bonus-scripts/` | the login helper, the debug inspector and the network sniffer the README asks users to install |
+| `.github/` | the issue templates users fill in, and the workflows that run the gates |
+| `src/`, `spec/`, `build/`, the config files at the root | the source, its tests, and what turns them into the delivery |
+| `scripts/` | the gates, plus the live-check and catalogue tools a contributor measures with |
+| `.githooks/` | the pre-commit hook that stops player data before it reaches GitHub |
+| `docs/decisions/` | why the architecture is what it is, and what was rejected |
+| `docs/reference/` | what has been measured about the game, and where the code reads it |
+| `screenshots/` | the source images the wiki serves |
+
+| Stays local | Why |
+| --- | --- |
+| `local/` | notes, drafts, reports -- anything one machine needs and nobody else can act on |
+| `INPUT/` | dumps from the debug inspector: they carry account data and are stale within days |
+| `scripts/catalogue/out/` | generated from one session; the game moves, the output does not |
+| `coverage/`, `node_modules/`, `stats.json`, `*.tsbuildinfo` | generated from what is committed |
+| `.claude/`, `.vscode/`, `.idea/` | tooling state, personal to one setup |
+| The test account's credentials (`$HHAUTO_HOME/account/`) | they never enter the working tree at all, see below |
+
+`.gitignore` carries exactly these rules. A personal file that others' clones
+should not even need a rule for -- a TODO of your own, a scratch script --
+belongs in `.git/info/exclude`.
+
 ## Before a change: read the document that covers it
 
 Not all of them -- the one that covers it:
@@ -9,11 +40,11 @@ Not all of them -- the one that covers it:
 | You are changing | Read first |
 | --- | --- |
 | The scheduler, blocks, slot hold, focus | `docs/decisions/README.md` and the ADR it names |
-| Storage keys | `docs-internal/storage-keys.md` |
-| Page IDs, navigation | `src/config/HHEnvVariables.ts`, then `docs-internal/page-mapping.md` |
-| Equipment, resonance | `docs-internal/equipment-resonance.md` |
-| Team selection, scoring | `docs-internal/data-sources-team.md` |
-| Measuring something against the running game | `docs-internal/live-verification-lessons.md` and `scripts/live-check/README.md` |
+| Storage keys | `docs/reference/storage-keys.md` |
+| Page IDs, navigation | `src/config/HHEnvVariables.ts`, then `docs/reference/page-mapping.md` |
+| Equipment, resonance | `docs/reference/equipment-resonance.md` |
+| Team selection, scoring | `docs/reference/data-sources-team.md` |
+| Measuring something against the running game | `docs/reference/live-verification-lessons.md` and `scripts/live-check/README.md` |
 
 The file headers in the code carry the reasoning behind their rules. A proposal
 that simplifies a rule has to have read that header first.
@@ -51,10 +82,10 @@ history, no stages, no task numbers.
 | Changed | Has to follow |
 | --- | --- |
 | User-visible behaviour | `CHANGELOG.md` |
-| A new or removed storage key | `docs-internal/storage-keys.md` |
+| A new or removed storage key | `docs/reference/storage-keys.md` |
 | The menu, the debug flow, the operation | the wiki (`HHauto.wiki`, pages `The menu` / `Debugging`) |
 | An earlier decision reversed | a new ADR in `docs/decisions` naming the old one; never reuse a number |
-| Measured game mechanics | the `docs-internal` document that covers it, marked as measured |
+| Measured game mechanics | the `docs/reference` document that covers it, marked as measured |
 | A file header's `Used by:` / `Depends on:` | that line, or `npm run check:headers` fails |
 
 ## The gates that check it

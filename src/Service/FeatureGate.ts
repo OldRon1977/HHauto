@@ -62,7 +62,7 @@ type GateSpec = {
  *
  * Adding a module here is the whole of adding its gate. What is NOT here is
  * as important: a condition nobody has measured does not get an entry, it
- * gets a line in docs-internal. See `doublePenetration` below.
+ * gets a line in docs/reference. See `doublePenetration` below.
  */
 const GATES: Record<FeatureName, GateSpec> = {
     league: { label: 'Leagues', enabledVar: 'isEnabledLeagues', levelVar: 'LEVEL_MIN_LEAGUE' },
@@ -73,7 +73,7 @@ const GATES: Record<FeatureName, GateSpec> = {
     pathOfValor: { label: 'Path of Valor', enabledVar: 'isEnabledPoV', levelVar: 'LEVEL_MIN_POV' },
     // The old comment on DoublePenetration.isEnabled read "And 10 gilrs",
     // and the code checked only the level. Whether the game really wants ten
-    // girls here is NOT measured -- docs-internal/adventure-quest-flow.md
+    // girls here is NOT measured -- docs/reference/adventure-quest-flow.md
     // says so plainly -- so the behaviour stays level-only and the open
     // question lives in that document rather than in a comment beside a
     // condition that does not implement it.

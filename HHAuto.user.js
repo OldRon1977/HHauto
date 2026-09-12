@@ -7742,9 +7742,9 @@ function resolveByRegexPassthrough(page) {
 function scheduleAfterIdle(delay, logContext, action) {
     navInFlight = true;
     setTimeout(() => {
-        waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250)).then((idle) => {
+        waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then((idle) => {
             if (!idle) {
-                logHHAuto(`${logContext}: AJAX still busy after ${(/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000)}ms, deferring`);
+                logHHAuto(`${logContext}: AJAX still busy after ${AJAX_IDLE_TIMEOUT_MS}ms, deferring`);
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                 navInFlight = false;
                 return;
@@ -11746,13 +11746,13 @@ class BossBang {
                 logHHAuto("Click get rewards bang fight");
                 const claimStart = Date.now();
                 rewardsButton.trigger('click');
-                const idle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                 const claimDuration = Date.now() - claimStart;
                 releasePostMutex();
                 if (idle)
                     yield awaitServerSettleAfterPost(claimDuration);
                 else
-                    logHHAuto('BossBang: rewards AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                    logHHAuto('BossBang: rewards AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                 return true;
             }
             else if (skipFightButton.length > 0) {
@@ -11766,13 +11766,13 @@ class BossBang {
                 logHHAuto("Click skip boss bang fight");
                 const claimStart = Date.now();
                 skipFightButton.trigger('click');
-                const idle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                 const claimDuration = Date.now() - claimStart;
                 releasePostMutex();
                 if (idle)
                     yield awaitServerSettleAfterPost(claimDuration);
                 else
-                    logHHAuto('BossBang: skip AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                    logHHAuto('BossBang: skip AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                 return true;
             }
             return false;
@@ -12051,7 +12051,7 @@ function decideUnlocked(requirement, state) {
  *
  * Adding a module here is the whole of adding its gate. What is NOT here is
  * as important: a condition nobody has measured does not get an entry, it
- * gets a line in docs-internal. See `doublePenetration` below.
+ * gets a line in docs/reference. See `doublePenetration` below.
  */
 const GATES = {
     league: { label: 'Leagues', enabledVar: 'isEnabledLeagues', levelVar: 'LEVEL_MIN_LEAGUE' },
@@ -12062,7 +12062,7 @@ const GATES = {
     pathOfValor: { label: 'Path of Valor', enabledVar: 'isEnabledPoV', levelVar: 'LEVEL_MIN_POV' },
     // The old comment on DoublePenetration.isEnabled read "And 10 gilrs",
     // and the code checked only the level. Whether the game really wants ten
-    // girls here is NOT measured -- docs-internal/adventure-quest-flow.md
+    // girls here is NOT measured -- docs/reference/adventure-quest-flow.md
     // says so plainly -- so the behaviour stays level-only and the open
     // question lives in that document rather than in a comment beside a
     // condition that does not implement it.
@@ -12176,7 +12176,7 @@ class DoublePenetration {
     static isEnabled() {
         // The ten-girl condition the old comment here claimed is not
         // measured; it is written down as an open question in
-        // docs-internal/adventure-quest-flow.md instead of sitting beside a
+        // docs/reference/adventure-quest-flow.md instead of sitting beside a
         // check that never implemented it. FeatureGate.GATES says the same.
         return FeatureGate.isUnlocked('doublePenetration');
     }
@@ -14911,7 +14911,7 @@ class LoveRaidManager {
         // enough that nobody could say whether it was ever meant to run --
         // so it is not in the FeatureGate table either (ADR-012). Whether
         // Love Raids have a level threshold at all is unmeasured and written
-        // down as such in docs-internal/adventure-quest-flow.md.
+        // down as such in docs/reference/adventure-quest-flow.md.
         return ConfigHelper.getHHScriptVars("isEnabledRaidOfLive", false);
     }
     static isActivated() {
@@ -17398,13 +17398,13 @@ class Troll {
                             }
                             RewardHelper.ObserveAndGetGirlRewards();
                             yield Booster.waitForBattleResponse();
-                            const x50Idle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                            const x50Idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                             const x50Duration = Date.now() - x50Start;
                             releasePostMutex();
                             if (x50Idle)
                                 yield awaitServerSettleAfterPost(x50Duration);
                             else
-                                logHHAuto('Troll: x50 AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                                logHHAuto('Troll: x50 AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                             return;
                         }
                         else {
@@ -17437,13 +17437,13 @@ class Troll {
                             }
                             RewardHelper.ObserveAndGetGirlRewards();
                             yield Booster.waitForBattleResponse();
-                            const x10Idle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                            const x10Idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                             const x10Duration = Date.now() - x10Start;
                             releasePostMutex();
                             if (x10Idle)
                                 yield awaitServerSettleAfterPost(x10Duration);
                             else
-                                logHHAuto('Troll: x10 AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                                logHHAuto('Troll: x10 AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                             return;
                         }
                         else {
@@ -17479,13 +17479,13 @@ class Troll {
                         }
                         const battleStart = Date.now();
                         battleButton[0].click();
-                        const battleIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                        const battleIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                         const battleDuration = Date.now() - battleStart;
                         releasePostMutex();
                         if (battleIdle)
                             yield awaitServerSettleAfterPost(battleDuration);
                         else
-                            logHHAuto('Troll: battle AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                            logHHAuto('Troll: battle AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                     }
                     else {
                         // We need more power.
@@ -17508,13 +17508,13 @@ class Troll {
                     }
                     const battleNoEventStart = Date.now();
                     battleButton[0].click();
-                    const battleNoEventIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                    const battleNoEventIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                     const battleNoEventDuration = Date.now() - battleNoEventStart;
                     releasePostMutex();
                     if (battleNoEventIdle)
                         yield awaitServerSettleAfterPost(battleNoEventDuration);
                     else
-                        logHHAuto('Troll: battle (no event) AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                        logHHAuto('Troll: battle (no event) AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                 }
             }
             else {
@@ -20812,9 +20812,9 @@ class PlaceOfPower {
                     // bail out if the wait times out. Navigating anyway would
                     // cancel the still-open POST and re-introduce the race the
                     // wait is meant to prevent. AutoLoop will retry next tick.
-                    const claimIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                    const claimIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                     if (!claimIdle) {
-                        logHHAuto('PoP: claim AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, deferring popup/navigation');
+                        logHHAuto('PoP: claim AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring popup/navigation');
                         releasePostMutex();
                         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                         return true;
@@ -20822,9 +20822,9 @@ class PlaceOfPower {
                     const claimDuration = Date.now() - claimStart;
                     RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
                     // Wait again in case closing the popup itself fires a request.
-                    const popupIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                    const popupIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                     if (!popupIdle) {
-                        logHHAuto('PoP: popup-close AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, deferring navigation');
+                        logHHAuto('PoP: popup-close AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation');
                         releasePostMutex();
                         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                         return true;
@@ -21042,9 +21042,9 @@ class PlaceOfPower {
                         // independent, timeout-bounded wait the claim path above uses,
                         // so a changed signature can never hang the loop again.
                         $(querySelectorText).trigger('click');
-                        const startIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                        const startIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                         if (!startIdle) {
-                            logHHAuto("PoP: start AJAX still busy after " + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + "ms for powerplace" + index);
+                            logHHAuto("PoP: start AJAX still busy after " + AJAX_IDLE_TIMEOUT_MS + "ms for powerplace" + index);
                         }
                     }
                     else if ($("button.blue_button_L[rel='pop_action'][disabled]").length > 0 && $("div.grid_view div.pop_selected").length > 0) {
@@ -23805,13 +23805,13 @@ class Champion {
                         }
                         const newDraftStart = Date.now();
                         $(newDraftButtonQuery).trigger('click');
-                        const newDraftIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                        const newDraftIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                         const newDraftDuration = Date.now() - newDraftStart;
                         releasePostMutex();
                         if (newDraftIdle)
                             yield awaitServerSettleAfterPost(newDraftDuration);
                         else
-                            logHHAuto('Champion: new-draft AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                            logHHAuto('Champion: new-draft AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                     });
                 }, newDraftInterval);
                 logHHAuto("Free drafts remanings :" + freeDrafts);
@@ -23826,13 +23826,13 @@ class Champion {
                         if (acquirePostMutex('champion:confirmDraft')) {
                             const confirmStart = Date.now();
                             $(confirmDraftButtonQuery).trigger('click');
-                            const confirmIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                            const confirmIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                             const confirmDuration = Date.now() - confirmStart;
                             releasePostMutex();
                             if (confirmIdle)
                                 yield awaitServerSettleAfterPost(confirmDuration);
                             else
-                                logHHAuto('Champion: confirm AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                                logHHAuto('Champion: confirm AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                         }
                         else {
                             logHHAuto('Champion: another POST in flight, falling back to direct confirm click');
@@ -24063,13 +24063,13 @@ class Champion {
                         logHHAuto("Using ticket");
                         const ticketStart = Date.now();
                         $('button[rel=perform].blue_button_L').trigger('click');
-                        const ticketIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                        const ticketIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                         const ticketDuration = Date.now() - ticketStart;
                         releasePostMutex();
                         if (ticketIdle)
                             yield awaitServerSettleAfterPost(ticketDuration);
                         else
-                            logHHAuto('Champion: ticket AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                            logHHAuto('Champion: ticket AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDChampionsMap"));
                         return true;
                     }
@@ -24448,9 +24448,9 @@ class ClubChampion {
                     // next timer:-1", a 16-minute timer, back to home, and around
                     // again -- while /club-champion.html carried a live
                     // `button[rel=perform]` the whole time.
-                    const tabIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                    const tabIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                     if (!tabIdle) {
-                        logHHAuto('Club champion: champions tab still loading after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, reading it anyway');
+                        logHHAuto('Club champion: champions tab still loading after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, reading it anyway');
                     }
                 }
                 const Started = $("div.club-champion-members-challenges .player-row").length === 1;
@@ -24673,7 +24673,7 @@ function pickKeepers(items, playerClass) {
 // equipment (the six armor slots of the hero, not girl equipment).
 //
 // Mechanics, data model, endpoints and the measurement traps behind all of
-// this: docs-internal/equipment-resonance.md. The two decisions that shape
+// this: docs/reference/equipment-resonance.md. The two decisions that shape
 // this file and are NOT obvious from the code alone:
 //
 //   1. Items are ranked by PRIORITY TIERS, not by a computed stat score.
@@ -25310,7 +25310,7 @@ function decideNextLevelUp(state) {
 // calls.
 //
 // Background, data model and the measurement traps:
-// docs-internal/equipment-resonance.md.
+// docs/reference/equipment-resonance.md.
 //
 // Used by: Service/AutoLoopPageHandlers.ts (market page, and the upgrade
 // page the Level-up button navigates to)
@@ -28531,7 +28531,7 @@ class TeamScoringService {
     /**
      * Sum of all three carac fields. Game-authoritative: the caracs
      * sub-object already includes blessings AND the girl's equipment
-     * (measured, see docs-internal/data-sources-team.md). A girl
+     * (measured, see docs/reference/data-sources-team.md). A girl
      * therefore ranks partly on who currently wears the good gear, which is
      * why a team should be built after "Unequip All". Falls back to
      * carac1/2/3 when caracs is absent.
@@ -29884,7 +29884,7 @@ class TeamModule {
      *   1  Unequip All   -- equipment sits inside availableGirls.caracs, so
      *                       a build with the old team still wearing the gear
      *                       ranks that team for its items rather than its
-     *                       girls (see docs-internal/data-sources-team.md).
+     *                       girls (see docs/reference/data-sources-team.md).
      *   2a Current Best  -- pick by today's stats
      *   2b Possible Best -- pick by stats at full development
      *   2c Assign first 7-- rendered next to the harem panel by updateTeamUI
@@ -30510,7 +30510,7 @@ class TeamModule {
         const distStr = dist.map(d => `${d.count}x ${d.element}`).join(', ');
         // Hand the theme to the gear optimiser: the market page has no team
         // data, and resonance depends on the theme of the team that is
-        // actually fielded (docs-internal/equipment-resonance.md, section 5 --
+        // actually fielded (docs/reference/equipment-resonance.md, section 5 --
         // team first, items after).
         const elementCounts = {};
         for (const d of dist)

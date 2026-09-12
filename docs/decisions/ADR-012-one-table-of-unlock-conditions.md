@@ -70,7 +70,7 @@ and not the account's fault.
 
 **A condition nobody measured.** `DoublePenetration` stays with the level
 check. The comment `// And 10 gilrs` goes, and the question stands as an open
-point in `docs-internal/adventure-quest-flow.md`. A test records that there is
+point in `docs/reference/adventure-quest-flow.md`. A test records that there is
 no girl condition there, so that nobody adds one from the old comment.
 
 **"Currently on the page" is not an unlock condition.** For `PlaceOfPower`
@@ -139,6 +139,6 @@ went wrong: eight places where somebody adds or forgets a condition. The
 ## References
 - `src/Service/FeatureGate.ts`, `src/Service/FeatureGate.pure.ts`
 - `spec/Service/FeatureGate.spec.ts`, `spec/Service/FeatureGate.pure.spec.ts`
-- `docs-internal/adventure-quest-flow.md` -- the unmeasured ten-girls question
+- `docs/reference/adventure-quest-flow.md` -- the unmeasured ten-girls question
   for Double Penetration
 - `CHANGELOG.md`, v8.12.11 to v8.12.18 -- the bugs the rules come from
