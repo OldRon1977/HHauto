@@ -15,7 +15,7 @@ Two questions decide it: does somebody need this to **use** the script, or to
 | `.github/` | the issue templates users fill in, and the workflows that run the gates |
 | `src/`, `spec/`, `build/`, the config files at the root | the source, its tests, and what turns them into the delivery |
 | `scripts/` | the gates, plus the live-check and catalogue tools a contributor measures with |
-| `.githooks/` | the pre-commit hook that stops player data before it reaches GitHub |
+| `.githooks/` | the hooks that stop player data and tool attribution before they reach GitHub |
 | `docs/decisions/` | why the architecture is what it is, and what was rejected |
 | `docs/reference/` | what has been measured about the game, and where the code reads it |
 | `screenshots/` | the source images the wiki serves |
@@ -121,6 +121,16 @@ before anything reaches GitHub. Set the hook up once on a fresh clone:
 ```
 npm run hooks:install    # sets core.hooksPath to .githooks
 ```
+
+Two hooks come with the repository. `pre-commit` refuses a commit whose staged
+files carry a real player identifier. `commit-msg` runs the same check on the
+message, and it also strips attribution lines of AI tools -- a
+`Co-Authored-By:` naming Claude, Anthropic, Copilot or ChatGPT, and a
+"Generated with ..." footer. Those are removed rather than refused, because
+they come from a tool's defaults and not from the author; a human
+`Co-Authored-By:` line stays. Three such lines have already reached branches
+here and had to be taken out with `filter-branch` and a force push, one of
+them from `main`, where it could not be removed at all.
 
 `check:player-data` checks the **shape** such data arrives in: the person keys
 of the game JSON with a number after them, a name field with a value, and in
