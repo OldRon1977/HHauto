@@ -83,6 +83,9 @@ Den Kontostand uebernimmt es aus `currency.soft_currency` der Antwort:
 gemessen unveraendert (31.809 ueber drei Kaeufe, das Spiel stand danach bei
 4.494), und der vierte Kauf ging ohne Deckung hinaus. Das Spiel beantwortete
 ihn nicht; die Sperre gegen unbestaetigte Kaeufe hielt die Schleife an.
+Mit dem Kontostand aus der Antwort nachgemessen: acht Kaeufe hintereinander,
+der mitgezaehlte Stand deckte sich mit jeder Antwort, und die Schleife hielt an,
+als der naechste Punkt die eingestellte Geldgrenze unterschritten haette.
 
 ---
 
