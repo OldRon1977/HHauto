@@ -54,6 +54,30 @@ the equipped mythic there) and scales the attack accordingly.
 - The crit rate is not measurable from six hits. Ours computes to 0.3 x
   13,448 / (13,448 + 8,572) + 0.0214 = 0.205, and one of six hits was critical.
 
+### What the team scoring makes of it
+
+`TeamEvaluationService.computeEffectivePower` ranks our own candidate teams
+with `damage x expectedHit x (1 + sun) x ego x (1 + water)`. Held against the
+fight above, three things stand out (**inferred** from one measured fight, not
+proven across many):
+
+- **Our defense does not appear in the score at all.** In the measured fight it
+  took 6,957 off every incoming hit of 13,418 -- it halved the damage. Two
+  candidate teams with the same ego and different defense rank equal today,
+  although one survives nearly twice as long. What the score would need is
+  hits survived, `ego / (opponentDamage - ourDefense)`; the league list gives a
+  realistic `opponentDamage` for the account's own league, so the reference
+  value is readable rather than guessed.
+- **`ego x (1 + water)` stands in for heal on hit**, which in the fight was
+  `ceil(0.095 x damage dealt)` per hit -- it scales with our damage and the
+  number of rounds, not with ego.
+- **`(1 + sun)` multiplies our offence**, but the sun synergy is "decrease
+  defense of opponent", and no such reduction appeared in the fight. If the
+  list values are final, this factor rewards something the game does not do.
+
+`expectedHit = 1 - crit + crit x (2 + fire)` matches the measured crit exactly;
+that half of the formula is sound.
+
 ### How to read an opponent from this
 
 The four numbers that decide a league fight stand in `opponents_list` per
