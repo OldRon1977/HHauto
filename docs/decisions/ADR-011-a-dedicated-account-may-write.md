@@ -1,137 +1,132 @@
-# ADR-011: Ein eigenes Pruefkonto darf schreiben
+# ADR-011: A dedicated test account may write
 
 ## Status
 Accepted
 
-## Datum
+## Date
 2026-09-09
 
-## Kehrt um
-Die Regel im Abschnitt "Live gegen das Spiel messen" des Repo-Leitfadens:
+## Reverses
 
-> Schreibende Pruefungen bleiben Handarbeit; ein Pruefer, der kauft oder
-> speichert, ist ein Bot mit anderem Namen.
+The rule in the section "Measuring live against the game" of the repository
+guide:
 
-Die Regel stand nie in einer ADR, deshalb benennt dieser Eintrag die
-Textstelle statt einer Nummer.
+> Writing checks stay manual; a checker that buys or saves is a bot with
+> another name.
 
-## Kontext
+The rule was never in an ADR, so this entry names the passage instead of a
+number.
 
-Die Regel schuetzt das Konto des Maintainers. Sie kostet aber genau die
-Pruefung, die am meisten wert waere: `scripts/live-check` liest nur, und
-jsdom kennt keinen Spielserver. Damit bleibt jeder Pfad, der etwas
-*veraendert*, bis zur Auslieferung ungeprueft -- Shop-Kauf, Ausruestung
-anlegen, Booster ausruesten, Pachinko-Durchgang, Season-Belohnung.
+## Context
 
-Was das gekostet hat, steht in der Historie der letzten Releases. Fehler,
-die nur ein schreibender Durchgang zeigt:
+The rule protects the maintainer's account. But it costs exactly the check
+that would be worth the most: `scripts/live-check` only reads, and jsdom
+knows no game server. Every path that *changes* something therefore stays
+unchecked until release -- a shop purchase, equipping gear, equipping a
+booster, a pachinko round, a season reward.
 
-| Commit | Was erst im Spiel auffiel |
+What that has cost is in the history of the last releases. Bugs that only a
+writing pass shows:
+
+| Commit | What only showed up in the game |
 |---|---|
-| `56d76a2` | ein abgelehnter Sandalwood-Equip wurde als getragen verbucht |
-| `1a9ab49` | ein x-Durchgang am Pachinko lief weiter, obwohl keine Maedchen mehr zu gewinnen waren |
-| `eb111b2` | die Upgrade-Warteschlange brach nach dem ersten Eintrag ab, weil das Material nicht gescrollt wurde |
-| `ab30cc8` | das Einsammeln endete an dem Reload, den der Claim selbst ausloest |
+| `56d76a2` | a rejected Sandalwood equip was booked as worn |
+| `1a9ab49` | an x-round at the pachinko kept going although no girls were left to win |
+| `eb111b2` | the upgrade queue broke off after the first entry, because the material was not scrolled |
+| `ab30cc8` | collecting ended at the reload the claim itself triggers |
 
-Keiner dieser Fehler ist mit einem Lesetest zu finden. Alle vier zeigen
-sich im zweiten Schritt einer Aktion, die den Serverzustand schon
-geaendert hat.
+None of these is findable with a reading test. All four show up in the
+second step of an action that has already changed the server state.
 
-`docs-internal/live-verification-lessons.md` haelt daneben die andere
-Haelfte fest: eine Messung am falschen Ort erzeugt einen Fehler, den
-niemand hat. Drei solcher Befunde wurden zurueckgezogen, einer erst nach
-der Implementierung.
+`docs-internal/live-verification-lessons.md` holds the other half: a
+measurement in the wrong place invents a bug nobody has. Three such
+findings were withdrawn, one of them only after it had been implemented.
 
-## Entscheidung
+## Decision
 
-**Es gibt ein zweites Konto, das nur zum Pruefen existiert. Auf diesem
-Konto ist schreibende Automatisierung erlaubt.**
+**There is a second account that exists only for checking. On that account
+writing automation is allowed.**
 
-- Das Konto des Maintainers bleibt unveraendert unter der alten Regel:
-  dort wird gelesen, nicht geschrieben.
-- Auf dem Pruefkonto laeuft HHauto mit `HHAuto_Setting_master=true` und
-  entscheidet selbst -- Kaempfe, Missionen, Pachinko, Shop, Ausruestung,
-  Einstellungen. Die Kobans dafuer erwirtschaftet es im Spiel.
-- Der Zweck ist nicht Spielfortschritt. Der Fortschritt ist das Mittel:
-  ein Konto ohne Ausruestung, ohne Season-Stufe und ohne volles Harem
-  erreicht die Zustaende nicht, in denen die schreibenden Pfade laufen.
+- The maintainer's account stays under the old rule: read there, do not
+  write.
+- On the test account HHauto runs with `HHAuto_Setting_master=true` and
+  decides for itself -- fights, missions, pachinko, shop, gear, settings.
+  It earns the kobans for that in the game.
+- The purpose is not game progress. Progress is the means: an account
+  without gear, without a season tier and without a full harem never
+  reaches the states in which the writing paths run.
 
-### Grenzen, die nicht verhandelbar sind
+### Limits that are not negotiable
 
-- **Kein echtes Geld.** Kobans werden erspielt. Ein Kauf gegen
-  Zahlungsmittel findet nicht statt, auch wenn eine Strategie ihn
-  nahelegt.
-- **Zugangsdaten ausserhalb des Repos.** Sie liegen in
-  `$HHAUTO_HOME/account/`, nicht im Arbeitsbaum. Ein
-  `.gitignore`-Eintrag waere schwaecher: er haelt `git add -f` nicht auf.
-- **Die Konto-ID erscheint nirgends** -- nicht in Commits, PR-Texten,
-  Issues, Messberichten oder Fixtures. Es gilt dieselbe Anonymisierung
-  wie fuer Mitschnitte (eigenes Konto `1`, fremde ab `1000`).
-- **Eine Sitzung pro Konto.** Das Pruefkonto laeuft im selben Spiel wie
-  das des Maintainers. Beide duerfen nie gleichzeitig eingeloggt sein --
-  die Cookies bleiben lokal gueltig, waehrend der Server die Intro-Seite
-  ausliefert und jede Messung darauf plausibel und falsch ist.
+- **No real money.** Kobans are earned in game. A purchase with means of
+  payment does not happen, even where a strategy suggests it.
+- **Credentials outside the repository.** They live in
+  `$HHAUTO_HOME/account/`, not in the working tree. A `.gitignore` entry
+  would be weaker: it does not stop `git add -f`.
+- **The account ID appears nowhere** -- not in commits, PR texts, issues,
+  measurement reports or fixtures. The same anonymisation applies as for
+  captures (own account `1`, others from `1000`).
+- **One session per account.** The test account plays the same game as the
+  maintainer's. The two must never be logged in at the same time -- the
+  cookies stay valid locally while the server serves the intro page, and
+  every measurement on it looks plausible and is wrong.
 
-### Was ein Befund vom Pruefkonto ist
+### What a finding from the test account is
 
-Unveraendert das, was der Repo-Leitfaden verlangt: am Aufrufort gemessen, Seite
-und Zustand benannt, und getrennt notiert, welche Aussage aus der Messung
-und welche aus einer Ableitung stammt. Ein schreibender Durchgang liefert
-mehr Gelegenheiten fuer einen Fehlschluss, nicht weniger -- der
-Serverzustand hat sich zwischen zwei Beobachtungen geaendert, und zwar
-durch die eigene Aktion.
+Unchanged, what the repository guide demands: measured at the call site,
+page and state named, and noted separately which statement comes from the
+measurement and which from an inference. A writing pass offers more
+opportunities for a wrong conclusion, not fewer -- the server state has
+changed between two observations, and by your own action at that.
 
-## Verworfene Alternativen
+## Rejected alternatives
 
-### Alles im Dry-Run (`master=false`)
-Das Skript beobachten und protokollieren, was es tun *wuerde*.
-- Contra: genau die vier Fehler oben zeigen sich im zweiten Schritt. Der
-  erste Schritt sieht im Dry-Run korrekt aus; die Warteschlange bricht
-  danach ab, der Reload kommt danach, die Ablehnung kommt vom Server.
-- Verworfen: haette keinen der bekannten Fehler gefunden.
+### Everything as a dry run (`master=false`)
+Watch the script and log what it *would* do.
+- Against: the four bugs above show up in the second step. The first step
+  looks correct in a dry run; the queue breaks off afterwards, the reload
+  comes afterwards, the rejection comes from the server.
+- Rejected: would have found none of the known bugs.
 
-### Jede Koban-Ausgabe einzeln freigeben
-- Contra: verlagert die Entscheidung, aendert das Risiko aber nicht --
-  ausgegeben wird trotzdem. Und es macht genau den Teil unmoeglich, um
-  den es geht: ob die *Haushaltslogik* des Skripts ueber Tage etwas
-  Sinnvolles tut, zeigt sich nur, wenn sie sie selbst faellt.
-- Verworfen: teuer in der Bedienung, ohne Gegenwert in der Aussage.
+### Approve every koban expense individually
+- Against: moves the decision without changing the risk -- it is spent
+  either way. And it makes exactly the part impossible that this is
+  about: whether the script's *budgeting* does something sensible over
+  days only shows when it makes those calls itself.
+- Rejected: expensive to operate, with no gain in what it tells you.
 
-### Das Pruefkonto in ein anderes Spiel legen
-Comix Harem statt Hentai Heroes -- getrenntes Konto, kein Zweitkonto im
-selben Spiel.
-- Contra: Fixtures, `docs-internal` und `scripts/live-check/checks.json`
-  stammen von Hentai Heroes. Jede Abweichung waere erst zu messen, bevor
-  ein Befund etwas ueber die ausgelieferte Konfiguration aussagt.
-- Verworfen vom Maintainer zugunsten derselben Datenbasis. Das Risiko
-  zweier Konten eines Betreibers ueber eine Adresse ist benannt und
-  angenommen.
+### Put the test account in a different game
+Comix Harem instead of Hentai Heroes -- a separate account, not a second
+account in the same game.
+- Against: fixtures, `docs-internal` and `scripts/live-check/checks.json`
+  come from Hentai Heroes. Every difference would have to be measured
+  before a finding says anything about the shipped configuration.
+- Rejected by the maintainer in favour of the same data base. The risk of
+  two accounts of one operator behind one address is named and accepted.
 
-### Auf dem Konto des Maintainers schreiben
-- Contra: ein Fehlgriff des Skripts trifft dann einen ueber Jahre
-  gewachsenen Spielstand. Genau davor schuetzt die alte Regel, und dieser
-  Teil von ihr bleibt.
-- Verworfen: das Pruefkonto existiert, damit ein Fehlgriff nichts kostet.
+### Write on the maintainer's account
+- Against: a misstep of the script then hits a save game grown over
+  years. That is what the old rule protects, and that part of it stays.
+- Rejected: the test account exists so that a misstep costs nothing.
 
-## Konsequenzen
+## Consequences
 
-- Schreibende Pfade koennen vor der Auslieferung einmal gegen den echten
-  Server gelaufen sein. Das ist eine Moeglichkeit, keine Zusage: geprueft
-  ist, was jemand geprueft hat.
-- Der Repo-Leitfaden traegt die Regel weiter, jetzt mit dem Zusatz, fuer welches
-  Konto sie gilt, und mit Verweis auf diese ADR.
-- Ein neuer Weg, Spielerdaten zu verlieren, ist entstanden: das Konto
-  produziert Logs, Screenshots und Fixtures. `npm run check:player-data`
-  und der Pre-Commit-Hook bleiben die Absicherung.
-- Pruefstein: der naechste Fehler in einem schreibenden Pfad soll aus
-  einem Durchgang auf dem Pruefkonto stammen und nicht aus einem
-  Nutzer-Log nach dem Release.
+- Writing paths can have run against the real server once before release.
+  That is a possibility, not a promise: what is checked is what someone
+  checked.
+- The repository guide keeps the rule, now with the addition of which
+  account it applies to, and a pointer to this ADR.
+- A new way to lose player data has appeared: the account produces logs,
+  screenshots and fixtures. `npm run check:player-data` and the pre-commit
+  hook remain the safeguard.
+- The test: the next bug in a writing path should come from a pass on the
+  test account and not from a user log after the release.
 
-## Referenzen
-- Repo-Leitfaden, Abschnitt "Live gegen das Spiel messen"
-- `docs-internal/live-verification-lessons.md` -- warum eine Messung am
-  falschen Ort einen Fehler erfindet
-- `scripts/live-check/README.md` -- der lesende Checker, der bleibt, was
-  er ist
-- `$HHAUTO_HOME/account/README.md` (nicht im Repo) -- wo die
-  Zugangsdaten liegen und warum dort
+## References
+- The repository guide, section "Measuring live against the game"
+- `docs-internal/live-verification-lessons.md` -- why a measurement in the
+  wrong place invents a bug
+- `scripts/live-check/README.md` -- the reading checker, which stays what
+  it is
+- `$HHAUTO_HOME/account/README.md` (not in the repository) -- where the
+  credentials live and why there

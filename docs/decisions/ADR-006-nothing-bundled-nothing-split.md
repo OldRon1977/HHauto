@@ -1,68 +1,66 @@
-# ADR-006: Weder gebündelt noch zerlegt — die Handler bleiben, wie sie sind
+# ADR-006: Neither bundled nor split -- the handlers stay as they are
 
 ## Status
 Accepted
 
-## Datum
+## Date
 2026-06-14
 
-## Kontext
+## Context
 
-Der Plan zur Block-Architektur (ADR-004) sah zwei Umbauten vor, die beide nicht
-gebaut wurden:
+The plan for the block architecture (ADR-004) foresaw two rebuilds, neither of
+which was built:
 
-- **Bündelung:** Handler, die sich ein Continuation-Token oder einen Timer
-  teilen, sollten zu je einem Block zusammengefasst werden — Season
-  (Fight + Collect), PentaDrill (+ Collect), Seasonal (FreeCard + EventCollect +
-  RankCollect), Champion (+ Ticket), BossBang (Parse + Fight).
-- **Multi-Step-Zerlegung:** PlaceOfPower, Quest, BossBang und ChampionTicket
-  sollten in explizite Mehrschritt-Blöcke mit Repeat-Cursor,
-  at-most-once-Marker und Resume-Validierung aufgeteilt werden.
+- **Bundling:** handlers that share a continuation token or a timer were to be
+  merged into one block each -- Season (fight + collect), PentaDrill
+  (+ collect), Seasonal (free card + event collect + rank collect), Champion
+  (+ ticket), BossBang (parse + fight).
+- **Multi-step split:** PlaceOfPower, Quest, BossBang and ChampionTicket were
+  to be split into explicit multi-step blocks with a repeat cursor, an
+  at-most-once marker and resume validation.
 
-Beide hatten denselben Zweck: ein Handler, der über mehrere Reloads arbeitet,
-sollte dabei nicht von anderen unterbrochen werden.
+Both had the same purpose: a handler working across several reloads should not
+be interrupted by others while it does.
 
-## Entscheidung
+## Decision
 
-Beides entfällt. Der Slot-Hold (ADR-005) löst das Problem generisch: der eine
-aktive BlockRun überlebt Reloads, bis der Block idle ist. Was die beiden
-Umbauten erreichen sollten, ist damit erreicht — ohne die Handler anzufassen.
+Both are dropped. The slot hold (ADR-005) solves the problem generically: the
+one active BlockRun survives reloads until the block is idle. What the two
+rebuilds were meant to achieve is achieved -- without touching the handlers.
 
-## Warum die Bündelung zusätzlich schadet
+## Why bundling would do additional harm
 
-Die Bündel-Mitglieder stehen in der Pipeline **nicht nebeneinander**:
-`handleSeasonCollect` läuft früh, `handleSeason` spät; `handleChampionTicket`
-vor `handleChampion`; die drei Seasonal-Handler auf drei verschiedenen
-Positionen. Das ist Absicht — Belohnungen zuerst, Kämpfe später. Eine Bündelung
-müsste sie zwangsweise benachbart machen und damit die Reihenfolge ändern.
+The members of a bundle are **not adjacent** in the pipeline:
+`handleSeasonCollect` runs early, `handleSeason` late; `handleChampionTicket`
+before `handleChampion`; the three Seasonal handlers at three different
+positions. That is deliberate -- rewards first, fights later. Bundling would
+force them next to each other and change the order.
 
-Die getrennten Blöcke haben einen zweiten Vorteil: das Reorder-UI zeigt jeden
-einzeln, Collect und Fight also getrennt verschiebbar.
+Separate blocks have a second advantage: the reorder UI shows each one, so
+collect and fight can be moved independently.
 
-## Warum die Zerlegung nichts gebracht hätte
+## Why the split would have gained nothing
 
-Eine Prüfung der vier Handler ergab, dass ihre Ziel-Eigenschaften bereits
-gelten:
+A review of the four handlers showed their target properties already hold:
 
-| Handler | statt eines Multi-Step-Blocks |
+| Handler | instead of a multi-step block |
 | --- | --- |
-| PlaceOfPower | `doPoP` arbeitet über den busy-Guard einen Powerplace pro Aufruf ab, `TK.PopToStart` ist faktisch der Repeat-Cursor, leere Liste → Home |
-| Quest | die Sub-Pfade sind Branches mit `routeHomeIfWaitingOnQuest()` als Guard |
-| BossBang | ist bereits zwei Blöcke (Parse, Fight), sequenziert über Preconditions + Reload + Slot-Hold |
-| ChampionTicket | der Doppelkauf-Race ist über `autoLoop=false` vor dem setTimeout-Fenster, `busy=true` und Precondition-Recheck beim Resume abgesichert |
+| PlaceOfPower | `doPoP` handles one power place per call through the busy guard, `TK.PopToStart` is effectively the repeat cursor, an empty list -> home |
+| Quest | the sub-paths are branches with `routeHomeIfWaitingOnQuest()` as the guard |
+| BossBang | is already two blocks (parse, fight), sequenced by preconditions plus reload plus slot hold |
+| ChampionTicket | the double-purchase race is covered by `autoLoop=false` before the setTimeout window, `busy=true` and a precondition recheck on resume |
 
-## Konsequenzen
+## Consequences
 
-- Jeder Handler ist ein eigenständiger Single-Step-Block. Kein zusätzlicher
-  Code nötig, weil das der Zustand ist.
-- Die harten Ordnungs-Constraints und die `userMovable`-Flags — der andere Teil
-  desselben Arbeitspakets — sind umgesetzt und von dieser Entscheidung
-  unberührt.
-- Quest behält seinen als „interim" gedachten Guard. Das ist Cleanup-Schuld,
-  keine Korrektur.
-- Wer später bündeln oder zerlegen will, braucht einen neuen Grund: die
-  Koordination, die beides motiviert hat, macht der Slot-Hold.
+- Every handler is a self-contained single-step block. No extra code needed,
+  because that is the state.
+- The hard ordering constraints and the `userMovable` flags -- the other part of
+  the same work package -- are implemented and untouched by this decision.
+- Quest keeps the guard that was meant as an interim. That is cleanup debt, not
+  a correction.
+- Whoever wants to bundle or split later needs a new reason: the coordination
+  that motivated both is what the slot hold does.
 
-## Referenzen
+## References
 
-- ADR-004 (Block-Modell), ADR-005 (Slot-Hold)
+- ADR-004 (block model), ADR-005 (slot hold)
