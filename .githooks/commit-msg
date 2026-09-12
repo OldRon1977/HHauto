@@ -1,4 +1,33 @@
 #!/bin/sh
 # Die Commit-Nachricht ist der zweite Weg nach draußen -- sie steht im Repo und
 # in jedem Klon, und die Datei-Prüfung sieht sie nicht.
-node scripts/check-player-data.mjs --message "$1" || exit 1
+#
+# Zwei Dinge dürfen nicht durch:
+#
+#   1. Eine echte Spielerkennung. Die Prüfung dafür steht unten und bricht ab.
+#   2. Eine Attribution-Zeile eines KI-Werkzeugs. Die wird stillschweigend
+#      gestrichen statt den Commit abzubrechen -- sie ist kein Fehler des
+#      Autors, sondern eine Vorgabe der Umgebung, die hier nicht gilt. Drei
+#      solcher Zeilen haben es schon auf Branches geschafft und mussten per
+#      filter-branch mit Force-Push wieder heraus; eine davon lag auf main und
+#      war nicht mehr zu entfernen. Der Schalter includeCoAuthoredBy in den
+#      Werkzeug-Einstellungen tut dasselbe, aber nur auf einem Rechner und nur
+#      solange ihn niemand zurücksetzt. Dies hier ist die Stelle, die das Repo
+#      selbst mitbringt.
+#
+# Die eigene Co-Authored-By-Zeile eines Menschen bleibt stehen: gestrichen wird
+# nur, was auf Claude, Anthropic, Copilot oder "Generated with" zeigt.
+
+msg="$1"
+muster='^[Cc]o-[Aa]uthored-[Bb]y:.*\(laude\|nthropic\|opilot\|GPT\|noreply@openai\)\|Generated with .*\(Claude\|Copilot\|ChatGPT\)\|🤖'
+
+if grep -q "$muster" "$msg"; then
+    tmp="$msg.hhauto"
+    grep -v "$muster" "$msg" > "$tmp" || :
+    # Leerzeilen, die durch das Streichen am Ende übrig bleiben, mitnehmen.
+    sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$tmp" > "$msg"
+    rm -f "$tmp"
+    echo "commit-msg: Attribution-Zeile entfernt (siehe .githooks/commit-msg)." >&2
+fi
+
+node scripts/check-player-data.mjs --message "$msg" || exit 1
