@@ -8,8 +8,8 @@ Accepted
 
 ## Reverses
 
-The rule in the section "Measuring live against the game" of the repository
-guide:
+The rule in the section "Measuring live against the game" of
+`CONTRIBUTING.md`:
 
 > Writing checks stay manual; a checker that buys or saves is a bot with
 > another name.
@@ -73,7 +73,7 @@ writing automation is allowed.**
 
 ### What a finding from the test account is
 
-Unchanged, what the repository guide demands: measured at the call site,
+Unchanged, what `CONTRIBUTING.md` demands: measured at the call site,
 page and state named, and noted separately which statement comes from the
 measurement and which from an inference. A writing pass offers more
 opportunities for a wrong conclusion, not fewer -- the server state has
@@ -114,8 +114,8 @@ account in the same game.
 - Writing paths can have run against the real server once before release.
   That is a possibility, not a promise: what is checked is what someone
   checked.
-- The repository guide keeps the rule, now with the addition of which
-  account it applies to, and a pointer to this ADR.
+- `CONTRIBUTING.md` keeps the rule, now with the addition of which account it
+  applies to, and a pointer to this ADR.
 - A new way to lose player data has appeared: the account produces logs,
   screenshots and fixtures. `npm run check:player-data` and the pre-commit
   hook remain the safeguard.
@@ -123,7 +123,7 @@ account in the same game.
   test account and not from a user log after the release.
 
 ## References
-- The repository guide, section "Measuring live against the game"
+- `CONTRIBUTING.md`, section "Measuring live against the game"
 - `docs-internal/live-verification-lessons.md` -- why a measurement in the
   wrong place invents a bug
 - `scripts/live-check/README.md` -- the reading checker, which stays what

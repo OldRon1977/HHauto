@@ -170,6 +170,14 @@ shows a small live counter overlay in the top-right corner.
 
 ---
 
+## Contributing
+
+The rules this project runs on -- what to read before a change, what counts as
+a finding, the gates every commit passes, and how captures are anonymised --
+are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+---
+
 ## Release notes
 
 See [`CHANGELOG.md`](CHANGELOG.md) for the full release history.

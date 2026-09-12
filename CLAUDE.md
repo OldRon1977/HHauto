@@ -1,121 +1,23 @@
 # Arbeit an HHauto
 
-Kurz gehalten. Was hier steht, hat einmal Zeit gekostet.
+Die Regeln dieses Projekts stehen in [CONTRIBUTING.md](CONTRIBUTING.md) — vor
+der ersten Änderung lesen. Dort steht, welches Dokument vor welcher Änderung zu
+lesen ist, was ein Befund ist und was nicht, warum Doku den Ist-Zustand
+beschreibt, was nach einer Änderung mitziehen muss, welche Tore das prüfen, wie
+Mitschnitte anonymisiert werden und was beim Messen gegen das laufende Spiel
+gilt.
 
-## Vor einer Änderung: das zuständige Dokument lesen
+Vier Sätze daraus, die keine Sitzung übersehen darf:
 
-Nicht alle — das zuständige. Die Zuordnung:
-
-| Du änderst | Lies vorher |
-| --- | --- |
-| Scheduler, Blöcke, Slot-Hold, Fokus | `docs/decisions/README.md` und die dort genannte ADR |
-| Storage-Keys | `docs-internal/storage-keys.md` |
-| Seiten-IDs, Navigation | `src/config/HHEnvVariables.ts`, dann `docs-internal/page-mapping.md` |
-| Ausrüstung, Resonanz | `docs-internal/equipment-resonance.md` |
-| Teamauswahl, Scoring | `docs-internal/data-sources-team.md` |
-| Etwas gegen das laufende Spiel messen | `docs-internal/live-verification-lessons.md` und `scripts/live-check/README.md` |
-
-Die Dateiköpfe im Code tragen die Begründung ihrer Regeln. Ein Vorschlag, der eine
-Regel vereinfacht, muss zuerst deren Kopf gelesen haben.
-
-## Was ein Befund ist und was nicht
-
-- **Am Aufrufort messen.** Ein Selektor, der nirgends 0 Treffer liefert, ist erst
-  ein Befund, wenn die Seite und der Zustand benannt sind, in dem der Code ihn
-  liest. Eine Zählung ohne Kontext ist eine unfertige Messung.
-- **Ein Grep-Treffer ist keine Behauptung.** `fromDescriptor` erzeugt Blocknamen
-  zur Laufzeit; wer nur nach `name:` sucht, hält vorhandene Blöcke für fehlend.
-- **DOM ist nicht JSON.** Das Spiel hat die Liga-Spalte `match_history` im DOM
-  umbenannt und im JSON behalten. Wer den DOM-Befund auf die Daten überträgt,
-  baut einen stillen Fehler: `numberOfFightAvailable` meldet dann 0 Kämpfe.
-- **Gemessen und geschlossen trennen.** In Berichten und Kommentaren gehört
-  dazu, welche Aussage aus einer Messung stammt und welche aus einer Ableitung.
-- **Keine breite Regex über Quelltext.** Eine Regex, die Requirement-IDs aus
-  Kommentaren entfernen sollte, hat zwei Import-Zeilen mitgenommen. Explizite
-  Ersetzungen, danach `npx tsc --noEmit`.
-
-## Doku ist Ist-Zustand
-
-Eine Datei beschreibt, wie es heute ist — plus Entscheidungen, warum etwas
-**nicht** oder **nicht mehr** gemacht wird, damit derselbe Weg nicht zweimal
-gegangen wird. Kein Verlauf, keine Etappen, keine Task-Nummern.
-
-- Keine Kopie einer Liste, die im Code steht. Verweise auf den Code.
-- Keine Version, kein Datum als Anker, außer die Version ist Vertrag (eine
-  Migration, die genau ein altes Format liest).
-- Ein Kommentar, der nur die nächste Zeile nacherzählt, kommt weg.
-
-## Nach einer Änderung: was mitziehen muss
-
-| Geändert | Mitziehen |
-| --- | --- |
-| Nutzersichtbares Verhalten | `CHANGELOG.md` |
-| Neuer oder entfernter Storage-Key | `docs-internal/storage-keys.md` |
-| Menü, Debug-Ablauf, Bedienung | das Wiki (`HHauto.wiki`, Seiten `The menu` / `Debugging`) |
-| Eine frühere Entscheidung umgekehrt | neue ADR in `docs/decisions`, die die alte benennt; Nummer nie wiederverwenden |
-| Gemessene Spielmechanik | das zuständige `docs-internal`-Dokument, mit „gemessen" gekennzeichnet |
-| Datei-Kopf `Used by:` / `Depends on:` betroffen | die Zeile, sonst schlägt `npm run check:headers` fehl |
-
-## Tore, die das prüfen
-
-```
-npm run typecheck        # blockierend
-npm run lint:ci          # blockierend, Warnungs-Ratsche
-npm test
-npm run deps:circular:check  # Zyklen gegen die eingefrorene Baseline
-npm run check:gm-grants  # GM-Grants gegen die tatsächliche Nutzung
-npm run check:docs       # storage-keys.md und page-mapping.md gegen den Code
-npm run check:headers    # Used by / Depends on gegen die echten Importe
-npm run check:player-data # keine echten Spielerkennungen im Baum
-npm run build            # HHAuto.user.js gehört in denselben Commit
-```
-
-`check:docs` und `check:headers` gibt es, weil beides schon auseinandergelaufen
-ist: `storage-keys.md` stand einmal neun Keys hinter dem Code, und 17 Dateiköpfe
-nannten Module, die die Datei nicht mehr importieren.
-
-## Mitschnitte tragen keine echten Spieler
-
-Fixtures und Messnotizen werden **beim Aufnehmen** anonymisiert: eigenes Konto
-`1`, fremde Spieler `1000` aufwärts, Namen `Player_N`. Eine Kontonummer gehört
-auch nicht in eine Commit-Nachricht, einen PR-Text oder einen Messbericht.
-
-Das ist zweimal schiefgegangen und war nur durch einen History-Rewrite eines
-öffentlichen Repos wieder herauszubekommen -- mitsamt Force-Push, 879
-betroffenen PR-Refs und einem Support-Ticket. `check:player-data` prüft es,
-und der Pre-Commit-Hook hält es auf, bevor etwas GitHub erreicht. Den Hook auf
-einem neuen Klon einmal einrichten:
-
-```
-npm run hooks:install    # setzt core.hooksPath auf .githooks
-```
-
-`check:player-data` prüft die **Form**, in der solche Daten hereinkommen: die
-Personen-Schlüssel des Spiel-JSON mit einer Zahl dahinter, ein Namensfeld mit
-Wert, und in Markdown-Dateien das Wort Konto oder Account mit einer Nummer
-direkt daran. Eine nackte Kennung ohne solchen Schlüssel kommt da durch. Wer
-seine eigenen Kennungen kennt, lässt zusätzlich auf den **Wert** prüfen:
-
-```
-HHAUTO_PRIVATE_IDS="123456 7890"    # direkt
-HHAUTO_PRIVATE_IDS_FILE=<pfad>      # eine Kennung je Zeile, # ist Kommentar
-# sonst $HHAUTO_HOME/private-ids.txt bzw. ~/.config/hhauto/private-ids.txt
-```
-
-Die Liste bleibt außerhalb des Repos; liegt der Pfad doch darin und git
-ignoriert ihn nicht, bricht das Tor ab. Ein Fund nennt Datei, Zeile und die
-Position in der Liste -- **nie den Wert**, sonst stünde die Kennung im
-Terminal und im CI-Protokoll. Ohne konfigurierte Liste verhält sich das Tor
-wie zuvor, damit ein fremder Klon unverändert läuft.
-
-## Live gegen das Spiel messen
-
-Eine Sitzung pro Konto — der eigene Browser muss ausgeloggt sein. Die
-ausgeloggte Seite liefert einen Platzhalter-Hero mit 600 Kobans, gegen den jede
-Messung plausibel aussieht und Müll ist: vor jeder Messung `shared.Hero.infos.id`
-prüfen. Auf dem Konto des Maintainers bleiben schreibende Prüfungen Handarbeit;
-ein Prüfer, der dort kauft oder speichert, ist ein Bot mit anderem Namen. Für das
-eigene Prüfkonto gilt das nicht mehr — siehe
-[ADR-011](docs/decisions/ADR-011-a-dedicated-account-may-write.md). Dessen
-Zugangsdaten liegen außerhalb des Repos, im lokalen Prüfkonto-Verzeichnis
-(`$HHAUTO_HOME/account/`; `HHAUTO_HOME` zeigt auf das Harness-Verzeichnis).
+- **Am Aufrufort messen.** Ein Selektor mit 0 Treffern ist erst ein Befund,
+  wenn Seite und Zustand benannt sind, in dem der Code ihn liest. Und getrennt
+  notieren, was gemessen und was geschlossen ist.
+- **Mitschnitte tragen keine echten Spieler.** Eigenes Konto `1`, fremde ab
+  `1000`, Namen `Player_N` — auch nicht in Commit-Nachricht, PR-Text oder
+  Bericht. `npm run check:player-data` prüft es, `npm run hooks:install` richtet
+  den Pre-Commit-Hook ein.
+- **Vor jeder Messung `shared.Hero.infos.id` prüfen.** Die ausgeloggte Seite
+  liefert einen Platzhalter-Hero, gegen den jede Messung plausibel aussieht und
+  Müll ist.
+- **Alle Tore vor dem Commit**, und `HHAuto.user.js` gehört in denselben
+  Commit wie die Quelle.
