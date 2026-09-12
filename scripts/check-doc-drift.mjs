@@ -14,7 +14,7 @@ const ok = what => console.log(`OK    ${what}`);
 
 // --- SK/TK-Konstanten gegen storage-keys.md -------------------------------
 const src = read('src/config/StorageKeys.ts');
-const doc = read('docs-internal/storage-keys.md');
+const doc = read('docs/reference/storage-keys.md');
 
 const constants = kind => {
   const block = src.split(`export const ${kind} = {`)[1];
@@ -43,7 +43,7 @@ if (ghosts.length) {
 } else ok('storage-keys.md führt keine Karteileichen');
 
 // --- Seiten-IDs: page-mapping.md darf keine eigene Liste führen -----------
-const mapping = read('docs-internal/page-mapping.md');
+const mapping = read('docs/reference/page-mapping.md');
 const tableRows = [...mapping.matchAll(/^\|\s*pagesID\w+/gm)].length;
 if (tableRows > 0) {
   fail('page-mapping.md führt wieder eine eigene Seiten-Tabelle',

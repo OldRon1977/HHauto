@@ -40,7 +40,7 @@ export default [
       'node_modules/**',
       'HHAuto.user.js',
       '*.bak_*',
-      'docs-internal/**',
+      'docs/reference/**',
       'bonus-scripts/**',
     ],
   },

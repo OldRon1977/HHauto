@@ -27,7 +27,7 @@ export class DoublePenetration {
     static isEnabled() {
         // The ten-girl condition the old comment here claimed is not
         // measured; it is written down as an open question in
-        // docs-internal/adventure-quest-flow.md instead of sitting beside a
+        // docs/reference/adventure-quest-flow.md instead of sitting beside a
         // check that never implemented it. FeatureGate.GATES says the same.
         return FeatureGate.isUnlocked('doublePenetration');
     }

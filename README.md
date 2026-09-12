@@ -143,7 +143,7 @@ salt per dump, so two dumps from the same player cannot be correlated.
 To verify a dump went through the pipeline, look for `meta.pii.mode`
 equal to `"share"` and an `audit` block at `meta.pii.layer_counts`.
 
-Full reference: see `docs-internal/inspector-pii-share-mode.md` for the
+Full reference: see `docs/reference/inspector-pii-share-mode.md` for the
 list of fields kept, dropped, and pseudonymised.
 
 ### Network sniffer for "Access forbidden" reports

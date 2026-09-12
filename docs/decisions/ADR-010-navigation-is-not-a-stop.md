@@ -106,5 +106,5 @@ Infer from the target page whether the navigation was a finish.
 ## References
 - Issue #1841, ADR-005 (slot hold), ADR-009 (focused activity)
 - `src/Service/BlockScheduler.ts` (`tick`, stop check), `src/Service/BlockPipeline.ts` (`applySlotHold`)
-- `docs-internal/exit-condition-concept.md` -- the open question whether the
+- `docs/reference/exit-condition-concept.md` -- the open question whether the
   `acted` heuristic is replaced entirely by a predicate of the block

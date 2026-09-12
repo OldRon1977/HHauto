@@ -107,7 +107,7 @@ export class TeamScoringService {
     /**
      * Sum of all three carac fields. Game-authoritative: the caracs
      * sub-object already includes blessings AND the girl's equipment
-     * (measured, see docs-internal/data-sources-team.md). A girl
+     * (measured, see docs/reference/data-sources-team.md). A girl
      * therefore ranks partly on who currently wears the good gear, which is
      * why a team should be built after "Unequip All". Falls back to
      * carac1/2/3 when caracs is absent.

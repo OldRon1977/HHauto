@@ -47,7 +47,7 @@ export class TeamModule {
      *   1  Unequip All   -- equipment sits inside availableGirls.caracs, so
      *                       a build with the old team still wearing the gear
      *                       ranks that team for its items rather than its
-     *                       girls (see docs-internal/data-sources-team.md).
+     *                       girls (see docs/reference/data-sources-team.md).
      *   2a Current Best  -- pick by today's stats
      *   2b Possible Best -- pick by stats at full development
      *   2c Assign first 7-- rendered next to the harem panel by updateTeamUI
@@ -747,7 +747,7 @@ export class TeamModule {
 
         // Hand the theme to the gear optimiser: the market page has no team
         // data, and resonance depends on the theme of the team that is
-        // actually fielded (docs-internal/equipment-resonance.md, section 5 --
+        // actually fielded (docs/reference/equipment-resonance.md, section 5 --
         // team first, items after).
         const elementCounts: Record<string, number> = {};
         for (const d of dist) elementCounts[d.element] = d.count;

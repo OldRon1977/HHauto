@@ -1,62 +1,35 @@
-coverage/*
-node_modules/*
-.kiro/
-.claude/
+# What belongs in the repository and what does not is explained in
+# CONTRIBUTING.md, section "What is in the repository, and what stays local".
 
-# Projektanweisungen (Claude.ai)
-PROJEKTANWEISUNGEN.md
+# Dependencies and generated output
+node_modules/
+coverage/
+stats.json
+jest-*.json
+*.tsbuildinfo
 
-# Lokale Dump-Dateien vom Debug-Inspector (nicht syncen)
+# Captured from the game: carries account data, and stale within days
 INPUT/
+scripts/catalogue/out/
+docs/reference/diagrams/
 
-# Editor / IDE
+# The local workspace: notes, drafts, reports, logs -- anything only this
+# machine needs. Personal files outside it belong in .git/info/exclude.
+local/
+*.log
+_logs_*/
+
+# Assistant and editor state
+.claude/
+.kiro/
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS-Indexdateien
-.DS_Store
-Thumbs.db
-
-# Logs (lokale Diagnose-Dumps)
-*.log
-_logs_*/
-
-# TypeScript inkrementeller Build-Cache
-*.tsbuildinfo
-
-# Editor-Backups
 *.bak
 *.orig
 *.tmp
 
-# Lokale Diagramm-Renderings (nicht im Repo)
-docs-internal/diagrams/
-
-# Jest test-run artefacts (local --json outputs)
-jest-*.json
-
-# Lokale Audit-/Patch-Skripte fuer den Inspector (nicht syncen)
-docs-internal/skripte/
-# Lokale Modul-Review-Notizen aus Phase 2 (nicht syncen)
-docs-internal/REVIEW_*.md
-# Webpack bundle analyzer stats
-stats.json
-docs-internal/HANDOVER_*.md
-# Lokale Live-Test-Tracking- und Prompt-Notizen (nicht syncen)
-docs-internal/PENDING_*.md
-docs-internal/PROMPT_*.md
-docs-internal/SESSION_HANDOVER_*.md
-docs-internal/RELEASE_RUNBOOK_*.md
-# Lokales Archiv abgeschlossener Notizen (nicht syncen)
-docs-internal/_archive/
-
-# Lokaler KI-Code-Review-Bericht (nicht syncen, wird lokal abgearbeitet)
-/REVIEW.md
-/BACKLOG.md
-/REVIEW_SUMMARY.md
-BACKLOG-ISSUES.md
-
-# Katalog-Ausgaben: aus dem Spiel gezogen, gehen schnell veraltet
-scripts/catalogue/out/
+# OS index files
+.DS_Store
+Thumbs.db

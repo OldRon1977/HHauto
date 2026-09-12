@@ -6,7 +6,7 @@ rules (`no-restricted-imports` in eslint.config.mjs), not as a written record.
 
 ## Context
 
-`docs-internal/circular-baseline.json` froze 349 import cycles (348 after the
+`docs/reference/circular-baseline.json` froze 349 import cycles (348 after the
 WART-002 menu split). Cycles in this codebase are not cosmetic: modules that
 are reached early inside a cycle before `config/HHStoredVars` finished
 initializing throw TDZ ReferenceErrors and the whole userscript fails to boot
@@ -49,7 +49,7 @@ madge ignore rules (hides instead of fixes), barrels (forbidden by ADR-001).
 ## Stage 1 result
 
 Six edges broken, baseline 348 → **86** (target for stage 1 was < 300; the
-current number lives in `docs-internal/circular-baseline.json`, 85 today):
+current number lives in `docs/reference/circular-baseline.json`, 85 today):
 
 | Edge | Cycles through it | Pattern |
 |---|---|---|

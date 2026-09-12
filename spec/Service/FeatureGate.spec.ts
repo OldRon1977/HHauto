@@ -65,7 +65,7 @@ describe("FeatureGate -- the table", () => {
     it("does not require girls for Double Penetration", () => {
         // The old comment there claimed ten girls and the code never checked
         // it. The claim is unmeasured, so it stays an open question in
-        // docs-internal rather than a condition -- and this test says so out
+        // docs/reference rather than a condition -- and this test says so out
         // loud, in case someone adds it from the comment alone.
         expect(FeatureGate.requirementFor('doublePenetration').minGirls).toBeUndefined();
     });

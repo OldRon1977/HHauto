@@ -52,7 +52,7 @@ is not a drift, it is a locked feature. Measured 2026-09-09 on a level-36
 account in world 3: seven of seven DRIFTs were of that kind -- Place of Power
 needs ten girls, the armour inventory was empty, the labyrinth was locked, and
 the three league checks flip between runs because the game serves a stale hero
-snapshot about half the time (see `docs-internal/adventure-quest-flow.md`).
+snapshot about half the time (see `docs/reference/adventure-quest-flow.md`).
 
 The same account at level 115 in world 5, with 24 girls and the labyrinth
 open, measured 2026-09-11: 16 OK, 0 DRIFT, 7 SKIP (the manual entries) --
