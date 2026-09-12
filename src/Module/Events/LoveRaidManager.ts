@@ -313,7 +313,7 @@ export class LoveRaidManager {
         // enough that nobody could say whether it was ever meant to run --
         // so it is not in the FeatureGate table either (ADR-012). Whether
         // Love Raids have a level threshold at all is unmeasured and written
-        // down as such in docs-internal/adventure-quest-flow.md.
+        // down as such in docs/reference/adventure-quest-flow.md.
         return ConfigHelper.getHHScriptVars("isEnabledRaidOfLive", false);
     }
     static isActivated(){

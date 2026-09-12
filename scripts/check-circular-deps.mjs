@@ -14,7 +14,7 @@
  *   1  new circular dependencies introduced (CI must fail)
  *   2  internal error (madge missing, baseline missing, ...)
  *
- * The baseline lives at docs-internal/circular-baseline.json.
+ * The baseline lives at docs/reference/circular-baseline.json.
  * Cycles are canonicalized (rotated so the lexicographically smallest
  * file is first, direction preserved) before comparison so that
  * cosmetic reorderings do not produce false diffs.
@@ -25,7 +25,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
-const baselinePath = resolve(repoRoot, "docs-internal", "circular-baseline.json");
+const baselinePath = resolve(repoRoot, "docs", "reference", "circular-baseline.json");
 
 function canonicalizeCycle(cycle) {
   if (!Array.isArray(cycle) || cycle.length === 0) return [];

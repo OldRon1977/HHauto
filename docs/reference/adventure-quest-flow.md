@@ -333,5 +333,5 @@ ran into a loop -- twelve of eighteen samples stood on the event page.
 - `src/config/game/HentaiHeroesVars.ts` -- `trollzList`, `trollIdMapping`
 - `docs/decisions/ADR-011-a-dedicated-account-may-write.md` -- why there is an
   account this may be measured on
-- `docs-internal/live-verification-lessons.md` -- why a measurement in the
+- `docs/reference/live-verification-lessons.md` -- why a measurement in the
   wrong place invents a bug

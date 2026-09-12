@@ -85,7 +85,7 @@ export function pickUpgradeTargets(
 
 /** Why pickUpgradeTargets came back empty. The three cases need three
  *  different sentences, and only one of them is "you are done". */
-export type NoUpgradeReason =
+type NoUpgradeReason =
     /** No mythic anywhere -- not worn, not in the inventory. */
     | 'no-mythic-owned'
     /** Mythics owned, but none of them equipped. */
