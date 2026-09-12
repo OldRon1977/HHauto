@@ -1,274 +1,260 @@
 ---
-title: "Konzept: Wann ist ein Block fertig?"
-status: Entwurf zur Entscheidung
+title: "Concept: when is a block finished?"
+status: draft for decision
 last-verified: 2026-09-11
-betrifft: "Issue #1841, ADR-009 (Fokussierte Aktivitaet), ADR-010 (Navigation ist kein Stopp)"
+concerns: "Issue #1841, ADR-009 (focused activity), ADR-010 (navigation is not a stop)"
 ---
 
-# Konzept: Wann ist ein Block fertig?
+# Concept: when is a block finished?
 
-Entwurf zur Entscheidung. Ersetzt nicht ADR-009, sondern loest dessen
-schwaechsten Teil ab: die Frage, woran der Scheduler erkennt, dass eine
-Aktivitaet zu Ende ist. Heute raet er es aus drei Indizien; dieses Konzept
-laesst den Block es sagen.
+A draft for decision. It does not replace ADR-009; it replaces its weakest
+part: the question of how the scheduler recognises that an activity is over.
+Today it guesses from three indications; this concept lets the block say it.
 
-## 1. Was der Scheduler heute entscheidet
+## 1. What the scheduler decides today
 
-Drei Fragen, aber nur zwei Haken:
+Three questions, but only two hooks:
 
-| Frage | beantwortet durch | gedacht dafuer |
+| Question | answered by | meant for it |
 |---|---|---|
-| Darf dieser Block hier und jetzt starten? | `precondition(ctx)` | ja |
-| Hat dieser Block noch Arbeit? | `precondition(ctx)` | nein |
-| Hat der letzte Run ueberhaupt etwas getan? | `BlockRun.acted` | Hilfskonstrukt |
+| May this block start here and now? | `precondition(ctx)` | yes |
+| Does this block still have work? | `precondition(ctx)` | no |
+| Did the last run do anything at all? | `BlockRun.acted` | a stand-in |
 
-Die ersten beiden kollidieren immer dann, wenn die Antwort auf Frage 1
-"nicht auf dieser Seite" lautet. Genau das ist der Fall aus #1841:
-`handleTrollBattle` gibt Kampfergebnis-Seiten bewusst ab (#1740), der
-Scheduler liest das als "fertig". ADR-009 hat das behoben, indem ein Fokus
-eingefuehrt wurde -- aber der Fokus braucht seinerseits eine Antwort auf
-Frage 3, und die gibt es im Modell nicht. Sie wird erschlossen.
+The first two collide whenever the answer to question 1 is "not on this page".
+That is exactly the case from #1841: `handleTrollBattle` deliberately hands over
+battle result pages (#1740), and the scheduler reads that as "finished".
+ADR-009 fixed it by introducing a focus -- but the focus in turn needs an answer
+to question 3, and the model does not have one. It is inferred.
 
-## 2. Was `acted` gekostet hat
+## 2. What `acted` has cost
 
-`acted` heisst "dieser Run hat etwas getan". Der Scheduler kann das nicht
-messen, er schliesst es aus Indizien. Jedes Indiz wurde nachgereicht,
-nachdem die Praxis ein Loch gezeigt hatte:
+`acted` means "this run did something". The scheduler cannot measure that, it
+infers it from indications. Every indication was added after practice had shown
+a hole:
 
-| Version | Loch | nachgereichtes Indiz |
+| Version | Hole | indication added |
 |---|---|---|
-| 8.10.27 | Fokus wurde auch von Leerlauf-Runs erneuert -- die Pipeline parkte auf `handleTrollBattle`, das alle 4 s nichts tat | `acted` ueberhaupt eingefuehrt: nur `repeat` (Slot-Hold) zaehlt |
-| 8.10.29 | ein kaempfender Handler kehrt nie zurueck (die Kampfantwort navigiert), der Marker starb mit der Seite | gueltiges Resume nach Reload zaehlt als `acted` |
-| 8.10.31 | `handleLeague` handelt und gibt den Slot absichtlich ab; der Run endet vor dem Reload, es gibt kein Resume | ausgeschalteter Auto-Loop zaehlt als `acted` |
+| 8.10.27 | idle runs renewed the focus too -- the pipeline parked on `handleTrollBattle`, which did nothing every 4 s | `acted` introduced at all: only `repeat` (slot hold) counts |
+| 8.10.29 | a fighting handler never returns (the battle answer navigates), the marker died with the page | a valid resume after a reload counts as `acted` |
+| 8.10.31 | `handleLeague` acts and gives the slot away on purpose; the run ends before the reload, so there is no resume | a switched-off auto loop counts as `acted` |
 
-Drei Indizien fuer eine Tatsache, die der Block selbst kennt. Das Muster ist
-das Problem, nicht die einzelne Regel: jedes Indiz ist ein Stellvertreter,
-und Stellvertreter haben Raender.
+Three indications for a fact the block itself knows. The pattern is the
+problem, not the individual rule: every indication is a stand-in, and stand-ins
+have edges.
 
-Ein Rand, den ich im Code sehe (**gelesen, nicht gemessen**): `acted` wird
-gesetzt, sobald der Auto-Loop ausgeschaltet wurde -- das tut jedes
-`gotoPage`, auch eines, das nur nach Hause navigiert, weil nichts zu tun
-war. `handleQuest` hat genau so einen Pfad (`routeHomeIfWaitingOnQuest`:
-Quest wartet auf Ressourcen, also zurueck nach Hause). Dieser Run hat fuer
-die Aktivitaet nichts erreicht und gilt trotzdem als handelnd.
+One edge I see in the code (**read, not measured**): `acted` is set as soon as
+the auto loop was switched off -- which every `gotoPage` does, including one
+that only navigates home because there was nothing to do. `handleQuest` has
+exactly such a path (`routeHomeIfWaitingOnQuest`: the quest waits for
+resources, so back home). That run achieved nothing for the activity and still
+counts as acting.
 
-## 3. Befund: die Precondition sagt fast ueberall schon das Richtige
+## 3. Finding: the precondition already says the right thing almost everywhere
 
-ADR-009 hat ein zweites Praedikat mit dem Argument verworfen, "33 Handler
-muessten ihre interne Ressourcenlogik nach aussen spiegeln -- eine Kopie,
-die auseinanderlaufen kann". Ich habe alle 35 Bloecke der Pipeline
-durchgesehen. Das Argument haelt nicht:
+ADR-009 rejected a second predicate with the argument that "33 handlers would
+have to mirror their internal resource logic outward -- a copy that can drift".
+I went through all 35 blocks of the pipeline. The argument does not hold:
 
-**Nur zwoelf Bloecke sind ueberhaupt Aktivitaeten** (laufen wiederholt, bis
-eine Ressource oder ein Ziel erschoepft ist). Der Rest sind Aufgaben
-(einmal tun, Timer stellen), Helfer oder Infrastruktur -- fuer die ist die
-Antwort auf "habe ich noch Arbeit" immer *nein*, sobald der Run fertig ist.
+**Only twelve blocks are activities at all** (they run repeatedly until a
+resource or a goal is exhausted). The rest are tasks (do once, set a timer),
+helpers or infrastructure -- for those the answer to "do I still have work" is
+always *no* as soon as the run is done.
 
-**Und bei neun der zwoelf steht die Antwort bereits in der Precondition:**
+**And for nine of the twelve the answer is already in the precondition:**
 
-| Block | Rolle | Trigger heute | steht in |
+| Block | Role | Trigger today | lives in |
 |---|---|---|---|
-| `handleLeague` | Aktivitaet | `isTimeToFight() \|\| checkTimer('nextLeaguesTime')` | Precondition |
-| `handleSeason` | Aktivitaet | `isTimeToFight() \|\| checkTimer \|\| interFightPause()` | Precondition |
-| `handlePantheon` | Aktivitaet | `isTimeToFight() \|\| checkTimer('nextPantheonTime')` | Precondition |
-| `handlePentaDrill` | Aktivitaet | `isTimeToFight() \|\| checkTimer('nextPentaDrillTime')` | Precondition |
-| `handleSultryMysteries` | Aktivitaet | `autoOpenRunning \|\| offene Events` | Precondition |
-| `handleChampion` | Aktivitaet | `descriptor.isReady()` | Modul-Deskriptor |
-| `handleClubChampion` | Aktivitaet | `descriptor.isReady()` | Modul-Deskriptor |
-| `handleLabyrinth` | Aktivitaet | `descriptor.isReady()` | Modul-Deskriptor |
-| `handlePlaceOfPower` | Aktivitaet | `PopToStart.length \|\| checkTimer` | Precondition |
-| `handleBossBangFight` | Aktivitaet | teils DOM (`$('.completed-event')`) | Precondition, **seitenabhaengig** |
-| `handleTrollBattle` | Aktivitaet | `shouldFight` -- Energie, Schwelle, Event-Maedel, Raid | **im Step**, wird verworfen |
-| `handleQuest` | Aktivitaet | kein Trigger, Precondition ist "an und nicht fremdbeschaeftigt" | **fehlt** |
+| `handleLeague` | activity | `isTimeToFight() \|\| checkTimer('nextLeaguesTime')` | precondition |
+| `handleSeason` | activity | `isTimeToFight() \|\| checkTimer \|\| interFightPause()` | precondition |
+| `handlePantheon` | activity | `isTimeToFight() \|\| checkTimer('nextPantheonTime')` | precondition |
+| `handlePentaDrill` | activity | `isTimeToFight() \|\| checkTimer('nextPentaDrillTime')` | precondition |
+| `handleSultryMysteries` | activity | `autoOpenRunning \|\| open events` | precondition |
+| `handleChampion` | activity | `descriptor.isReady()` | module descriptor |
+| `handleClubChampion` | activity | `descriptor.isReady()` | module descriptor |
+| `handleLabyrinth` | activity | `descriptor.isReady()` | module descriptor |
+| `handlePlaceOfPower` | activity | `PopToStart.length \|\| checkTimer` | precondition |
+| `handleBossBangFight` | activity | partly DOM (`$('.completed-event')`) | precondition, **page-dependent** |
+| `handleTrollBattle` | activity | `shouldFight` -- energy, threshold, event girl, raid | **in the step**, and discarded |
+| `handleQuest` | activity | no trigger, the precondition is "on and not busy elsewhere" | **missing** |
 
-Die Aufgaben (14): `handleHaremSize`, `handleSalary`, `handleShop`,
+The tasks (14): `handleHaremSize`, `handleSalary`, `handleShop`,
 `handleAutoEquipBoosters`, `handleMissions`, `handlePachinko`,
 `handleSeasonalFreeCard`, `handleFreeBundles`, `handleContest`,
 `handleDailyGoals`, `handleChampionTicket`, `handleLoveRaid`,
 `handleBossBangParse`, `handleKobanAds`.
-Die Helfer (7): die sechs Collect-Bloecke und `handleGenericBattle`
-(`runsDuringFocus`, nehmen den Fokus nie).
-Die Infrastruktur (2): `handleEventParsing`, `handleGoHome`.
+The helpers (7): the six collect blocks and `handleGenericBattle`
+(`runsDuringFocus`, they never take the focus).
+The infrastructure (2): `handleEventParsing`, `handleGoHome`.
 
-Damit ist die Aufgabe nicht "33 Praedikate schreiben", sondern: **eine
-Funktion benennen, die es neunmal schon gibt, einmal am falschen Ort steht
-und einmal fehlt.**
+So the task is not "write 33 predicates", but: **name a function that already
+exists nine times, sits in the wrong place once, and is missing once.**
 
-## 4. Vorschlag
+## 4. Proposal
 
-Ein optionales zweites Praedikat am Block:
+An optional second predicate on the block:
 
 ```ts
 interface Block {
-  /** Darf ich hier und jetzt starten? Ort, Schalter, Loop-Zustand. */
+  /** May I start here and now? Place, switches, loop state. */
   precondition(ctx: AutoLoopContext): boolean;
   /**
-   * Habe ich noch Arbeit? Ressource, Ziel, Timer -- NIE die aktuelle Seite.
-   * Fehlt das Praedikat, ist die Antwort false: der Block ist eine Aufgabe
-   * und mit dem Ende seines Runs fertig.
+   * Do I still have work? Resource, goal, timer -- NEVER the current page.
+   * Without the predicate the answer is false: the block is a task and is
+   * finished when its run ends.
    */
   wantsMore?(ctx: AutoLoopContext): boolean;
 }
 ```
 
-**Die Trennlinie ist die eigentliche Entscheidung:**
+**The dividing line is the actual decision:**
 
-| gehoert ins Tor (`precondition`) | gehoert in `wantsMore` |
+| belongs in the gate (`precondition`) | belongs in `wantsMore` |
 |---|---|
-| aktuelle Seite (`ctx.currentPage`) | Energie, Kuesse, Tickets, Kampfkraft |
-| Schalter, Feature-Flags des Spiels | Schwellen aus den Einstellungen |
-| `ctx.busy`, `lastActionPerformed`, Auto-Loop | Timer (`checkTimer('next...')`) |
-| `canCollectCompetitionActive` (Bremse) | offenes Ziel (Event-Maedel, Raid, Skin) |
-| DOM-Abfragen | -- |
+| the current page (`ctx.currentPage`) | energy, kisses, tickets, fighting power |
+| switches, the game's feature flags | thresholds from the settings |
+| `ctx.busy`, `lastActionPerformed`, auto loop | timers (`checkTimer('next...')`) |
+| `canCollectCompetitionActive` (a brake) | an open goal (event girl, raid, skin) |
+| DOM queries | -- |
 
-Der Grund fuer "nie die Seite": `wantsMore` wird ausgewertet, wenn ein Run
-endet -- und das ist regelmaessig auf einer Kampfergebnis-Seite. Genau die
-Seite, die das Tor zu Recht schliesst.
+The reason for "never the page": `wantsMore` is evaluated when a run ends -- and
+that is regularly on a battle result page. Exactly the page the gate rightly
+closes.
 
-**Die Fokus-Regel wird damit eine Zeile:**
+**The focus rule becomes one line:**
 
 ```ts
-// heute
+// today
 if (block.holdsFocus !== false && run.acted === true) setFocus(...)
-// kuenftig
-if (block.wantsMore?.(ctx)) setFocus(...) else releaseFocus("fertig")
+// in future
+if (block.wantsMore?.(ctx)) setFocus(...) else releaseFocus("finished")
 ```
 
-Keine Erschliessung mehr. Der Block sagt es.
+No more inference. The block says it.
 
-### Keine doppelte Wahrheit
+### No second truth
 
-Das Gegenargument aus ADR-009 zaehlt nur, wenn `wantsMore` eine *Kopie*
-waere. Es ist keine, wenn es dieselbe Funktion ist:
+The counter-argument from ADR-009 only counts if `wantsMore` were a *copy*. It
+is not, if it is the same function:
 
-- Wo der Trigger schon in der Precondition steht (9 Bloecke), wird er als
-  benannte Funktion herausgezogen, und die Precondition ruft sie auf.
-  Eine Funktion, zwei Leser.
-- `handleTrollBattle`: `shouldFight` zieht aus dem Step heraus, der Step
-  ruft `wantsMore(ctx)` auf. Wieder eine Funktion, zwei Leser -- und
-  nebenbei verschwinden die Leerlauf-Runs. Wie viele das sind, steht
-  inzwischen in zwei Nutzer-Logs:
+- Where the trigger is already in the precondition (9 blocks), it is pulled out
+  as a named function and the precondition calls it. One function, two readers.
+- `handleTrollBattle`: pull `shouldFight` out of the step, and the step calls
+  `wantsMore(ctx)`. Again one function, two readers -- and the idle runs
+  disappear along the way. How many those are stands in two user logs by now:
 
-  | Log | Starts von `handleTrollBattle` | echte Kaempfe | Leerlauf |
+  | Log | starts of `handleTrollBattle` | real fights | idle |
   |---|---|---|---|
-  | Handler-Kommentar, 7.35.61 | 75 | 28 | 47 (63 %) |
-  | Nacht 2026-08-25, 8.10.47 | 253 | 9 | 244 (96 %) |
-  | Nacht 2026-08-26, 8.10.48 | 577 | 12 | 565 (98 %) |
+  | handler comment, 7.35.61 | 75 | 28 | 47 (63 %) |
+  | night 2026-08-25, 8.10.47 | 253 | 9 | 244 (96 %) |
+  | night 2026-08-26, 8.10.48 | 577 | 12 | 565 (98 %) |
 
-  Der Block kommt durch sein Tor und faellt im Step durch, weil die
-  eigentliche Frage erst dort gestellt wird.
+  The block passes its gate and falls through in the step, because the actual
+  question is only asked there.
 
-  Nachgemessen 2026-09-11 (8.13.1, Pruefkonto, 20 Minuten mit den
-  Kontoeinstellungen): `handleTrollBattle` 251 Starts bei 4 Kaempfen
-  (`do_battles_trolls`), `handleQuest` 480 Starts bei einem Questschritt
-  (`next`) -- ein Start alle 2,5 s, obwohl die Quest nach der ersten Minute
-  auf Ressourcen wartete. Zusammen 731 der 769 Block-Starts des Laufs.
-- `handleQuest`: hier entsteht wirklich neue Logik, weil es heute keine
-  gibt. Das ist der einzige Block, bei dem "Kopie, die auseinanderlaeuft"
-  ueberhaupt ein Thema waere -- und der Grund, ihn zuletzt zu machen.
-- `handleBossBangFight`: sein Trigger liest das DOM. `wantsMore` darf das
-  nicht. Vorschlag: nur der seitenunabhaengige Teil
-  (`checkTimer('nextBossBangTime')` + offene Event-IDs) wird `wantsMore`,
-  der DOM-Teil bleibt im Tor.
+  Measured again 2026-09-11 (8.13.1, test account, 20 minutes with the
+  account's settings): `handleTrollBattle` 251 starts with 4 fights
+  (`do_battles_trolls`), `handleQuest` 480 starts with one quest step (`next`)
+  -- one start every 2.5 s, although the quest was waiting for resources after
+  the first minute. Together 731 of the run's 769 block starts.
+- `handleQuest`: here new logic really does arise, because there is none today.
+  It is the only block where "a copy that drifts" would be an issue at all --
+  and the reason to do it last.
+- `handleBossBangFight`: its trigger reads the DOM. `wantsMore` must not.
+  Proposal: only the page-independent part (`checkTimer('nextBossBangTime')`
+  plus open event IDs) becomes `wantsMore`, the DOM part stays in the gate.
 
-## 5. Was aus `acted` wird
+## 5. What becomes of `acted`
 
-Es faellt aus der Fokus-Entscheidung heraus und wird ersatzlos entfernt --
-alle drei Setz-Stellen (`repeat`, Resume nach Reload, Auto-Loop aus) und
-das Feld in `BlockRun`. Der No-Progress-Watchdog haengt an `stepStartedAt`,
-nicht an `acted`, und bleibt unberuehrt.
+It falls out of the focus decision and is removed without replacement -- all
+three places that set it (`repeat`, resume after a reload, auto loop off) and
+the field in `BlockRun`. The no-progress watchdog hangs on `stepStartedAt`, not
+on `acted`, and is untouched.
 
-Auch die Frage "wer *nimmt* den Fokus" beantwortet sich damit von selbst:
-wer `wantsMore` hat und es mit *ja* beantwortet. Aufgaben haben es nicht
-und nehmen den Fokus nie -- die Liste `NEVER_FOCUS` wird zur Doku, nicht
-zur Regel.
+The question of who *takes* the focus answers itself too: whoever has
+`wantsMore` and answers it with *yes*. Tasks do not have it and never take the
+focus -- the `NEVER_FOCUS` list becomes documentation, not a rule.
 
-## 6. Absicherungen
+## 6. Safety nets
 
-Ein falsches `wantsMore` parkt die Pipeline -- exakt der Schaden von
-8.10.27. Deshalb bleiben zwei Netze:
+A wrong `wantsMore` parks the pipeline -- exactly the damage of 8.10.27. Two
+nets therefore stay:
 
-1. **`focusStaleMs` bleibt** (5 min ohne Run des fokussierten Blocks). Es
-   greift kuenftig auch zuverlaessiger, weil der Zeitstempel nicht mehr von
-   Leerlauf-Runs erneuert wird.
-2. **Neu: Leerlauf-Zaehler.** Sagt ein fokussierter Block n-mal
-   hintereinander *ja*, ohne dass sein Run in den Slot-Hold geht oder eine
-   Seite wechselt, faellt der Fokus mit `ev=focus detail="sagt ja, tut
-   nichts"`. Das ist die alte `acted`-Frage -- aber als Notbremse mit
-   Logeintrag, nicht als Entscheidungsgrundlage. Vorschlag n = 5.
+1. **`focusStaleMs` stays** (5 min without a run of the focused block). It will
+   take hold more reliably, because the timestamp is no longer renewed by idle
+   runs.
+2. **New: an idle counter.** If a focused block says *yes* n times in a row
+   without its run going into the slot hold or changing a page, the focus drops
+   with `ev=focus detail="says yes, does nothing"`. That is the old `acted`
+   question -- but as an emergency brake with a log entry, not as the basis of
+   the decision. Proposal: n = 5.
 
-Zusaetzlich: die `ev=focus`-Logzeile bekommt das Ergebnis von `wantsMore`
-mit. Damit steht im naechsten Nutzer-Log, warum die Pipeline geblieben oder
-gegangen ist -- heute steht dort nur, dass sie es getan hat.
+In addition: the `ev=focus` log line carries the result of `wantsMore`. Then
+the next user log says why the pipeline stayed or left -- today it only says
+that it did.
 
-## 7. Umsetzung in Etappen
+## 7. Implementation in stages
 
-| Etappe | Inhalt | Risiko |
+| Stage | Content | Risk |
 |---|---|---|
-| 1 | Typ, Default, Scheduler liest `wantsMore`; `acted` bleibt als Rueckfall (`wantsMore?.(ctx) ?? run.acted`). Nur `handleTrollBattle` und `handleSeason` bekommen das Praedikat. | klein: fuer alle anderen Bloecke aendert sich nichts |
-| 2 | Die uebrigen zehn Aktivitaeten, `handleQuest` zuletzt. | mittel: pro Block ein Testfall |
-| 3 | `acted` und seine drei Setz-Stellen entfernen, `NEVER_FOCUS` auf Doku reduzieren. | klein, wenn Etappe 2 belegt ist |
+| 1 | The type, the default, the scheduler reads `wantsMore`; `acted` stays as the fallback (`wantsMore?.(ctx) ?? run.acted`). Only `handleTrollBattle` and `handleSeason` get the predicate. | small: nothing changes for any other block |
+| 2 | The remaining ten activities, `handleQuest` last. | medium: one test case per block |
+| 3 | Remove `acted` and its three write sites, reduce `NEVER_FOCUS` to documentation. | small, once stage 2 is proven |
 
-Etappe 1 und 2 sind je eine PATCH-Version in der laufenden Linie, Etappe 3
-kann mit der naechsten MINOR gehen.
+Stages 1 and 2 are one PATCH version each in the running line, stage 3 can go
+with the next MINOR.
 
 ## 8. Tests
 
-- Pro Praedikat ein Unit-Test mit den Grenzfaellen, die es entscheiden soll
-  (Energie genau auf der Schwelle, Timer gerade abgelaufen, Ziel gerade
-  erreicht).
-- Scheduler-Test: der Fokus bleibt genau so lange, wie `wantsMore` *ja*
-  sagt, und faellt in dem Tick, in dem es *nein* sagt -- unabhaengig davon,
-  was der Run getan hat.
-- Scheduler-Test: Helfer duerfen weiterhin dazwischen, ohne den Fokus zu
-  nehmen.
-- Regressionstest zu 8.10.27: ein Block, der *ja* sagt und nichts tut,
-  verliert den Fokus nach n Runs.
+- One unit test per predicate with the edge cases it is supposed to decide
+  (energy exactly on the threshold, a timer just expired, a goal just reached).
+- Scheduler test: the focus stays exactly as long as `wantsMore` says *yes*,
+  and drops in the tick in which it says *no* -- regardless of what the run did.
+- Scheduler test: helpers may still come in between without taking the focus.
+- Regression test for 8.10.27: a block that says *yes* and does nothing loses
+  the focus after n runs.
 
-## 9. Was seither passiert ist
+## 9. What has happened since
 
-Zwei der drei `acted`-Loecher aus Abschnitt 2 sind mit ADR-010 geschlossen
-worden, ohne das Praedikat einzufuehren: der Scheduler verwirft einen
-gehaltenen Run nicht mehr, wenn das Skript beim Navigieren sein eigenes
-autoLoop-Flag ausschaltet, und ein Block kann eine abschliessende
-Navigation als `done` melden. Das Konzept hier bleibt davon unberuehrt --
-es beantwortet die andere Frage: woran der Fokus erkennt, dass eine
-Aktivitaet zu Ende ist. Die Messung aus dem 8.10.48-Nachtlauf spricht
-weiter dafuer: 80 Fokus-Episoden, 144 Freigaben "nothing left to do",
-9 "ran without doing anything" -- und bei genauer Zuordnung war keine
-dieser neun ein Fehlgriff der Heuristik.
+Two of the three `acted` holes from section 2 were closed with ADR-010, without
+introducing the predicate: the scheduler no longer discards a held run when the
+script switches off its own autoLoop flag while navigating, and a block can
+report a closing navigation as `done`. This concept is untouched by that -- it
+answers the other question: how the focus recognises that an activity is over.
+The measurement from the 8.10.48 night run still speaks for it: 80 focus
+episodes, 144 releases "nothing left to do", 9 "ran without doing anything" --
+and on close inspection none of those nine was a misjudgement of the heuristic.
 
-Ausgeliefert wurde all das mit dem Release v8.10.0 (2026-08-28). Das
-Konzept ist damit nicht erledigt, sondern vertagt.
+All of it shipped with release v8.10.0 (2026-08-28). The concept is therefore
+not settled, but postponed.
 
-## 10. Messung: Energien auf jeder Seite
+## 10. Measurement: energies on every page
 
-Die Voraussetzung fuer "wantsMore ist seitenunabhaengig" ist, dass
-`Hero.energies.*` auf jeder Spielseite lesbar ist. Gemessen 2026-09-11
-(8.13.1, Pruefkonto, ohne HHauto): auf allen 39 besuchten Seiten, die das
-Spiel-Wurzelelement tragen, standen `shared.Hero.energies.{kiss, fight,
-challenge, quest, worship, drill}` jeweils mit `amount`, `max_regen_amount`,
-`next_refresh_ts` und `seconds_per_point` -- darunter Kampf-Vorseiten,
-Event-Reiter, Harem, Markt und die Questseite. Ausgenommen sind nur Seiten
-ohne dieses Element (Kampfseiten, Vorkampfseiten ohne Parameter); dort laeuft
-auch HHauto nicht an. Die Liste je Seite steht in `data-sources-inventory.md`,
-Abschnitt 10.
+The precondition for "wantsMore is page-independent" is that `Hero.energies.*`
+is readable on every game page. Measured 2026-09-11 (8.13.1, test account,
+without HHauto): on all 39 visited pages that carry the game's root element,
+`shared.Hero.energies.{kiss, fight, challenge, quest, worship, drill}` each
+stood there with `amount`, `max_regen_amount`, `next_refresh_ts` and
+`seconds_per_point` -- among them pre-battle pages, event tabs, the harem, the
+market and the quest page. The exceptions are only pages without that element
+(battle pages, pre-battle pages without parameters); HHauto does not start
+there either. The list per page is in `data-sources-inventory.md`, section 10.
 
-## 11. Zu entscheiden
+## 11. To decide
 
-1. Etappen wie vorgeschlagen, oder alle zwoelf Aktivitaeten in einem Zug?
-2. Filtert `wantsMore` auch die *Auswahl* (`findNext`), oder nur den Fokus?
-   Mit Filter verschwinden die Leerlauf-Runs (weniger Log-Rauschen, weniger
-   Ticks), aber die Auswahl bekommt eine zweite Bedingung, die falsch sein
-   kann. Empfehlung: erst nur der Fokus, Filter als eigener Schritt danach.
-3. `handleQuest`: was heisst dort "noch Arbeit"? Heute laeuft der Block,
-   solange er eingeschaltet ist. Kandidat: Quest-Energie ueber der Schwelle
-   ODER ein Requirement, das gerade erfuellt wurde. Das ist eine
-   Spielentscheidung, keine Code-Entscheidung.
+1. Stages as proposed, or all twelve activities in one go?
+2. Does `wantsMore` also filter the *selection* (`findNext`), or only the
+   focus? With the filter the idle runs disappear (less log noise, fewer
+   ticks), but the selection gains a second condition that can be wrong.
+   Recommendation: the focus first, the filter as its own step afterwards.
+3. `handleQuest`: what does "still have work" mean there? Today the block runs
+   as long as it is switched on. A candidate: quest energy above the threshold
+   OR a requirement that was just met. That is a game decision, not a code
+   decision.
 
-## Referenzen
+## References
 
-- ADR-009 (Fokussierte Aktivitaet), ADR-005 (Slot-Hold), ADR-006 (keine Buendelung)
-- Issue #1841, Issue #1740, Issue #1796
+- ADR-009 (focused activity), ADR-005 (slot hold), ADR-006 (no bundling)
+- Issue #1841, issue #1740, issue #1796
 - `src/Service/BlockScheduler.ts` (`complete`, `pickUnderFocus`, `eligibility`)
 - `src/Service/BlockPipeline.ts` (`applySlotHold`, `FOCUS_INTERRUPTERS`)
