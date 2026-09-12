@@ -323,7 +323,7 @@ wrong.
 | Identifier | Effect |
 |-----------|---------|
 | MB1 (Sandalwood) | more girl shards per battle |
-| MB2 (All Mastery's Emblem) | +15% damage in league and season for 100 performances |
+| MB2 (All Mastery's Emblem) | +15% damage in league and season for 100 performances. Measured 2026-09-12 in a league fight: the hit was `damage x 1.15 - the opponent's defense`, and the `damage` the league list shows does **not** include it |
 
 ### The recommendation (Performance Handbook)
 
