@@ -3,76 +3,75 @@ last-verified: 2026-09-11
 status: current
 ---
 
-# Equipment Resonance -- Grundlage fuer einen Item-Optimierer
+# Equipment resonance -- the basis for an item optimiser
 
-Was ein automatischer Item-Optimierer wissen muss: wie die Resonanz-Boni
-funktionieren, wie die Daten aussehen, welche Endpunkte man benutzen kann --
-und welche Messwege **nicht** funktionieren (teuer gelernt, siehe unten).
+What an automatic item optimiser needs to know: how the resonance bonuses work,
+what the data looks like, which endpoints can be used -- and which ways of
+measuring **do not** work (learned the expensive way, see below).
 
-Quellen: die beiden offiziellen Kinkoid-Artikel
+Sources: the two official Kinkoid articles
 [Mythic Equipment](https://blog.kinkoid.com/features/mythic-equipment/) (2022-11-17)
-und [Recruit Equipment & Resonance](https://blog.kinkoid.com/features/recruit-equipment-resonance/)
-(2023-05-05), plus eigene Messungen am 2026-08-17 (eigenes Konto, Klasse
-Know-how). Jede Angabe unten ist als *offiziell* oder *gemessen* markiert.
+and [Recruit Equipment & Resonance](https://blog.kinkoid.com/features/recruit-equipment-resonance/)
+(2023-05-05), plus our own measurements on 2026-08-17 (own account, class
+Know-how). Every statement below is marked as *official* or *measured*.
 
 ---
 
-## 1. Die Mechanik
+## 1. The mechanic
 
-**Offiziell:** „Resonance is a bonus based on a **match** between the resonating
-bonus and the hero." Ein mythisches Spieler-Item traegt **zwei** Resonanzen, die
-der Spieler zu matchen versucht; man muss nicht beide treffen, um etwas zu
-bekommen.
+**Official:** "Resonance is a bonus based on a **match** between the resonating
+bonus and the hero." A mythic player item carries **two** resonances that the
+player tries to match; you do not have to hit both to get something.
 
-Die beiden Achsen bei Spieler-Ausruestung:
+The two axes on player equipment:
 
-| Achse | matcht gegen | Werte |
+| Axis | matches against | Values |
 |---|---|---|
-| ``class`` | die **Klasse des Helden** | 1 Hardcore, 2 Charm, 3 Know-how |
-| ``theme`` | das **Theme des Teams** | die 8 Elemente + **Balanced** |
+| ``class`` | the **hero's class** | 1 Hardcore, 2 Charm, 3 Know-how |
+| ``theme`` | the **team's theme** | the 8 elements plus **Balanced** |
 
-**Balanced ist ein vollwertiges Theme.** Ein Team ohne drei Girls desselben
-Elements ist nicht themenlos, sondern hat das Theme *Balanced* -- und es gibt
-Items, die genau darauf resonieren (im Datenmodell ``theme.identifier: null``).
+**Balanced is a theme in its own right.** A team without three girls of the
+same element is not themeless; it has the theme *Balanced* -- and there are
+items that resonate on exactly that (in the data model
+``theme.identifier: null``).
 
-**Offiziell:** „Resonance bonuses are all summed up and then **applied
-after/on top of all other bonuses**." Im Recruit-Artikel praeziser: die Boni
-werden „given to the Hero **in the end calculation of stats**".
+**Official:** "Resonance bonuses are all summed up and then **applied
+after/on top of all other bonuses**." More precisely in the recruit article:
+the bonuses are "given to the Hero **in the end calculation of stats**".
 
-Bei Girl-Ausruestung haengt die Zahl der Achsen an der Seltenheit (offiziell):
+On girl equipment the number of axes depends on the rarity (official):
 
-| Rarity | Resonanzen |
+| Rarity | Resonances |
 |---|---|
-| Epic | 1 (Class) |
-| Legendary | 2 (Class + Element) |
-| Mythic | 3 (Class + Element + Favorite position) |
+| Epic | 1 (class) |
+| Legendary | 2 (class + element) |
+| Mythic | 3 (class + element + favourite position) |
 
-Fuer Girl-Items nennt der Artikel eine feste Zuordnung: Class -> Ego,
-Element -> Defense, Pose -> Attack. **Fuer Spieler-Items gilt das nicht**
-(gemessen): dort traegt jedes Item seine eigene Zielgroesse, ``class`` zeigte
-mal auf ``damage``, mal auf ``ego``; ``theme`` mal auf ``defense``, mal auf
-``chance``. Ein Optimierer muss die Zielgroesse also pro Item aus den Daten
-lesen und darf sie nicht aus der Achse ableiten.
+For girl items the article names a fixed mapping: class -> ego, element ->
+defense, pose -> attack. **For player items that does not hold** (measured):
+there every item carries its own target value, ``class`` pointed sometimes at
+``damage``, sometimes at ``ego``; ``theme`` sometimes at ``defense``, sometimes
+at ``chance``. An optimiser must therefore read the target per item from the
+data and must not derive it from the axis.
 
 ---
 
-## 2. Datenmodell (gemessen)
+## 2. The data model (measured)
 
-### Spieler-Items
+### Player items
 
-Global ``hero_items`` auf ``/hero/profile.html``, Schluessel ``1``..``6`` =
-Slots. Dieselben Objekte stecken auf ``shop.html`` in
-``player_inventory.armor`` und in den ``data-d``-Attributen unter
-``#equiped .armor div[id_item]``.
+The global ``hero_items`` on ``/hero/profile.html``, keys ``1``..``6`` = slots.
+The same objects sit on ``shop.html`` in ``player_inventory.armor`` and in the
+``data-d`` attributes under ``#equiped .armor div[id_item]``.
 
-Ein Objekt traegt **entweder** die eine ID **oder** die andere, nie beide
-(siehe „Zwei ID-Raeume" weiter unten):
+An object carries **either** the one ID **or** the other, never both (see "Two
+ID spaces" below):
 
 ```jsonc
 {
-  // angelegt: nur dieses Feld, `id_member_armor` fehlt ganz
+  // equipped: only this field, `id_member_armor` is absent entirely
   "id_member_armor_equipped": 2666196,
-  // im Inventar stattdessen nur dieses (ID wechselt beim Ablegen!)
+  // in the inventory this one instead (the ID changes when it is taken off!)
   // "id_member_armor": 6602031,
   "level": 20,
   "skin": { "subtype": 1, "wearer": "hero", "name": "Dragon Helmet" },
@@ -86,331 +85,322 @@ Ein Objekt traegt **entweder** die eine ID **oder** die andere, nie beide
 }
 ```
 
-- ``skin.subtype`` = Slot 1..6. Ein Item passt nur in seinen Slot.
-- ``resonance.identifier``: bei ``class`` die Klassennummer als String, bei
-  ``theme`` der Elementname oder ``null`` (= Balanced).
-- ``resonance.resonance``: Zielgroesse (``damage`` | ``ego`` | ``defense`` |
-  ``chance``).
-- ``bonus``: Prozentpunkte.
-- ``caracs.chance`` kommt mal als Zahl, mal als **String** (`"4634.57"`).
-  Immer durch `Number()` schicken.
+- ``skin.subtype`` = slot 1..6. An item fits only into its slot.
+- ``resonance.identifier``: for ``class`` the class number as a string, for
+  ``theme`` the element name or ``null`` (= Balanced).
+- ``resonance.resonance``: the target value (``damage`` | ``ego`` | ``defense``
+  | ``chance``).
+- ``bonus``: percentage points.
+- ``caracs.chance`` comes sometimes as a number, sometimes as a **string**
+  (`"4634.57"`). Always send it through `Number()`.
 
-Nachgemessen 2026-09-11 auf dem Pruefkonto (Level 115): ``hero_items`` traegt
-die Schluessel ``1``..``6``, jeder Eintrag mit ``id_member_armor_equipped`` und
-ohne ``id_member_armor``, ``skin.subtype`` 1..6; ``caracs`` traegt zusaetzlich
-``ego``; ``caracs.chance`` war in allen 71 Teilen (angelegt und Inventar) ein
-String. Das Konto besitzt **kein** mythisches Teil -- sechs legendaere angelegt
-(Level 61 bis 84, ohne ``resonance_bonuses``), im Inventar 32 legendaere, 14
-epische, 25 seltene. Die Regeln der beiden folgenden Abschnitte (Bonus je Level,
-Rohwerte je Stufe) sind auf diesem Konto deshalb nicht pruefbar; Voraussetzung
-ist ein mythisches Spieler-Item.
+Measured again 2026-09-11 on the test account (level 115): ``hero_items``
+carries the keys ``1``..``6``, every entry with ``id_member_armor_equipped``
+and without ``id_member_armor``, ``skin.subtype`` 1..6; ``caracs`` additionally
+carries ``ego``; ``caracs.chance`` was a string in all 71 pieces (equipped and
+inventory). The account owns **no** mythic piece -- six legendary equipped
+(level 61 to 84, without ``resonance_bonuses``), and in the inventory 32
+legendary, 14 epic, 25 rare. The rules of the following two sections (bonus per
+level, raw values per tier) are therefore not checkable on this account; they
+need a mythic player item.
 
-### Der Bonus skaliert mit dem Item-Level
+### The bonus scales with the item level
 
-Gemessen ueber Items derselben Art auf verschiedenen Leveln:
+Measured across items of the same kind at different levels:
 
 | Level | Bonus (damage/ego/defense) | Bonus (chance) |
 |---|---|---|
-| 1 | 0,1 | 0,2 |
-| 7 | 0,7 | – |
-| 20 | 2,0 | 4,0 |
+| 1 | 0.1 | 0.2 |
+| 7 | 0.7 | – |
+| 20 | 2.0 | 4.0 |
 
-Also 0,1 Prozentpunkte pro Level, auf der Chance-Schiene doppelt.
+So 0.1 percentage points per level, and double on the chance track.
 
-### Rohwerte sind bei gleicher Stufe identisch
+### Raw values are identical at the same tier
 
 | Level | carac1/2/3 | endurance | chance |
 |---|---|---|---|
 | 1 | 2100 | 2100 | 3100 |
 | 20 | 4000 | 4000 | 5000 |
 
-**Bei maximalem Level ist die Resonanz der einzige Unterschied zwischen zwei
-mythischen Spieler-Items desselben Slots.** Das Hochleveln eines mythischen
-Items kauft nichts als Resonanz.
+**At maximum level the resonance is the only difference between two mythic
+player items of the same slot.** Levelling a mythic item up buys nothing but
+resonance.
 
 ---
 
-## 3. Endpunkte
+## 3. Endpoints
 
-| Zweck | Aufruf |
+| Purpose | Call |
 |---|---|
-| Anlegen | ``{action:'market_equip_armor', id_member_armor, rarity}`` |
-| Inventar (Folgeseiten) | ``{action:'market_get_armor', id_member_armor: <letzte ID>}`` |
-| Inventar (erste Seite) | Global ``player_inventory.armor`` auf ``shop.html`` |
+| Equip | ``{action:'market_equip_armor', id_member_armor, rarity}`` |
+| Inventory (further pages) | ``{action:'market_get_armor', id_member_armor: <last ID>}`` |
+| Inventory (first page) | the global ``player_inventory.armor`` on ``shop.html`` |
 
-Die Equip-Antwort liefert ``{unequipped_armor, equipped_armor, caracs,
-success}``. ``unequipped_armor.id_member_armor`` ist noetig, um den
-Ausgangszustand wiederherzustellen -- **die Inventar-ID eines Items aendert
-sich jedes Mal, wenn es abgelegt wird.** Wer zurueckbauen will, muss die ID aus
-der Antwort mitschreiben; ueber den Namen zu suchen reicht nicht, weil man
-mehrere identische Items besitzen kann (am 2026-08-17 zwei „Dragon Helmet"
-Lvl 20 mit *unterschiedlicher* Resonanz).
+The equip answer delivers ``{unequipped_armor, equipped_armor, caracs,
+success}``. ``unequipped_armor.id_member_armor`` is needed to restore the
+starting state -- **an item's inventory ID changes every time it is taken
+off.** Whoever wants to undo has to record the ID from the answer; searching by
+name is not enough, because you can own several identical items (on 2026-08-17
+two "Dragon Helmet" level 20 with *different* resonance).
 
-### Zwei ID-Raeume, und sie ueberlappen
+### Two ID spaces, and they overlap
 
-Ein Item traegt **entweder** `id_member_armor` (im Inventar) **oder**
-`id_member_armor_equipped` (angelegt) -- nie beides. Der Eintrag unter
-`#equiped` hat den Schluessel `id_member_armor` gar nicht.
+An item carries **either** `id_member_armor` (in the inventory) **or**
+`id_member_armor_equipped` (equipped) -- never both. The entry under `#equiped`
+does not have the key `id_member_armor` at all.
 
-Beide Zahlenraeume ueberlappen (gemessen 2026-08-17: Inventar
-567.162..2.136.163.515, angelegt 464.128..2.806.648). Wer beide Quellen in
-eine Map ueber die blanke Zahl legt, verliert bei einer Kollision still ein
-Item -- ohne Fehler, ohne Log. Der Schluessel muss die Quelle mitfuehren.
+Both number spaces overlap (measured 2026-08-17: inventory
+567,162..2,136,163,515, equipped 464,128..2,806,648). Whoever puts both sources
+into one map keyed on the bare number silently loses an item on a collision --
+no error, no log. The key has to carry the source.
 
-Dasselbe gilt fuer die Upgrade-Seite, die je nach Herkunft einen **anderen
-Query-Parameter** erwartet:
+The same holds for the upgrade page, which expects a **different query
+parameter** depending on the origin:
 
 ```
-Inventar-Item:  /mythic-equipment-upgrade.html?id_member_item=<id_member_armor>
-angelegtes:     /mythic-equipment-upgrade.html?id_member_item_equipped=<id_member_armor_equipped>
+inventory item:  /mythic-equipment-upgrade.html?id_member_item=<id_member_armor>
+equipped one:    /mythic-equipment-upgrade.html?id_member_item_equipped=<id_member_armor_equipped>
 ```
 
-Der falsche Parameter scheitert **nicht laut**: die Seite springt zum Markt
-zurueck, und die Automatik sieht aus, als haette sie nichts getan.
+The wrong parameter does **not** fail loudly: the page jumps back to the
+market, and the automation looks as if it had done nothing.
 
-**Nur Mythics kommen auf diese Seite** (gemessen 2026-09-11 auf einem Konto mit
-sechs getragenen legendaeren und epischen Teilen): mit gueltiger
-``id_member_armor_equipped`` eines legendaeren Teils landet der Aufruf in
-**beiden** Parameterformen auf ``/shop.html``, und ``item_to_upgrade`` bleibt
-ungesetzt. Ein Vorschlag, stattdessen die getragenen nicht-mythischen Teile
-hochzuleveln, hat also keinen Endpunkt hinter sich.
+**Only mythics reach that page** (measured 2026-09-11 on an account with six
+worn legendary and epic pieces): with a valid ``id_member_armor_equipped`` of a
+legendary piece the call lands on ``/shop.html`` in **both** parameter forms,
+and ``item_to_upgrade`` stays unset. A proposal to level the worn non-mythic
+pieces instead therefore has no endpoint behind it.
 
 ---
 
-## 4. Messfallen -- was NICHT funktioniert
+## 4. Measurement traps -- what does NOT work
 
-Alle drei Wege wurden mit einer Kontrolle geprueft (Tausch eines Lvl-20-Items
-gegen ein Lvl-1-Item, also 1900 Rohpunkte Unterschied pro Carac). Reagiert
-ein Messwert darauf nicht, kann er erst recht keine 2 % Resonanz zeigen.
+All three ways were checked with a control (swapping a level-20 item for a
+level-1 item, so 1900 raw points of difference per carac). A value that does not
+react to that certainly cannot show 2 % of resonance.
 
-| Messwert | reagiert auf Item-Level? | brauchbar? |
+| Measurement | reacts to the item level? | usable? |
 |---|---|---|
-| eigener Eintrag in ``opponents_list`` (Liga) | nein, Δ 0,00 % | nein, gecachter Schnappschuss |
-| ``action=team_calculate_caracs`` | nein, Δ 0,00 % | nein, ignoriert Spieler-Ausruestung komplett |
-| Anzeige auf ``/hero/profile.html`` | nein, Δ 0,00 % | nein, ebenfalls gecacht |
-| ``caracs``-Block der Equip-Antwort | **ja** | nur Eingangswerte, keine Resonanz |
+| your own entry in ``opponents_list`` (league) | no, Δ 0.00 % | no, a cached snapshot |
+| ``action=team_calculate_caracs`` | no, Δ 0.00 % | no, it ignores player equipment entirely |
+| the display on ``/hero/profile.html`` | no, Δ 0.00 % | no, cached as well |
+| the ``caracs`` block of the equip answer | **yes** | input values only, no resonance |
 
-Der ``caracs``-Block ist der einzige Wert, der sich mit der Ausruestung
-bewegt -- er enthaelt aber carac1/2/3, endurance und chance, also die
-*Eingangs*-Werte vor der Endberechnung. Die Resonanz sitzt laut Kinkoid genau
-dahinter („in the end calculation of stats") und taucht deshalb in keiner
-client-seitigen Zahl auf. Der Client **rechnet Resonanz nie selbst**,
-``shared.general.buildResonanceBonus()`` rendert nur den Tooltip.
+The ``caracs`` block is the only value that moves with the equipment -- but it
+holds carac1/2/3, endurance and chance, that is, the *input* values before the
+end calculation. According to Kinkoid the resonance sits behind exactly that
+("in the end calculation of stats") and therefore appears in no client-side
+number. The client **never calculates resonance itself**;
+``shared.general.buildResonanceBonus()`` only renders the tooltip.
 
-**Konsequenz fuer den Optimierer:** Er kann seinen eigenen Gewinn nicht
-nachmessen. Er muss aus den deklarierten ``resonance_bonuses`` rechnen und
-darf sich nicht auf eine Vorher/Nachher-Messung stuetzen.
+**The consequence for the optimiser:** it cannot measure its own gain. It has
+to compute from the declared ``resonance_bonuses`` and must not rely on a
+before/after measurement.
 
-### `item_to_upgrade.level` bewegt sich nicht
+### `item_to_upgrade.level` does not move
 
-Auf der Upgrade-Seite ist dieses Global ein Schnappschuss vom Seitenaufbau.
-Nach **neunzehn** erfolgreichen Level-ups stand dort immer noch `1`. Eine
-Abbruchbedingung, die daran haengt, greift nie -- der erste Lauf endete nur
-deshalb, weil das Spiel bei Level 20 von selbst wegnavigierte. Das Level muss
-aus dem Ladewert plus den ausgefuehrten Schritten gezaehlt werden.
+On the upgrade page that global is a snapshot from the page build. After
+**nineteen** successful level-ups it still stood at `1`. A stop condition that
+hangs on it never fires -- the first run only ended because the game navigated
+away by itself at level 20. The level has to be counted from the loaded value
+plus the steps performed.
 
-Querverweis: [live-verification-lessons.md](live-verification-lessons.md).
-
----
-
-## 5. Was ein Optimierer tun muesste
-
-**Zielfunktion.** Summe der *aktiven* Resonanzen, also je Item:
-
-- ``class``-Bonus zaehlt, wenn ``identifier == Heldenklasse``
-- ``theme``-Bonus zaehlt, wenn ``identifier == Theme des aktuellen Teams``
-  (``null`` matcht ein Balanced-Team)
-
-Beide Achsen unabhaengig, Boni werden aufsummiert (offiziell).
-
-**Nebenbedingungen.**
-
-- Ein Item pro Slot (``skin.subtype`` 1..6), nur aus dem eigenen Bestand.
-- **Nie Rohwerte gegen Resonanz tauschen.** Ein Lvl-1-Item statt Lvl-20
-  kostet 1900 Rohpunkte pro Carac fuer maximal 2 Prozentpunkte Bonus. Nur
-  Items gleicher Stufe gegeneinander tauschen.
-- Zielgroesse pro Item aus den Daten lesen (siehe Abschnitt 1); ob ``damage``
-  mehr wert ist als ``ego`` oder ``defense``, ist eine Gewichtungsfrage, die
-  der Optimierer offenlegen sollte.
-
-> **Historisch.** Dieser Abschnitt beschreibt den Planungsstand *vor* dem
-> Bau. Die Gewichtungsfrage im letzten Punkt wurde nicht beantwortet, sondern
-> **verworfen**: zwei Statmodelle sind daran gescheitert, und Abschnitt 5a
-> ersetzt sie durch Prioritaetenstufen. Was dort steht, gilt.
-
-**Reihenfolge: erst das Team, dann die Items.** Das Theme des Teams entscheidet,
-welche Theme-Resonanzen aktiv sind -- die Abhaengigkeit laeuft also vom Team zur
-Ausruestung und nicht umgekehrt. Der Optimierer haengt hinten an:
-
-```
-1. Team bauen        (TeamBuilderService + TeamEvaluationService)
-2. Theme ablesen     (>= 3 Girls eines Elements, sonst Balanced)
-3. Items darauf ausrichten
-```
-
-Das ist nicht nur die einfachere Reihenfolge, sondern unter der bestehenden
-Unsicherheit auch die sichere: Der Item-Schritt ist ein **reiner Gewinn ohne
-Gegenwert** -- Items gleicher Stufe haben identische Rohwerte, ein Tausch
-kostet also nichts, egal wie stark die Resonanz am Ende wirkt. Das Team
-umgekehrt an die Ausruestung anzupassen wuerde bedeuten, **gemessene** Rohstaerke
-gegen einen **nicht messbaren** Bonus einzutauschen. Das waere eine Wette.
-
-Wann sich die gemeinsame Optimierung trotzdem lohnen koennte: wenn der Builder
-zwei Teams als praktisch gleichwertig ausweist (innerhalb der
-Kandidaten-Fenster von 10 %) und der Spieler fuer eines der beiden Themes ein
-vollstaendiges 6-Slot-Set besitzt. Dann ist die Theme-Wahl gratis und die
-Resonanz der Tiebreak. Voraussetzung bleibt, dass jemand die Effektgroesse
-kennt (siehe Abschnitt 6).
-
-Ein Theme ist ohnehin nur voll nutzbar, wenn passende Items fuer **alle sechs
-Slots** vorhanden sind. Beispiel vom Messtag (mythic Lvl 20 im Inventar des
-Testaccounts):
-
-```
-sun 13 (alle 6 Slots)   fire 13 (kein Slot 4)   darkness 12 (kein Slot 5)
-water 10 (kein Slot 2)  psychic 8   Balanced 8   light 7
-nature 7 (kein Slot 5)  stone 2
-```
-
-Nur *sun* war auf allen sechs Slots bedienbar; das nature-Team des Messtags
-liess sich zu 4/6 bedienen (Slot 5 fehlt, Slot 2 nur mit Klassenverlust).
+Cross-reference: [live-verification-lessons.md](live-verification-lessons.md).
 
 ---
 
-## 5a. Was davon gebaut ist
+## 5. What an optimiser would have to do
 
-`Service/EquipmentOptimizerService.ts` (Rangfolge) und
-`Service/EquipmentUpgradeService.ts` (Ausbau) sind rein und testbar,
-`Module/EquipmentGear.ts` macht die unreine Haelfte -- Globals lesen,
-paginieren, Vorschau, Ajax. Alle drei Schritte stehen:
+**The objective.** The sum of the *active* resonances, per item:
 
-| Button | entspricht | Auswahl |
+- the ``class`` bonus counts when ``identifier == the hero's class``
+- the ``theme`` bonus counts when ``identifier == the current team's theme``
+  (``null`` matches a Balanced team)
+
+Both axes independently, and the bonuses are summed (official).
+
+**Constraints.**
+
+- One item per slot (``skin.subtype`` 1..6), only from your own stock.
+- **Never trade raw values for resonance.** A level-1 item instead of level-20
+  costs 1900 raw points per carac for at most 2 percentage points of bonus.
+  Only swap items of the same tier against each other.
+- Read the target value per item from the data (see section 1); whether
+  ``damage`` is worth more than ``ego`` or ``defense`` is a weighting question
+  the optimiser should state openly.
+
+> **Historic.** This section describes the planning state *before* the build.
+> The weighting question in the last point was not answered but **rejected**:
+> two stat models failed on it, and section 5a replaces them with priority
+> tiers. What stands there applies.
+
+**Order: the team first, the items second.** The team's theme decides which
+theme resonances are active -- so the dependency runs from the team to the
+equipment and not the other way round. The optimiser hangs on at the end:
+
+```
+1. build the team    (TeamBuilderService + TeamEvaluationService)
+2. read the theme    (>= 3 girls of one element, otherwise Balanced)
+3. align the items with it
+```
+
+That is not only the simpler order but, under the existing uncertainty, the
+safe one: the item step is a **pure gain at no cost** -- items of the same tier
+have identical raw values, so a swap costs nothing, however strongly the
+resonance works in the end. Adapting the team to the equipment instead would
+mean trading **measured** raw strength for a **not measurable** bonus. That
+would be a bet.
+
+When joint optimisation might pay off anyway: when the builder rates two teams
+as practically equal (within the 10 % candidate window) and the player owns a
+complete 6-slot set for one of the two themes. Then the choice of theme is free
+and the resonance is the tiebreak. It still requires somebody to know the size
+of the effect (see section 6).
+
+A theme is only fully usable when matching items exist for **all six slots**.
+An example from the measurement day (mythic level 20 in the test account's
+inventory):
+
+```
+sun 13 (all 6 slots)    fire 13 (no slot 4)     darkness 12 (no slot 5)
+water 10 (no slot 2)    psychic 8   Balanced 8  light 7
+nature 7 (no slot 5)    stone 2
+```
+
+Only *sun* could be served on all six slots; the nature team of the measurement
+day could be served 4/6 (slot 5 missing, slot 2 only with a loss of class).
+
+---
+
+## 5a. What of it is built
+
+`Service/EquipmentOptimizerService.ts` (the ranking) and
+`Service/EquipmentUpgradeService.ts` (the levelling) are pure and testable,
+`Module/EquipmentGear.ts` does the impure half -- reading globals, paginating,
+the preview, ajax. All three steps are in place:
+
+| Button | corresponds to | Selection |
 |---|---|---|
-| Current Best Gear | Team 2a | Prioritaetenstufe nach heutigem Stand |
-| Possible Best Gear | Team 2b | Prioritaetenstufe nach Stand bei Level 20 |
-| Upgrade Gear | Team 3 | angelegte Mythics unter Level 20, beste Stufe zuerst |
+| Current Best Gear | team 2a | priority tier by today's state |
+| Possible Best Gear | team 2b | priority tier by the state at level 20 |
+| Upgrade Gear | team 3 | equipped mythics below level 20, the best tier first |
 
-### Die Wertung: Prioritaetenstufen, kein Statscore (2026-08-17)
+### The scoring: priority tiers, not a stat score (2026-08-17)
 
-Zwei Statmodelle wurden gebaut und beide empfahlen, Mythics gegen
-Legendaries zu tauschen -- erst eine flache Carac-Summe (die ein Legendary
-mit 43.301 Endurance und null auf allem anderen gewinnen liess), dann ein
-Produkt aus Klassen-Carac und Endurance. Entschieden hat ein Crawl der
-gesamten Liga ueber `/hero/<id_member>/profile.html`, wo `hero_items` fuer
-**jeden** Spieler lesbar ist:
+Two stat models were built and both recommended trading mythics for
+legendaries -- first a flat carac sum (which let a legendary with 43,301
+endurance and zero on everything else win), then a product of the class carac
+and endurance. What decided it was a crawl of the whole league through
+`/hero/<id_member>/profile.html`, where `hero_items` is readable for **every**
+player:
 
 ```
-99 Spieler, 594 Slots:   mythic 582   legendary 12
-576 der 582 Mythics auf Level 20
-95 von 99 Spielern tragen 6/6 mythic; die Top 25 ausnahmslos
-die vier mit Legendaries stehen auf Platz 49, 60, 80, 95
+99 players, 594 slots:   mythic 582   legendary 12
+576 of the 582 mythics at level 20
+95 of 99 players wear 6/6 mythic; the top 25 without exception
+the four with legendaries stand at rank 49, 60, 80, 95
 ```
 
-Ein Score, der dem widerspricht, ist falsch, wie gut er auch begruendet ist.
-Und er ist hier auch nicht reparierbar: die theme-Achse zielt in **allen 582
-Faellen** auf `defense` oder `chance` -- genau die beiden Groessen, die
-client-seitig nicht messbar sind.
+A score that contradicts that is wrong, however well argued. And it is not
+repairable here either: the theme axis targets `defense` or `chance` in **all
+582 cases** -- exactly the two values that cannot be measured client-side.
 
-Die Rangfolge kodiert deshalb, was starke Spieler tun:
+The ranking therefore encodes what strong players do:
 
-| Stufe | Bedingung |
+| Tier | Condition |
 |---|---|
-| 1 | Mythic auf Level 20, Klasse **und** Theme passend |
-| 2 | Mythic auf Level 20, Klasse passend |
-| 3 | Mythic auf Level 20, Theme passend |
-| 4 | Mythic auf Level 20 |
-| 5 | alles andere -- nach Stats, dann Resonanz |
+| 1 | mythic at level 20, class **and** theme matching |
+| 2 | mythic at level 20, class matching |
+| 3 | mythic at level 20, theme matching |
+| 4 | mythic at level 20 |
+| 5 | everything else -- by stats, then resonance |
 
-**Level 20 bedeutet je nach Button etwas anderes.** „Possible Best"
-projiziert, dort qualifiziert ein ungelevelltes Mythic sofort fuer Stufe 1-4;
-bei Level 20 haben alle Mythics eines Slots ohnehin identische Caracs
-(gemessen: ein einziges Tupel `4000/4000/4000/4000/5000` ueber alle 576
-Slots), weshalb dieser Button gar keine Statrechnung braucht. „Current Best"
-urteilt ueber heute, dort faellt ein ungelevelltes Mythic auf Stufe 5 und
-konkurriert mit seinen echten Werten -- sonst wuerde ein Level-1-Mythic
-(11.500 Carac-Punkte) ein Legendary auf Spielerlevel (~18.600) verdraengen.
+**Level 20 means something different per button.** "Possible Best" projects, so
+there an unlevelled mythic qualifies for tiers 1-4 at once; at level 20 all
+mythics of a slot have identical caracs anyway (measured: one single tuple
+`4000/4000/4000/4000/5000` across all 576 slots), which is why that button
+needs no stat calculation at all. "Current Best" judges today, so there an
+unlevelled mythic falls to tier 5 and competes with its real values --
+otherwise a level-1 mythic (11,500 carac points) would displace a legendary at
+player level (~18,600).
 
-**Gleichstand innerhalb einer Stufe** entscheidet die Groesse der Resonanz.
-Die class-Achse zahlt immer 2 pp, die theme-Achse 4 pp auf der
-Chance-Schiene und 2 pp auf defense (279 gegen 297 der 576 Slots). Zwei
-Stufe-1-Items koennen also 6 pp oder 4 pp wert sein.
+**A tie within a tier** is decided by the size of the resonance. The class axis
+always pays 2 pp, the theme axis 4 pp on the chance track and 2 pp on defense
+(279 against 297 of the 576 slots). Two tier-1 items can therefore be worth
+6 pp or 4 pp.
 
-**Stufe 5** ordnet nach dem geometrischen Mittel ueber die vier Achsen
-(Klassen-Carac, Nebencaracs, Endurance, Chance). Das ist ausdruecklich eine
-Heuristik und keine Messung -- sie kodiert nur „ausgewogen schlaegt
-einseitig" und verhindert, dass ein Mono-Stat-Item gewinnt. Legendaries
-tragen ueberhaupt keine Resonanz: von den 12 Legendary-Slots der Liga hatte
-keiner einen class- oder theme-Bonus.
+**Tier 5** orders by the geometric mean over the four axes (class carac,
+secondary caracs, endurance, chance). That is explicitly a heuristic and not a
+measurement -- it only encodes "balanced beats lopsided" and prevents a
+mono-stat item from winning. Legendaries carry no resonance at all: of the 12
+legendary slots in the league, none had a class or theme bonus.
 
-Gegenprobe am Messaccount: beide Buttons melden **„nothing to change"** --
-vier Slots Stufe 1, zwei Slots Stufe 2 (fuer Slot 2 und 5 besitzt der
-Account kein nature-Mythic).
+A counter-check on the measurement account: both buttons report **"nothing to
+change"** -- four slots at tier 1, two slots at tier 2 (for slots 2 and 5 the
+account owns no nature mythic).
 
-### Wie Upgrade Gear das benutzt
+### How Upgrade Gear uses it
 
-Der Ablauf faehrt bewusst ueber die Spielseite statt ueber einen eigenen
-Ajax-Aufruf: Warteschlange schreiben, zur Upgrade-Seite des ersten Ziels
-navigieren, dort „Auto Select" und „Level-up" druecken, bis das Spiel den
-Level-up-Knopf nicht mehr freigibt, dann zum naechsten Ziel.
+The flow deliberately goes through the game page instead of an ajax call of its
+own: write the queue, navigate to the upgrade page of the first target, press
+"Auto Select" and "Level-up" there until the game stops enabling the level-up
+button, then on to the next target.
 
-Der Grund steht oben -- die Kostenkurve ist aus ihren eigenen Zahlen nicht
-herleitbar (20 fuer 1->2, 23 fuer 2->3, aber 1.555 insgesamt ab Level 1; keine
-arithmetische Reihe durch diese Punkte ergibt das). „Auto Select" waehlt das
-Material nach den Regeln des Spiels, und der Level-up-Knopf ist genau dann
-aktiv, wenn der Bedarf gedeckt ist. Ein deaktivierter Knopf **ist** die
-Aussage „Material alle" -- der Automat zaehlt nichts selbst nach.
+The reason stands above -- the cost curve cannot be derived from its own numbers
+(20 for 1->2, 23 for 2->3, but 1,555 in total from level 1; no arithmetic
+series through those points produces it). "Auto Select" picks the material by
+the game's rules, and the level-up button is active exactly when the need is
+covered. A disabled button **is** the statement "material exhausted" -- the
+automation counts nothing itself.
 
-Sicherungen: Die Automatik tut nichts, solange die Warteschlange leer ist
-(live geprueft: null Aufrufe). Stimmt `item_to_upgrade.id_member_armor` nicht
-mit dem Kopf der Warteschlange ueberein, bricht sie ab, ohne etwas
-auszugeben. Und es gilt eine harte Obergrenze von 30 Leveln je Seitenaufruf,
-weil jedes Level Geld und Material kostet.
+Safeguards: the automation does nothing while the queue is empty (checked live:
+zero calls). If `item_to_upgrade.id_member_armor` does not match the head of the
+queue, it aborts without spending anything. And a hard limit of 30 levels per
+page load applies, because every level costs money and material.
 
-### Material fuer Upgrade Gear
+### Material for Upgrade Gear
 
-**Mythics sind niemals Material.** Keine Ausnahme fuer Dopplungen, keine fuer
-„richtiges Theme bei falscher Klasse", keine fuer verdraengte Items.
-Verbraucht werden nur Legendaries und Epics -- im Testinventar 1.169 und 341
-Stueck gegenueber 104 Mythics.
+**Mythics are never material.** No exception for duplicates, none for "right
+theme, wrong class", none for displaced items. Only legendaries and epics are
+consumed -- in the test inventory 1,169 and 341 pieces against 104 mythics.
 
-Das loest nebenbei den Zielkonflikt aus dem urspruenglichen Prompt auf: Items
-mit richtigem Theme bei falscher Klasse sind jetzt Stufe 3 und werden
-angelegt, statt zugleich Brennstoff sein zu sollen.
+That also resolves the conflict of goals from the original prompt: items with
+the right theme and the wrong class are tier 3 now and get equipped, instead of
+being fuel at the same time.
 
-Die Sicherheitsregel „nie ein angelegtes Item verbrauchen" bleibt trotzdem
-noetig, nur mit anderem Ziel: Wenn ein Slot kein Mythic hat, legt Stufe 5 ein
-Legendary an -- und genau das darf der Upgrade-Schritt dann nicht einschmelzen.
+The safety rule "never consume an equipped item" is still needed, only with a
+different aim: when a slot has no mythic, tier 5 equips a legendary -- and that
+is exactly what the upgrade step must not melt down.
 
-### Der Upgrade-Endpunkt (gemessen 2026-08-17)
+### The upgrade endpoint (measured 2026-08-17)
 
-Er steckt nicht in `shop.js` oder `shared.js`, weil er auf einer **eigenen
-Seite** liegt:
+It is not in `shop.js` or `shared.js`, because it lives on a **page of its
+own**:
 
 ```
 /mythic-equipment-upgrade.html?id_member_item=<id_member_armor>
 ```
 
-Der „Level-up"-Knopf auf `shop.html` navigiert nur dorthin -- er sendet
-nichts. Auf der Zielseite liegen die Globals `item_to_upgrade`,
-`next_level_item`, `materials_items` (100 pro Seite) und
-`upgradeable_item_max_level` (= 20).
+The "Level-up" button on `shop.html` only navigates there -- it sends nothing.
+On the target page live the globals `item_to_upgrade`, `next_level_item`,
+`materials_items` (100 per page) and `upgradeable_item_max_level` (= 20).
 
-**Der Aufruf:**
+**The call:**
 
 ```
 action=mythic_armor_level_up
-items_data[0][item_ids][]  = <id_member_armor>   (wiederholt, ein Eintrag je Material)
+items_data[0][item_ids][]  = <id_member_armor>   (repeated, one entry per material)
 items_data[0][rarity]      = epic
-id_member_item             = <das Item, das steigen soll>
+id_member_item             = <the item that should rise>
 is_armor_equipped          = false
 ```
 
-Die Gruppierung `items_data[0]` mit eigener `rarity` legt nahe, dass mehrere
-Seltenheitsgruppen in einem Aufruf gehen (`[1]`, `[2]`, ...); gemessen wurde
-nur eine. `is_armor_equipped` zeigt, dass das Spiel auch angelegte Items
-aufwerten laesst.
+The grouping `items_data[0]` with its own `rarity` suggests that several rarity
+groups fit into one call (`[1]`, `[2]`, ...); only one was measured.
+`is_armor_equipped` shows that the game also lets equipped items be upgraded.
 
-**Die Antwort:**
+**The answer:**
 
 ```json
 {"hero_updates":{"currency":{"soft_currency": 34299666244}},
@@ -418,117 +408,111 @@ aufwerten laesst.
  "success":true}
 ```
 
-`next_level_item` ist die *naechste* Stufe, nicht die erreichte. Nach dem
-Aufruf stand das Item auf Level 2 und `next_level_item.level` auf 3.
+`next_level_item` is the *next* tier, not the one reached. After the call the
+item stood at level 2 and `next_level_item.level` at 3.
 
-**Kosten, an einem echten Aufruf gemessen** (Eyepatch, mythic, Level 1 -> 2):
+**Costs, measured on a real call** (Eyepatch, mythic, level 1 -> 2):
 
 | | |
 |---|---|
-| Geld | 1.000.000 (soft currency), exakt |
+| Money | 1,000,000 (soft currency), exactly |
 | Kobans | 0 |
-| Material | 7 Items, alle `epic` |
-| Materialbedarf laut UI | „Until lvl.2: 20", danach „Until lvl.3: 23" |
-| Restbedarf bis Level 20 | 1.555 vor dem Schritt, 1.535 danach |
+| Material | 7 items, all `epic` |
+| Material need per the UI | "Until lvl.2: 20", then "Until lvl.3: 23" |
+| Remaining need to level 20 | 1,555 before the step, 1,535 after |
 
-Die 7 Items deckten einen Bedarf von 20 -- Material zaehlt also **nicht nach
-Stueck, sondern nach Gewicht**. Plausibelster Traeger ist `skin.weight`, das
-in der Materialliste Werte 1, 3, 5 und 6 annimmt (*vermutet*, nicht
-nachgerechnet).
+The 7 items covered a need of 20 -- material therefore counts **not by piece
+but by weight**. The most plausible carrier is `skin.weight`, which takes the
+values 1, 3, 5 and 6 in the material list (*suspected*, not recomputed).
 
-**Bei Level 20 leitet die Seite um.** Ein Aufruf fuer ein Item am Cap landet
-wortlos auf `/shop.html`. Genau deshalb erreicht eine Automatik, die bis zum
-Cap laeuft, ihr eigenes Aufraeumen nicht -- sie wird mitten im Lauf von der
-Seite geworfen.
+**At level 20 the page redirects.** A call for an item at the cap lands
+silently on `/shop.html`. That is exactly why an automation that runs to the
+cap never reaches its own cleanup -- it is thrown off the page mid-run.
 
-**Eine Stufe unter dem Cap steht die Bedarfszeile doppelt.** Auf Level 19
-druckt die Seite zweimal „Until lvl.20: 204", weil naechste Stufe und Cap
-dieselbe sind. Ein Parser, der die erste Zeile als „naechste Stufe" und die
-20er-Zeile als „bis zum Cap" liest, muss beide aus demselben Treffer bedienen
-koennen.
+**One tier below the cap the need line stands twice.** At level 19 the page
+prints "Until lvl.20: 204" twice, because the next tier and the cap are the
+same. A parser that reads the first line as "next tier" and the 20 line as "to
+the cap" has to serve both from the same hit.
 
-**Was das praktisch bedeutet:** Ein Mythic von 1 auf 20 kostet rund 1.555
-Materialpunkte. Der Testaccount besitzt 1.169 Legendaries und 341 Epics --
-also ungefaehr ein komplettes Inventar pro Item. Nicht das Geld ist die
-Schranke (34,3 Mrd. vorhanden), sondern das Material. Ein „Upgrade
-Gear"-Button sollte deshalb vorrechnen, wie weit der Bestand ueberhaupt
-reicht, statt blind zu starten.
+**What that means in practice:** a mythic from 1 to 20 costs around 1,555
+material points. The test account owns 1,169 legendaries and 341 epics -- so
+roughly one full inventory per item. The limit is not the money (34.3 billion
+available), it is the material. An "Upgrade Gear" button should therefore work
+out in advance how far the stock reaches, instead of starting blindly.
 
-Nebenbei live bestaetigt: die Resonanz stieg mit dem Level von 0,1 auf 0,2
-Prozentpunkte, exakt die 0,1 pro Level aus Abschnitt 2.
+Confirmed live along the way: the resonance rose with the level from 0.1 to 0.2
+percentage points, exactly the 0.1 per level from section 2.
 
-Das Pagineren des Inventars nutzt `{action:'market_get_armor',
-id_member_armor}` und erwartet `{items: [...], success}`; leere `items`
-beenden die Liste. Das ist derselbe Vertrag, auf dem `Shop.ts`
-(`checkAjaxComplete`) schon laeuft. Live nachgemessen 2026-09-11: mit der
-letzten ID der ersten Inventarseite (65 Teile) antwortet der Aufruf
-`{items: [], success: true}`.
+Paginating the inventory uses `{action:'market_get_armor', id_member_armor}`
+and expects `{items: [...], success}`; empty `items` end the list. That is the
+same contract `Shop.ts` (`checkAjaxComplete`) already runs on. Measured live
+2026-09-11: with the last ID of the first inventory page (65 pieces) the call
+answers `{items: [], success: true}`.
 
 ---
 
-## 6. Offen
+## 6. Open
 
-- Wie gross der Effekt praktisch ist -- client-seitig nicht messbar (s.o.).
-- Ob die Theme-Achse dieselbe Schwelle benutzt wie das Domination-System
-  (gemessen: ``theme_elements`` ist ab 3 Girls eines Elements gesetzt, sonst
-  leer = Balanced). Plausibel, aber fuer die Resonanz nicht bestaetigt.
-- Ob Girl- und Spieler-Resonanzen in denselben Topf laufen. Der
-  Recruit-Artikel sagt, die Boni der Girl-Ausruestung im aktuellen Team
-  gehen „to the Hero in the end calculation" -- also vermutlich ja.
-- Wie Material genau gewichtet wird. Sieben Epics deckten einen Bedarf von
-  20, `skin.weight` nimmt Werte 1, 3, 5, 6 an -- plausibel, aber nicht
-  nachgerechnet. Die Automatik braucht es nicht: sie liest den Bedarf von der
-  Seite und laesst „Auto Select" waehlen.
-- Was ein Level jenseits des ersten kostet. Gemessen ist nur 1 -> 2 mit
-  1.000.000 Geld; ein Lauf von 1 auf 20 verbrauchte 1.206 Items
-  (alle 334 Epics und 872 Legendaries).
+- How large the effect is in practice -- not measurable client-side (see above).
+- Whether the theme axis uses the same threshold as the domination system
+  (measured: ``theme_elements`` is set from 3 girls of one element on,
+  otherwise empty = Balanced). Plausible, but not confirmed for the resonance.
+- Whether girl and player resonances go into the same pot. The recruit article
+  says the bonuses of the girl equipment in the current team go "to the Hero in
+  the end calculation" -- so probably yes.
+- Exactly how material is weighted. Seven epics covered a need of 20, and
+  `skin.weight` takes the values 1, 3, 5, 6 -- plausible, but not recomputed.
+  The automation does not need it: it reads the need off the page and lets
+  "Auto Select" choose.
+- What a level beyond the first costs. Only 1 -> 2 is measured, with 1,000,000
+  money; a run from 1 to 20 consumed 1,206 items (all 334 epics and 872
+  legendaries).
 
 ---
 
-## Girl-Ausruestung (gemessen 2026-09-01)
+## Girl equipment (measured 2026-09-01)
 
-Die Recruit-Seite ist eigenstaendig gemessen, nicht aus der Spieler-Ausruestung
-abgeleitet. Am 2026-09-11 nicht nachgemessen: auf den Ausruestungsreitern von
-drei ausgeruesteten Maedchen des Pruefkontos fand sich kein Link zur
-Upgrade-Seite.
+The recruit page was measured on its own, not derived from the player
+equipment. Not measured again on 2026-09-11: on the equipment tabs of three
+equipped girls of the test account there was no link to the upgrade page.
 
-**Achsen.** Ein mythisches Girl-Item traegt **drei** Resonanzen, ein legendaeres
-**zwei**:
+**Axes.** A mythic girl item carries **three** resonances, a legendary one
+**two**:
 
-| Achse | matcht gegen | Beispiel (gemessen) |
+| Axis | matches against | Example (measured) |
 |---|---|---|
 | `class` | `girl.class` | `{identifier: "3", resonance: "ego", bonus: 0.5}` |
 | `element` | `girl.element` | `{identifier: "sun", resonance: "defense", bonus: 0.5}` |
-| `figure` | `girl.figure` | `{identifier: "11", resonance: "damage", bonus: 0.5}` -- nur mythic |
+| `figure` | `girl.figure` | `{identifier: "11", resonance: "damage", bonus: 0.5}` -- mythic only |
 
-Getroffen wird je Achse einzeln: das gemessene Teil sass auf Bunny (class 1,
-element sun, figure 1) und traf nur die Element-Achse.
+Each axis is hit individually: the measured piece sat on Bunny (class 1,
+element sun, figure 1) and hit only the element axis.
 
-**Das Level treibt den Bonus.** Dasselbe mythische Teil, nur hochgestuft:
+**The level drives the bonus.** The same mythic piece, only upgraded:
 
-| Level | Bonus je Achse | caracs | Ego |
+| Level | Bonus per axis | caracs | Ego |
 |---|---|---|---|
-| 1 | 0,05 | 30/30/30 | 45 |
-| 10 | 0,50 | 300/300/300 | 450 |
+| 1 | 0.05 | 30/30/30 | 45 |
+| 10 | 0.50 | 300/300/300 | 450 |
 
-Legendaer auf Level 1: 0,04 je Achse, 26/26/26, Ego 39.
+Legendary at level 1: 0.04 per axis, 26/26/26, ego 39.
 
-**Maximallevel ist 10** (`upgradeable_item_max_level`), nicht 20 wie bei der
-Spieler-Ausruestung.
+**The maximum level is 10** (`upgradeable_item_max_level`), not 20 as with
+player equipment.
 
-**Kosten** (`material_costs_map`, Wert je Zielstufe):
+**Costs** (`material_costs_map`, the value per target tier):
 
-| Ziel | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+| Target | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|
-| Wert | 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45 | 50 |
+| Value | 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45 | 50 |
 
-Summe 1 -> 10: **270**. Ein voll bestuecktes Team (7 Maedchen x 6 Slots) kostet
-damit 11.340 Materialwert.
+The sum 1 -> 10: **270**. A fully equipped team (7 girls x 6 slots) therefore
+costs 11,340 of material value.
 
-**Materialwert** (`materials_per_rarity`), Wert eines Futter-Teils nach dessen
-Seltenheit und eigenem Level:
+**Material value** (`materials_per_rarity`), the value of a feeder piece by its
+rarity and its own level:
 
-| Seltenheit | Lv1 | Lv5 | Lv10 |
+| Rarity | Lv1 | Lv5 | Lv10 |
 |---|---|---|---|
 | common | 1 | 8 | 28 |
 | rare | 1 | 15 | 55 |
@@ -536,21 +520,20 @@ Seltenheit und eigenem Level:
 | legendary | 2 | 30 | 110 |
 | mythic | 3 | 38 | 138 |
 
-Anders als bei der Spieler-Ausruestung ist die Gewichtung hier also
-client-seitig bekannt und nachrechenbar.
+Unlike with the player equipment, the weighting here is known client-side and
+can be recomputed.
 
-**Aufruf** (ein POST = eine Stufe):
+**The call** (one POST = one tier):
 
 ```
 action=girl_equipment_level_up
-id_girl_armor_equipped=<getragenes Teil>
-materials_ids[]=<id_girl_armor>   (mehrfach)
+id_girl_armor_equipped=<the worn piece>
+materials_ids[]=<id_girl_armor>   (repeated)
 ```
 
-Antwort: `hero_updates.currency.soft_currency` und `next_level_item` -- das Teil
-auf der naechsten Stufe, mit `level`, `caracs`, `armor`, `skin`.
+The answer: `hero_updates.currency.soft_currency` and `next_level_item` -- the
+piece at the next tier, with `level`, `caracs`, `armor`, `skin`.
 
-**Falle.** `materials_items` haelt immer nur **100 Stueck**; die Liste laedt beim
-Scrollen nach. Wer nur das erste Paket liest, haelt den Vorrat fuer erschoepft --
-gemessen half ein Reload der Seite nach jeder Stufe.
-
+**A trap.** `materials_items` only ever holds **100 pieces**; the list loads
+more on scrolling. Whoever reads only the first batch takes the stock for
+exhausted -- measured, a reload of the page after every tier helped.

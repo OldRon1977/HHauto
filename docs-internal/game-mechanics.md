@@ -6,111 +6,121 @@ sources:
   - INPUT/Your Performance Handbook!*.pdf (Slynia, 2021-11-20+)
   - INPUT/Which elements are the strongest_*.pdf (Master-17 / community thread, 2022-09-08+)
   - https://kinkoid.com/bdsm/
-  - HHAuto Code (BDSMHelper.ts, TeamScoringService.ts)
+  - HHAuto code (BDSMHelper.ts, TeamScoringService.ts)
 ---
 
-# Game Mechanics: BDSM (Battles, Development, Strategy and Mechanics)
+# Game mechanics: BDSM (Battles, Development, Strategy and Mechanics)
 
-Spielmechaniken-Referenz fuer das HentaiHeroes-BDSM-System.
-Konsolidiert aus Community-Quellen und Code-Verifikation. Ergaenzt die HHAuto-eigenen Algorithmus-Dokus.
+A reference for the HentaiHeroes BDSM system, consolidated from community
+sources and verified against the code. It complements HHauto's own algorithm
+docs.
 
-## Quellen
+## Sources
 
-| Quelle | Inhalt |
+| Source | Content |
 |--------|--------|
-| Slynias Performance Handbook (2021-11-20) | Stat-Formeln, Synergien, Counter-Bonus-Schema, Equipment-Hinweise |
-| "Which elements are the strongest" Forum-Thread (2022-09-08) | Tier-Liste der Elemente aus Spieler-Statistiken |
-| Kinkoid BDSM-Spec | Offizielle Mechanik-Beschreibung |
-| HHAuto Code (Helper/BDSMHelper.ts, Service/TeamScoringService.ts) | Implementierte Werte fuer Validation |
+| Slynia's Performance Handbook (2021-11-20) | stat formulas, synergies, the counter bonus scheme, equipment notes |
+| The "Which elements are the strongest" forum thread (2022-09-08) | an element tier list from player statistics |
+| The Kinkoid BDSM spec | the official description of the mechanics |
+| HHauto code (Helper/BDSMHelper.ts, Service/TeamScoringService.ts) | the implemented values, for validation |
 
-Kinkoid hat seit 2021 mehrfach Anpassungen am System gemacht (Awakening 2021-11-17, neue Skills, neue Elemente). Die Inhalte sind auf den Stand 2026-05-06 gegen die HHAuto-Implementierung querverifiziert; Werte die das Spiel intern aendert (z.B. genaue Domination-Multiplier) koennen aktueller sein als hier dokumentiert.
+Kinkoid has adjusted the system several times since 2021 (awakening
+2021-11-17, new skills, new elements). The contents are cross-verified against
+the HHauto implementation as of 2026-05-06; values the game changes internally
+(the exact domination multipliers, say) can be more current than documented
+here.
 
 ---
 
-## 1. Performance-Grundlagen
+## 1. Performance basics
 
-Eine "Performance" ist ein 1v1-Kampf zwischen zwei Spielern (oder Spieler vs. NPC).
-Ablauf:
+A "performance" is a 1v1 fight between two players (or player against NPC).
+The flow:
 
-1. Angreifer (Klick auf "Perform!") schlaegt zuerst zu
-2. Verteidiger schlaegt zurueck
-3. Wechsel bis Ego einer Seite auf 0 ist
-4. Erstschlagsrecht ist signifikant - jeder Hit kann durch Crit verdoppelt werden
+1. the attacker (who clicked "Perform!") strikes first
+2. the defender strikes back
+3. alternating until one side's ego is at 0
+4. striking first matters -- every hit can be doubled by a crit
 
-Maximales Team: bis zu 7 Girls (vor BDSM-Update 2021-07-21 waren es 3).
+The maximum team: up to 7 girls (before the BDSM update of 2021-07-21 it was
+3).
 
 ---
 
 ## 2. Stats
 
-### Vier Kern-Stats
+### The four core stats
 
-| Stat | Bedeutung | Beeinflusst |
+| Stat | Meaning | Affects |
 |------|-----------|-------------|
-| Damage / Attack Power | Pro-Hit-Schaden, reduziert um Defense | Hauptangriff |
-| Defense | Schadensreduktion pro Hit | Schadensvermeidung |
-| Ego | HP / Lebenspunkte | Ueberleben |
-| Harmony | Crit-Chance-Faktor | Crit-Chance gegen Gegner |
+| Damage / attack power | damage per hit, reduced by defense | the main attack |
+| Defense | damage reduction per hit | avoiding damage |
+| Ego | HP / hit points | survival |
+| Harmony | the crit chance factor | the crit chance against the opponent |
 
-### Hero-Stats und Klassen
+### Hero stats and classes
 
-| Player-Klasse (class-Wert) | Symbol | Hauptstat | Sekundaerstats |
+| Player class (class value) | Symbol | Main stat | Secondary stats |
 |------------------------------|--------|-----------|----------------|
-| 1 - Hardcore (HC) | rotes Schild | carac1 | carac2, carac3 |
-| 2 - Charm | Rose | carac2 | carac1, carac3 |
-| 3 - Know-How (KH) | gelbe Birne | carac3 | carac1, carac2 |
+| 1 - Hardcore (HC) | a red shield | carac1 | carac2, carac3 |
+| 2 - Charm | a rose | carac2 | carac1, carac3 |
+| 3 - Know-How (KH) | a yellow bulb | carac3 | carac1, carac2 |
 
-Nur der Haupt-Stat erhoeht **Damage** und **Endurance** (Endurance = +1 Ego pro Punkt). Die anderen zwei erhoehen Defense und Harmony.
+Only the main stat raises **damage** and **endurance** (endurance = +1 ego per
+point). The other two raise defense and harmony.
 
-### Stat-Punkte kaufen
+### Buying stat points
 
-Pro Level: 30 zusaetzliche Stat-Punkte pro Stat (max Level 500 -> 15.000 pro Stat = 45.000 total).
-Preis steigt mit jedem Kauf des selben Stats. Das Skript verwendet diesen Mechanismus in HeroHelper.doStatUpgrades() mit Multiplikatoren 1/10/30/60.
+Per level: 30 additional stat points per stat (max level 500 -> 15,000 per
+stat = 45,000 in total). The price rises with every purchase of the same stat.
+The script uses this mechanism in HeroHelper.doStatUpgrades() with the
+multipliers 1/10/30/60.
 
-**Gemessen 2026-09-11** (Pruefkonto, Level 115, ein Kauf von carac3 2541 -> 2542):
-die Antwort auf `hero_update_stats` nennt `statsPrices.base_stat` 575 und
-`statsPrices.max` 4025. 575 + 30 x 115 = 4025 -- die Obergrenze je Stat ist
-also Grundwert plus 30 je Level (aus dieser einen Messung geschlossen).
-Der Punkt kostete 6.173, den Kurvenwert der erreichten Stufe 2542;
-`statsPrices.prices.x1` (6.177) ist der Preis des **naechsten** Punkts.
-`shared.Hero.infos.carac3` blieb im laufenden Dokument bei 2541, erst nach dem
-Neuladen stand 2542. `doStatUpgrades` rechnet seit 8.13.1 jeden Punkt zum Wert
-der erreichten Stufe (`statBuyPrice`), nimmt die Grenze aus `statsPrices.max`,
-sobald eine Antwort da ist (davor `level * 30`, ohne den Grundwert), und zaehlt
-einen bestaetigten Kauf selbst hoch, weil das Spiel es im Dokument nicht tut.
-Den Kontostand uebernimmt es aus `currency.soft_currency` der Antwort:
-`Hero.update("soft_currency", -preis, true)` liess `currencies.soft_currency`
-gemessen unveraendert (31.809 ueber drei Kaeufe, das Spiel stand danach bei
-4.494), und der vierte Kauf ging ohne Deckung hinaus. Das Spiel beantwortete
-ihn nicht; die Sperre gegen unbestaetigte Kaeufe hielt die Schleife an.
-Mit dem Kontostand aus der Antwort nachgemessen: acht Kaeufe hintereinander,
-der mitgezaehlte Stand deckte sich mit jeder Antwort, und die Schleife hielt an,
-als der naechste Punkt die eingestellte Geldgrenze unterschritten haette.
+**Measured 2026-09-11** (test account, level 115, one purchase of carac3
+2541 -> 2542): the answer to `hero_update_stats` names `statsPrices.base_stat`
+575 and `statsPrices.max` 4025. 575 + 30 x 115 = 4025 -- the cap per stat is
+therefore the base value plus 30 per level (concluded from this one
+measurement). The point cost 6,173, the curve value of the level reached, 2542;
+`statsPrices.prices.x1` (6,177) is the price of the **next** point.
+`shared.Hero.infos.carac3` stayed at 2541 in the running document, and only
+after a reload did it read 2542. Since 8.13.1 `doStatUpgrades` prices every
+point at the value of the level it reaches (`statBuyPrice`), takes the cap from
+`statsPrices.max` as soon as an answer has arrived (before that `level * 30`,
+without the base value), and counts a confirmed purchase itself, because the
+game does not do so in the document. It takes the balance from
+`currency.soft_currency` of the answer: `Hero.update("soft_currency", -price,
+true)` left `currencies.soft_currency` unchanged when measured (31,809 across
+three purchases, while the game stood at 4,494 afterwards), and the fourth
+purchase went out without cover. The game did not answer it; the guard against
+unconfirmed purchases stopped the loop. Measured again with the balance from
+the answer: eight purchases in a row, the counted balance agreed with every
+answer, and the loop stopped when the next point would have gone below the
+configured money limit.
 
 ---
 
-## 3. Stat-Formeln (verifiziert per Performance Handbook)
+## 3. Stat formulas (verified against the Performance Handbook)
 
 ### Ego (HP)
 
 `
 Ego = Endurance + (2 * TeamPower)
 
-VOLL: (Endurance + (2 * TeamPower))
+FULL: (Endurance + (2 * TeamPower))
       * (1 + ExhibitionistSynergy)
       * (1 + DominationEgoBonus)
       * (1 + ChlorellaBoosterBonus)
 `
 
-Endurance = Hauptstat-Punkte.
-TeamPower = Summe aller Stats aller 7 Girls im Team.
+Endurance = main stat points.
+TeamPower = the sum of all stats of all 7 girls in the team.
 
-### Damage (Attack Power)
+### Damage (attack power)
 
 `
 Damage = MainStat + (0.25 * TeamPower)
 
-VOLL: (MainStat + (0.25 * TeamPower))
+FULL: (MainStat + (0.25 * TeamPower))
       * (1 + DominatrixSynergy)
       * (1 + DominationAttackBonus)
       * (1 + CordycepsBoosterBonus)
@@ -122,9 +132,9 @@ VOLL: (MainStat + (0.25 * TeamPower))
 Defense = 0.25 * (Sec1 + Sec2) + (0.12 * TeamPower) * (1 + SubmissiveSynergy)
 `
 
-Booster-seitig nur durch Ginseng (erhoeht alle Stats).
+On the booster side only Ginseng (which raises all stats).
 
-### Harmony / Crit-Chance
+### Harmony / crit chance
 
 `
 CritChance = 0.30 * MyHarmony / (MyHarmony + OpponentHarmony)
@@ -132,72 +142,73 @@ CritChance = 0.30 * MyHarmony / (MyHarmony + OpponentHarmony)
 
 Bounds: 0.01 <= CritChance <= 0.29.
 
-Die 30%-Wahrscheinlichkeit wird zwischen den Spielern aufgeteilt - bei gleichem Harmony hat jeder 15%.
+The 30 % probability is split between the players -- with equal harmony each
+has 15 %.
 
-Maximale Crit-Chance (Team-Komposition):
+The maximum crit chance (team composition):
 
-| Quelle | Bonus |
+| Source | Bonus |
 |--------|-------|
-| Harmony-Cap | 29% |
-| Physical-Synergie (1 Girl + 100+ im Harem) | 9% |
-| Double-Counter-Bonus (Physical-Cycle) | 40% |
-| **Maximum theoretisch** | **78%** |
+| the harmony cap | 29% |
+| the physical synergy (1 girl + 100 or more in the harem) | 9% |
+| the double counter bonus (physical cycle) | 40% |
+| **theoretical maximum** | **78%** |
 
 ---
 
-## 4. Elemente und Synergien
+## 4. Elements and synergies
 
-### Acht Elemente
+### Eight elements
 
-Verifiziert am 2026-08-16 gegen die `synergies`-Payload der Edit-Team-Seite
-(Feld `bonus_identifier`, `team_bonus_per_girl`, `team_bonus_max_amount`,
-`harem_bonus_multiplier`) -- inklusive der Klassen-Namen aus `ico_url`.
+Verified 2026-08-16 against the `synergies` payload of the edit-team page
+(fields `bonus_identifier`, `team_bonus_per_girl`, `team_bonus_max_amount`,
+`harem_bonus_multiplier`) -- including the class names from `ico_url`.
 
-| Element | Klassen-Name | Synergie-Bonus pro Girl im Team | Team-Maximum (7 Girls) | Maximaler Harem-Bonus (100+ Girls) |
+| Element | Class name | Synergy bonus per girl in the team | Team maximum (7 girls) | Maximum harem bonus (100+ girls) |
 |---------|-------------|----------------------------------|------------------------|-------------------------------------|
-| Fire | Eccentric | +10% Crit Damage | 70% | bis 35% |
-| Water | Sensual | +3% Heal on Hit | 21% | bis 10% |
-| Nature | Exhibitionist | +3% Ego | 21% | bis 10% |
-| Stone | Physical | +2% Crit Chance | 14% | bis 7% |
-| Sun | Playful | +2% Defense Reduction | 14% | bis 7% |
-| Darkness | Dominatrix | +2% Damage | 14% | bis 7% |
-| Light | Submissive | +2% Defense | 14% | bis 7% |
-| Psychic | Voyeur | +2% Harmony | 14% | bis 7% |
+| Fire | Eccentric | +10% crit damage | 70% | up to 35% |
+| Water | Sensual | +3% heal on hit | 21% | up to 10% |
+| Nature | Exhibitionist | +3% ego | 21% | up to 10% |
+| Stone | Physical | +2% crit chance | 14% | up to 7% |
+| Sun | Playful | +2% defense reduction | 14% | up to 7% |
+| Darkness | Dominatrix | +2% damage | 14% | up to 7% |
+| Light | Submissive | +2% defense | 14% | up to 7% |
+| Psychic | Voyeur | +2% harmony | 14% | up to 7% |
 
-Nachgemessen 2026-09-11 an der `synergies`-Nutzlast eines Teams auf
-`/teams.html` (Felder `bonus_identifier`, `bonus_multiplier`, `element`,
+Measured again 2026-09-11 against the `synergies` payload of a team on
+`/teams.html` (fields `bonus_identifier`, `bonus_multiplier`, `element`,
 `team_bonus_per_girl`, `team_bonus_max_amount`, `team_bonus_multiplier`,
-`team_girls_count` und dieselben vier mit `harem_`): Werte je Maedchen und
-Team-Deckel wie in der Tabelle; der Harem-Anteil je Maedchen ist Fire 0,0035,
-Water und Nature 0,001, die uebrigen 0,0007, gedeckelt bei 35 %, 10 % und 7 %.
-Die Zuordnung Element -> Klassen-Name (`element_data.flavor`) stimmt mit der
-Tabelle ueberein, auch fuer Light = Submissive und Psychic = Voyeur.
+`team_girls_count` and the same four with `harem_`): the values per girl and
+the team caps as in the table; the harem share per girl is fire 0.0035, water
+and nature 0.001, the rest 0.0007, capped at 35 %, 10 % and 7 %. The mapping
+element -> class name (`element_data.flavor`) agrees with the table, including
+light = Submissive and psychic = Voyeur.
 
-**Die Synergie wirkt linear ab dem ERSTEN Girl** -- nicht erst ab dreien. Zwei
-Darkness-Girls ergeben `team_bonus_multiplier = 0.04`, sieben ergeben 0.14
-(Deckel). Team- und Harem-Anteil sind additiv (`bonus_multiplier`).
+**The synergy works linearly from the FIRST girl** -- not only from three on.
+Two darkness girls give `team_bonus_multiplier = 0.04`, seven give 0.14 (the
+cap). The team and harem shares are additive (`bonus_multiplier`).
 
-Was ab 3 Girls eines Elements greift, ist das **Theme**: erst dann traegt das
-Team ein `theme_element` und kann in der Liga Domination-Boni geben und
-bekommen. Unter 3 gleichen Elementen ist das Team "balanced" -- keine
-Domination in beide Richtungen, die Synergien laufen trotzdem.
+What takes hold from 3 girls of one element on is the **theme**: only then does
+the team carry a `theme_element` and can give and receive domination bonuses in
+the league. Below 3 equal elements the team is "balanced" -- no domination in
+either direction, while the synergies still run.
 
-Der Multiplikator wirkt auf den GESAMTEN Stat (Hero-Basiswerte eingerechnet),
-waehrend caracs_sum nur den Girl-Anteil bewegt. Deshalb lohnt es sich in der
-Regel, etwas caracs_sum gegen ein drittes Girl des richtigen Elements zu
-tauschen -- genau das macht TeamEvaluationService.
+The multiplier works on the ENTIRE stat (the hero's base values included),
+while caracs_sum only moves the girls' share. That is why it usually pays to
+trade some caracs_sum for a third girl of the right element -- which is exactly
+what TeamEvaluationService does.
 
-### Zwei Domination-Cycles (egoDamage + chance)
+### Two domination cycles (egoDamage + chance)
 
-#### egoDamage-Cycle (5 Elemente)
+#### The egoDamage cycle (5 elements)
 
-Bei Match: pro getroffenem Gegner-Element +10% Ego UND +10% Attack auf der eigenen Seite.
+On a match: +10% ego AND +10% attack on your own side per opposing element hit.
 
 `
 fire -> nature -> stone -> sun -> water -> fire
 `
 
-| Element | dominiert |
+| Element | dominates |
 |---------|------------------|
 | fire | nature |
 | nature | stone |
@@ -205,178 +216,191 @@ fire -> nature -> stone -> sun -> water -> fire
 | sun | water |
 | water | fire |
 
-#### chance-Cycle (3 Elemente)
+#### The chance cycle (3 elements)
 
-Bei Match: pro getroffenem Gegner-Element +20% Crit-Chance auf der eigenen Seite.
+On a match: +20% crit chance on your own side per opposing element hit.
 
 `
 darkness -> light -> psychic -> darkness
 `
 
-Counter-Bonusse sind ADDITIV mit Synergie-Bonusen (laut Performance Handbook), beide werden mit anderen Boostern in den Endformeln multipliziert.
+Counter bonuses are ADDITIVE with the synergy bonuses (per the Performance
+Handbook), and both are multiplied with the other boosters in the final
+formulas.
 
-### Element-Tier-Liste (Community-Erkenntnisse)
+### The element tier list (community findings)
 
-Aus zwei voneinander unabhaengigen Quellen (Master-17, DvDivXXX, Kenrae - alle Forum-Moderatoren):
+From two independent sources (Master-17, DvDivXXX, Kenrae -- all forum
+moderators):
 
 `
-S-Tier:   Darkness, Water        # immer stark
-A-Tier:   Sun, Nature            # situational stark
-B-Tier:   Fire                   # ok
-C-Tier:   Stone, Light           # mittel
-D-Tier:   Psychic                # garbage-tier
+S tier:   Darkness, Water        # always strong
+A tier:   Sun, Nature            # situationally strong
+B tier:   Fire                   # okay
+C tier:   Stone, Light           # middling
+D tier:   Psychic                # garbage tier
 `
 
-**Wichtige Spielzeitabhaengigkeit:** Sensual (Water) ist nur bei aehnlich starken Gegnern dominant - gegen viel staerkere ist Heal-on-Hit wertlos. Dominatrix (Darkness) ist gegen High-Defense-Gegner staerker, Eccentric (Fire) schwaecher.
+**An important dependency on play time:** Sensual (water) only dominates
+against opponents of similar strength -- against much stronger ones, heal on hit
+is worthless. Dominatrix (darkness) is stronger against high-defense opponents,
+Eccentric (fire) weaker.
 
-Die HHAuto-Team-Auswahl folgt diesen Erkenntnissen NICHT direkt - sie stellt
-Kandidaten nach caracs_sum auf (plus je einen Theme-Kandidaten pro Element) und
-laesst die Reihenfolge dann vom Spiel selbst rechnen (`team_calculate_caracs`),
-bewertet nach erwartetem Schaden pro Treffer x Ueberlebensdauer.
+HHauto's team selection does NOT follow these findings directly -- it lines up
+candidates by caracs_sum (plus one theme candidate per element) and then lets
+the game compute the order itself (`team_calculate_caracs`), scored by expected
+damage per hit times survival time.
 
 ---
 
-## 5. Tier-3 Synergie-Bonus (Trait-Match)
+## 5. The tier-3 synergy bonus (trait match)
 
-Quelle: Tom-208-Userscript + HHAuto-Implementierung.
+Source: Tom-208's userscript plus the HHauto implementation.
 
-Wenn mehrere Girls im Team einen Trait-Wert teilen (z.B. mehrere mit blauen Augen, mehrere im selben Sternzeichen), erhalten alle Girls einen Stat-Boost:
+When several girls in the team share a trait value (several with blue eyes,
+several in the same zodiac sign), all girls receive a stat boost:
 
-| Rarity | Bonus pro matchenden Teammate |
+| Rarity | Bonus per matching team mate |
 |--------|-------------------------------|
-| Mythic | +1.0% pro Match |
-| Legendary | +0.8% pro Match |
+| Mythic | +1.0% per match |
+| Legendary | +0.8% per match |
 
-Trait-Kategorien (gepaart mit Element):
+The trait categories (paired with an element):
 
-| Element-Paar | Trait-Kategorie | Verarbeitung |
+| Element pair | Trait category | Processing |
 |--------------|----------------|--------------|
-| Darkness + Fire | eyeColor | Hex (3-char) |
-| Light + Nature | hairColor | Hex (3-char) |
-| Stone + Psychic | zodiac | Glyph + Name |
-| Water + Sun | position | Image-Index "1.png" - "12.png" |
+| Darkness + Fire | eyeColor | hex (3 chars) |
+| Light + Nature | hairColor | hex (3 chars) |
+| Stone + Psychic | zodiac | glyph plus name |
+| Water + Sun | position | image index "1.png" to "12.png" |
 
-Implementiert in TeamScoringService.calculateTier3TeamBonus() (Konstanten TIER3_BONUS_MYTHIC = 0.01, TIER3_BONUS_LEGENDARY = 0.008).
+Implemented in TeamScoringService.calculateTier3TeamBonus() (constants
+TIER3_BONUS_MYTHIC = 0.01, TIER3_BONUS_LEGENDARY = 0.008).
 
 ---
 
-## 6. Tier-5 Leader-Skill
+## 6. The tier-5 leader skill
 
-Mythic-Girls haben einen Leader-Skill mit ID 11-14 (Stun, Shield, Reflect, Execute). Wirkt wenn das Girl auf Position 0 (Leader-Slot) ist.
+Mythic girls have a leader skill with ID 11-14 (stun, shield, reflect,
+execute). It works when the girl is at position 0 (the leader slot).
 
-| Tier-5 ID | Skill | Leader-Element (im Code: BDSMHelper.estimateTier5SkillValue) | Effekt-Faktor pro skill_points_used | Effekt in BDSMHelper.calculateBattleProbabilities |
+| Tier-5 ID | Skill | The leader's element (in the code: BDSMHelper.estimateTier5SkillValue) | Effect factor per skill_points_used | Effect in BDSMHelper.calculateBattleProbabilities |
 |-----------|-------|---------|---------|---|
-| 11 | Stun | sun, darkness | * 0.07 | opponent.stunned = 2 (Runden) |
-| 12 | Shield | stone, light | * 0.08 | playerShield = value * hp (in Runde 1 gesetzt) |
-| 13 | Reflect | psychic, nature | * 0.20 | reflect = 2 (Runden) |
-| 14 | Execute | fire, water | * 0.08 | wenn opponentHP/maxHP <= value -> opponentHP = 0 |
+| 11 | Stun | sun, darkness | * 0.07 | opponent.stunned = 2 (rounds) |
+| 12 | Shield | stone, light | * 0.08 | playerShield = value * hp (set in round 1) |
+| 13 | Reflect | psychic, nature | * 0.20 | reflect = 2 (rounds) |
+| 14 | Execute | fire, water | * 0.08 | when opponentHP/maxHP <= value -> opponentHP = 0 |
 
-HHAuto's Leader-Priority bei der Team-Auswahl (verifiziert in TeamScoringService): Shield > Stun > Execute > Reflect.
+HHauto's leader priority in team selection (verified in TeamScoringService):
+shield > stun > execute > reflect.
 
 ---
 
 ## 7. Boosters
 
-### Booster-Typen
+### Booster types
 
-| Booster | Effekt | Common +Wert | Rare +Wert | Epic +Wert | Legendary +% |
+| Booster | Effect | Common + value | Rare + value | Epic + value | Legendary +% |
 |---------|--------|--------------|-----------|-----------|--------------|
-| Chlorella | Ego (HP) | +1200 | +4200 | +14700 | +10% |
+| Chlorella | ego (HP) | +1200 | +4200 | +14700 | +10% |
 | Ginseng root | HC + CH + KH | +100 | +350 | +1225 | +6% |
-| Cordyceps | Damage | +300 | +1050 | +3675 | +10% |
-| Jujubes | Harmony | +400 | +1400 | +4900 | +20% |
+| Cordyceps | damage | +300 | +1050 | +3675 | +10% |
+| Jujubes | harmony | +400 | +1400 | +4900 | +20% |
 
-Common-Legendary-Booster halten 24h, Mythic Booster halten eine bestimmte Anzahl von Performances.
+Common to legendary boosters last 24 h; mythic boosters last a set number of
+performances.
 
-Gemessen im Markt (2026-09-11): Ginseng rare +350, Chlorella rare +4200 und
-epic +14700, Ginseng legendary 6 (%), Chlorella und Cordyceps legendary 10 (%)
--- wie in der Tabelle; `duration` 1440 Minuten = 24 h. Common und Jujubes waren
-nicht im Angebot. Die Zahl der Anwendungen eines Mythic steht als
-`item.default_usages` in der Nutzlast: MB2 100 (2026-09-11), MB1 (Sandalwood)
-11 (2026-09-07, `data-sources-inventory.md`). Die fruehere Angabe "MB1 = 5 Uses"
-stimmte damit nicht.
+Measured in the market (2026-09-11): Ginseng rare +350, Chlorella rare +4200
+and epic +14700, Ginseng legendary 6 (%), Chlorella and Cordyceps legendary 10
+(%) -- as in the table; `duration` 1440 minutes = 24 h. Common and Jujubes were
+not on offer. The number of uses of a mythic stands as `item.default_usages` in
+the payload: MB2 100 (2026-09-11), MB1 (Sandalwood) 11 (2026-09-07,
+`data-sources-inventory.md`). The earlier claim "MB1 = 5 uses" was therefore
+wrong.
 
-### Mythic-Booster (Auswahl)
+### Mythic boosters (a selection)
 
-| Identifier | Wirkung |
+| Identifier | Effect |
 |-----------|---------|
-| MB1 (Sandalwood) | Mehr Girl-Shards pro Battle |
-| MB2 (All Mastery's Emblem) | +15% Damage in League und Season fuer 100 Performances |
+| MB1 (Sandalwood) | more girl shards per battle |
+| MB2 (All Mastery's Emblem) | +15% damage in league and season for 100 performances |
 
-### Empfehlung (Performance Handbook)
+### The recommendation (Performance Handbook)
 
 `
 Cordyceps > Ginseng root > Chlorella > Jujubes
 `
 
-Cordyceps gibt direkten Damage-Boost und ist meist am wertvollsten.
+Cordyceps gives a direct damage boost and is usually the most valuable.
 
 ---
 
 ## 8. Equipment
 
-### Multistat vs. Mono
+### Multistat vs. mono
 
-- **Multistat (Rainbow):** boostet alle 5 Stats (carac1/2/3, Endurance, Harmony)
-- **Mono:** boostet nur einen Stat - meist deutlich hoeher
+- **Multistat (rainbow):** boosts all 5 stats (carac1/2/3, endurance, harmony)
+- **Mono:** boosts one stat only -- usually much higher
 
-Empfehlung: Multistat-Default, Mono nur fuer Hauptstat wenn das Mono-Item mindestens 50% des Multistat-Sek-Stat-Verlusts kompensiert. Mehr als 3 Mono-Items reduzieren Harmony zu sehr -> Crit-Anfaelligkeit.
+The recommendation: multistat by default, mono only for the main stat when the
+mono item compensates at least 50 % of the multistat's secondary stat loss.
+More than 3 mono items reduce harmony too far -> vulnerable to crits.
 
-**Equipment IST in ``availableGirls.caracs`` enthalten** (gemessen 2026-08-17,
-Herleitung in ``data-sources-team.md``). Der frueher hier stehende Satz
-"Equipment ist NICHT enthalten" war falsch.
+**Equipment IS included in ``availableGirls.caracs``** (measured 2026-08-17,
+the derivation in ``data-sources-team.md``). The sentence that used to stand
+here, "equipment is NOT included", was wrong.
 
-Praktische Folge: ``caracs_sum`` -- und damit die vom Spiel angezeigte "Total
-Power" -- bewertet ein Girl auch danach, wer gerade die guten Items traegt.
-Vor einem Team-Build gehoert deshalb ein **"Unequip All"**, sonst gewinnt das
-aktuelle Team die Auswahl allein durch seine Ausruestung; "Stuff Team" verteilt
-sie danach auf die neue Auswahl. Ohne das Unequip entsteht eine Rueckkopplung:
-bauen -> stuffen -> erneut bauen kann jedes Mal ein anderes Team liefern.
+The practical consequence: ``caracs_sum`` -- and with it the "total power" the
+game displays -- also rates a girl by who currently wears the good items. An
+**"Unequip All"** therefore belongs before a team build, or the current team
+wins the selection through its equipment alone; "Stuff Team" then distributes
+it across the new selection. Without that unequip a feedback loop arises:
+build -> stuff -> build again can deliver a different team every time.
 
-Derselbe Satz Items ist auf verschiedenen Girls unterschiedlich viel wert
-(gemessen Faktor 1,02 bis 1,25) -- das ist der Resonanz-Bonus mythischer
-Ausruestung (``resonance_bonuses``: Klasse, Theme, Figur), der ebenfalls in
-``caracs`` landet.
+The same set of items is worth different amounts on different girls (measured:
+a factor of 1.02 to 1.25) -- that is the resonance bonus of mythic equipment
+(``resonance_bonuses``: class, theme, figure), which also lands in ``caracs``.
 
-Die Resonanz-Mechanik (Spieler- und Girl-Ausruestung, Match-Regeln, Skalierung
-mit dem Item-Level, Messfallen und was ein Item-Optimierer braucht) steht in
-[equipment-resonance.md](equipment-resonance.md).
+The resonance mechanic (player and girl equipment, the match rules, the scaling
+with the item level, the measurement traps and what an item optimiser needs) is
+in [equipment-resonance.md](equipment-resonance.md).
 
 ---
 
-## 9. Girl-Level und Grade
+## 9. Girl level and grade
 
-| Mechanik | Quelle |
+| Mechanic | Source |
 |----------|--------|
-| Level | Books (Market -> Books) - lift Stats linear |
-| Grade | Affection (Market -> Gifts) - bringt Sterne, ueberproportional teurer |
+| Level | books (market -> books) -- raise stats linearly |
+| Grade | affection (market -> gifts) -- brings stars, disproportionately more expensive |
 
-Level-Cap pro Girl entspricht dem Player-Level - mit Awakening (Patch 2021-11-17) bis Level 750.
-Player-Cap ist Level 500.
+The level cap per girl equals the player level -- with awakening (patch
+2021-11-17) up to level 750. The player cap is level 500.
 
-### Grade-Sterne
+### Grade stars
 
 `
-Starter:   1 Star -> 5 Stars
-Common:    1 Star -> 5 Stars
-Rare:      1 Star -> 5 Stars
-Epic:      1 Star -> 5 Stars
-Legendary: 1 Star -> 5 Stars (3-Star und 5-Star sind verbreitet)
-Mythic:    1 Star -> 6 Stars
+Starter:   1 star -> 5 stars
+Common:    1 star -> 5 stars
+Rare:      1 star -> 5 stars
+Epic:      1 star -> 5 stars
+Legendary: 1 star -> 5 stars (3-star and 5-star are common)
+Mythic:    1 star -> 6 stars
 `
 
-Die Sternzahl eines Maedchens (`nb_grades`) haengt am Maedchen, nicht an der
-Seltenheit. Gemessen 2026-09-11 in `girls_data_list` (24 Maedchen): common mit
-1, 3 und 5 Sternen, starting mit 3 und 5, rare mit 3, legendary mit 3. Die
-Liste oben nennt das Maximum je Seltenheit. Der Kommentar in
-`LoveRaidManager.parseRaids` ("3=rare, 5=legendary, 6=mythic") beschreibt
-dasselbe Maximum, nicht den Einzelfall.
+A girl's number of stars (`nb_grades`) belongs to the girl, not to the rarity.
+Measured 2026-09-11 in `girls_data_list` (24 girls): common with 1, 3 and 5
+stars, starting with 3 and 5, rare with 3, legendary with 3. The list above
+names the maximum per rarity. The comment in `LoveRaidManager.parseRaids`
+("3=rare, 5=legendary, 6=mythic") describes that same maximum, not the
+individual case.
 
-### Affection / XP per Battle
+### Affection / XP per battle
 
-In Season-Battles erhalten alle Team-Girls XP und Affection abhaengig vom Level des Gegners:
+In season battles all team girls receive XP and affection depending on the
+opponent's level:
 
-| Gegner-Level | XP / Affection pro Win |
+| Opponent level | XP / affection per win |
 |--------------|------------------------|
 | 1-50 | 1 |
 | 51-100 | 2 |
@@ -386,49 +410,54 @@ In Season-Battles erhalten alle Team-Girls XP und Affection abhaengig vom Level 
 
 ---
 
-## 10. Awakening (seit 2021-11-17)
+## 10. Awakening (since 2021-11-17)
 
-Awakening hebt das Level-Cap der Girls auf bis zu 750 - ueber das Player-Level hinaus.
+Awakening raises the girls' level cap to up to 750 -- beyond the player level.
 
-Caps fuer Awakening: Level 50, 100, 150, 200 sind kostenlos. 250+ benoetigt Gems vom passenden Element.
+The caps for awakening: levels 50, 100, 150 and 200 are free. 250 and above
+need gems of the matching element.
 
-### Gems-Bedarf (kumulativ Level 250-750 pro Rarity)
+### Gem requirement (cumulative, level 250-750 per rarity)
 
-| Rarity | Gems gesamt |
+| Rarity | Gems in total |
 |--------|-------------|
 | Common | 1880 |
 | Rare | 3760 |
 | Epic | 5640 |
 | Legendary | 7520 |
-| Mythic | (in der Tabelle nicht gelistet, hoeher) |
+| Mythic | (not listed in the table, higher) |
 
-Voraussetzung pro Stufe: bestimmte Anzahl Girls bereits am vorigen Cap. Z.B. min 100 Girls auf Level 700, bevor erstes Girl > 700 awakened werden kann.
+A condition per tier: a certain number of girls already at the previous cap.
+For example, at least 100 girls at level 700 before the first girl can be
+awakened past 700.
 
 ---
 
 ## 11. Blessings
 
-Blessings erhoehen Stats von Girls mit bestimmten Traits.
+Blessings raise the stats of girls with certain traits.
 
-- Aktiv-Blessings sind sichtbar im Top-Right-Popup (UI-Button) und ueber den get_girls_blessings-AJAX-Endpoint.
-- Wechsel: jeden Montag 13:00 UTC+1 (gleicher Zeitpunkt wie Daily-Missions-Reset).
-- Blessing wird in availableGirls.caracs direkt eingerechnet -> "blessed_caracs == caracs" gilt fuer's HHAuto-Skript.
+- Active blessings are visible in the top-right popup (a UI button) and through
+  the get_girls_blessings ajax endpoint.
+- They change every Monday at 13:00 UTC+1 (the same time as the daily missions
+  reset).
+- A blessing is worked directly into availableGirls.caracs, so
+  "blessed_caracs == caracs" holds for the HHauto script.
 
-Blessing-Typen:
+Blessing types:
 
-| Typ | Bedeutung |
+| Type | Meaning |
 |-----|-----------|
-| Common-Blessing | Standard wird gewuerfelt |
-| League-Blessings (``pvp_v3``) | Die zwei woechentlichen League-Blessings, Array [20, 30] = 20% + 30%. Gemessen 2026-09-11: Bedingungen "Favorite position 69" und "Rarity Legendary", je +25 %; die fuenf legendaeren Maedchen trugen `pvp_v3` = [25] |
-| Labyrinth-Set (``pvp_v4``) | == ``pvp_v3`` PLUS die Slot-3-Role-Blessing (gilt nur im Love Labyrinth) |
+| Common blessing | the standard roll |
+| League blessings (``pvp_v3``) | the two weekly league blessings, an array [20, 30] = 20% + 30%. Measured 2026-09-11: the conditions "Favorite position 69" and "Rarity Legendary", +25 % each; the five legendary girls carried `pvp_v3` = [25] |
+| The labyrinth set (``pvp_v4``) | == ``pvp_v3`` PLUS the slot-3 role blessing (applies only in the Love Labyrinth) |
 
-Verifiziert 2026-07-13 (Fixture-Diff + Live-Dump): ``pvp_v4`` ist kein
-eigenes League-Format, sondern das Labyrinth-Set. Fuer League-Teams gilt
-ausschliesslich ``pvp_v3``; ``can_be_blessed`` ist das League-Flag,
-``can_be_blessed_pvp4`` das Labyrinth-Flag. Details:
-``data-sources-team.md``.
+Verified 2026-07-13 (fixture diff plus a live dump): ``pvp_v4`` is not a league
+format of its own but the labyrinth set. For league teams only ``pvp_v3``
+applies; ``can_be_blessed`` is the league flag, ``can_be_blessed_pvp4`` the
+labyrinth flag. Details: ``data-sources-team.md``.
 
-blessing_bonuses Struktur in availableGirls:
+The blessing_bonuses structure in availableGirls:
 
 `json
 {
@@ -440,230 +469,233 @@ blessing_bonuses Struktur in availableGirls:
 }
 `
 
-HHAuto baut Bless-bewusste Kandidaten-Teams pro erkannter Blessing (Kandidaten-Matrix in TeamBuilderService, seit v7.35.61); der frueher hier erwaehnte ``BLESSED_CATEGORY_BOOST`` existiert seit dem v7.35.39-Rewrite nicht mehr.
+HHauto builds blessing-aware candidate teams per recognised blessing (the
+candidate matrix in TeamBuilderService, since v7.35.61); the
+``BLESSED_CATEGORY_BOOST`` mentioned here earlier has not existed since the
+v7.35.39 rewrite.
 
 ---
 
 ## 12. League (PvP)
 
-| Aspekt | Wert |
+| Aspect | Value |
 |--------|------|
-| Freischalt-Level | 20 |
-| Saison-Dauer | 1 Woche (Donnerstag 13:00 UTC+1 reset) |
-| Gruppengroesse | 100-199 Spieler |
-| Anzahl Leagues | 9 (Wanker I/II/III, Sexpert I/II/III, Dicktator I/II/III) |
-| Punkte pro Win | 15-25 (Skala mit Rest-Ego); gemessen 2026-09-11 an einem Sieg: +22, Simulator-Erwartung 22,1 (`bdsm-battle-simulator.md`) |
-| Punkte pro Loss | 3-13 |
-| Token-Regen | 1 alle 35 Min (`seconds_per_point` 2100, gemessen); Grenze gemessen 2026-09-11 auf dem Pruefkonto: `max_regen_amount` 18, nicht 15 |
-| 15x-Performance-Button | gegen Lowest-Level-noch-nicht-gefightete Gegner |
+| Unlock level | 20 |
+| Season length | 1 week (Thursday 13:00 UTC+1 reset) |
+| Group size | 100-199 players |
+| Number of leagues | 9 (Wanker I/II/III, Sexpert I/II/III, Dicktator I/II/III) |
+| Points per win | 15-25 (scaling with the remaining ego); measured 2026-09-11 on one win: +22, the simulator's expectation 22.1 (`bdsm-battle-simulator.md`) |
+| Points per loss | 3-13 |
+| Token regeneration | 1 every 35 min (`seconds_per_point` 2100, measured); the limit measured 2026-09-11 on the test account: `max_regen_amount` 18, not 15 |
+| The 15x performance button | against the lowest-level opponents not yet fought |
 
-Promote: Top 15 in der Gruppe. Demote: Bottom 15 oder 0 Punkte. Ausnahme: Dicktator III hat keine Promote.
+Promotion: the top 15 in the group. Demotion: the bottom 15 or 0 points. The
+exception: Dicktator III has no promotion.
 
-**Tie-Break:** wer Punkte zuerst erreicht hat. Sonst: niedrigstes Level priorisiert.
+**The tiebreak:** whoever reached the points first. Otherwise the lowest level
+is prioritised.
 
 ---
 
 ## 13. Season (PvP)
 
-| Aspekt | Wert |
+| Aspect | Value |
 |--------|------|
-| Saison-Dauer | 1 Monat (1. des Monats 13:00 UTC+1) |
-| Currency | Kisses (1 pro Stunde, `seconds_per_point` 3600); Grenze gemessen 2026-09-11 auf dem Pruefkonto: `max_regen_amount` 20, nicht 10 |
-| Ranking | Mojo (Elo-System) |
-| Mojo-Range pro Battle | -40 bis +40, abhaengig vom Mojo-Diff |
+| Season length | 1 month (the 1st of the month, 13:00 UTC+1) |
+| Currency | kisses (1 per hour, `seconds_per_point` 3600); the limit measured 2026-09-11 on the test account: `max_regen_amount` 20, not 10 |
+| Ranking | mojo (an Elo system) |
+| Mojo range per battle | -40 to +40, depending on the mojo difference |
 
-Wichtige Eigenschaften:
-- Mojo wird am Ende jeder Season zurueckgesetzt; Start-Mojo der naechsten Saison reflektiert vorige Performance
-- Season-Pass kann pro Saison gekauft werden, verdoppelt Rewards
-- Buy-Refills early in season -> harte Gegner -> nicht empfehlenswert fuer neue Spieler
-
----
-
-## 13a. Kobans: woher sie kommen (Stand 2026-09-09)
-
-Die Doku kannte bisher nur den *Ort* des Wertes
-(`Hero.currencies.hard_currency`, `HeroHelper.getKoban()`), nicht seine
-Quellen. Ohne die laesst sich kein Haushalt planen und kein Verlust einordnen.
-
-**Quellen** (Angabe des Maintainers, nicht selbst gemessen):
-
-- Aufgaben und Erfolge
-- Daily Goals
-- Gewinne in der Liga und vergleichbaren Wettbewerben
-
-**Keine Quelle sind Quests.** Gemessen ueber 342 protokollierte `pay`-Schritte:
-ein Questschritt kostet Quest-Energie oder Soft Currency, nie Kobans, und er
-schuettet keine aus.
-
-**Eine weitere Quelle, selbst gemessen (2026-09-09):** die kostenlosen Kacheln
-der Zahlungs-Rueckfrage. Ein Durchgang von `autoFreeBundlesCollect` brachte
-`hard_currency` 123 -> 603, dazu 1 M Soft Currency und 35 Kampfenergie. Das ist
-ein einmaliger Bestand, keine laufende Quelle: die Kacheln liefen zwischen 20
-Stunden und 67 Tagen ab und kommen erst mit neuen Angeboten wieder. Was in dem
-Kasten steht und woran ein freier Knopf zu erkennen ist, steht in
-`game-surface-inventory.md`.
-
-**Die Startkarte.** Ein neues Konto bekommt zeitlich begrenzt eine Silver Card
-geschenkt, die sonst echtes Geld kostet; sie schuettet Kobans aus. Wer den
-Kontostand beobachtet, ohne das zu wissen, schreibt den Zuwachs der falschen
-Ursache zu -- am 2026-09-09 genau so geschehen, als ein Anstieg von 105 auf 165
-waehrend eines Questlaufs als "Quests geben Kobans" gedeutet wurde. Falsch.
-
-`MonthlyCard.ts` sammelt uebrigens nichts ein: es passt nur
-`HHAuto_inputPattern` an, weil eine Karte die Energie-Maxima anhebt. Einziger
-Aufrufer ist `StartService`. Ob HHauto die taegliche Kartenausschuettung
-ueberhaupt abholt, ist **offen**.
-
-**Fuer die Modulwahl heisst das:** auf einem Konto, das Kobans erwirtschaften
-soll, sind `autoDailyGoals` + `autoDailyGoalsCollect` und `autoMission` +
-`autoMissionCollect` die Quelle, nicht `autoQuest`. Die Liga kommt hinzu,
-sobald Level (`LEVEL_MIN_LEAGUE` = 20) und ein tragfaehiges Team vorhanden
-sind.
+Important properties:
+- mojo is reset at the end of every season; the starting mojo of the next
+  season reflects the previous performance
+- a season pass can be bought once per season and doubles the rewards
+- buying refills early in a season -> hard opponents -> not advisable for new
+  players
 
 ---
 
-## 13b. Maedchen leveln und graden (gemessen 2026-09-09)
+## 13a. Kobans: where they come from (as of 2026-09-09)
 
-Zwei verschiedene Dinge, die oft verwechselt werden.
+The documentation used to know only the *place* of the value
+(`Hero.currencies.hard_currency`, `HeroHelper.getKoban()`), not its sources.
+Without those, no budget can be planned and no loss can be placed.
 
-| | Mittel | Wirkung |
+**Sources** (stated by the maintainer, not measured by us):
+
+- tasks and achievements
+- daily goals
+- wins in the league and comparable competitions
+
+**Quests are not a source.** Measured across 342 logged `pay` steps: a quest
+step costs quest energy or soft currency, never kobans, and it pays out none.
+
+**One more source, measured by us (2026-09-09):** the free tiles of the payment
+dialog. One pass of `autoFreeBundlesCollect` brought `hard_currency` 123 -> 603,
+plus 1 M soft currency and 35 fight energy. That is a one-off stock, not a
+running source: the tiles expired between 20 hours and 67 days out and only
+come back with new offers. What stands in that box and how to recognise a free
+button is in `game-surface-inventory.md`.
+
+**The starter card.** A new account is given a Silver Card for a limited time,
+which otherwise costs real money; it pays out kobans. Whoever watches the
+balance without knowing that attributes the increase to the wrong cause -- which
+happened on 2026-09-09, when a rise from 105 to 165 during a quest run was read
+as "quests give kobans". Wrong.
+
+`MonthlyCard.ts`, by the way, collects nothing: it only adjusts
+`HHAuto_inputPattern`, because a card raises the energy maxima. Its only caller
+is `StartService`. Whether HHauto picks up the card's daily payout at all is
+**open**.
+
+**For the choice of modules that means:** on an account that is meant to earn
+kobans, `autoDailyGoals` + `autoDailyGoalsCollect` and `autoMission` +
+`autoMissionCollect` are the source, not `autoQuest`. The league joins them as
+soon as the level (`LEVEL_MIN_LEAGUE` = 20) and a viable team are there.
+
+---
+
+## 13b. Levelling and grading girls (measured 2026-09-09)
+
+Two different things that are often confused.
+
+| | Means | Effect |
 |---|---|---|
-| **Level** | Buecher (Books-Reiter) | Erfahrung, `level`, `xp`. Aendert die Caracs **nicht** direkt. |
-| **Grade** | Geschenke (Gifts-Reiter) + Geld | `graded` +1, alle drei Caracs und `orgasm` **+30 %**, Gehalt steigt |
+| **Level** | books (the books tab) | experience, `level`, `xp`. Does **not** change the caracs directly. |
+| **Grade** | gifts (the gifts tab) plus money | `graded` +1, all three caracs and `orgasm` **+30 %**, the salary rises |
 
-### Der Ablauf, Schritt fuer Schritt
+### The flow, step by step
 
-1. `/girl/<id>` laden und den **Gifts-Reiter klicken**. Der direkte Aufruf
-   `/girl/<id>?resource=affection` zeigt dieselbe Ansicht, aber ein Klick auf
-   den Geschenk-Knopf bleibt dort **wirkungslos** -- gemessen an zwei Laeufen
-   mit identischem Selektor.
-2. Bei `affection = 0` bietet die Seite nur **Market** und **Use**, und `Use`
-   ist ausgegraut, solange kein Vorratsplatz gewaehlt ist. Die Knoepfe
-   **One Grade-Up** und **Max Grade-up** erscheinen erst, wenn Affection
-   vorhanden ist.
-3. Vorratsplaetze sind `.inventory-slot.filled-slot`; der Klick ist ein
-   **Umschalter** (`sel`). Zweimal klicken waehlt wieder ab. Danach `Use`.
-4. **One Grade-Up** fuellt den Balken bis zur naechsten Stufe und oeffnet eine
-   Rueckfrage, die den Preis nennt: *"Filling your Xp/Affection bar will cost
-   you 2. Do you want to proceed?"* -- **ohne Klick auf Yes passiert nichts.**
-5. Ist der Balken voll, steht `can_upgrade` auf `true` und `.upgrade_girl`
-   zeigt auf `/quest/<n>?grade=<k>`.
-6. Dort stehen zwei `.grade-complete-button`: **gruen zahlt mit Geld**, orange
-   mit Kobans. Der gruene ist der richtige.
+1. Load `/girl/<id>` and **click the gifts tab**. The direct call
+   `/girl/<id>?resource=affection` shows the same view, but a click on the gift
+   button stays **without effect** there -- measured across two runs with an
+   identical selector.
+2. At `affection = 0` the page offers only **Market** and **Use**, and `Use` is
+   greyed out while no stock slot is selected. The buttons **One Grade-Up** and
+   **Max Grade-up** only appear once affection is there.
+3. Stock slots are `.inventory-slot.filled-slot`; the click is a **toggle**
+   (`sel`). Clicking twice deselects again. Then `Use`.
+4. **One Grade-Up** fills the bar to the next tier and opens a confirmation
+   naming the price: *"Filling your Xp/Affection bar will cost you 2. Do you
+   want to proceed?"* -- **without a click on Yes nothing happens.**
+5. Once the bar is full, `can_upgrade` stands at `true` and `.upgrade_girl`
+   points to `/quest/<n>?grade=<k>`.
+6. There stand two `.grade-complete-button`: **the green one pays with money**,
+   the orange one with kobans. The green one is the right one.
 
-### Was ein Grade kostet und bringt
+### What a grade costs and brings
 
-Drei Messungen, jeweils Vorher/Nachher ueber alle Felder des `girl`-Objekts:
+Three measurements, each before and after across all fields of the `girl`
+object:
 
-| Maedchen | Kosten (Geld) | Caracs | `orgasm` |
+| Girl | Cost (money) | Caracs | `orgasm` |
 |---|---|---|---|
-| A | 36.000 | +30 % | +30 % |
-| B | 36.000 | +30 % | +30 % |
-| C | 72.000 | +30 % | +30 % |
+| A | 36,000 | +30 % | +30 % |
+| B | 36,000 | +30 % | +30 % |
+| C | 72,000 | +30 % | +30 % |
 
-Die **+30 % sind konstant**, die Kosten nicht -- sie haengen am Maedchen.
-`upgrade_link` rueckt danach auf die naechste Questnummer.
+The **+30 % is constant**, the cost is not -- it depends on the girl.
+`upgrade_link` moves on to the next quest number afterwards.
 
-Gehaltssumme ueber `girlsDataList` auf `/home.html`: 51.600 vor dem ersten
-Grade, 116.600 nach zweien.
+The salary total across `girlsDataList` on `/home.html`: 51,600 before the
+first grade, 116,600 after two.
 
-**Das kuenftige Gehalt nennt das Spiel nirgends** (gemessen 2026-09-11 an
-einem Maedchen mit Grade 2 von 5 und `can_upgrade = true`). Das `girl`-Objekt
-traegt nur das aktuelle `salary`, `salary_per_hour` und `pay_time`;
-`grade_offset_values` sind Bildversatzwerte, keine Gehaelter. Der Gifts-Reiter
-zeigt nur den Zuneigungsbedarf (*Until grade 5 : 6719*), die Bezahlseite
-`/quest/<n>?grade=<k>` nur die beiden Preise -- hier 450K Geld oder 18 Kobans.
-Wie viel Gehalt ein Grade bringt, laesst sich deshalb nur durch Vorher/Nachher
-an einem echten Upgrade messen.
+**The game names the future salary nowhere** (measured 2026-09-11 on a girl
+with grade 2 of 5 and `can_upgrade = true`). The `girl` object carries only the
+current `salary`, `salary_per_hour` and `pay_time`; `grade_offset_values` are
+image offsets, not salaries. The gifts tab shows only the affection needed
+(*Until grade 5 : 6719*), and the payment page `/quest/<n>?grade=<k>` only the
+two prices -- here 450K money or 18 kobans. How much salary a grade brings can
+therefore only be measured before and after a real upgrade.
 
-### `salary` ist keine Rate
+### `salary` is not a rate
 
-`salary` und die Anzeige *Income: N/h* sind zwei Groessen. Gemessen 2026-09-09
-ueber alle 13 Maedchen eines Kontos, `girls_data_list` auf `/waifu.html`:
+`salary` and the display *Income: N/h* are two different quantities. Measured
+2026-09-09 across all 13 girls of an account, `girls_data_list` on
+`/waifu.html`:
 
 ```
 salary_per_hour = salary / pay_time * 3600
 ```
 
-exakt fuer jedes der 13 Maedchen. Dabei ist
+exactly, for each of the 13 girls. Where
 
-| Feld | Bedeutung |
+| Field | Meaning |
 |---|---|
-| `salary` | Betrag **je Auszahlung** |
-| `pay_time` | Laenge eines Auszahlungszyklus in Sekunden |
-| `salary_per_hour` | daraus die Rate -- das ist *Income: N/h* |
-| `pay_in` | Sekunden bis zur naechsten Auszahlung |
+| `salary` | the amount **per payout** |
+| `pay_time` | the length of a payout cycle in seconds |
+| `salary_per_hour` | the resulting rate -- that is *Income: N/h* |
+| `pay_in` | seconds until the next payout |
 
-`pay_in` laeuft mit: zwei Lesungen 13 Sekunden auseinander ergaben 6503 und
-6490.
+`pay_in` runs down: two readings 13 seconds apart gave 6503 and 6490.
 
-**Die Zyklen sind nicht gleich lang.** Auf dem Konto kamen 1800, 5400 und
-16200 Sekunden vor. Nachgemessen 2026-09-11 mit 24 Maedchen: die Formel stimmt
-fuer alle 24, die Zyklen waren 1800 (15 Maedchen), 5400 (5), 16200 (1) und
-25200 (3). Eine Summe ueber `salary` mischt sie und ist deshalb keine
-Einnahme je Zeit: 451.125 als Summe der Auszahlungen stehen 210.250 pro Stunde
-gegenueber, und die zwei Maedchen mit 4,5-Stunden-Zyklus machen 70 % der
-`salary`-Summe aus, aber nur 33 % der Stundeneinnahme.
+**The cycles are not equally long.** Cycles of 1800, 5400 and 16200 seconds
+occurred there. Measured again 2026-09-11 with 24 girls: the formula holds
+for all 24, and the cycles were 1800 (15 girls), 5400 (5), 16200 (1) and 25200
+(3). A sum over `salary` mixes them and is therefore not income per time:
+451,125 as the sum of the payouts stands against 210,250 per hour, and the two
+girls with a 4.5-hour cycle make up 70 % of the `salary` sum but only 33 % of
+the hourly income.
 
-Das Skript rechnet mit keinem der Felder: `HaremSalary` liest den Knopf und
-`salary_collect`. Die Unterscheidung betrifft also Berichte, nicht den Code.
+The script computes with none of those fields: `HaremSalary` reads the button
+and `salary_collect`. The distinction therefore concerns reports, not the code.
 
-### Wie viele Maedchen man hat
+### How many girls you have
 
-Vier Quellen, vier Bedeutungen. Gemessen 2026-09-09 auf einem Konto mit **9**
-besessenen Maedchen, jede Seite in einer eigenen Ladung:
+Four sources, four meanings. Measured 2026-09-09 on an account with **9** owned
+girls, each page in its own load:
 
-| Seite | Variable | Eintraege | was drinsteht |
+| Page | Variable | Entries | what is in it |
 |---|---|---|---|
-| `/waifu.html` | `girls_data_list` | 9 | volle Datensaetze, alle `shards` = 100 |
-| `/characters.html` | `girlsDataList` | 24 | Katalogdaten aller *bekannten* Maedchen |
-| `/home.html` | `girlsDataList` | 9 | nur `salary` und `pay_in` |
-| `/teams.html` | keine | - | die Seite traegt keine Liste |
-| ueberall | `shared.GirlSalaryManager.girlsListSec` | 7 | zaehlt zu niedrig |
+| `/waifu.html` | `girls_data_list` | 9 | full records, all `shards` = 100 |
+| `/characters.html` | `girlsDataList` | 24 | catalogue data of all *known* girls |
+| `/home.html` | `girlsDataList` | 9 | only `salary` and `pay_in` |
+| `/teams.html` | none | - | the page carries no list |
+| everywhere | `shared.GirlSalaryManager.girlsListSec` | 7 | counts too low |
 
-Nachgemessen 2026-09-11 auf demselben Konto mit **24** besessenen Maedchen:
-`girls_data_list` 24 (64 Felder je Eintrag), `girlsDataList` auf
-`/characters.html` 24, auf `/home.html` 24 mit je 2 Feldern -- in fuenf Ladungen
-schon beim ersten Auftauchen (130 bis 235 ms nach dem Laden) vollstaendig --,
-`shared.GirlSalaryManager.girlsMap` 24 auf jeder Seite, `girlsListSec` 4.
+Measured again 2026-09-11 on the same account with **24** owned girls:
+`girls_data_list` 24 (64 fields per entry), `girlsDataList` on
+`/characters.html` 24, on `/home.html` 24 with 2 fields each -- complete in five
+loads from the moment it first appeared (130 to 235 ms after loading) --,
+`shared.GirlSalaryManager.girlsMap` 24 on every page, `girlsListSec` 4.
 
-Entscheidend fuer jede Zaehlung: die Datensaetze auf `/characters.html` tragen
-**kein** `shards`, `level` oder `graded` -- dort ist ein bekanntes Maedchen von
-einem besessenen nicht zu unterscheiden. Auf `/waifu.html` tragen sie beides,
-und `shards` = 100 markiert Besitz (dieselbe Schwelle benutzt
-`Troll.getTrollWithGirls`).
+Decisive for any count: the records on `/characters.html` carry **no** `shards`,
+`level` or `graded` -- there a known girl cannot be told from an owned one. On
+`/waifu.html` they carry both, and `shards` = 100 marks ownership (the same
+threshold `Troll.getTrollWithGirls` uses).
 
-Die Folge fuer `Harem.getGirlCount()`: die 24 der Harem-Seite als
-Maedchenzahl zu nehmen, setzte die 10-Maedchen-Bedingung von
-`PlaceOfPower.isEnabled()` und `PathOfAttraction.isEnabled()` auf einem Konto
-mit 9 Maedchen auf erfuellt. Seit v8.12.11 antworten nur noch die zwei Seiten
-mit vollstaendigen Besitz-Datensaetzen; sonst die Gehaltsliste, sonst 0.
-Zwischengespeichert wird die Zahl in `Temp_HaremSize`, geschrieben von
-`Harem.moduleHaremCountMax` auf genau diesen Seiten.
+The consequence for `Harem.getGirlCount()`: taking the 24 of the harem page as
+the girl count set the ten-girls condition of `PlaceOfPower.isEnabled()` and
+`PathOfAttraction.isEnabled()` to satisfied on an account with 9 girls. Since
+v8.12.11 only the two pages with complete ownership records answer; otherwise
+the salary list, otherwise 0. The number is cached in `Temp_HaremSize`, written
+by `Harem.moduleHaremCountMax` on exactly those pages.
 
-`window.girl` traegt ausserdem `id_member` -- die Mitgliedsnummer. Wer das
-Objekt in einen Bericht kopiert, veroeffentlicht sie.
+`window.girl` also carries `id_member` -- the membership number. Whoever copies
+that object into a report publishes it.
 
 ---
 
-## 14. Cross-References
+## 14. Cross-references
 
-| Thema | HHAuto-Doku |
+| Topic | HHauto doc |
 |-------|-------------|
-| Battle-Simulation und Crit-Berechnung | bdsm-battle-simulator.md |
-| Team-Auswahl-Algorithmus (League) | Code: `TeamBuilderService.ts` / `TeamScoringService.ts` |
-| availableGirls-Felder, Blessing-API | data-sources-team.md |
-| Storage-Keys fuer Settings (Boost-Filter, Threshold) | storage-keys.md |
-| Knopftypen und Dialoge der Questseite, Energiekosten | adventure-quest-flow.md |
+| Battle simulation and crit calculation | bdsm-battle-simulator.md |
+| The team selection algorithm (league) | code: `TeamBuilderService.ts` / `TeamScoringService.ts` |
+| availableGirls fields, the blessing API | data-sources-team.md |
+| Storage keys for settings (boost filter, threshold) | storage-keys.md |
+| Button types and dialogs of the quest page, energy costs | adventure-quest-flow.md |
 
 ---
 
-## 15. Aenderungs-Historie
+## 15. Change history
 
-| Datum | Aenderung |
+| Date | Change |
 |-------|-----------|
-| 2021-07-21 | BDSM-System released, 7-Girl-Team |
-| 2021-11-17 | Awakening (Level 750) eingefuehrt |
-| 2022-09-08 | Element-Tier-Liste community-validiert |
+| 2021-07-21 | the BDSM system released, the 7-girl team |
+| 2021-11-17 | awakening (level 750) introduced |
+| 2022-09-08 | the element tier list validated by the community |
 
-Die Mechaniken werden von Kinkoid laufend angepasst (Bonus-Faktoren, neue Booster, Skill-Aenderungen). Bei signifikanten Drift in der HHAuto-Auswahl: BDSMHelper.ts und TeamScoringService.ts pruefen.
+Kinkoid adjusts the mechanics continuously (bonus factors, new boosters, skill
+changes). On significant drift in HHauto's selection: check BDSMHelper.ts and
+TeamScoringService.ts.
