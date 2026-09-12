@@ -148,6 +148,31 @@ raids, an installed script would not.
 returns), not the bare name, and do not take a harness pass as proof for a
 bare-name read.
 
+**A reading across a page change needs three checks, not one.** A tool that
+compares the koban balance before and after a click reported a purchase of
+4,821 kobans; the balance had not moved. Three different states all look like
+"the number fell":
+
+| What was seen | What it was | How to tell |
+|---|---|---|
+| hero missing, game domain, page readable | a real logout | `shared.Hero.infos.id` plus the login anchor |
+| hero missing, foreign domain | the click followed an ad or app link | compare `location.host` with the game host |
+| page not readable at all | the page was navigating during the read | read again after a pause before concluding anything |
+
+Only the first is a finding. The other two are the tool measuring something
+that is not the game.
+
+**An index into a list of elements does not survive a click.** The same tour
+clicked by position, the page rebuilt its control list after each click, and
+the index then pointed at a neighbour -- in one case the shop's "Restock 42"
+button, which really did spend kobans while the log said "Boosters". Re-resolve
+the element by a stable key (tag, id, class, text) and skip it when the list
+has moved.
+
+**A price is often not in the element but in the box around it.** The same
+Restock button carries its koban icon in the container, so a guard that only
+looks at the clicked element misses it. Check the closest wrapper too.
+
 **Suppressing a block is not the same as idling it.**
 Setting `autoTrollThreshold` to a huge value to observe "idle ticks" made the
 precondition fail, so the block was skipped entirely (1 start in 90s instead of

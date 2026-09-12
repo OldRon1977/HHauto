@@ -29,8 +29,14 @@ Everything that costs resources was left out, by these features:
 | a purchase or a pass | "Get Path of Valor Pass", `purchase-pass` |
 | a fight or energy | "Challenge!", "Perform!", `data-battles` |
 
-The run aborts as soon as a click lowers the koban balance. It did not abort:
-**not one of the 303 clicks cost a koban.**
+The run aborts as soon as a click lowers the koban balance -- and it did, on
+the shop page, for 42 kobans. The row that records it says "Boosters", and that
+label is wrong: the tool clicked by list index, the page had rebuilt its list
+after the previous click, and the index then pointed at the shop's
+**"Restock 42"** button. Measured again 2026-09-12, twice, for another 84
+kobans, until the tool was taught two things: a price counts even when it sits
+in the container around the element, and an index is re-checked against the
+element it was collected from before the click.
 
 ## The re-check (2026-09-11, level 115, world 5, 24 girls)
 
@@ -45,6 +51,24 @@ page except home -- the symbol only appears when there is something to report),
 `.nc-events-prize-locations-buttons-container` and `.redirect_button`. The
 "effect" column was **not** re-clicked; it remains the recording of
 2026-09-09.
+
+## Re-checked with clicks (2026-09-12, level 127, 24 girls)
+
+The tour ran again on the same account, 263 clicks, this time with the tool
+hardened (see above). **No identifier from the tables below has disappeared,
+and every page still answers with the `body[page=...]` the tables name.** The
+differences are all account state, not drift:
+
+| Page | What differs | Why |
+|---|---|---|
+| `/home.html` | `.feature-locked` for Clubs gone | the account has 24 girls now and is in a club |
+| `/activities.html?tab=missions` | 10 controls instead of 25, no `.mission_button` | no missions on offer at that moment |
+| `/member-progression.html` | `Claim` / `#claim-all` gone | nothing to collect |
+| `/pachinko.html` | the `10 games` button gone, other tiles present | the offer rotates |
+| `/god-path.html` | `.new_notif` gone | nothing new to report |
+| `/event.html`, `/characters.html` | fewer tiles | other events are running |
+| `.button-notification-icon` | missing on every page | it only exists while something is pending |
+| `/labyrinth-entrance.html` | answers `page=labyrinth` | a labyrinth is running, as the note above says |
 
 ## Pages that redirect to home
 
@@ -289,7 +313,7 @@ source in the interface -- the values themselves are in `shared.Hero.energies`
 | Boosters | `.market-menu-switch-tab` | no visible change |
 | Books | `.market-menu-switch-tab` | no visible change |
 | Gifts | `.market-menu-switch-tab` | no visible change |
-| Boosters | `.active` | KOBANS -42 |
+| Restock (recorded as "Boosters" through the index drift above) | `.active`, inside the merchant panel with `Restock 42` | KOBANS -42 -- refreshes the merchant's stock |
 
 ### `/pantheon.html`  (`body[page=pantheon]`, 11 elements)
 
