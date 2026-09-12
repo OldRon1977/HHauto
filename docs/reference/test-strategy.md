@@ -189,6 +189,20 @@ reverted:
   When HHauto starts sending one, its schema test goes into
   `spec/fixtures/<endpoint>/`, laid out like `live-blessings/`.
 
+## Why the suite still runs on jest 29
+
+jest 30 was tried on 2026-09-12 and rolled back: it brings jsdom 26, where
+`window.location` can no longer be redefined, and 395 of 1724 tests fail with
+`TypeError: Cannot redefine property: location`. Only two files cause it --
+`spec/testHelpers/MockHelpers.ts` and `spec/Service/PageNavigationService.spec.ts`
+-- but the helper sits in nearly every suite. Whoever takes the upgrade on
+replaces the redefinition there (a navigation facade the tests can stub, or
+`jest.replaceProperty`) and the rest follows.
+
+TypeScript 7 was tried the same day and rolled back for a different reason: the
+tooling is not there yet. `ts-loader` aborts the build and madge crashes the
+cycle check.
+
 ## Deliberately not done
 
 - Snapshot tests for HTML.
