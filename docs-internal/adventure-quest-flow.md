@@ -3,342 +3,335 @@ last-verified: 2026-09-11
 verified-against-version: 8.13.1 HHAuto, hentaiheroes.com
 status: current
 sources:
-  - Live-Messung auf einem eigenen Pruefkonto (ADR-011), Welt 1 bis 3, Level 5 bis 17
-  - Nachmessung auf demselben Konto in Welt 5, Level 115 (2026-09-11)
-  - HHAuto Code (Module/Quest.ts, Module/Troll.ts, config/game/HentaiHeroesVars.ts)
+  - Live measurement on a dedicated test account (ADR-011), worlds 1 to 3, levels 5 to 17
+  - A second measurement on the same account in world 5, level 115 (2026-09-11)
+  - HHAuto code (Module/Quest.ts, Module/Troll.ts, config/game/HentaiHeroesVars.ts)
 ---
 
-# Adventure und Hauptquest, gemessen
+# Adventure and the main quest, measured
 
-Was der Ablauf "Adventure" auf einem jungen Konto wirklich liefert: welche
-Knoepfe die Questseite traegt, welche Dialoge sie blockieren, und woran man
-erkennt, ob ein Questgegenstand gefallen ist.
+What the "adventure" flow really delivers on a young account: which buttons the
+quest page carries, which dialogs block them, and how to tell whether a quest
+item has dropped.
 
-Alles hier ist **gemessen** am 2026-09-09, sofern nicht als Ableitung
-gekennzeichnet. Kontokennungen und Spielernamen stehen nicht drin.
+Everything here is **measured** on 2026-09-09 unless marked as an inference.
+No account IDs and no player names are in it.
 
-## Der Weiter-Knopf
+## The proceed button
 
-`Quest.ts` liest den Typ als `id` des ersten Treffers von
-`#controls button:not([class*='ad_'])`. Gemessene IDs:
+`Quest.ts` reads the type as the `id` of the first hit of
+`#controls button:not([class*='ad_'])`. Measured IDs:
 
-| `id` | Bedeutung | Kosten |
+| `id` | Meaning | Cost |
 |---|---|---|
-| `free` | naechster Schritt ohne Kosten | - |
-| `pay` | naechster Schritt gegen Ressource | Geld (100-250 in Welt 1-3; gemessen 12.0K auf `/quest/420`, 13.0K auf `/quest/433`, 17.0K auf `/quest/505`) oder Quest-Energie |
-| `use_item` | Questgegenstand einsetzen | der Gegenstand |
-| `battle` | Questschritt verlangt einen Kampf | Kampfenergie |
-| `end_play` | Quest zu Ende, danach Reward-Popup | - |
-| `skip-quest` | Schritte ueberspringen; nur bei `skippable` da | Kobans (`skip_cost.hard_currency`) |
+| `free` | next step at no cost | - |
+| `pay` | next step against a resource | money (100-250 in worlds 1-3; measured 12.0K on `/quest/420`, 13.0K on `/quest/433`, 17.0K on `/quest/505`) or quest energy |
+| `use_item` | use a quest item | the item |
+| `battle` | the quest step demands a fight | fight energy |
+| `end_play` | the quest is over, the reward popup follows | - |
+| `skip-quest` | skip steps; only there with `skippable` | kobans (`skip_cost.hard_currency`) |
 
-### Was ein Schritt kostet
+### What a step costs
 
-Ueber 342 protokollierte `pay`-Schritte:
+Across 342 logged `pay` steps:
 
-| Welt | Schritte | Quest-Energie je Schritt |
+| World | Steps | Quest energy per step |
 |---|---|---|
-| 1 | 4 | durchweg 1 |
-| 2 | 137 | durchweg 1 |
-| 3 | 201 | 1 bis 6, Schwerpunkt 2 bis 4 |
+| 1 | 4 | 1 throughout |
+| 2 | 137 | 1 throughout |
+| 3 | 201 | 1 to 6, mostly 2 to 4 |
 
-Die Zuordnung Quest-ID zu Welt ist aus den beobachteten IDs **abgeleitet**
-(unter 200 Welt 1, unter 300 Welt 2, darueber Welt 3), nicht aus einem Feld
-gelesen. Gemessen ist die Kostenverteilung.
+The mapping of quest ID to world is **inferred** from the observed IDs (below
+200 world 1, below 300 world 2, above that world 3), not read from a field. The
+cost distribution is measured.
 
-Ab Welt 3 ist damit nicht mehr die Zahl der Schritte der Engpass, sondern die
-Quest-Energie -- und sobald ein Schritt einen Kampf verlangt, die Kampfenergie,
-die mit 1800 s je Punkt nachwaechst.
+From world 3 on, the bottleneck is no longer the number of steps but the quest
+energy -- and as soon as a step demands a fight, the fight energy, which grows
+back at 1800 s per point.
 
-`skip-quest` kommt im Quelltext dieses Repos nicht vor (grep, 0 Treffer).
-**Im Quelltext des Spiels schon.** Gelesen aus `build/quest.js` am 2026-09-09:
+`skip-quest` does not appear in this repository's source (grep, 0 hits). **It
+does appear in the game's source.** Read from `build/quest.js` on 2026-09-09:
 
-- Der Knopf steht **in** `#controls`, neben dem Weiter-Knopf. Die
-  Aufraeum-Zeile des Spiels nennt beide in einem Selektor:
+- The button sits **inside** `#controls`, next to the proceed button. The
+  game's own cleanup line names both in one selector:
   `$("#controls a, #controls .grade-controls, #controls .win img, #controls #skip-quest").remove()`.
-- Er existiert nur, solange der Schritt `skippable` meldet; sonst nimmt ihn das
-  Spiel selbst wieder heraus:
+- It exists only while the step reports `skippable`; otherwise the game removes
+  it itself:
   `!this.is_skippable && $("#skip-quest").length>0 && $("#skip-quest").remove()`.
-- Sein Klick-Behandler liest `this.skip_cost.hard_currency` und ruft
-  `shared.general.hc_confirm(n, ...)`, danach
-  `hh_ajax({action:"skip_quest_steps"})`. **Er kostet Kobans**, hinter einer
-  Rueckfrage.
+- Its click handler reads `this.skip_cost.hard_currency` and calls
+  `shared.general.hc_confirm(n, ...)`, then
+  `hh_ajax({action:"skip_quest_steps"})`. **It costs kobans**, behind a
+  confirmation.
 
-Damit ist die frueher offene Frage beantwortet: der Knopf steht gleichzeitig
-mit einem bekannten Weiter-Knopf im `#controls`. Fuer `Quest.ts` hiess das
-zweierlei -- `attr("id")` nimmt den ersten Treffer, also las das Skript
-`skip-quest` und landete im `unknownQuestButton`-Zweig, der `autoQuest`
-abschaltet; und `proceedButtonMatch.click()` klickt den **ganzen** Treffersatz,
-also waere ein dahinterstehender Skip-Knopf mitgedrueckt worden und haette
-seine Koban-Rueckfrage ueber der Quest stehen lassen. Seit v8.12.16 schliessen
-beide Selektoren `#skip-quest` aus.
+That answers the question that used to be open: the button stands in
+`#controls` at the same time as a known proceed button. For `Quest.ts` that
+meant two things -- `attr("id")` takes the first hit, so the script read
+`skip-quest` and ended up in the `unknownQuestButton` branch, which switches
+`autoQuest` off; and `proceedButtonMatch.click()` clicks the **whole** hit set,
+so a skip button behind it would have been pressed too and would have left its
+koban confirmation standing over the quest. Since v8.12.16 both selectors
+exclude `#skip-quest`.
 
-Im `#controls` steht neben dem Weiter-Knopf regelmaessig ein Werbeknopf
-(`blue_text_button ad_quest`, Text "Go!") ohne `id` -- den filtert der
-Selektor korrekt weg.
+Beside the proceed button, `#controls` regularly holds an ad button
+(`blue_text_button ad_quest`, text "Go!") without an `id` -- the selector
+filters that out correctly.
 
-## Dialoge, die den Weiter-Knopf blockieren
+## Dialogs that block the proceed button
 
-Ein offener Dialog laesst den Weiter-Knopf ausgegraut zurueck. Wer nur auf den
-Knopf schaut, meldet einen Haenger, der keiner ist.
+An open dialog leaves the proceed button greyed out. Whoever looks only at the
+button reports a hang that is none.
 
-| Dialog | Schliessen ueber |
+| Dialog | Closed through |
 |---|---|
-| `#level_up.popup.hero_leveling` | **nur** `button.blue_button_L` ("Ok") -- kein `close`-Element, auch kein verstecktes |
-| `#simple_text_popup.popup` (Wartungsmeldung) | `close.closable` |
+| `#level_up.popup.hero_leveling` | **only** `button.blue_button_L` ("Ok") -- no `close` element, not even a hidden one |
+| `#simple_text_popup.popup` (maintenance notice) | `close.closable` |
 | `#no_HC` | `close.closable` |
 | `#rewards_popup` | `button.blue_button_L` / `button.purple_button_L` |
-| `#not_enough_SC_popup.popup` (zu wenig Geld) | `close.closable` -- der Knopf bleibt danach grau, siehe unten |
+| `#not_enough_SC_popup.popup` (not enough money) | `close.closable` -- the button stays grey afterwards, see below |
 
-`close` als **Elementname** existiert also wirklich; die Selektoren in
-`Quest.ts`, die danach suchen, sind kein Tippfehler. Fuer `#level_up` greifen
-sie trotzdem ins Leere -- daher der Zusatzklick auf den Ok-Knopf (v8.12.6).
+So `close` really does exist as an **element name**; the selectors in
+`Quest.ts` that look for it are not a typo. For `#level_up` they still find
+nothing -- hence the extra click on the Ok button (v8.12.6).
 
-Ab Level 30 traegt `#level_up` **zwei** Knoepfe: "Ok" und "Go to Hero
-Leveling", in dieser Reihenfolge. Der Fix nimmt `.first()` und trifft damit
-"Ok". Kehrt das Spiel die Reihenfolge um, navigiert das Skript mitten in der
-Quest weg. Nach Text zu greifen scheidet aus: die Oberflaeche ist mehrsprachig.
+From level 30 on, `#level_up` carries **two** buttons: "Ok" and "Go to Hero
+Leveling", in that order. The fix takes `.first()` and thereby hits "Ok". If the
+game reverses the order, the script navigates away mid-quest. Matching on text
+is out: the interface is multilingual.
 
-### Zu wenig Geld
+### Not enough money
 
-`quest.js` prueft vor dem Absenden selbst. `gradeQuestNext` vergleicht
-`shared.Hero.currencies.soft_currency` mit den **exakten** Kosten
-`currentStepData.cost.$` und ruft bei zu wenig Geld
-`shared.general.notEnoughSoftCurrency(fehlbetrag)`; sonst `hc_confirm` und
-darin `startLoading()` samt Anfrage an den Server.
+`quest.js` checks before sending. `gradeQuestNext` compares
+`shared.Hero.currencies.soft_currency` with the **exact** cost
+`currentStepData.cost.$` and calls, when there is too little money,
+`shared.general.notEnoughSoftCurrency(shortfall)`; otherwise `hc_confirm` and
+inside it `startLoading()` along with the request to the server.
 
-Gemessen 2026-09-11 mit einem echten Klick auf einen Geld-Schritt (17.0K
-bei 7.063 Guthaben): Der Browser lehnt selbst ab, es geht **keine** Anfrage an
-den Server. `#not_enough_SC_popup` erscheint in `#common-popups`, der
-Fehlbetrag steht in `span[rel="money"]` (`9,937`), einziges Bedienelement
-ausser dem Harem-Link ist `close.closable`. Der Weiter-Knopf ist schon mit dem
-Popup grau und bleibt es nach dem Schliessen; das Popup ist dann aus dem DOM
-verschwunden. Erst ein Seitenwechsel stellt den Knopf wieder her.
+Measured 2026-09-11 with a real click on a money step (17.0K against a balance
+of 7,063): the browser refuses on its own, and **no** request goes to the
+server. `#not_enough_SC_popup` appears in `#common-popups`, the shortfall
+stands in `span[rel="money"]` (`9,937`), and the only control besides the harem
+link is `close.closable`. The proceed button is grey along with the popup and
+stays grey after it closes; the popup is then gone from the DOM. Only a page
+change restores the button.
 
-Ein grauer Knopf unter diesem Popup sagt also nichts darueber, ob der Server
-gefragt wurde. Die Vorpruefung in `Quest.ts` liest dasselbe Guthaben wie das
-Spiel; kommt das Popup trotzdem, war ihr Wert falsch -- ein veralteter
-Hero-Schnappschuss (siehe "Zwei Messfallen") erklaert das. `Quest.ts` prueft
-das Popup deshalb vor dem grauen Knopf, schliesst es, merkt sich die volle
-Schrittgebuehr als `$<kosten>` und laesst die Quest 20 Minuten ruhen
-(`QuestHelper.NO_MONEY_TIMER`). Weil der Knopf grau bleibt, darf der Bot nicht
-auf der Seite warten: der `$`-Zweig in `handleQuest` schickt ihn im naechsten
-Takt nach home.
+A grey button under this popup therefore says nothing about whether the server
+was asked. The pre-check in `Quest.ts` reads the same balance as the game; if
+the popup comes anyway, that value was wrong -- a stale hero snapshot (see "Two
+measurement traps") explains it. `Quest.ts` therefore checks the popup before
+the grey button, closes it, remembers the full step fee as `$<cost>` and lets
+the quest rest for 20 minutes (`QuestHelper.NO_MONEY_TIMER`). Because the
+button stays grey, the bot must not wait on the page: the `$` branch in
+`handleQuest` sends it home on the next tick.
 
-Was dabei im Spiel steht, gemessen am 2026-09-11 auf `/quest/505`
-(17.0K Preis, 7.063 Guthaben, englische Oberflaeche):
+What stands in the game meanwhile, measured 2026-09-11 on `/quest/505` (17.0K
+price, 7,063 balance, English interface):
 
-| Was | Selektor oder Variable | Wert |
+| What | Selector or variable | Value |
 |---|---|---|
-| Weiter-Knopf | `#controls button#pay` | Text `Use 17.0K` |
-| Preis | `#controls button#pay .action-cost .price` | `17.0K` -- gekuerzt, `parsePrice` macht 17000 daraus |
-| Waehrung | `.action-cost .soft_currency_icn` (Geld), `.action-cost .energy_quest_icn` (Quest-Energie) | genau eines von beiden im Knopf |
-| Knopf gesperrt | Attribut `disabled` am Knopf | vor dem Klick `false`, ab dem Klick `true`, auch nach dem Schliessen |
-| Guthaben | `shared.Hero.currencies.soft_currency` | `7063`; kann beim Seitenladen veraltet sein |
-| Popup | `#not_enough_SC_popup` | erscheint beim Klick, ohne Anfrage an `ajax.php` |
-| Fehlbetrag | `#not_enough_SC_popup span[rel="money"]` | `9,937` -- mit Tausender-Komma, `parsePrice` macht 9937 daraus |
-| Popup-Text | Text des Popups | `You lack 9,937 to complete this action! You can collect from the harem, do missions, battles and contests - ...` |
-| Schliessen | `close.closable` im Popup | `$('close.closable', popup).trigger('click')` (die Zeile aus `Quest.ts`) schliesst es; danach ist das Popup aus dem DOM |
+| Proceed button | `#controls button#pay` | text `Use 17.0K` |
+| Price | `#controls button#pay .action-cost .price` | `17.0K` -- abbreviated, `parsePrice` makes 17000 of it |
+| Currency | `.action-cost .soft_currency_icn` (money), `.action-cost .energy_quest_icn` (quest energy) | exactly one of the two in the button |
+| Button locked | the `disabled` attribute on the button | `false` before the click, `true` from the click on, also after closing |
+| Balance | `shared.Hero.currencies.soft_currency` | `7063`; can be stale on page load |
+| Popup | `#not_enough_SC_popup` | appears on the click, without a request to `ajax.php` |
+| Shortfall | `#not_enough_SC_popup span[rel="money"]` | `9,937` -- with a thousands comma, `parsePrice` makes 9937 of it |
+| Popup text | the popup's text | `You lack 9,937 to complete this action! You can collect from the harem, do missions, battles and contests - ...` |
+| Closing | `close.closable` in the popup | `$('close.closable', popup).trigger('click')` (the line from `Quest.ts`) closes it; the popup is gone from the DOM afterwards |
 
-Was HHauto in diesem Zustand tut. Den Weg ueber die Vorpruefung hat ein
-HHauto-Lauf am 2026-09-11 gegen genau diesen Zustand gezeigt (gemessen: auf
-`/quest/505` "Need 17000 Money to proceed.", `$17000` gespeichert, nicht
-geklickt, gut 1 s spaeter nach home, Guthaben unveraendert). Den Popup-Weg
-braucht das Skript nur bei veraltetem Hero-Schnappschuss; fuer ihn sind die
-Zeilen unten aus dem Code, die Schliess-Zeile selbst ist oben am echten Popup
-gemessen:
+What HHauto does in this state. An HHauto run on 2026-09-11 showed the
+pre-check path against exactly this state (measured: on `/quest/505` "Need
+17000 Money to proceed.", `$17000` stored, no click, a good second later home,
+balance unchanged). The script needs the popup path only with a stale hero
+snapshot; the lines below are from the code for it, while the closing line
+itself was measured on the real popup above:
 
-| Was | Ort | Wert |
+| What | Place | Value |
 |---|---|---|
-| Anforderung | `HHAuto_Temp_questRequirement` (sessionStorage) | `$17000` -- volle Schrittgebuehr, nicht der Fehlbetrag |
-| Sperre | Timer `nextQuestMoneyAttempt` in `HHAuto_Temp_Timers` | `QuestHelper.NO_MONEY_BACKOFF_SECS` = 1200 s; nur auf dem Popup-Weg |
-| Log, Vorpruefung greift | `Quest.ts` | `Need 17000 Money to proceed.` |
-| Log, Popup kam | `Quest.ts` | `Quest step refused for money: 9937 missing, need 17000. Not trying again for 20 minutes.` |
-| Log, Heimweg | `handleQuest` in `Pipeline.config.ts` | `Quest waiting for resources, returning home.` |
-| Weiter | `$`-Zweig in `handleQuest` | erst wenn die Sperre abgelaufen ist **und** das Guthaben ueber `$<kosten>` liegt |
+| Requirement | `HHAuto_Temp_questRequirement` (sessionStorage) | `$17000` -- the full step fee, not the shortfall |
+| Lock | timer `nextQuestMoneyAttempt` in `HHAuto_Temp_Timers` | `QuestHelper.NO_MONEY_BACKOFF_SECS` = 1200 s; only on the popup path |
+| Log, pre-check catches it | `Quest.ts` | `Need 17000 Money to proceed.` |
+| Log, the popup came | `Quest.ts` | `Quest step refused for money: 9937 missing, need 17000. Not trying again for 20 minutes.` |
+| Log, the way home | `handleQuest` in `Pipeline.config.ts` | `Quest waiting for resources, returning home.` |
+| Onward | the `$` branch in `handleQuest` | only once the lock has expired **and** the balance is above `$<cost>` |
 
-## Questgegenstand
+## The quest item
 
-Verlangt ein Schritt einen Gegenstand, zeigt die Seite oben rechts ein Feld
-"You need" mit dem Gegenstand und einem Zaehler, daneben "Dropped by" mit dem
-Gegner, der ihn fallen laesst.
+When a step demands an item, the page shows a "You need" field at the top right
+with the item and a counter, and beside it "Dropped by" with the opponent that
+drops it.
 
-Der Zaehler steht in `#controls .item span` -- derselbe Selektor, den
-`Quest.ts` beim Typ `use_item` schon liest. Er ist die Rueckmeldung, ob der
-Gegenstand da ist: vor dem Kampf `0`, nach einem erfolgreichen Kampf bietet die
-Quest `use_item` an.
+The counter is in `#controls .item span` -- the same selector `Quest.ts`
+already reads for the type `use_item`. It is the feedback on whether the item
+is there: `0` before the fight, and after a successful fight the quest offers
+`use_item`.
 
-Gemessen: **ein** Kampf genuegte in allen vier beobachteten Faellen. Ob das
-immer so ist, ist damit nicht gezeigt -- die Fallrate ist nicht gemessen.
+Measured: **one** fight was enough in all four observed cases. Whether that is
+always so is not shown -- the drop rate is not measured.
 
-## Troll-Freischaltung
+## Troll unlocking
 
-`Troll.getLastTrollIdAvailable` leitet den letzten verfuegbaren Troll aus
-`Hero.infos.questing.id_world` ab: ohne Eintrag in `trollIdMapping` gilt
-`id_world - 1`. Die Namen stehen in `HentaiHeroesVars.getTrolls`, hier nicht
-kopiert.
+`Troll.getLastTrollIdAvailable` derives the last available troll from
+`Hero.infos.questing.id_world`: without an entry in `trollIdMapping`,
+`id_world - 1` applies. The names are in `HentaiHeroesVars.getTrolls`, not
+copied here.
 
-| Welt | letzter Troll | gemessen |
+| World | Last troll | Measured |
 |---|---|---|
-| 1 | 0, also keiner | `troll-pre-battle.html?id_opponent=1` antwortet "Troll not available yet!" |
-| 2 | 1 | Kampf gegen Troll 1 laeuft, Gegnername laut `trollzList[1]` |
-| 5 | 4 | 2026-09-11: `id_opponent` 1 bis 4 liefern die Vorkampfseite mit `shared.Hero` und drei Kampfknoepfen, 5 bis 7 "Troll not available yet!" ohne `shared.Hero` |
+| 1 | 0, so none | `troll-pre-battle.html?id_opponent=1` answers "Troll not available yet!" |
+| 2 | 1 | the fight against troll 1 runs, the opponent named per `trollzList[1]` |
+| 5 | 4 | 2026-09-11: `id_opponent` 1 to 4 deliver the pre-battle page with `shared.Hero` and three fight buttons, 5 to 7 "Troll not available yet!" without `shared.Hero` |
 
-Die Seite ohne verfuegbaren Troll traegt **kein** `shared.Hero` und keine
-Knoepfe; HHauto initialisiert dort nicht und kann sie nicht verlassen. Deshalb
-darf kein Rueckfallpfad einen Troll erzwingen, wenn keiner frei ist (ADR-011,
-v8.12.5, Issue #1875 fuer die Variante mit Seiten-Trollen).
+The page without an available troll carries **no** `shared.Hero` and no
+buttons; HHauto does not initialise there and cannot leave it. No fallback path
+may therefore force a troll when none is free (ADR-011, v8.12.5, issue #1875
+for the variant with page trolls).
 
-## Energien
+## Energies
 
-`shared.Hero.energies` traegt mehrere Toepfe. Auf dem Pruefkonto gemessen:
+`shared.Hero.energies` carries several pots. Measured on the test account:
 `quest`, `fight`, `challenge`, `kiss`, `worship`, `reply`, `drill`.
 
-Jeder Topf traegt drei Zahlen: `amount`, `max_regen_amount` und `max_amount`.
-Die Kopfleiste zeigt `amount / max_regen_amount`, nicht `max_amount`. Gemessen
-in einer Ladung, fuer beide sichtbaren Balken gleichzeitig:
+Every pot carries three numbers: `amount`, `max_regen_amount` and `max_amount`.
+The header shows `amount / max_regen_amount`, not `max_amount`. Measured in one
+load, for both visible bars at once:
 
-| Kopfleiste | `amount` | `max_regen_amount` | `max_amount` |
+| Header | `amount` | `max_regen_amount` | `max_amount` |
 |---|---|---|---|
 | `174/82` | 174 | 82 | 1000 |
 | `3/13` | 3 | 13 | 200 |
 
-`max_regen_amount` ist die Grenze, bis zu der von selbst nachwaechst; darueber
-kommt Energie nur aus Aufstiegen und Gegenstaenden. Steht `amount` darueber
-(174 von 82), ruht die Regeneration -- der Ueberschuss verfaellt nicht, waechst
-aber auch nicht nach.
+`max_regen_amount` is the limit up to which energy grows back by itself; above
+it, energy only comes from level-ups and items. When `amount` stands above it
+(174 of 82), regeneration rests -- the excess does not expire, but does not
+grow either.
 
-Das Skript liest an allen sechs Stellen `max_regen_amount`
-(`Quest`, `Troll`, `League`, `Pantheon`, `PentaDrill`, `Season`);
-`max_amount` steht nur im Typ `KKEnergy`. Es rechnet damit mit derselben
-Grenze wie die Anzeige -- geprueft 2026-09-09, kein Handlungsbedarf.
+The script reads `max_regen_amount` in all six places (`Quest`, `Troll`,
+`League`, `Pantheon`, `PentaDrill`, `Season`); `max_amount` appears only in the
+type `KKEnergy`. It therefore uses the same limit as the display -- checked
+2026-09-09, nothing to do.
 
-`seconds_per_point` nennt die Nachwachszeit: Quest 450 s, Fight 1800 s,
-Challenge 2100 s, Kiss 3600 s, Drill 3600 s, Worship 8640 s, Reply 10800 s.
-Nachgemessen 2026-09-11 in Welt 5, Level 115: dieselben sieben Toepfe und
-dieselben Zeiten; `max_regen_amount` Quest 150, Fight 30, Challenge 18, Kiss 20,
-Worship 15, Reply 10, Drill 20 (`max_amount` 1000/200/60/100/100/50/100). Die
-Kopfleiste zeigte `15/150` und `2/30`, also wieder `amount / max_regen_amount`.
-Alle sechs Toepfe, die das Skript liest, standen auf allen 39 besuchten Seiten
-bereit (`data-sources-inventory.md`, Abschnitt 10).
-`fight` ist damit auf einem jungen Konto die knappe Ressource, und jeder
-Questkampf kostet davon.
+`seconds_per_point` names the regrowth time: quest 450 s, fight 1800 s,
+challenge 2100 s, kiss 3600 s, drill 3600 s, worship 8640 s, reply 10800 s.
+Measured again 2026-09-11 in world 5, level 115: the same seven pots and the
+same times; `max_regen_amount` quest 150, fight 30, challenge 18, kiss 20,
+worship 15, reply 10, drill 20 (`max_amount` 1000/200/60/100/100/50/100). The
+header showed `15/150` and `2/30`, so again `amount / max_regen_amount`. All
+six pots the script reads stood ready on all 39 visited pages
+(`data-sources-inventory.md`, section 10). On a young account `fight` is
+therefore the scarce resource, and every quest fight costs some of it.
 
-## Zwei Messfallen
+## Two measurement traps
 
-**Das Spiel liefert keinen einheitlichen Heldenzustand.** Zwei Seitenaufrufe
-mit sechs Sekunden Abstand, beide mit abgeschaltetem Browser-Cache und beide
-mit eigener `server_time`, trugen unterschiedliche Werte:
+**The game does not deliver a consistent hero state.** Two page loads six
+seconds apart, both with the browser cache off and both with their own
+`server_time`, carried different values:
 
-| Feld | Aufruf A | Aufruf B |
+| Field | Load A | Load B |
 |---|---|---|
 | `infos.level` | 36 | 17 |
 | `infos.Xp.cur` | 83716 | 36389 |
 | `infos.caracs.endurance` | 1418 | 734 |
 | `infos.questing.step` | 310052 | 310052 |
 
-Ueber zwei Messschleifen mit je eigener Browsersitzung pro Lesung:
+Across measurement loops with their own browser session per reading:
 
-| Schleife | Lesungen | frisch | veraltet | Anteil |
+| Loop | Readings | fresh | stale | Share |
 |---|---|---|---|---|
 | 1 | 12 | 6 | 6 | 50 % |
 | 2 | 16 | 8 | 8 | 50 % |
-| 3 (2026-09-11, Level 115) | 12 | 4 | 8 | 67 % |
-| zusammen | 40 | 18 | 22 | **55 %** |
+| 3 (2026-09-11, level 115) | 12 | 4 | 8 | 67 % |
+| together | 40 | 18 | 22 | **55 %** |
 
-Schleife 3 zeigte dasselbe Muster: die acht veralteten Lesungen trugen alle
-denselben Stand (Level 115 und das Geld unmittelbar nach einem Stat-Kauf gut
-eine Stunde vorher), die vier frischen den aktuellen (Level 116).
+Loop 3 showed the same pattern: the eight stale readings all carried the same
+state (level 115 and the money right after a stat purchase a good hour
+earlier), the four fresh ones the current one (level 116).
 
-Es ist kein Nachhinken, sondern **zwei feste Momentaufnahmen im Wechsel**: die
-veralteten Lesungen tragen immer exakt dieselben Werte (Level 17, Xp 36389,
-endurance 734), nie etwas dazwischen. Beide Seiten sind gleich betroffen, und
-`questing.step` war in allen 28 Lesungen aktuell.
+It is not a lag but **two fixed snapshots in alternation**: the stale readings
+always carry exactly the same values (level 17, Xp 36389, endurance 734), never
+anything in between. Both pages are affected equally, and `questing.step` was
+current in all 28 readings.
 
-Gemessen ist die Verteilung. **Geschlossen**, nicht gemessen, ist die Ursache:
-zwei Backend-Knoten mit unterschiedlichem Cache-Stand wuerden das Bild
-erklaeren, geprueft ist das nicht.
+The distribution is measured. **Inferred**, not measured, is the cause: two
+backend nodes with different cache states would explain the picture, but that
+is not verified.
 
-Rohdaten liegen ausserhalb des Repos unter
-`$HHAUTO_HOME/account/measurements/` (außerhalb des Repos).
+The raw data live outside the repository under
+`$HHAUTO_HOME/account/measurements/`.
 
-Fortschritt geht dabei **nicht** verloren; eine spaetere Abfrage bestaetigte
-alle Stufen. Wer aber aus einem einzelnen Aufruf schliesst, misst unter
-Umstaenden einen Stand von vor Stunden. Eine Aussage ueber den Kontostand
-braucht mehr als eine Lesung.
+Progress is **not** lost in the process; a later query confirmed every level.
+But whoever concludes from a single load may be measuring a state from hours
+ago. A statement about the account's state needs more than one reading.
 
-Fuer das Skript hat das Folgen: `HeroHelper.getLevel()` speist die
-`>= LEVEL_MIN_*`-Bedingungen von sechs Modulen -- Pantheon (15), Sultry
-Mysteries (15), League (20), Path of Glory (30), Path of Valor (30) und
-Double Penetration (40). Pantheon prueft ueber `decideIsEnabled` statt mit
-einem direkten Vergleich; wer nur nach `getLevel() >=` sucht, uebersieht es. Bei einer Rate von 50 Prozent
-trifft es im Schnitt jede zweite Seitenladung; eine Seite, die zu niedrig
-ausliefert, behaelt diesen Wert fuer ihre gesamte Lebensdauer,
-und die betroffenen Module melden `isEnabled() === false`, ohne Fehler und ohne
-Logzeile. Seit v8.12.7 merkt sich `getLevel` deshalb den Hoechststand
-(`Temp_heroMaxLevel`) und faellt nicht darunter.
+That has consequences for the script: `HeroHelper.getLevel()` feeds the
+`>= LEVEL_MIN_*` conditions of six modules -- Pantheon (15), Sultry Mysteries
+(15), League (20), Path of Glory (30), Path of Valor (30) and Double
+Penetration (40). Pantheon checks through `decideIsEnabled` instead of a direct
+comparison; whoever only greps for `getLevel() >=` misses it. At a rate of 50
+per cent it hits every second page load on average; a page that delivers too
+low a value keeps it for its whole lifetime, and the affected modules report
+`isEnabled() === false`, without an error and without a log line. Since v8.12.7
+`getLevel` therefore remembers the highest value seen (`Temp_heroMaxLevel`) and
+does not fall below it.
 
-**Eine Quest-URL aus einer alten Seite fuehrt nicht weiter.** Navigiert man
-auf eine bereits erledigte Quest, antwortete das Spiel am 2026-09-09 mit
-"Something went wrong. Please try again." und liess den Weiter-Knopf
-ausgegraut. Am 2026-09-11 zeigte `/quest/320` (auf einem Konto in Welt 5 laengst
-erledigt) stattdessen eine Archivansicht: `page=quest`, keine Fehlermeldung, im
-`#controls` nur `archive-back` und `archive-next`. Fortschritt gibt es ueber eine
-alte URL in keinem der beiden Faelle; der Questpfad gehoert vor jedem Lauf
-frisch aus `Hero.infos.questing.current_url` gelesen.
+**A quest URL from an old page leads nowhere.** Navigating to an already
+finished quest, the game answered on 2026-09-09 with "Something went wrong.
+Please try again." and left the proceed button greyed out. On 2026-09-11
+`/quest/320` (long finished on an account in world 5) showed an archive view
+instead: `page=quest`, no error message, and in `#controls` only `archive-back`
+and `archive-next`. Neither case makes progress through an old URL; the quest
+path belongs read fresh from `Hero.infos.questing.current_url` before every
+run.
 
-Gemessen 2026-09-11 auf der aktuellen Questseite in Welt 5: erster Knopf `pay`,
-Text `Use 15`, Waehrung Quest-Energie (`.energy_quest_icn`), Zaehler
+Measured 2026-09-11 on the current quest page in world 5: the first button
+`pay`, text `Use 15`, currency quest energy (`.energy_quest_icn`), counter
 `#controls .item span` `0`.
 
-## Ein gesperrtes Event sieht aus wie ein offenes
+## A locked event looks like an open one
 
-Ist ein Event fuer das Konto gesperrt, rendert das Spiel den Reiter trotzdem:
-`.event-title.active` traegt den angeforderten Tab samt eigenem `href`. Fuer
-`EventModule.getDisplayedIdEventPage()` ist das nicht von einem offenen Event
-zu unterscheiden -- die Funktion liefert die Event-ID, nicht den leeren String,
-auf den die Ausstiegsklappe prueft.
+If an event is locked for the account, the game renders the tab anyway:
+`.event-title.active` carries the requested tab with its own `href`. For
+`EventModule.getDisplayedIdEventPage()` that is indistinguishable from an open
+event -- the function returns the event ID, not the empty string the exit
+condition checks for.
 
-Gemessen ueber vier Reiter desselben Kontos (ein gesperrter, drei offene):
+Measured across four tabs of the same account (one locked, three open):
 
-| Merkmal | gesperrt | offen |
+| Feature | locked | open |
 |---|---|---|
-| `.event-title.active` mit href | ja | ja |
+| `.event-title.active` with href | yes | yes |
 | `#events .nc-panel` | 1 | 1 |
 
-Das `nc-panel`, das die Sperrmeldung traegt, steht also auch auf jeder
-spielbaren Seite. **Ein DOM-Merkmal, das die beiden Faelle trennt, ist nicht
-gefunden.** Der Text der Meldung waere eines, ist aber uebersetzt.
+The `nc-panel` that carries the locked message therefore stands on every
+playable page too. **No DOM feature that separates the two cases was found.**
+The text of the message would be one, but it is translated.
 
-Deshalb prueft das Skript seit v8.12.8 die Bedingung selbst, statt sie der
-Seite anzusehen: `PathOfAttraction.isEnabled()` verlangt zehn Maedchen und
-Welt 2, gleiche Bauart wie `PlaceOfPower.isEnabled()`. Ohne diese Pruefung
-lief die Sitzung in eine Schleife -- zwoelf von achtzehn Samples standen auf
-der Event-Seite.
+Since v8.12.8 the script therefore checks the condition itself instead of
+reading it off the page: `PathOfAttraction.isEnabled()` demands ten girls and
+world 2, built like `PlaceOfPower.isEnabled()`. Without that check the session
+ran into a loop -- twelve of eighteen samples stood on the event page.
 
-## Zwei Nebenbeobachtungen am Code
+## Two side observations on the code
 
-- **Love Raids ohne Levelschwelle.** An `LoveRaidManager.isEnabled` stand
-  eine auskommentierte Levelpruefung gegen `LEVEL_MIN_POG`. Sie ist entfernt,
-  das Verhalten bleibt: Love Raids haben heute keine Levelschwelle, und in der
-  Tabelle aus ADR-012 stehen sie deshalb nicht. **Zu messen bleibt**, ob das
-  Spiel eine Schwelle kennt -- ob die auskommentierte Zeile also je richtig
-  war.
-- **Double Penetration und die zehn Maedchen.** Der Kommentar an
-  `DoublePenetration.isEnabled` nannte "And 10 girls", geprueft wurde nur das
-  Level. Seit ADR-012 steht die Bedingung in der Tabelle in
-  `Service/FeatureGate.ts` -- und zwar **ohne** Maedchenbedingung, weil sie
-  ungemessen ist. Ein Test haelt das fest, damit sie niemand aus dem alten
-  Kommentar heraus nachtraegt. **Zu messen bleibt**, was die DP-Seite auf
-  einem Konto unter zehn Maedchen ausliefert; erst dann gehoert die Zeile in
-  die Tabelle. Dieselbe Bauart hat bei Place of Power zur toten Seite
-  gefuehrt, dort allerdings mit vorhandener Pruefung.
+- **Love raids without a level threshold.** `LoveRaidManager.isEnabled` carried
+  a commented-out level check against `LEVEL_MIN_POG`. It is removed, and the
+  behaviour stays: love raids have no level threshold today, which is why they
+  are not in the table from ADR-012. **Still to be measured**: whether the game
+  knows a threshold -- that is, whether the commented-out line was ever right.
+- **Double Penetration and the ten girls.** The comment on
+  `DoublePenetration.isEnabled` said "And 10 girls", but only the level was
+  checked. Since ADR-012 the condition lives in the table in
+  `Service/FeatureGate.ts` -- **without** a girl condition, because that one is
+  unmeasured. A test records it, so that nobody adds it from the old comment.
+  **Still to be measured**: what the DP page delivers on an account below ten
+  girls; only then does the line belong in the table. The same construction led
+  to the dead page at Place of Power, though there with the check in place.
 
-## Verweise
+## References
 
-- `src/Module/Quest.ts` -- Knopftypen, Popup-Behandlung, `questRequirement`
+- `src/Module/Quest.ts` -- button types, popup handling, `questRequirement`
 - `src/Module/Troll.ts` -- `getLastTrollIdAvailable`, `getTrollIdToFight`
 - `src/config/game/HentaiHeroesVars.ts` -- `trollzList`, `trollIdMapping`
-- `docs/decisions/ADR-011-a-dedicated-account-may-write.md` -- warum es ein
-  Konto gibt, auf dem das gemessen werden darf
-- `docs-internal/live-verification-lessons.md` -- warum eine Messung am
-  falschen Ort einen Fehler erfindet
+- `docs/decisions/ADR-011-a-dedicated-account-may-write.md` -- why there is an
+  account this may be measured on
+- `docs-internal/live-verification-lessons.md` -- why a measurement in the
+  wrong place invents a bug
