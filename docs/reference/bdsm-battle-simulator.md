@@ -13,6 +13,59 @@ BDSMHelper.ts, BDSMPlayer.ts, BDSMSimu.ts).
 
 ---
 
+## Measured against a real fight (2026-09-12)
+
+One league fight on the test account, with the answer's `rounds` read hit by
+hit. Our side: damage 19,773, defense 6,957, ego 122,765, chance 13,448, theme
+water. The opponent: damage 13,418, defense 5,884, ego 109,538, chance 8,572,
+no theme (balanced). Both come from `opponents_list` on `/leagues.html`, which
+is where the simulator reads them.
+
+| What the model says | What the game did | Verdict |
+|---|---|---|
+| base damage `atk - adv_def` | the opponent hit 13,418 - 6,957 = 6,461, on every normal hit | exact |
+| our base damage | 16,854 per hit, which is (19,773 x 1.15) - 5,884 | exact **once the equipped mythic booster is counted**, see below |
+| crit = `2 + critDamage synergy` | our crit 33,885 = 16,854 x 2.0105, and our critDamage synergy is 0.0105; the opponent's crit was exactly 2x with a synergy of 0 | exact |
+| heal on hit | after each of our hits the ego rose by `ceil(0.095 x damage)` -- 1,602 after a normal hit, 3,220 after the crit -- capped at the maximum, which is why the first heal is invisible | exact, all six rounds reproduce |
+| points on a win | 92,033 of 122,773 ego left = 0.7496 -> 15 + ceil(7.496) = 23, and the game awarded 23 | exact |
+| the whole prediction | 100 % win, expected value 22.2; the fight gave 23 | consistent (the fight before: 22.1 predicted, 22 given) |
+
+### The one gap: the equipped mythic booster
+
+The `damage` in `opponents_list` does not include the mythic booster. MB2
+("All Mastery's Emblem", +15 % damage in league and season) was equipped with
+16 of 100 uses left, and the game hit for `19,773 x 1.15` minus the opponent's
+defense -- 16,854.95, floored to 16,854. The simulator takes the list value and
+therefore models our own damage 15 % too low while such a booster is on: more
+rounds, less remaining ego, fewer points than the fight delivers. Whoever wants
+the prediction to match reality reads `Temp_boosterStatus` (`Booster.ts` keeps
+the equipped mythic there) and scales the attack accordingly.
+
+### What this fight could not show
+
+- **`defReduce` did not appear.** Both sides carried the sun synergy at 0.0435,
+  and both hits equal a full, unreduced subtraction of the defender's defense.
+  The values in `opponents_list` look like final values with the synergies
+  already worked in, while the simulator reduces our defense by the opponent's
+  `defReduce` again in league mode. One fight is not proof for every case, but
+  it is evidence that this step counts the same bonus twice.
+- **Domination** stayed untested: the opponent had no theme, so no element
+  matched.
+- The crit rate is not measurable from six hits. Ours computes to 0.3 x
+  13,448 / (13,448 + 8,572) + 0.0214 = 0.205, and one of six hits was critical.
+
+### How to read an opponent from this
+
+The four numbers that decide a league fight stand in `opponents_list` per
+opponent: `damage`, `defense`, `remaining_ego`, `chance`. Hits needed to win is
+`ceil(opponentEgo / (ourDamage - theirDefense))`, hits we survive is
+`ceil(ourEgo / (theirDamage - ourDefense))` -- with heal on hit stretching the
+second number. Crits shorten both, weighted by the chance share above. The
+points follow from the ego left, which is why a fight that is won quickly is
+worth nearly twice a fight that is barely won.
+
+---
+
 ## Files
 
 | File | Content |
