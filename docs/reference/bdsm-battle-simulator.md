@@ -49,8 +49,16 @@ the equipped mythic there) and scales the attack accordingly.
   already worked in, while the simulator reduces our defense by the opponent's
   `defReduce` again in league mode. One fight is not proof for every case, but
   it is evidence that this step counts the same bonus twice.
-- **Domination** stayed untested: the opponent had no theme, so no element
-  matched.
+- **Domination is measured** -- in a second fight the same day, deliberately
+  against a fire-themed opponent while our team's theme was water (water
+  dominates fire). Our ego went into the fight at 135,293 against the 122,773
+  the list showed (factor 1.1020) and our attack at 25,074 against the boosted
+  22,739 (factor 1.1027): **+10 % on ego and attack, as the model says**. Our
+  defense, which gets no domination bonus, still differed from the list by
+  1.85 % -- that is how exact the list itself is, and it is the reason the two
+  factors come out at 1.102 rather than a clean 1.100. The fight was lost on
+  purpose: a losing fight shows the same per-hit numbers and costs one
+  challenge energy.
 - The crit rate is not measurable from six hits. Ours computes to 0.3 x
   13,448 / (13,448 + 8,572) + 0.0214 = 0.205, and one of six hits was critical.
 
