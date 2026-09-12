@@ -4,453 +4,463 @@ verified-against-version: 8.13.1
 status: current
 ---
 
-# Storage Keys Referenz
+# Storage keys reference
 
-Alle localStorage / sessionStorage Schluessel des HHauto Skripts.
+Every localStorage / sessionStorage key of the HHauto script.
 
-**Abgleich (2026-09-11, 8.13.1).** Jede Tabellenzeile -- Konstante, Storage
-Key, Storage-Typ, HHType -- stimmt mit `StorageKeys.ts` und `HHStoredVars.ts`
-ueberein; `npm run check:docs` haelt fest, dass jede Konstante hier steht.
-Anzahlen stehen bewusst nicht mehr hier: sie liefen dem Code jedes Mal
-hinterher, und `check:docs` nennt sie.
+**Cross-checked (2026-09-11, 8.13.1).** Every table row -- constant, storage
+key, storage type, HHType -- agrees with `StorageKeys.ts` and `HHStoredVars.ts`;
+`npm run check:docs` holds that every constant appears here. Counts
+deliberately no longer stand here: they trailed the code every time, and
+`check:docs` names them.
 
-**Speicherort, gemessen 2026-09-11** nach einer Seitentour mit HHauto auf dem
-Pruefkonto: 233 `HHAuto_*`-Schluessel im Browser, 230 davon in dem Speicher,
-den die Registry vorsieht (`Storage()` ohne `settPerTab` = localStorage). Die
-drei anderen: `Temp_LogIdx` und `Temp_Log0` (Log-Ring, absichtlich nicht
-registriert, siehe unten) und `Temp_Debug` (siehe dessen Zeile). Die
-Beschreibungstexte sind **nicht** einzeln gegen das Verhalten geprueft; wo eine
-Zeile eine pruefbare Aussage macht (Standardwert, Wertebereich), steht dabei,
-ob sie gemessen oder aus dem Code gelesen ist.
+**Where they are stored, measured 2026-09-11** after a page tour with HHauto on
+the test account: 233 `HHAuto_*` keys in the browser, 230 of them in the store
+the registry prescribes (`Storage()` without `settPerTab` = localStorage). The
+other three: `Temp_LogIdx` and `Temp_Log0` (the log ring, deliberately not
+registered, see below) and `Temp_Debug` (see its row). The descriptions are
+**not** checked individually against the behaviour; where a row makes a
+checkable statement (a default, a range), it says whether that was measured or
+read from the code.
 
 ---
 
-## Architektur
+## Architecture
 
-### Dateien
+### Files
 
-- `src/config/StorageKeys.ts` -- SK und TK Konstanten (Definitionen)
-- `src/config/HHStoredVars.ts` -- Registry mit Defaults, Validierung, UI-Metadaten
-- `src/Helper/StorageHelper.ts` -- Storage-Abstraktionsschicht
+- `src/config/StorageKeys.ts` -- the SK and TK constants (the definitions)
+- `src/config/HHStoredVars.ts` -- the registry with defaults, validation and UI metadata
+- `src/Helper/StorageHelper.ts` -- the storage abstraction layer
 
-### Prefix-System
+### The prefix system
 
-- Alle Keys werden mit `HHStoredVarPrefixKey` (= `"HHAuto_"`) prefixed
-- Beispiel: `HHStoredVarPrefixKey + SK.master` wird zu `"HHAuto_Setting_master"`
+- Every key is prefixed with `HHStoredVarPrefixKey` (= `"HHAuto_"`)
+- Example: `HHStoredVarPrefixKey + SK.master` becomes `"HHAuto_Setting_master"`
 
-### Storage-Typ
+### The storage type
 
-Drei moegliche Werte fuer das `storage`-Feld in `HHStoredVars.ts`:
+Three possible values for the `storage` field in `HHStoredVars.ts`:
 
-| Wert | Bedeutung |
+| Value | Meaning |
 |---|---|
-| `"localStorage"` | persistent, ueberlebt Browser-Restart |
-| `"sessionStorage"` | nur fuer aktuellen Tab |
-| `"Storage()"` | Auswahl zur Laufzeit anhand `SK.settPerTab`: wenn aktiv -> sessionStorage, sonst localStorage |
+| `"localStorage"` | persistent, survives a browser restart |
+| `"sessionStorage"` | the current tab only |
+| `"Storage()"` | chosen at runtime by `SK.settPerTab`: when it is on -> sessionStorage, otherwise localStorage |
 
 ### HHType
 
-| HHType | Bedeutung |
+| HHType | Meaning |
 |---|---|
-| `Setting` | Benutzer-Einstellung (auf der UI sichtbar) |
-| `Temp` | Laufzeit-State (intern) |
+| `Setting` | a user setting (visible in the UI) |
+| `Temp` | runtime state (internal) |
 
-### Kern-Funktionen (`StorageHelper.ts`)
+### The core functions (`StorageHelper.ts`)
 
-- `getStoredValue(key)` -- Wert lesen. Gibt `undefined` zurueck wenn der Key nicht in `HHStoredVars` registriert ist.
-- `setStoredValue(key, value)` -- Wert schreiben. Bei Storage-Voll-Fehler: einmaliger Cleanup-Retry. Unregistrierte Keys werden ohne Fehler verworfen.
-- `deleteStoredValue(key)` -- Wert loeschen.
-- `getStoredJSON<T>(key, default, reviver?)` -- JSON parsen mit Default-Fallback bei Parse-**Fehler**. Achtung: Der Typparameter ist zur Laufzeit geloescht. `JSON.parse` gelingt auch bei `"null"`, `"5"` oder `"{}"`, also liefert ein `<string[]>`-Lesen genau diese Werte zurueck statt des Defaults. Der Default greift nur, wenn der Key fehlt oder das JSON kaputt ist.
-- `getStoredArray<T>(key)` -- Array-typisierte Settings lesen. Prueft `Array.isArray()` und gibt sonst `[]` zurueck. Fuer jede Einstellung benutzen, auf deren Ergebnis `.includes()` o. ae. aufgerufen wird (siehe unten).
-- `getStorage()` -- aktueller Default-Storage abhaengig von `SK.settPerTab`.
-- `getStorageItem(type)` -- Auflöser fuer `"localStorage"` / `"sessionStorage"` / `"Storage()"`.
+- `getStoredValue(key)` -- read a value. Returns `undefined` when the key is not registered in `HHStoredVars`.
+- `setStoredValue(key, value)` -- write a value. On a storage-full error: one cleanup retry. Unregistered keys are discarded without an error.
+- `deleteStoredValue(key)` -- delete a value.
+- `getStoredJSON<T>(key, default, reviver?)` -- parse JSON with a fallback to the default on a parse **error**. Careful: the type parameter is erased at runtime. `JSON.parse` also succeeds on `"null"`, `"5"` or `"{}"`, so a `<string[]>` read returns exactly those values instead of the default. The default only applies when the key is missing or the JSON is broken.
+- `getStoredArray<T>(key)` -- read array-typed settings. Checks `Array.isArray()` and returns `[]` otherwise. Use it for every setting whose result has `.includes()` or the like called on it (see below).
+- `getStorage()` -- the current default storage, depending on `SK.settPerTab`.
+- `getStorageItem(type)` -- the resolver for `"localStorage"` / `"sessionStorage"` / `"Storage()"`.
 
-### Array- und Listenfelder
+### Array and list fields
 
-Fuer JSON-Arrays `getStoredArray` benutzen (siehe oben). Fuer die
-`;`-getrennten Textlisten gilt: Die Syntax gehoert **einmal** definiert und von
-Eingabefeld und Laufzeit gemeinsam gelesen. `autoBuyBoostersFilter` macht das
-seit 8.11.0 ueber `BUY_LIST_PATTERN` in `Module/Market.pure.ts`. Vorher standen
-Feld-Regex und Parser getrennt, mit dem Ergebnis, dass `MB10` jahrelang nicht
-eingebbar war, obwohl der Tooltip ihn auflistete (#1844).
+For JSON arrays use `getStoredArray` (see above). For the `;`-separated text
+lists: the syntax belongs defined **once** and read by the input field and the
+runtime together. `autoBuyBoostersFilter` does that through `BUY_LIST_PATTERN`
+in `Module/Market.pure.ts` since 8.11.0. Before that the field regex and the
+parser stood apart, with the result that `MB10` could not be entered for years
+although the tooltip listed it (#1844).
 
-Achtung beim Roten: `input[pattern]` wird in `StartService` generisch rot
-gefaerbt, aber das Speichern prueft die Gueltigkeit **nicht**. Wer will, dass
-ein rotes Feld auch etwas verhindert, muss das im Modul selbst tun --
-`autoBuyBoostersFilter` ist bislang das einzige Feld, das das macht, weil dort
-Kobans ausgegeben werden.
+Careful with the red: `input[pattern]` is coloured red generically in
+`StartService`, but saving does **not** check validity. Whoever wants a red
+field to actually prevent something has to do that in the module itself --
+`autoBuyBoostersFilter` is so far the only field that does, because kobans are
+spent there.
 
-### Der Wert `"null"` (Issue #1846)
+### The value `"null"` (issue #1846)
 
-`extractHHVars` serialisiert einen nie geschriebenen Key absichtlich als `null`, damit ein Debug-Log
-"nie gesetzt" von "nicht exportiert" unterscheiden kann. `saveHHVarsSettingsAsJSON` benutzt dieselbe
-Funktion, der Config-Import schrieb diese Nullwerte frueher direkt in den Web Storage -- der daraus den
-String `"null"` macht. Ein simpler Speichern/Laden-Durchlauf der Einstellungsdatei genuegte also, um
-jede unberuehrte Einstellung auf `"null"` zu setzen; `setDefaults` repariert das nicht, weil die
-Listen-Settings keine `isValid`-Regex haben.
+`extractHHVars` deliberately serialises a key that was never written as `null`,
+so that a debug log can tell "never set" from "not exported".
+`saveHHVarsSettingsAsJSON` uses the same function, and the config import used to
+write those null values straight into web storage -- which turns them into the
+string `"null"`. A simple save/load round trip of the settings file was
+therefore enough to set every untouched setting to `"null"`; `setDefaults` does
+not repair that, because the list settings have no `isValid` regex.
 
-Seit 8.10.1 ueberspringen der Importer (`myfileLoad_onReaderLoad`) und `debugDeleteTempVars` Nullwerte,
-und die Listen werden ueber `getStoredArray` gelesen. Wer eine neue Array-Einstellung anlegt: `getStoredArray`
-benutzen, nicht `getStoredJSON<T[]>(key, [])`.
+Since 8.10.1 the importer (`myfileLoad_onReaderLoad`) and `debugDeleteTempVars`
+skip null values, and the lists are read through `getStoredArray`. Whoever adds
+a new array setting: use `getStoredArray`, not `getStoredJSON<T[]>(key, [])`.
 
-### Registrierungspflicht
+### Registration is mandatory
 
-Eine Konstante in `StorageKeys.ts` (SK oder TK) ist allein **nicht ausreichend**. Der zugehoerige Eintrag in `HHStoredVars.ts` mit `storage`, `HHType`, `default` etc. ist Pflicht. Fehlende Registrierung wird zur Laufzeit ohne Warnung silent ignoriert -- lesen liefert `undefined`, schreiben verfaellt.
+A constant in `StorageKeys.ts` (SK or TK) alone is **not enough**. The matching
+entry in `HHStoredVars.ts` with `storage`, `HHType`, `default` and so on is
+required. A missing registration is silently ignored at runtime -- reading
+returns `undefined`, writing is dropped.
 
-Die `kobanUsing: true`-Flag bei einer Setting verknuepft sie zusaetzlich mit dem globalen Schalter `SK.spendKobans0`: wenn der Master-Switch aus ist, liest `getStoredValue` immer `"false"` zurueck, unabhaengig vom gespeicherten Wert.
+The `kobanUsing: true` flag on a setting additionally ties it to the global
+switch `SK.spendKobans0`: when the master switch is off, `getStoredValue`
+always returns `"false"`, whatever the stored value is.
 
 ### Migration
 
-`migrateHHVars()` in `StorageHelper.ts` ist aktuell auskommentiert. Wenn ein Setting-Key umbenannt wird (z.B. `Setting_MaxAff` -> `Setting_maxAff`), kann hier ein Mapping eingetragen werden, damit alte Storage-Eintraege automatisch in den neuen Key kopiert werden.
+`migrateHHVars()` in `StorageHelper.ts` is currently commented out. When a
+setting key is renamed (`Setting_MaxAff` -> `Setting_maxAff`, say), a mapping
+can be entered here so that old storage entries are copied into the new key
+automatically.
 
 ---
 
-> **Code-Referenzen:** Wo ein Key gelesen oder geschrieben wird, beantwortet ein
-> `grep` nach der SK-/TK-Konstante zuverlaessiger als eine gepflegte Tabelle. Eine
-> solche Tabelle stand bis 2026-09-01 in data-sources-inventory.md und war zu dem
-> Zeitpunkt neun Keys hinterher.
+> **Code references:** where a key is read or written is answered more reliably
+> by a `grep` for the SK/TK constant than by a maintained table. Such a table
+> stood in data-sources-inventory.md until 2026-09-01 and was nine keys behind
+> at that point.
 
 ## SK -- Setting Keys
 
-Vollstaendige Liste aller SK-Konstanten in der Reihenfolge wie in `StorageKeys.ts`. Quelle: Code, automatisch generiert. Beschreibungen aus der vorigen Doku-Version uebernommen.
+The complete list of SK constants, in the order of `StorageKeys.ts`. Source: the code, generated automatically. The descriptions are carried over from the previous version of this document.
 
-Die Spalte "Storage" zeigt den Wert aus der Registry. `--` heisst: nicht in `HHStoredVars.ts` registriert (Key funktioniert nicht).
+The "Storage" column shows the value from the registry. `--` means: not registered in `HHStoredVars.ts` (the key does not work).
 
 ### Master switch
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `master` | `Setting_master` | `Storage()` | `Setting` | Hauptschalter ein/aus |
-| `settPerTab` | `Setting_settPerTab` | `localStorage` | `Setting` | SessionStorage statt localStorage |
-| `spendKobans0` | `Setting_spendKobans0` | `Storage()` | `Setting` | Hauptschalter Koban-Ausgaben |
+| `master` | `Setting_master` | `Storage()` | `Setting` | the master switch on/off |
+| `settPerTab` | `Setting_settPerTab` | `localStorage` | `Setting` | sessionStorage instead of localStorage |
+| `spendKobans0` | `Setting_spendKobans0` | `Storage()` | `Setting` | the master switch for koban spending |
 
 ### Troll
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoTrollBattle` | `Setting_autoTrollBattle` | `Storage()` | `Setting` | Troll-Kampf aktiviert |
-| `autoTrollThreshold` | `Setting_autoTrollThreshold` | `Storage()` | `Setting` | Min. Energie-Schwelle |
-| `autoTrollRunThreshold` | `Setting_autoTrollRunThreshold` | `Storage()` | `Setting` | Min. Runs |
-| `autoTrollSelectedIndex` | `Setting_autoTrollSelectedIndex` | `Storage()` | `Setting` | Ausgewaehlter Troll |
-| `autoTrollMythicByPassParanoia` | `Setting_autoTrollMythicByPassParanoia` | `Storage()` | `Setting` | Mythic ignoriert Paranoia |
-| `eventTrollOrder` | `Setting_eventTrollOrder` | `Storage()` | `Setting` | Event-Troll-Reihenfolge |
-| `useX10Fights` | `Setting_useX10Fights` | `Storage()` | `Setting` | x10 Kaempfe nutzen |
-| `useX10FightsAllowNormalEvent` | `Setting_useX10FightsAllowNormalEvent` | `Storage()` | `Setting` | x10 auch bei normalen Events |
-| `useX50Fights` | `Setting_useX50Fights` | `Storage()` | `Setting` | x50 Kaempfe nutzen |
-| `useX50FightsAllowNormalEvent` | `Setting_useX50FightsAllowNormalEvent` | `Storage()` | `Setting` | x50 auch bei normalen Events |
-| `minShardsX10` | `Setting_minShardsX10` | `Storage()` | `Setting` | Min. Shards fuer x10 |
-| `minShardsX50` | `Setting_minShardsX50` | `Storage()` | `Setting` | Min. Shards fuer x50 |
-| `sandalwoodMinShardsThreshold` | `Setting_sandalwoodMinShardsThreshold` | `Storage()` | `Setting` | Sandalwood-Mindest-Shard-Schwelle (ersetzt seit v7.35.x die vier alten `sandalwoodShardsX10Limit`, `sandalwoodShardsX1Limit`, `sandalwoodDosesX10Limit`, `sandalwoodDosesX1Limit` Keys; alte Keys sind in v7.35.10 nicht mehr im Code) |
-| `kobanBank` | `Setting_kobanBank` | `Storage()` | `Setting` | Koban-Reserve |
-| `buyCombat` | `Setting_buyCombat` | `Storage()` | `Setting` | Kampf-Energie kaufen |
-| `buyCombTimer` | `Setting_buyCombTimer` | `Storage()` | `Setting` | Kauf-Timer |
-| `buyMythicCombat` | `Setting_buyMythicCombat` | `Storage()` | `Setting` | Mythic Kampf-Energie kaufen |
-| `buyMythicCombTimer` | `Setting_buyMythicCombTimer` | `Storage()` | `Setting` | Mythic Kauf-Timer |
-| `buyLoveRaidCombat` | `Setting_buyLoveRaidCombat` | `Storage()` | `Setting` | Love Raid Energie kaufen |
-| `autoBuyTrollNumber` | `Setting_autoBuyTrollNumber` | `Storage()` | `Setting` | Auto-Kauf Troll Anzahl |
-| `autoBuyMythicTrollNumber` | `Setting_autoBuyMythicTrollNumber` | `Storage()` | `Setting` | Auto-Kauf Mythic Anzahl |
-| `autoBuyLoveRaidTrollNumber` | `Setting_autoBuyLoveRaidTrollNumber` | `Storage()` | `Setting` | Auto-Kauf Love Raid Anzahl |
+| `autoTrollBattle` | `Setting_autoTrollBattle` | `Storage()` | `Setting` | troll fights enabled |
+| `autoTrollThreshold` | `Setting_autoTrollThreshold` | `Storage()` | `Setting` | the minimum energy threshold |
+| `autoTrollRunThreshold` | `Setting_autoTrollRunThreshold` | `Storage()` | `Setting` | the minimum runs |
+| `autoTrollSelectedIndex` | `Setting_autoTrollSelectedIndex` | `Storage()` | `Setting` | the selected troll |
+| `autoTrollMythicByPassParanoia` | `Setting_autoTrollMythicByPassParanoia` | `Storage()` | `Setting` | mythic ignores paranoia |
+| `eventTrollOrder` | `Setting_eventTrollOrder` | `Storage()` | `Setting` | the event troll order |
+| `useX10Fights` | `Setting_useX10Fights` | `Storage()` | `Setting` | use x10 fights |
+| `useX10FightsAllowNormalEvent` | `Setting_useX10FightsAllowNormalEvent` | `Storage()` | `Setting` | x10 on normal events too |
+| `useX50Fights` | `Setting_useX50Fights` | `Storage()` | `Setting` | use x50 fights |
+| `useX50FightsAllowNormalEvent` | `Setting_useX50FightsAllowNormalEvent` | `Storage()` | `Setting` | x50 on normal events too |
+| `minShardsX10` | `Setting_minShardsX10` | `Storage()` | `Setting` | the minimum shards for x10 |
+| `minShardsX50` | `Setting_minShardsX50` | `Storage()` | `Setting` | the minimum shards for x50 |
+| `sandalwoodMinShardsThreshold` | `Setting_sandalwoodMinShardsThreshold` | `Storage()` | `Setting` | the Sandalwood minimum shard threshold (since v7.35.x it replaces the four old keys `sandalwoodShardsX10Limit`, `sandalwoodShardsX1Limit`, `sandalwoodDosesX10Limit`, `sandalwoodDosesX1Limit`; the old keys are gone from the code as of v7.35.10) |
+| `kobanBank` | `Setting_kobanBank` | `Storage()` | `Setting` | the koban reserve |
+| `buyCombat` | `Setting_buyCombat` | `Storage()` | `Setting` | buy fight energy |
+| `buyCombTimer` | `Setting_buyCombTimer` | `Storage()` | `Setting` | the purchase timer |
+| `buyMythicCombat` | `Setting_buyMythicCombat` | `Storage()` | `Setting` | buy mythic fight energy |
+| `buyMythicCombTimer` | `Setting_buyMythicCombTimer` | `Storage()` | `Setting` | the mythic purchase timer |
+| `buyLoveRaidCombat` | `Setting_buyLoveRaidCombat` | `Storage()` | `Setting` | buy love raid energy |
+| `autoBuyTrollNumber` | `Setting_autoBuyTrollNumber` | `Storage()` | `Setting` | auto-buy troll count |
+| `autoBuyMythicTrollNumber` | `Setting_autoBuyMythicTrollNumber` | `Storage()` | `Setting` | auto-buy mythic count |
+| `autoBuyLoveRaidTrollNumber` | `Setting_autoBuyLoveRaidTrollNumber` | `Storage()` | `Setting` | auto-buy love raid count |
 
 ### Champion
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoChamps` | `Setting_autoChamps` | `Storage()` | `Setting` | Champion aktiviert |
-| `autoChampsFilter` | `Setting_autoChampsFilter` | `Storage()` | `Setting` | Champion Filter |
-| `autoChampsForceStart` | `Setting_autoChampsForceStart` | `Storage()` | `Setting` | Force Start |
-| `autoChampsForceStartEventGirl` | `Setting_autoChampsForceStartEventGirl` | `Storage()` | `Setting` | Force Start Event-Girl |
-| `autoChampsGirlThreshold` | `Setting_autoChampsGirlThreshold` | `Storage()` | `Setting` | Girl-Schwelle |
-| `autoChampsTeamLoop` | `Setting_autoChampsTeamLoop` | `Storage()` | `Setting` | Team-Rotation |
-| `autoChampsTeamKeepSecondLine` | `Setting_autoChampsTeamKeepSecondLine` | `Storage()` | `Setting` | Zweite Reihe behalten |
-| `autoChampsUseEne` | `Setting_autoChampsUseEne` | `Storage()` | `Setting` | Energie nutzen |
-| `autoChampAlignTimer` | `Setting_autoChampAlignTimer` | `Storage()` | `Setting` | Align Timer |
-| `autoBuildChampsTeam` | `Setting_autoBuildChampsTeam` | `Storage()` | `Setting` | Auto-Team bauen |
+| `autoChamps` | `Setting_autoChamps` | `Storage()` | `Setting` | champion enabled |
+| `autoChampsFilter` | `Setting_autoChampsFilter` | `Storage()` | `Setting` | the champion filter |
+| `autoChampsForceStart` | `Setting_autoChampsForceStart` | `Storage()` | `Setting` | force the start |
+| `autoChampsForceStartEventGirl` | `Setting_autoChampsForceStartEventGirl` | `Storage()` | `Setting` | force the start for an event girl |
+| `autoChampsGirlThreshold` | `Setting_autoChampsGirlThreshold` | `Storage()` | `Setting` | the girl threshold |
+| `autoChampsTeamLoop` | `Setting_autoChampsTeamLoop` | `Storage()` | `Setting` | team rotation |
+| `autoChampsTeamKeepSecondLine` | `Setting_autoChampsTeamKeepSecondLine` | `Storage()` | `Setting` | keep the second line |
+| `autoChampsUseEne` | `Setting_autoChampsUseEne` | `Storage()` | `Setting` | use energy |
+| `autoChampAlignTimer` | `Setting_autoChampAlignTimer` | `Storage()` | `Setting` | align the timer |
+| `autoBuildChampsTeam` | `Setting_autoBuildChampsTeam` | `Storage()` | `Setting` | build the team automatically |
 
 ### Club Champion
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoClubChamp` | `Setting_autoClubChamp` | `Storage()` | `Setting` | Club Champion aktiviert |
-| `autoClubChampMax` | `Setting_autoClubChampMax` | `Storage()` | `Setting` | Max Kaempfe |
-| `autoClubForceStart` | `Setting_autoClubForceStart` | `Storage()` | `Setting` | Force Start |
+| `autoClubChamp` | `Setting_autoClubChamp` | `Storage()` | `Setting` | club champion enabled |
+| `autoClubChampMax` | `Setting_autoClubChampMax` | `Storage()` | `Setting` | max fights |
+| `autoClubForceStart` | `Setting_autoClubForceStart` | `Storage()` | `Setting` | force the start |
 
 ### League
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoLeagues` | `Setting_autoLeagues` | `Storage()` | `Setting` | Liga aktiviert |
-| `autoLeaguesCollect` | `Setting_autoLeaguesCollect` | `Storage()` | `Setting` | Liga Rewards sammeln |
-| `autoLeaguesThreshold` | `Setting_autoLeaguesThreshold` | `Storage()` | `Setting` | Min. Gewinnchance |
-| `autoLeaguesSecurityThreshold` | `Setting_autoLeaguesSecurityThreshold` | `Storage()` | `Setting` | Sicherheits-Schwelle |
-| `autoLeaguesRunThreshold` | `Setting_autoLeaguesRunThreshold` | `Storage()` | `Setting` | Min. Runs |
-| `autoLeaguesBoostedOnly` | `Setting_autoLeaguesBoostedOnly` | `Storage()` | `Setting` | Nur mit Boost |
-| `autoLeaguesForceOneFight` | `Setting_autoLeaguesForceOneFight` | `Storage()` | `Setting` | Min. 1 Kampf erzwingen |
-| `autoLeaguesSelectedIndex` | `Setting_autoLeaguesSelectedIndex` | `Storage()` | `Setting` | Auswahl-Index |
-| `autoLeaguesSortIndex` | `Setting_autoLeaguesSortIndex` | `Storage()` | `Setting` | Sortier-Index |
-| `autoLeaguesAllowWinCurrent` | `Setting_autoLeaguesAllowWinCurrent` | `Storage()` | `Setting` | Aktuellen Sieg erlauben |
-| `leagueListDisplayPowerCalc` | `Setting_leagueListDisplayPowerCalc` | `Storage()` | `Setting` | Power-Anzeige |
+| `autoLeagues` | `Setting_autoLeagues` | `Storage()` | `Setting` | league enabled |
+| `autoLeaguesCollect` | `Setting_autoLeaguesCollect` | `Storage()` | `Setting` | collect the league rewards |
+| `autoLeaguesThreshold` | `Setting_autoLeaguesThreshold` | `Storage()` | `Setting` | the minimum win chance |
+| `autoLeaguesSecurityThreshold` | `Setting_autoLeaguesSecurityThreshold` | `Storage()` | `Setting` | the safety threshold |
+| `autoLeaguesRunThreshold` | `Setting_autoLeaguesRunThreshold` | `Storage()` | `Setting` | the minimum runs |
+| `autoLeaguesBoostedOnly` | `Setting_autoLeaguesBoostedOnly` | `Storage()` | `Setting` | only with a boost |
+| `autoLeaguesForceOneFight` | `Setting_autoLeaguesForceOneFight` | `Storage()` | `Setting` | force at least 1 fight |
+| `autoLeaguesSelectedIndex` | `Setting_autoLeaguesSelectedIndex` | `Storage()` | `Setting` | the selection index |
+| `autoLeaguesSortIndex` | `Setting_autoLeaguesSortIndex` | `Storage()` | `Setting` | the sort index |
+| `autoLeaguesAllowWinCurrent` | `Setting_autoLeaguesAllowWinCurrent` | `Storage()` | `Setting` | allow the current win |
+| `leagueListDisplayPowerCalc` | `Setting_leagueListDisplayPowerCalc` | `Storage()` | `Setting` | the power display |
 
 ### Season
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoSeason` | `Setting_autoSeason` | `Storage()` | `Setting` | Season aktiviert |
-| `autoSeasonThreshold` | `Setting_autoSeasonThreshold` | `Storage()` | `Setting` | Gewinnchance-Schwelle |
-| `autoSeasonRunThreshold` | `Setting_autoSeasonRunThreshold` | `Storage()` | `Setting` | Min. Runs |
-| `autoSeasonBoostedOnly` | `Setting_autoSeasonBoostedOnly` | `Storage()` | `Setting` | Nur mit Boost |
-| `autoSeasonCollect` | `Setting_autoSeasonCollect` | `Storage()` | `Setting` | Rewards sammeln |
-| `autoSeasonCollectAll` | `Setting_autoSeasonCollectAll` | `Storage()` | `Setting` | Alle Rewards |
-| `autoSeasonCollectablesList` | `Setting_autoSeasonCollectablesList` | `Storage()` | `Setting` | Sammelbare Items |
-| `autoSeasonFocus` | `Setting_autoSeasonIgnoreNoGirls` | `Storage()` | `Setting` | Season-Fokus (off/girl/girlAndSkin) |
-| `autoSeasonPassReds` | `Setting_autoSeasonPassReds` | `Storage()` | `Setting` | Rote ueberspringen |
-| `autoSeasonSkipLowMojo` | `Setting_autoSeasonSkipLowMojo` | `Storage()` | `Setting` | Niedrige Mojo ueberspringen |
-| `autoSeasonPreferLowMojo` | `Setting_autoSeasonPreferLowMojo` | `Storage()` | `Setting` | Gegner mit dem wenigsten Mojo waehlen |
-| `seasonDisplayPowerCalc` | `Setting_seasonDisplayPowerCalc` | `Storage()` | `Setting` | Power-Anzeige |
-| `autoSeasonMaxTier` | `Setting_autoSeasonMaxTier` | `Storage()` | `Setting` | Max Tier |
-| `autoSeasonMaxTierNb` | `Setting_autoSeasonMaxTierNb` | `Storage()` | `Setting` | Max Tier Anzahl |
-| `autoSeasonMaxTierHard` | `Setting_autoSeasonMaxTierHard` | `Storage()` | `Setting` | Max Tier harte Grenze |
+| `autoSeason` | `Setting_autoSeason` | `Storage()` | `Setting` | season enabled |
+| `autoSeasonThreshold` | `Setting_autoSeasonThreshold` | `Storage()` | `Setting` | the win chance threshold |
+| `autoSeasonRunThreshold` | `Setting_autoSeasonRunThreshold` | `Storage()` | `Setting` | the minimum runs |
+| `autoSeasonBoostedOnly` | `Setting_autoSeasonBoostedOnly` | `Storage()` | `Setting` | only with a boost |
+| `autoSeasonCollect` | `Setting_autoSeasonCollect` | `Storage()` | `Setting` | collect rewards |
+| `autoSeasonCollectAll` | `Setting_autoSeasonCollectAll` | `Storage()` | `Setting` | all rewards |
+| `autoSeasonCollectablesList` | `Setting_autoSeasonCollectablesList` | `Storage()` | `Setting` | collectable items |
+| `autoSeasonFocus` | `Setting_autoSeasonIgnoreNoGirls` | `Storage()` | `Setting` | the season focus (off/girl/girlAndSkin) |
+| `autoSeasonPassReds` | `Setting_autoSeasonPassReds` | `Storage()` | `Setting` | skip the red ones |
+| `autoSeasonSkipLowMojo` | `Setting_autoSeasonSkipLowMojo` | `Storage()` | `Setting` | skip low mojo |
+| `autoSeasonPreferLowMojo` | `Setting_autoSeasonPreferLowMojo` | `Storage()` | `Setting` | pick the opponent with the least mojo |
+| `seasonDisplayPowerCalc` | `Setting_seasonDisplayPowerCalc` | `Storage()` | `Setting` | the power display |
+| `autoSeasonMaxTier` | `Setting_autoSeasonMaxTier` | `Storage()` | `Setting` | max tier |
+| `autoSeasonMaxTierNb` | `Setting_autoSeasonMaxTierNb` | `Storage()` | `Setting` | the max tier count |
+| `autoSeasonMaxTierHard` | `Setting_autoSeasonMaxTierHard` | `Storage()` | `Setting` | the hard limit for max tier |
 
 ### Pantheon
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoPantheon` | `Setting_autoPantheon` | `Storage()` | `Setting` | Pantheon aktiviert |
-| `autoPantheonThreshold` | `Setting_autoPantheonThreshold` | `Storage()` | `Setting` | Schwelle |
-| `autoPantheonRunThreshold` | `Setting_autoPantheonRunThreshold` | `Storage()` | `Setting` | Min. Runs |
-| `autoPantheonBoostedOnly` | `Setting_autoPantheonBoostedOnly` | `Storage()` | `Setting` | Nur mit Boost |
+| `autoPantheon` | `Setting_autoPantheon` | `Storage()` | `Setting` | pantheon enabled |
+| `autoPantheonThreshold` | `Setting_autoPantheonThreshold` | `Storage()` | `Setting` | the threshold |
+| `autoPantheonRunThreshold` | `Setting_autoPantheonRunThreshold` | `Storage()` | `Setting` | the minimum runs |
+| `autoPantheonBoostedOnly` | `Setting_autoPantheonBoostedOnly` | `Storage()` | `Setting` | only with a boost |
 
 ### PentaDrill
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoPentaDrill` | `Setting_autoPentaDrill` | `Storage()` | `Setting` | Penta Drill aktiviert |
-| `autoPentaDrillThreshold` | `Setting_autoPentaDrillThreshold` | `Storage()` | `Setting` | Schwelle |
-| `autoPentaDrillDelay` | `Setting_autoPentaDrillDelay` | `Storage()` | `Setting` | Verzoegerung zwischen PentaDrill-Aktionen (3-20 s, Default 6) |
-| `autoPentaDrillRunThreshold` | `Setting_autoPentaDrillRunThreshold` | `Storage()` | `Setting` | Min. Runs |
-| `autoPentaDrillBoostedOnly` | `Setting_autoPentaDrillBoostedOnly` | `Storage()` | `Setting` | Nur mit Boost |
-| `autoPentaDrillCollect` | `Setting_autoPentaDrillCollect` | `Storage()` | `Setting` | Sammeln |
-| `autoPentaDrillCollectAll` | `Setting_autoPentaDrillCollectAll` | `Storage()` | `Setting` | Alles sammeln |
-| `autoPentaDrillCollectablesList` | `Setting_autoPentaDrillCollectablesList` | `Storage()` | `Setting` | Sammelbare Items |
+| `autoPentaDrill` | `Setting_autoPentaDrill` | `Storage()` | `Setting` | penta drill enabled |
+| `autoPentaDrillThreshold` | `Setting_autoPentaDrillThreshold` | `Storage()` | `Setting` | the threshold |
+| `autoPentaDrillDelay` | `Setting_autoPentaDrillDelay` | `Storage()` | `Setting` | the delay between penta drill actions (3-20 s, 6 by default) |
+| `autoPentaDrillRunThreshold` | `Setting_autoPentaDrillRunThreshold` | `Storage()` | `Setting` | the minimum runs |
+| `autoPentaDrillBoostedOnly` | `Setting_autoPentaDrillBoostedOnly` | `Storage()` | `Setting` | only with a boost |
+| `autoPentaDrillCollect` | `Setting_autoPentaDrillCollect` | `Storage()` | `Setting` | collect |
+| `autoPentaDrillCollectAll` | `Setting_autoPentaDrillCollectAll` | `Storage()` | `Setting` | collect everything |
+| `autoPentaDrillCollectablesList` | `Setting_autoPentaDrillCollectablesList` | `Storage()` | `Setting` | collectable items |
 
 ### Quest
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoQuest` | `Setting_autoQuest` | `Storage()` | `Setting` | Quest aktiviert |
-| `autoQuestThreshold` | `Setting_autoQuestThreshold` | `Storage()` | `Setting` | Energie-Schwelle |
-| `autoSideQuest` | `Setting_autoSideQuest` | `Storage()` | `Setting` | Side Quest |
+| `autoQuest` | `Setting_autoQuest` | `Storage()` | `Setting` | quest enabled |
+| `autoQuestThreshold` | `Setting_autoQuestThreshold` | `Storage()` | `Setting` | the energy threshold |
+| `autoSideQuest` | `Setting_autoSideQuest` | `Storage()` | `Setting` | side quest |
 
 ### Mission
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoMission` | `Setting_autoMission` | `Storage()` | `Setting` | Mission aktiviert |
-| `autoMissionCollect` | `Setting_autoMissionCollect` | `Storage()` | `Setting` | Missions sammeln |
-| `autoMissionKFirst` | `Setting_autoMissionKFirst` | `Storage()` | `Setting` | K zuerst |
+| `autoMission` | `Setting_autoMission` | `Storage()` | `Setting` | missions enabled |
+| `autoMissionCollect` | `Setting_autoMissionCollect` | `Storage()` | `Setting` | collect the missions |
+| `autoMissionKFirst` | `Setting_autoMissionKFirst` | `Storage()` | `Setting` | K first |
 
 ### Labyrinth
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoLabyrinth` | `Setting_autoLabyrinth` | `Storage()` | `Setting` | Labyrinth aktiviert |
-| `autoLabyHard` | `Setting_autoLabyHard` | `Storage()` | `Setting` | Hard Mode |
-| `autoLabySweep` | `Setting_autoLabySweep` | `Storage()` | `Setting` | Sweep |
-| `autoLabyDifficultyIndex` | `Setting_autoLabyDifficultyIndex` | `Storage()` | `Setting` | Schwierigkeits-Index |
-| `autoLabyCustomTeamBuilder` | `Setting_autoLabyCustomTeamBuilder` | `Storage()` | `Setting` | Custom Team Builder |
+| `autoLabyrinth` | `Setting_autoLabyrinth` | `Storage()` | `Setting` | labyrinth enabled |
+| `autoLabyHard` | `Setting_autoLabyHard` | `Storage()` | `Setting` | hard mode |
+| `autoLabySweep` | `Setting_autoLabySweep` | `Storage()` | `Setting` | sweep |
+| `autoLabyDifficultyIndex` | `Setting_autoLabyDifficultyIndex` | `Storage()` | `Setting` | the difficulty index |
+| `autoLabyCustomTeamBuilder` | `Setting_autoLabyCustomTeamBuilder` | `Storage()` | `Setting` | the custom team builder |
 
 ### Place of Power
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoPowerPlaces` | `Setting_autoPowerPlaces` | `Storage()` | `Setting` | PoP aktiviert |
-| `autoPowerPlacesAll` | `Setting_autoPowerPlacesAll` | `Storage()` | `Setting` | Alle PoP |
-| `autoPowerPlacesIndexFilter` | `Setting_autoPowerPlacesIndexFilter` | `Storage()` | `Setting` | Index-Filter |
-| `autoPowerPlacesInverted` | `Setting_autoPowerPlacesInverted` | `Storage()` | `Setting` | Invertiert |
-| `autoPowerPlacesPrecision` | `Setting_autoPowerPlacesPrecision` | `Storage()` | `Setting` | Praezision |
-| `autoPowerPlacesWaitMax` | `Setting_autoPowerPlacesWaitMax` | `Storage()` | `Setting` | Max Wartezeit |
+| `autoPowerPlaces` | `Setting_autoPowerPlaces` | `Storage()` | `Setting` | PoP enabled |
+| `autoPowerPlacesAll` | `Setting_autoPowerPlacesAll` | `Storage()` | `Setting` | all PoP |
+| `autoPowerPlacesIndexFilter` | `Setting_autoPowerPlacesIndexFilter` | `Storage()` | `Setting` | the index filter |
+| `autoPowerPlacesInverted` | `Setting_autoPowerPlacesInverted` | `Storage()` | `Setting` | inverted |
+| `autoPowerPlacesPrecision` | `Setting_autoPowerPlacesPrecision` | `Storage()` | `Setting` | precision |
+| `autoPowerPlacesWaitMax` | `Setting_autoPowerPlacesWaitMax` | `Storage()` | `Setting` | the maximum wait |
 
 ### Shop / Market
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoAff` | `Setting_autoAff` | `Storage()` | `Setting` | Auto Affection kaufen |
-| `autoAffW` | `Setting_autoAffW` | `Storage()` | `Setting` | Affection Wert |
-| `autoExp` | `Setting_autoExp` | `Storage()` | `Setting` | Auto Experience kaufen |
-| `autoExpW` | `Setting_autoExpW` | `Storage()` | `Setting` | Experience Wert |
-| `maxAff` | `Setting_maxAff` | `Storage()` | `Setting` | Max Affection |
-| `maxExp` | `Setting_maxExp` | `Storage()` | `Setting` | Max Experience |
-| `maxBooster` | `Setting_maxBooster` | `Storage()` | `Setting` | **Stillgelegt in 8.11.0** (#1844). Registriert ohne Default und ohne Menue-Eintrag, damit die Migration in `StartService` den gespeicherten Wert loeschen kann -- `deleteStoredValue` ist bei unregistrierten Schluesseln ein No-Op. Ohne `default` legt `setDefaults` ihn nicht neu an. Eintrag in der uebernaechsten Version ganz entfernen. |
-| `autoBuyBoosters` | `Setting_autoBuyBoosters` | `Storage()` | `Setting` | Booster kaufen |
-| `autoBuyBoostersFilter` | `Setting_autoBuyBoostersFilter` | `Storage()` | `Setting` | "Boosters to buy": `Code:Menge`-Paare, `;`-getrennt, keine Leerzeichen, jeder Code hoechstens einmal. Menge = gewuenschter Inventarbestand (angelegte Booster zaehlen nicht), `0` = unbegrenzt, nicht genannt = nicht gekauft, leer = nichts kaufen. Seit 8.11.0 auch die Mengen, vorher nur die Codes. Syntax und Laufzeit lesen `BUY_LIST_PATTERN` aus `Module/Market.pure.ts` |
-| `autoEquipBoosters` | `Setting_autoEquipBoosters` | `Storage()` | `Setting` | Booster ausruesten |
-| `autoEquipBoostersSlots` | `Setting_autoEquipBoostersSlots` | `Storage()` | `Setting` | Booster-Slots |
-| `autoEquipMythicBooster` | `Setting_autoEquipMythicBooster` | `Storage()` | `Setting` | Prioritaetsliste der Mythic-Booster fuer die freien Mythic-Slots |
-| `updateMarket` | `Setting_updateMarket` | `Storage()` | `Setting` | Markt aktualisieren |
-| `showMarketTools` | `Setting_showMarketTools` | `Storage()` | `Setting` | Markt-Tools anzeigen |
+| `autoAff` | `Setting_autoAff` | `Storage()` | `Setting` | buy affection automatically |
+| `autoAffW` | `Setting_autoAffW` | `Storage()` | `Setting` | the affection value |
+| `autoExp` | `Setting_autoExp` | `Storage()` | `Setting` | buy experience automatically |
+| `autoExpW` | `Setting_autoExpW` | `Storage()` | `Setting` | the experience value |
+| `maxAff` | `Setting_maxAff` | `Storage()` | `Setting` | max affection |
+| `maxExp` | `Setting_maxExp` | `Storage()` | `Setting` | max experience |
+| `maxBooster` | `Setting_maxBooster` | `Storage()` | `Setting` | **Retired in 8.11.0** (#1844). Registered without a default and without a menu entry, so that the migration in `StartService` can delete the stored value -- `deleteStoredValue` is a no-op for unregistered keys. Without a `default`, `setDefaults` does not recreate it. Remove the entry entirely in the version after next. |
+| `autoBuyBoosters` | `Setting_autoBuyBoosters` | `Storage()` | `Setting` | buy boosters |
+| `autoBuyBoostersFilter` | `Setting_autoBuyBoostersFilter` | `Storage()` | `Setting` | "Boosters to buy": `code:amount` pairs, `;`-separated, no spaces, every code at most once. The amount is the inventory stock wanted (equipped boosters do not count), `0` = unlimited, not named = not bought, empty = buy nothing. Since 8.11.0 the amounts too, before that only the codes. The syntax and the runtime read `BUY_LIST_PATTERN` from `Module/Market.pure.ts` |
+| `autoEquipBoosters` | `Setting_autoEquipBoosters` | `Storage()` | `Setting` | equip boosters |
+| `autoEquipBoostersSlots` | `Setting_autoEquipBoostersSlots` | `Storage()` | `Setting` | booster slots |
+| `autoEquipMythicBooster` | `Setting_autoEquipMythicBooster` | `Storage()` | `Setting` | the priority list of mythic boosters for the free mythic slots |
+| `updateMarket` | `Setting_updateMarket` | `Storage()` | `Setting` | refresh the market |
+| `showMarketTools` | `Setting_showMarketTools` | `Storage()` | `Setting` | show the market tools |
 
 ### Harem / Salary
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoSalary` | `Setting_autoSalary` | `Storage()` | `Setting` | Auto Gehalt sammeln |
-| `autoSalaryMinSalary` | `Setting_autoSalaryMinSalary` | `Storage()` | `Setting` | Min. Gehalt |
-| `autoStats` | `Setting_autoStats` | `Storage()` | `Setting` | Auto Stats |
-| `autoStatsSwitch` | `Setting_autoStatsSwitch` | `Storage()` | `Setting` | Stats Switch |
-| `hideOwnedGirls` | `Setting_hideOwnedGirls` | `Storage()` | `Setting` | Eigene Girls ausblenden |
-| `showHaremAvatarMissingGirls` | `Setting_showHaremAvatarMissingGirls` | `Storage()` | `Setting` | Fehlende Girls anzeigen |
-| `showHaremTools` | `Setting_showHaremTools` | `Storage()` | `Setting` | Harem-Tools |
-| `showHaremSkillsButtons` | `Setting_showHaremSkillsButtons` | `Storage()` | `Setting` | Skill-Buttons |
+| `autoSalary` | `Setting_autoSalary` | `Storage()` | `Setting` | collect salaries automatically |
+| `autoSalaryMinSalary` | `Setting_autoSalaryMinSalary` | `Storage()` | `Setting` | the minimum salary |
+| `autoStats` | `Setting_autoStats` | `Storage()` | `Setting` | auto stats |
+| `autoStatsSwitch` | `Setting_autoStatsSwitch` | `Storage()` | `Setting` | the stats switch |
+| `hideOwnedGirls` | `Setting_hideOwnedGirls` | `Storage()` | `Setting` | hide your own girls |
+| `showHaremAvatarMissingGirls` | `Setting_showHaremAvatarMissingGirls` | `Storage()` | `Setting` | show missing girls |
+| `showHaremTools` | `Setting_showHaremTools` | `Storage()` | `Setting` | harem tools |
+| `showHaremSkillsButtons` | `Setting_showHaremSkillsButtons` | `Storage()` | `Setting` | skill buttons |
 
 ### Pachinko
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoFreePachinko` | `Setting_autoFreePachinko` | `Storage()` | `Setting` | Gratis Pachinko |
+| `autoFreePachinko` | `Setting_autoFreePachinko` | `Storage()` | `Setting` | free pachinko |
 
 ### Daily Goals
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoDailyGoals` | `Setting_autoDailyGoals` | `Storage()` | `Setting` | Daily Goals |
-| `autoDailyGoalsCollect` | `Setting_autoDailyGoalsCollect` | `Storage()` | `Setting` | Goals sammeln |
-| `autoDailyGoalsCollectablesList` | `Setting_autoDailyGoalsCollectablesList` | `Storage()` | `Setting` | Sammelbare Goals |
+| `autoDailyGoals` | `Setting_autoDailyGoals` | `Storage()` | `Setting` | daily goals |
+| `autoDailyGoalsCollect` | `Setting_autoDailyGoalsCollect` | `Storage()` | `Setting` | collect goals |
+| `autoDailyGoalsCollectablesList` | `Setting_autoDailyGoalsCollectablesList` | `Storage()` | `Setting` | collectable goals |
 
 ### Contest
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoContest` | `Setting_autoContest` | `Storage()` | `Setting` | Contest aktiviert |
-| `waitforContest` | `Setting_waitforContest` | `Storage()` | `Setting` | Auf Contest warten |
-| `safeSecondsForContest` | `Setting_safeSecondsForContest` | `Storage()` | `Setting` | Sicherheits-Sekunden |
+| `autoContest` | `Setting_autoContest` | `Storage()` | `Setting` | contest enabled |
+| `waitforContest` | `Setting_waitforContest` | `Storage()` | `Setting` | wait for the contest |
+| `safeSecondsForContest` | `Setting_safeSecondsForContest` | `Storage()` | `Setting` | the safety seconds |
 
 ### Paranoia
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `paranoia` | `Setting_paranoia` | `Storage()` | `Setting` | Paranoia aktiviert |
-| `paranoiaSettings` | `Setting_paranoiaSettings` | `Storage()` | `Setting` | Paranoia-Einstellungen |
-| `paranoiaSpendsBefore` | `Setting_paranoiaSpendsBefore` | `Storage()` | `Setting` | Ausgaben vor Pause |
+| `paranoia` | `Setting_paranoia` | `Storage()` | `Setting` | paranoia enabled |
+| `paranoiaSettings` | `Setting_paranoiaSettings` | `Storage()` | `Setting` | the paranoia settings |
+| `paranoiaSpendsBefore` | `Setting_paranoiaSpendsBefore` | `Storage()` | `Setting` | spending before the pause |
 
 ### Girl Skins (applies to Events and Raids)
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `plusGirlSkins` | `Setting_plusGirlSkins` | `Storage()` | `Setting` | Girl Skins |
-| `plusSkinSandalWood` | `Setting_plusSkinSandalWood` | `Storage()` | `Setting` | Sandelholz anlegen, wenn nur noch der Skin aussteht (v8.10.0, Standard aus) |
+| `plusGirlSkins` | `Setting_plusGirlSkins` | `Storage()` | `Setting` | girl skins |
+| `plusSkinSandalWood` | `Setting_plusSkinSandalWood` | `Storage()` | `Setting` | equip Sandalwood when only the skin is left (v8.10.0, off by default) |
 
 ### Boosters / Events
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `plusEvent` | `Setting_plusEvent` | `Storage()` | `Setting` | Event aktiviert |
-| `plusEventMythic` | `Setting_plusEventMythic` | `Storage()` | `Setting` | Mythic Event |
-| `plusEventSandalWood` | `Setting_plusEventSandalWood` | `Storage()` | `Setting` | Sandalwood Event |
-| `plusEventMythicSandalWood` | `Setting_plusEventMythicSandalWood` | `Storage()` | `Setting` | Mythic Sandalwood |
-| `plusLoveRaid` | `Setting_plusLoveRaid` | `Storage()` | `Setting` | Love Raid |
-| `autoTrollLoveRaidByPassThreshold` | `Setting_autoTrollLoveRaidByPassThreshold` | `Storage()` | `Setting` | Love Raid Bypass |
-| `plusEventLoveRaidSandalWood` | `Setting_plusEventLoveRaidSandalWood` | `Storage()` | `Setting` | Love Raid Sandalwood |
-| `bossBangEvent` | `Setting_bossBangEvent` | `Storage()` | `Setting` | Boss Bang |
-| `bossBangMinTeam` | `Setting_bossBangMinTeam` | `Storage()` | `Setting` | Boss Bang Min Team |
-| `collectEventChest` | `Setting_collectEventChest` | `Storage()` | `Setting` | Event Chest sammeln |
+| `plusEvent` | `Setting_plusEvent` | `Storage()` | `Setting` | event enabled |
+| `plusEventMythic` | `Setting_plusEventMythic` | `Storage()` | `Setting` | mythic event |
+| `plusEventSandalWood` | `Setting_plusEventSandalWood` | `Storage()` | `Setting` | Sandalwood event |
+| `plusEventMythicSandalWood` | `Setting_plusEventMythicSandalWood` | `Storage()` | `Setting` | mythic Sandalwood |
+| `plusLoveRaid` | `Setting_plusLoveRaid` | `Storage()` | `Setting` | love raid |
+| `autoTrollLoveRaidByPassThreshold` | `Setting_autoTrollLoveRaidByPassThreshold` | `Storage()` | `Setting` | the love raid bypass |
+| `plusEventLoveRaidSandalWood` | `Setting_plusEventLoveRaidSandalWood` | `Storage()` | `Setting` | love raid Sandalwood |
+| `bossBangEvent` | `Setting_bossBangEvent` | `Storage()` | `Setting` | boss bang |
+| `bossBangMinTeam` | `Setting_bossBangMinTeam` | `Storage()` | `Setting` | boss bang minimum team |
+| `collectEventChest` | `Setting_collectEventChest` | `Storage()` | `Setting` | collect the event chest |
 
 ### Seasonal Event
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoSeasonalBuyFreeCard` | `Setting_autoSeasonalBuyFreeCard` | `Storage()` | `Setting` | Gratis-Karte kaufen |
-| `autoSeasonalEventCollect` | `Setting_autoSeasonalEventCollect` | `Storage()` | `Setting` | Seasonal sammeln |
-| `autoSeasonalEventCollectAll` | `Setting_autoSeasonalEventCollectAll` | `Storage()` | `Setting` | Alles sammeln |
-| `autoSeasonalEventCollectablesList` | `Setting_autoSeasonalEventCollectablesList` | `Storage()` | `Setting` | Sammelbare Items |
+| `autoSeasonalBuyFreeCard` | `Setting_autoSeasonalBuyFreeCard` | `Storage()` | `Setting` | take the free card |
+| `autoSeasonalEventCollect` | `Setting_autoSeasonalEventCollect` | `Storage()` | `Setting` | collect the seasonal |
+| `autoSeasonalEventCollectAll` | `Setting_autoSeasonalEventCollectAll` | `Storage()` | `Setting` | collect everything |
+| `autoSeasonalEventCollectablesList` | `Setting_autoSeasonalEventCollectablesList` | `Storage()` | `Setting` | collectable items |
 
 ### Double Penetration Event
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autodpEventCollect` | `Setting_autodpEventCollect` | `Storage()` | `Setting` | DP Event sammeln |
-| `autodpEventCollectAll` | `Setting_autodpEventCollectAll` | `Storage()` | `Setting` | DP alles sammeln |
-| `autodpEventCollectablesList` | `Setting_autodpEventCollectablesList` | `Storage()` | `Setting` | DP Items |
+| `autodpEventCollect` | `Setting_autodpEventCollect` | `Storage()` | `Setting` | collect the DP event |
+| `autodpEventCollectAll` | `Setting_autodpEventCollectAll` | `Storage()` | `Setting` | DP collect all |
+| `autodpEventCollectablesList` | `Setting_autodpEventCollectablesList` | `Storage()` | `Setting` | DP items |
 
 ### Lively Scene Event
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoLivelySceneEventCollect` | `Setting_autoLivelySceneEventCollect` | `Storage()` | `Setting` | Lively Scene sammeln |
-| `autoLivelySceneEventCollectAll` | `Setting_autoLivelySceneEventCollectAll` | `Storage()` | `Setting` | Lively alles sammeln |
-| `autoLivelySceneEventCollectablesList` | `Setting_autoLivelySceneEventCollectablesList` | `Storage()` | `Setting` | Lively Items |
+| `autoLivelySceneEventCollect` | `Setting_autoLivelySceneEventCollect` | `Storage()` | `Setting` | collect the lively scene |
+| `autoLivelySceneEventCollectAll` | `Setting_autoLivelySceneEventCollectAll` | `Storage()` | `Setting` | lively collect all |
+| `autoLivelySceneEventCollectablesList` | `Setting_autoLivelySceneEventCollectablesList` | `Storage()` | `Setting` | lively items |
 
 ### Path Events
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoPoACollect` | `Setting_autoPoACollect` | `Storage()` | `Setting` | Path of Attraction sammeln |
-| `autoPoACollectAll` | `Setting_autoPoACollectAll` | `Storage()` | `Setting` | PoA alles |
-| `autoPoACollectablesList` | `Setting_autoPoACollectablesList` | `Storage()` | `Setting` | PoA Items |
-| `autoPoGCollect` | `Setting_autoPoGCollect` | `Storage()` | `Setting` | Path of Glory sammeln |
-| `autoPoGCollectAll` | `Setting_autoPoGCollectAll` | `Storage()` | `Setting` | PoG alles |
-| `autoPoGCollectablesList` | `Setting_autoPoGCollectablesList` | `Storage()` | `Setting` | PoG Items |
-| `autoPoVCollect` | `Setting_autoPoVCollect` | `Storage()` | `Setting` | Path of Valor sammeln |
-| `autoPoVCollectAll` | `Setting_autoPoVCollectAll` | `Storage()` | `Setting` | PoV alles |
-| `autoPoVCollectablesList` | `Setting_autoPoVCollectablesList` | `Storage()` | `Setting` | PoV Items |
+| `autoPoACollect` | `Setting_autoPoACollect` | `Storage()` | `Setting` | collect Path of Attraction |
+| `autoPoACollectAll` | `Setting_autoPoACollectAll` | `Storage()` | `Setting` | PoA all |
+| `autoPoACollectablesList` | `Setting_autoPoACollectablesList` | `Storage()` | `Setting` | PoA items |
+| `autoPoGCollect` | `Setting_autoPoGCollect` | `Storage()` | `Setting` | collect Path of Glory |
+| `autoPoGCollectAll` | `Setting_autoPoGCollectAll` | `Storage()` | `Setting` | PoG all |
+| `autoPoGCollectablesList` | `Setting_autoPoGCollectablesList` | `Storage()` | `Setting` | PoG items |
+| `autoPoVCollect` | `Setting_autoPoVCollect` | `Storage()` | `Setting` | collect Path of Valor |
+| `autoPoVCollectAll` | `Setting_autoPoVCollectAll` | `Storage()` | `Setting` | PoV all |
+| `autoPoVCollectablesList` | `Setting_autoPoVCollectablesList` | `Storage()` | `Setting` | PoV items |
 
 ### Love Raid
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoLoveRaidSelectedIndex` | `Setting_autoLoveRaidSelectedIndex` | `Storage()` | `Setting` | Love Raid Auswahl |
-| `plusLoveRaidMythic` | `Setting_autoLoveRaidMythicOnly` | `Storage()` | `Setting` | Raid-Sterne-Auswahl: `off`, `exact3`, `min3` oder `exact5` (`isValid` der Registry, Default `off`); aeltere Werte bildet `StartService` beim Start darauf ab. Gemessen 2026-09-11: im Profil steht `off`. Der Kommentar an der Konstante ("0=off, 3, 5, 6") ist veraltet |
+| `autoLoveRaidSelectedIndex` | `Setting_autoLoveRaidSelectedIndex` | `Storage()` | `Setting` | the love raid selection |
+| `plusLoveRaidMythic` | `Setting_autoLoveRaidMythicOnly` | `Storage()` | `Setting` | the raid stars selection: `off`, `exact3`, `min3` or `exact5` (the registry's `isValid`, default `off`); `StartService` maps older values onto those at the start. Measured 2026-09-11: the profile holds `off`. The comment on the constant ("0=off, 3, 5, 6") is outdated |
 
 ### Bundles
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoFreeBundlesCollect` | `Setting_autoFreeBundlesCollect` | `Storage()` | `Setting` | Gratis Bundles |
-| `autoFreeBundlesCollectablesList` | `Setting_autoFreeBundlesCollectablesList` | `Storage()` | `Setting` | Bundle Items |
+| `autoFreeBundlesCollect` | `Setting_autoFreeBundlesCollect` | `Storage()` | `Setting` | free bundles |
+| `autoFreeBundlesCollectablesList` | `Setting_autoFreeBundlesCollectablesList` | `Storage()` | `Setting` | bundle items |
 
 ### Sultry Mysteries
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `sultryMysteriesEventRefreshShop` | `Setting_sultryMysteriesEventRefreshShop` | `Storage()` | `Setting` | Sultry Mysteries Shop |
-| `sultryMysteriesAutoOpen` | `Setting_sultryMysteriesAutoOpen` | `Storage()` | `Setting` | Auto-Mystery: Grid-Felder oeffnen (v8.6.0) |
-| `sultryMysteriesAutoOpenCollectablesList` | `Setting_sultryMysteriesAutoOpenCollectablesList` | `Storage()` | `Setting` (Array) | Belohnungs-Typen, die vor einem Reroll gefunden sein muessen (v8.6.0) |
+| `sultryMysteriesEventRefreshShop` | `Setting_sultryMysteriesEventRefreshShop` | `Storage()` | `Setting` | the sultry mysteries shop |
+| `sultryMysteriesAutoOpen` | `Setting_sultryMysteriesAutoOpen` | `Storage()` | `Setting` | auto mystery: open grid fields (v8.6.0) |
+| `sultryMysteriesAutoOpenCollectablesList` | `Setting_sultryMysteriesAutoOpenCollectablesList` | `Storage()` | `Setting` (Array) | reward types that must be found before a reroll (v8.6.0) |
 
-Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRefresh`
-(naechster Shop-Restock), `eventSultryMysteryAutoOpen` (naechste Key-Pruefung,
-1 h nachdem die Keys leer waren -- im Info-Panel als "Auto-Mystery").
+Timers: `eventSultryMysteryGoing` (the event's remaining time),
+`eventSultryMysteryShopRefresh` (the next shop restock),
+`eventSultryMysteryAutoOpen` (the next key check, 1 h after the keys ran out --
+shown in the info panel as "Auto-Mystery").
 
 ### Display / UI
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `showInfo` | `Setting_showInfo` | `Storage()` | `Setting` | Info-Panel anzeigen |
-| `showInfoLeft` | `Setting_showInfoLeft` | `Storage()` | `Setting` | Info links |
-| `showCalculatePower` | `Setting_showCalculatePower` | `Storage()` | `Setting` | Power-Berechnung |
-| `showClubButtonInPoa` | `Setting_showClubButtonInPoa` | `Storage()` | `Setting` | Club-Button in PoA |
-| `showRewardsRecap` | `Setting_showRewardsRecap` | `Storage()` | `Setting` | Reward-Zusammenfassung |
-| `showTooltips` | `Setting_showTooltips` | `Storage()` | `Setting` | Tooltips anzeigen |
-| `showAdsBack` | `Setting_showAdsBack` | `Storage()` | `Setting` | Ads-Hintergrund |
-| `autoAdsClick` | `Setting_autoAdsClick` | `Storage()` | `Setting` | Reward-Ads der Home-Seite klicken und bestaetigen |
-| `mousePause` | `Setting_mousePause` | `Storage()` | `Setting` | Maus-Pause |
-| `mousePauseTimeout` | `Setting_mousePauseTimeout` | `Storage()` | `Setting` | Maus-Pause Timeout |
-| `collectAllTimer` | `Setting_collectAllTimer` | `Storage()` | `Setting` | Sammel-Timer |
-| `compactDailyGoals` | `Setting_compactDailyGoals` | `Storage()` | `Setting` | Kompakte Goals |
-| `compactEndedContests` | `Setting_compactEndedContests` | `Storage()` | `Setting` | Kompakte Contests |
-| `compactMissions` | `Setting_compactMissions` | `Storage()` | `Setting` | Kompakte Missions |
-| `compactPowerPlace` | `Setting_compactPowerPlace` | `Storage()` | `Setting` | Kompakte PoP |
-| `invertMissions` | `Setting_invertMissions` | `Storage()` | `Setting` | Missions invertieren |
-| `saveDefaults` | `Setting_saveDefaults` | `localStorage` | `Setting` | Defaults speichern |
-| `pipelineDiagnose` | `Setting_pipelineDiagnose` | `localStorage` | `Setting` | Zusaetzliche `[PIPE]`-Details je Schritt ins Log (Default aus) |
+| `showInfo` | `Setting_showInfo` | `Storage()` | `Setting` | show the info panel |
+| `showInfoLeft` | `Setting_showInfoLeft` | `Storage()` | `Setting` | info on the left |
+| `showCalculatePower` | `Setting_showCalculatePower` | `Storage()` | `Setting` | the power calculation |
+| `showClubButtonInPoa` | `Setting_showClubButtonInPoa` | `Storage()` | `Setting` | the club button in PoA |
+| `showRewardsRecap` | `Setting_showRewardsRecap` | `Storage()` | `Setting` | the rewards recap |
+| `showTooltips` | `Setting_showTooltips` | `Storage()` | `Setting` | show tooltips |
+| `showAdsBack` | `Setting_showAdsBack` | `Storage()` | `Setting` | the ads background |
+| `autoAdsClick` | `Setting_autoAdsClick` | `Storage()` | `Setting` | click and confirm the reward ads on the home page |
+| `mousePause` | `Setting_mousePause` | `Storage()` | `Setting` | the mouse pause |
+| `mousePauseTimeout` | `Setting_mousePauseTimeout` | `Storage()` | `Setting` | the mouse pause timeout |
+| `collectAllTimer` | `Setting_collectAllTimer` | `Storage()` | `Setting` | the collection timer |
+| `compactDailyGoals` | `Setting_compactDailyGoals` | `Storage()` | `Setting` | compact goals |
+| `compactEndedContests` | `Setting_compactEndedContests` | `Storage()` | `Setting` | compact contests |
+| `compactMissions` | `Setting_compactMissions` | `Storage()` | `Setting` | compact missions |
+| `compactPowerPlace` | `Setting_compactPowerPlace` | `Storage()` | `Setting` | compact PoP |
+| `invertMissions` | `Setting_invertMissions` | `Storage()` | `Setting` | invert the missions |
+| `saveDefaults` | `Setting_saveDefaults` | `localStorage` | `Setting` | store the defaults |
+| `pipelineDiagnose` | `Setting_pipelineDiagnose` | `localStorage` | `Setting` | extra `[PIPE]` details per step in the log (off by default) |
 
 ### Reward Masks
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `AllMaskRewards` | `Setting_AllMaskRewards` | `Storage()` | `Setting` | Globale Reward-Maske |
-| `PoAMaskRewards` | `Setting_PoAMaskRewards` | `**--**` | `**--**` | PoA Maske |
-| `PoGMaskRewards` | `Setting_PoGMaskRewards` | `**--**` | `**--**` | PoG Maske |
-| `PoVMaskRewards` | `Setting_PoVMaskRewards` | `**--**` | `**--**` | PoV Maske |
-| `SeasonMaskRewards` | `Setting_SeasonMaskRewards` | `**--**` | `**--**` | Season Maske |
-| `SeasonalEventMaskRewards` | `Setting_SeasonalEventMaskRewards` | `**--**` | `**--**` | Seasonal Event Maske |
+| `AllMaskRewards` | `Setting_AllMaskRewards` | `Storage()` | `Setting` | the global reward mask |
+| `PoAMaskRewards` | `Setting_PoAMaskRewards` | `**--**` | `**--**` | the PoA mask |
+| `PoGMaskRewards` | `Setting_PoGMaskRewards` | `**--**` | `**--**` | the PoG mask |
+| `PoVMaskRewards` | `Setting_PoVMaskRewards` | `**--**` | `**--**` | the PoV mask |
+| `SeasonMaskRewards` | `Setting_SeasonMaskRewards` | `**--**` | `**--**` | the season mask |
+| `SeasonalEventMaskRewards` | `Setting_SeasonalEventMaskRewards` | `**--**` | `**--**` | the seasonal event mask |
 
 ---
 
@@ -458,235 +468,235 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 
 ### (unsorted)
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `autoLoop` | `Temp_autoLoop` | `sessionStorage` | `Temp` | AutoLoop aktiv |
-| `autoLoopTimeMili` | `Temp_autoLoopTimeMili` | `Storage()` | `Temp` | Loop-Intervall (ms) |
-| `Debug` | `Temp_Debug` | `sessionStorage` | `Temp` | Debug-Modus. Kein Code schreibt ihn, er wird von Hand in der Konsole gesetzt -- und zwar in den **sessionStorage**; ein Wert im localStorage wird nicht gelesen. Gemessen 2026-09-11: im Pruefprofil stand `HHAuto_Temp_Debug` im localStorage und war damit wirkungslos |
-| `Logging` | `Temp_Logging` | `sessionStorage` | `Temp` | **Nur noch Export-Name.** Seit 8.10.47 liegt der Log im Ringpuffer (siehe unten); der Schluessel selbst wird beim Start einmal eingelesen und geloescht. |
-| `Timers` | `Temp_Timers` | `sessionStorage` | `Temp` | Timer-State (JSON) |
-| `LastPageCalled` | `Temp_LastPageCalled` | `sessionStorage` | `Temp` | Letzte aufgerufene Seite |
-| `CheckSpentPoints` | `Temp_CheckSpentPoints` | `sessionStorage` | `Temp` | Ausgegebene Punkte pruefen |
-| `freshStart` | `Temp_freshStart` | `Storage()` | `Temp` | Erster Start |
-| `scriptversion` | `Temp_scriptversion` | `localStorage` | `Temp` | Aktuelle Version |
-| `pinfo` | `Temp_pinfo` | `sessionStorage` | `Temp` | pInfo Panel State |
+| `autoLoop` | `Temp_autoLoop` | `sessionStorage` | `Temp` | the auto loop is on |
+| `autoLoopTimeMili` | `Temp_autoLoopTimeMili` | `Storage()` | `Temp` | the loop interval (ms) |
+| `Debug` | `Temp_Debug` | `sessionStorage` | `Temp` | debug mode. No code writes it; it is set by hand in the console -- and into **sessionStorage**; a value in localStorage is not read. Measured 2026-09-11: in the test profile `HHAuto_Temp_Debug` sat in localStorage and therefore had no effect |
+| `Logging` | `Temp_Logging` | `sessionStorage` | `Temp` | **An export name only.** Since 8.10.47 the log lives in the ring buffer (see below); the key itself is read once at the start and deleted. |
+| `Timers` | `Temp_Timers` | `sessionStorage` | `Temp` | the timer state (JSON) |
+| `LastPageCalled` | `Temp_LastPageCalled` | `sessionStorage` | `Temp` | the last page opened |
+| `CheckSpentPoints` | `Temp_CheckSpentPoints` | `sessionStorage` | `Temp` | check the points spent |
+| `freshStart` | `Temp_freshStart` | `Storage()` | `Temp` | the first start |
+| `scriptversion` | `Temp_scriptversion` | `localStorage` | `Temp` | the current version |
+| `pinfo` | `Temp_pinfo` | `sessionStorage` | `Temp` | the pInfo panel state |
 
 ### Harem
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `HaremSize` | `Temp_HaremSize` | `localStorage` | `Temp` | Harem-Groesse (JSON: {count}) |
-| `filteredGirlsList` | `Temp_filteredGirlsList` | `sessionStorage` | `Temp` | Gefilterte Girls-Liste |
-| `haremGirlActions` | `Temp_haremGirlActions` | `sessionStorage` | `Temp` | Aktive Girl-Aktionen |
-| `haremGirlEnd` | `Temp_haremGirlEnd` | `sessionStorage` | `Temp` | Girl-Aktion Ende |
-| `haremGirlLimit` | `Temp_haremGirlLimit` | `sessionStorage` | `Temp` | Girl-Limit |
-| `haremGirlMode` | `Temp_haremGirlMode` | `sessionStorage` | `Temp` | Girl-Modus |
-| `haremGirlPayLast` | `Temp_haremGirlPayLast` | `sessionStorage` | `Temp` | Letzte Zahlung |
-| `haremGirlSpent` | `Temp_haremGirlSpent` | `**--**` | `**--**` | Ausgegebenes |
-| `haremMoneyOnStart` | `Temp_haremMoneyOnStart` | `sessionStorage` | `Temp` | Geld bei Start |
-| `haremTeam` | `Temp_haremTeam` | `sessionStorage` | `Temp` | Team-Daten (JSON) |
-| `haremTeamScrolls` | `Temp_haremTeamScrolls` | `sessionStorage` | `Temp` | Team-Scrolls |
-| `haremTeamSettings` | `Temp_haremTeamSettings` | `sessionStorage` | `Temp` | Team-Einstellungen |
-| `blessingsCache` | `Temp_blessingsCache` | `localStorage` | `Temp` | Blessing-API-Cache (`BlessingData` JSON), 12 h Lebensdauer, gesetzt in `BlessingService.fetchAndCache` |
-| `teamInfoCollapsed` | `Temp_teamInfoCollapsed` | `localStorage` | `Temp` | Team-Info-Panel eingeklappt (`TeamModule`) |
-| `teamTheme` | `Temp_teamTheme` | `localStorage` | `Temp` | Thema des zuletzt gebauten Teams; der Gear-Optimizer braucht es auf der Market-Seite, wo das Team nicht verfuegbar ist |
-| `gearSwapLog` | `Temp_gearSwapLog` | `localStorage` | `Temp` | Inventar-IDs der vom Gear-Optimizer abgelegten Items, damit ein Rollback moeglich bleibt (ID aendert sich bei jedem Unequip) |
-| `gearUpgradeQueue` | `Temp_gearUpgradeQueue` | `localStorage` | `Temp` | Items, die "Upgrade Gear" noch leveln muss; ueber die Navigationen zur Upgrade-Seite hinweg abgearbeitet |
-| `gearKeepKeys` | `Temp_gearKeepKeys` | `localStorage` | `Setting` | Von "Behalten markieren" bestimmte Teile als levelunabhaengige Identitaets-Schluessel; trotz `Temp_`-Prefix `Setting`, weil es eine Nutzer-Entscheidung ist (ab 8.10.22) |
+| `HaremSize` | `Temp_HaremSize` | `localStorage` | `Temp` | the harem size (JSON: {count}) |
+| `filteredGirlsList` | `Temp_filteredGirlsList` | `sessionStorage` | `Temp` | the filtered girl list |
+| `haremGirlActions` | `Temp_haremGirlActions` | `sessionStorage` | `Temp` | active girl actions |
+| `haremGirlEnd` | `Temp_haremGirlEnd` | `sessionStorage` | `Temp` | the end of the girl action |
+| `haremGirlLimit` | `Temp_haremGirlLimit` | `sessionStorage` | `Temp` | the girl limit |
+| `haremGirlMode` | `Temp_haremGirlMode` | `sessionStorage` | `Temp` | the girl mode |
+| `haremGirlPayLast` | `Temp_haremGirlPayLast` | `sessionStorage` | `Temp` | the last payment |
+| `haremGirlSpent` | `Temp_haremGirlSpent` | `**--**` | `**--**` | what was spent |
+| `haremMoneyOnStart` | `Temp_haremMoneyOnStart` | `sessionStorage` | `Temp` | the money at the start |
+| `haremTeam` | `Temp_haremTeam` | `sessionStorage` | `Temp` | team data (JSON) |
+| `haremTeamScrolls` | `Temp_haremTeamScrolls` | `sessionStorage` | `Temp` | team scrolls |
+| `haremTeamSettings` | `Temp_haremTeamSettings` | `sessionStorage` | `Temp` | the team settings |
+| `blessingsCache` | `Temp_blessingsCache` | `localStorage` | `Temp` | the blessing API cache (`BlessingData` JSON), 12 h lifetime, set in `BlessingService.fetchAndCache` |
+| `teamInfoCollapsed` | `Temp_teamInfoCollapsed` | `localStorage` | `Temp` | the team info panel is collapsed (`TeamModule`) |
+| `teamTheme` | `Temp_teamTheme` | `localStorage` | `Temp` | the theme of the team built last; the gear optimiser needs it on the market page, where the team is not available |
+| `gearSwapLog` | `Temp_gearSwapLog` | `localStorage` | `Temp` | the inventory IDs of the items the gear optimiser took off, so a rollback stays possible (the ID changes on every unequip) |
+| `gearUpgradeQueue` | `Temp_gearUpgradeQueue` | `localStorage` | `Temp` | the items "Upgrade Gear" still has to level; worked through across the navigations to the upgrade page |
+| `gearKeepKeys` | `Temp_gearKeepKeys` | `localStorage` | `Setting` | the pieces chosen by "Mark Keepers" as level-independent identity keys; a `Setting` despite the `Temp_` prefix, because it is a user decision (from 8.10.22) |
 
 ### Resources
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `haveAff` | `Temp_haveAff` | `sessionStorage` | `Temp` | Affection verfuegbar |
-| `haveBooster` | `Temp_haveBooster` | `sessionStorage` | `Temp` | Booster verfuegbar |
-| `haveExp` | `Temp_haveExp` | `sessionStorage` | `Temp` | Experience verfuegbar |
-| `charLevel` | `Temp_charLevel` | `sessionStorage` | `Temp` | Charakter-Level |
-| `heroMaxLevel` | `Temp_heroMaxLevel` | `localStorage` | `Temp` | hoechstes je gesehenes Level; `HeroHelper.getLevel` faellt nie darunter, weil das Spiel `Hero.infos.level` je nach Seitenaufruf veraltet ausliefert |
-| `storeContents` | `Temp_storeContents` | `sessionStorage` | `Temp` | Shop-Inhalt |
-| `boosterStatus` | `Temp_boosterStatus` | `sessionStorage` | `Temp` | Booster-Status |
-| `boosterStatusLastUpdate` | `Temp_boosterStatusLastUpdate` | `sessionStorage` | `Temp` | Timestamp des letzten Booster-Status-Updates |
-| `boosterIdMap` | `Temp_boosterIdMap` | `sessionStorage` | `Temp` | Booster-ID Mapping |
+| `haveAff` | `Temp_haveAff` | `sessionStorage` | `Temp` | affection available |
+| `haveBooster` | `Temp_haveBooster` | `sessionStorage` | `Temp` | boosters available |
+| `haveExp` | `Temp_haveExp` | `sessionStorage` | `Temp` | experience available |
+| `charLevel` | `Temp_charLevel` | `sessionStorage` | `Temp` | the character level |
+| `heroMaxLevel` | `Temp_heroMaxLevel` | `localStorage` | `Temp` | the highest level ever seen; `HeroHelper.getLevel` never falls below it, because the game delivers a stale `Hero.infos.level` on some page loads |
+| `storeContents` | `Temp_storeContents` | `sessionStorage` | `Temp` | the shop contents |
+| `boosterStatus` | `Temp_boosterStatus` | `sessionStorage` | `Temp` | the booster status |
+| `boosterStatusLastUpdate` | `Temp_boosterStatusLastUpdate` | `sessionStorage` | `Temp` | the timestamp of the last booster status update |
+| `boosterIdMap` | `Temp_boosterIdMap` | `sessionStorage` | `Temp` | the booster ID mapping |
 
 ### Troll
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `TrollHumanLikeRun` | `Temp_TrollHumanLikeRun` | `sessionStorage` | `Temp` | Human-Like Troll Runs |
-| `TrollInvalid` | `Temp_TrollInvalid` | `sessionStorage` | `Temp` | Ungueltige Trolls |
-| `trollPoints` | `Temp_trollPoints` | `sessionStorage` | `Temp` | Troll-Punkte |
-| `trollWithGirls` | `Temp_trollWithGirls` | `sessionStorage` | `Temp` | Trolls mit Girls |
-| `autoTrollBattleSaveQuest` | `Temp_autoTrollBattleSaveQuest` | `sessionStorage` | `Temp` | Quest-Save |
+| `TrollHumanLikeRun` | `Temp_TrollHumanLikeRun` | `sessionStorage` | `Temp` | human-like troll runs |
+| `TrollInvalid` | `Temp_TrollInvalid` | `sessionStorage` | `Temp` | invalid trolls |
+| `trollPoints` | `Temp_trollPoints` | `sessionStorage` | `Temp` | troll points |
+| `trollWithGirls` | `Temp_trollWithGirls` | `sessionStorage` | `Temp` | trolls with girls |
+| `autoTrollBattleSaveQuest` | `Temp_autoTrollBattleSaveQuest` | `sessionStorage` | `Temp` | the quest save |
 
 ### Quest
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `questRequirement` | `Temp_questRequirement` | `sessionStorage` | `Temp` | Quest-Anforderungen |
-| `MainAdventureWorldID` | `Temp_MainAdventureWorldID` | `localStorage` | `Temp` | Haupt-Welt ID |
-| `SideAdventureWorldID` | `Temp_SideAdventureWorldID` | `localStorage` | `Temp` | Neben-Welt ID |
+| `questRequirement` | `Temp_questRequirement` | `sessionStorage` | `Temp` | the quest requirements |
+| `MainAdventureWorldID` | `Temp_MainAdventureWorldID` | `localStorage` | `Temp` | the main world ID |
+| `SideAdventureWorldID` | `Temp_SideAdventureWorldID` | `localStorage` | `Temp` | the side world ID |
 
 ### Battle
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `battlePowerRequired` | `Temp_battlePowerRequired` | `sessionStorage` | `Temp` | Benoetigte Power |
-| `burst` | `Temp_burst` | `sessionStorage` | `Temp` | Burst-Modus |
-| `lastActionPerformed` | `Temp_lastActionPerformed` | `sessionStorage` | `Temp` | Letzte Aktion |
+| `battlePowerRequired` | `Temp_battlePowerRequired` | `sessionStorage` | `Temp` | the power needed |
+| `burst` | `Temp_burst` | `sessionStorage` | `Temp` | burst mode |
+| `lastActionPerformed` | `Temp_lastActionPerformed` | `sessionStorage` | `Temp` | the last action |
 
 ### Events
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `eventGirl` | `Temp_eventGirl` | `sessionStorage` | `Temp` | Aktuelles Event-Girl |
-| `eventMythicGirl` | `Temp_eventMythicGirl` | `sessionStorage` | `Temp` | Mythic Event-Girl |
-| `eventsGirlz` | `Temp_eventsGirlz` | `sessionStorage` | `Temp` | Event-Girls (JSON) |
-| `eventsList` | `Temp_eventsList` | `sessionStorage` | `Temp` | Aktive Events |
-| `autoChampsEventGirls` | `Temp_autoChampsEventGirls` | `sessionStorage` | `Temp` | Champion Event Girls |
-| `loveRaids` | `Temp_loveRaids` | `sessionStorage` | `Temp` | Love Raid Daten |
-| `raidGirls` | `Temp_raidGirls` | `sessionStorage` | `Temp` | Raid Girls |
-| `bossBangTeam` | `Temp_bossBangTeam` | `sessionStorage` | `Temp` | Boss Bang Team |
-| `lseManualCollectAll` | `Temp_lseManualCollectAll` | `localStorage` | `Temp` | LSE manuell sammeln |
-| `poaManualCollectAll` | `Temp_poaManualCollectAll` | `localStorage` | `Temp` | PoA manuell sammeln |
+| `eventGirl` | `Temp_eventGirl` | `sessionStorage` | `Temp` | the current event girl |
+| `eventMythicGirl` | `Temp_eventMythicGirl` | `sessionStorage` | `Temp` | the mythic event girl |
+| `eventsGirlz` | `Temp_eventsGirlz` | `sessionStorage` | `Temp` | event girls (JSON) |
+| `eventsList` | `Temp_eventsList` | `sessionStorage` | `Temp` | active events |
+| `autoChampsEventGirls` | `Temp_autoChampsEventGirls` | `sessionStorage` | `Temp` | champion event girls |
+| `loveRaids` | `Temp_loveRaids` | `sessionStorage` | `Temp` | love raid data |
+| `raidGirls` | `Temp_raidGirls` | `sessionStorage` | `Temp` | raid girls |
+| `bossBangTeam` | `Temp_bossBangTeam` | `sessionStorage` | `Temp` | the boss bang team |
+| `lseManualCollectAll` | `Temp_lseManualCollectAll` | `localStorage` | `Temp` | collect LSE manually |
+| `poaManualCollectAll` | `Temp_poaManualCollectAll` | `localStorage` | `Temp` | collect PoA manually |
 
 ### Champion
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `champBuildTeam` | `Temp_champBuildTeam` | `sessionStorage` | `Temp` | Champion Team bauen |
-| `clubChampLimitReached` | `Temp_clubChampLimitReached` | `sessionStorage` | `Temp` | Club-Limit erreicht |
+| `champBuildTeam` | `Temp_champBuildTeam` | `sessionStorage` | `Temp` | build the champion team |
+| `clubChampLimitReached` | `Temp_clubChampLimitReached` | `sessionStorage` | `Temp` | the club limit is reached |
 
 ### League
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `LeagueHumanLikeRun` | `Temp_LeagueHumanLikeRun` | `sessionStorage` | `Temp` | Human-Like Liga Runs |
-| `LeagueOpponentList` | `Temp_LeagueOpponentList` | `sessionStorage` | `Temp` | Gegner-Liste |
-| `hideBeatenOppo` | `Temp_hideBeatenOppo` | `Storage()` | `Temp` | Besiegte ausblenden |
+| `LeagueHumanLikeRun` | `Temp_LeagueHumanLikeRun` | `sessionStorage` | `Temp` | human-like league runs |
+| `LeagueOpponentList` | `Temp_LeagueOpponentList` | `sessionStorage` | `Temp` | the opponent list |
+| `hideBeatenOppo` | `Temp_hideBeatenOppo` | `Storage()` | `Temp` | hide the ones already beaten |
 
 ### Season
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `SeasonEndDate` | `Temp_SeasonEndDate` | `**--**` | `**--**` | Season-Ende |
-| `SeasonHumanLikeRun` | `Temp_SeasonHumanLikeRun` | `sessionStorage` | `Temp` | Human-Like Season |
-| `SeasonalEventEndDate` | `Temp_SeasonalEventEndDate` | `**--**` | `**--**` | Seasonal Event Ende |
+| `SeasonEndDate` | `Temp_SeasonEndDate` | `**--**` | `**--**` | the season end |
+| `SeasonHumanLikeRun` | `Temp_SeasonHumanLikeRun` | `sessionStorage` | `Temp` | human-like season |
+| `SeasonalEventEndDate` | `Temp_SeasonalEventEndDate` | `**--**` | `**--**` | the seasonal event end |
 
 ### Pantheon / PentaDrill
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `PantheonHumanLikeRun` | `Temp_PantheonHumanLikeRun` | `sessionStorage` | `Temp` | Human-Like Pantheon |
-| `PentaDrillHumanLikeRun` | `Temp_PentaDrillHumanLikeRun` | `sessionStorage` | `Temp` | Human-Like Penta |
+| `PantheonHumanLikeRun` | `Temp_PantheonHumanLikeRun` | `sessionStorage` | `Temp` | human-like pantheon |
+| `PentaDrillHumanLikeRun` | `Temp_PentaDrillHumanLikeRun` | `sessionStorage` | `Temp` | human-like penta |
 
 ### Place of Power
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `PopToStart` | `Temp_PopToStart` | `sessionStorage` | `Temp` | PoP zu starten |
-| `PopTargeted` | `Temp_PopTargeted` | `sessionStorage` | `Temp` | Anvisierter PoP |
-| `PopUnableToStart` | `Temp_PopUnableToStart` | `sessionStorage` | `Temp` | Nicht startbare PoP |
-| `Totalpops` | `Temp_Totalpops` | `sessionStorage` | `Temp` | Gesamt PoP |
-| `currentlyAvailablePops` | `Temp_currentlyAvailablePops` | `sessionStorage` | `Temp` | Verfuegbare PoP |
+| `PopToStart` | `Temp_PopToStart` | `sessionStorage` | `Temp` | PoP to start |
+| `PopTargeted` | `Temp_PopTargeted` | `sessionStorage` | `Temp` | the targeted PoP |
+| `PopUnableToStart` | `Temp_PopUnableToStart` | `sessionStorage` | `Temp` | PoP that cannot be started |
+| `Totalpops` | `Temp_Totalpops` | `sessionStorage` | `Temp` | PoP in total |
+| `currentlyAvailablePops` | `Temp_currentlyAvailablePops` | `sessionStorage` | `Temp` | available PoP |
 
 ### Path Events
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `PoAEndDate` | `Temp_PoAEndDate` | `localStorage` | `Temp` | PoA Ende |
-| `PoGEndDate` | `Temp_PoGEndDate` | `localStorage` | `Temp` | PoG Ende |
-| `PoVEndDate` | `Temp_PoVEndDate` | `localStorage` | `Temp` | PoV Ende |
+| `PoAEndDate` | `Temp_PoAEndDate` | `localStorage` | `Temp` | the PoA end |
+| `PoGEndDate` | `Temp_PoGEndDate` | `localStorage` | `Temp` | the PoG end |
+| `PoVEndDate` | `Temp_PoVEndDate` | `localStorage` | `Temp` | the PoV end |
 
 ### Daily Goals
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `dailyGoalsList` | `Temp_dailyGoalsList` | `sessionStorage` | `Temp` | Daily Goals Liste |
+| `dailyGoalsList` | `Temp_dailyGoalsList` | `sessionStorage` | `Temp` | the daily goals list |
 
 ### Paranoia
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `NextSwitch` | `Temp_NextSwitch` | `sessionStorage` | `Temp` | Naechster Switch |
-| `paranoiaLeagueBlocked` | `Temp_paranoiaLeagueBlocked` | `sessionStorage` | `Temp` | Paranoia Liga blockiert |
-| `paranoiaQuestBlocked` | `Temp_paranoiaQuestBlocked` | `sessionStorage` | `Temp` | Paranoia Quest blockiert |
-| `paranoiaSpendings` | `Temp_paranoiaSpendings` | `sessionStorage` | `Temp` | Paranoia Ausgaben |
+| `NextSwitch` | `Temp_NextSwitch` | `sessionStorage` | `Temp` | the next switch |
+| `paranoiaLeagueBlocked` | `Temp_paranoiaLeagueBlocked` | `sessionStorage` | `Temp` | paranoia blocks the league |
+| `paranoiaQuestBlocked` | `Temp_paranoiaQuestBlocked` | `sessionStorage` | `Temp` | paranoia blocks the quest |
+| `paranoiaSpendings` | `Temp_paranoiaSpendings` | `sessionStorage` | `Temp` | paranoia spending |
 
 ### Misc
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `sandalwoodFailure` | `Temp_sandalwoodFailure` | `sessionStorage` | `Temp` | Sandalwood Fehler |
-| `sandalwoodMaxUsages` | `Temp_sandalwoodMaxUsages` | `sessionStorage` | `Temp` | Sandalwood Max |
-| `mythicEquipConflicts` | `Temp_mythicEquipConflicts` | `localStorage` | `Temp` | Gelernte Mythic-Slot-Konflikte (`Booster.ts`, JSON-Map: Code -> Loadout bei der Absage). Ab 8.10.13 `localStorage`, damit das Gelernte die Sitzung ueberlebt |
-| `unknownPagesList` | `Temp_unknownPagesList` | `sessionStorage` | `Temp` | Unbekannte Seiten |
+| `sandalwoodFailure` | `Temp_sandalwoodFailure` | `sessionStorage` | `Temp` | Sandalwood errors |
+| `sandalwoodMaxUsages` | `Temp_sandalwoodMaxUsages` | `sessionStorage` | `Temp` | Sandalwood max |
+| `mythicEquipConflicts` | `Temp_mythicEquipConflicts` | `localStorage` | `Temp` | learned mythic slot conflicts (`Booster.ts`, a JSON map: code -> the loadout at the refusal). `localStorage` from 8.10.13 on, so that what was learned survives the session |
+| `unknownPagesList` | `Temp_unknownPagesList` | `sessionStorage` | `Temp` | unknown pages |
 
 ### Survey
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `surveyShown` | `Temp_surveyShown` | `localStorage` | `Temp` | Survey angezeigt |
-| `surveyDismissCount` | `Temp_surveyDismissCount` | `localStorage` | `Temp` | Survey Dismiss Count |
-| `surveyLastHash` | `Temp_surveyLastHash` | `localStorage` | `Temp` | Survey Hash |
+| `surveyShown` | `Temp_surveyShown` | `localStorage` | `Temp` | the survey was shown |
+| `surveyDismissCount` | `Temp_surveyDismissCount` | `localStorage` | `Temp` | the survey dismissal count |
+| `surveyLastHash` | `Temp_surveyLastHash` | `localStorage` | `Temp` | the survey hash |
 
 ### Feature Popup (What's New)
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `featurePopupShown` | `Temp_featurePopupShown` | `localStorage` | `Temp` | Feature Popup angezeigt |
-| `featurePopupDismissCount` | `Temp_featurePopupDismissCount` | `localStorage` | `Temp` | Feature Popup Dismiss |
+| `featurePopupShown` | `Temp_featurePopupShown` | `localStorage` | `Temp` | the feature popup was shown |
+| `featurePopupDismissCount` | `Temp_featurePopupDismissCount` | `localStorage` | `Temp` | the feature popup dismissal |
 
 ### Mouse pause (issue #1774)
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `mouseLastActivity` | `Temp_mouseLastActivity` | `sessionStorage` | `Temp` | Zeitstempel der letzten Mausaktivitaet (`MouseService`) |
+| `mouseLastActivity` | `Temp_mouseLastActivity` | `sessionStorage` | `Temp` | the timestamp of the last mouse activity (`MouseService`) |
 
 ### Pipeline scheduler
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `pipelineLastRunAt` | `Temp_pipelineLastRunAt` | `sessionStorage` | `Temp` | `{blockId: ts}` letzter Lauf je Block (`BlockPipeline`) |
+| `pipelineLastRunAt` | `Temp_pipelineLastRunAt` | `sessionStorage` | `Temp` | `{blockId: ts}` the last run per block (`BlockPipeline`) |
 
 ### Pipeline-Block-Architektur (ADR-004)
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `activeBlockRun` | `Temp_activeBlockRun` | `sessionStorage` | `Temp` | BlockRun-Fortschritt (R4.4/R4.12) |
-| `blockCooldownUntil` | `Temp_blockCooldownUntil` | `sessionStorage` | `Temp` | `{blockId: ts}` Cooldowns (R4.10/R5.2) |
-| `blockFocus` | `Temp_blockFocus` | `sessionStorage` | `Temp` | `{blockId,lastRunAt}` fokussierte Aktivitaet, haelt die Pipeline bei einem Block (#1841) |
-| `forbiddenCount` | `Temp_forbiddenCount` | `sessionStorage` | `Temp` | aufeinanderfolgende 403-Antworten, steuert den Backoff (#1598) |
-| `forbiddenLastAt` | `Temp_forbiddenLastAt` | `localStorage` | `Temp` | Zeitpunkt des letzten 403; bewusst dauerhaft, damit er im Debug-Export nach einem Tab-Neustart noch da ist |
-| `blockAutoDisabled` | `Temp_blockAutoDisabled` | `localStorage` | `Temp` | `{blockId:{reason,sinceVersion}}` automatisch abgeschaltete Bloecke (R5.5) |
-| `blockFailureCount` | `Temp_blockFailureCount` | `localStorage` | `Temp` | `{signature: count}` Fehlerzaehler (R5.3) |
-| `pipelineOrder` | `Temp_pipelineOrder` | `localStorage` | `Setting` | Effektive Block-ID-Reihenfolge (R2.5/R7.1); trotz `Temp_`-Prefix als `Setting` registriert |
-| `pipelineLogContext` | `Temp_pipelineLogContext` | `localStorage` | `Temp` | Nicht rotierender Log-Kontext-Block (R6.16) |
+| `activeBlockRun` | `Temp_activeBlockRun` | `sessionStorage` | `Temp` | BlockRun progress (R4.4/R4.12) |
+| `blockCooldownUntil` | `Temp_blockCooldownUntil` | `sessionStorage` | `Temp` | `{blockId: ts}` cooldowns (R4.10/R5.2) |
+| `blockFocus` | `Temp_blockFocus` | `sessionStorage` | `Temp` | `{blockId,lastRunAt}` the focused activity, keeps the pipeline on one block (#1841) |
+| `forbiddenCount` | `Temp_forbiddenCount` | `sessionStorage` | `Temp` | consecutive 403 answers, drives the backoff (#1598) |
+| `forbiddenLastAt` | `Temp_forbiddenLastAt` | `localStorage` | `Temp` | the time of the last 403; deliberately persistent, so that it is still in the debug export after a tab restart |
+| `blockAutoDisabled` | `Temp_blockAutoDisabled` | `localStorage` | `Temp` | `{blockId:{reason,sinceVersion}}` automatically disabled blocks (R5.5) |
+| `blockFailureCount` | `Temp_blockFailureCount` | `localStorage` | `Temp` | `{signature: count}` the error counter (R5.3) |
+| `pipelineOrder` | `Temp_pipelineOrder` | `localStorage` | `Setting` | the effective block ID order (R2.5/R7.1); registered as a `Setting` despite the `Temp_` prefix |
+| `pipelineLogContext` | `Temp_pipelineLogContext` | `localStorage` | `Temp` | the non-rotating log context block (R6.16) |
 
 ### Troll wait-marker (issue #1708)
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `trollWaitForEnergy` | `Temp_trollWaitForEnergy` | `sessionStorage` | `Temp` | Gesetzt, wenn `handleTrollBattle` auf Energie wartet, ein Kampfpfad aber feuern wuerde; `handleEventParsing` und `handleLeague` unterdruecken daraufhin ihre Navigation. Pro Tab. |
+| `trollWaitForEnergy` | `Temp_trollWaitForEnergy` | `sessionStorage` | `Temp` | set when `handleTrollBattle` waits for energy while a fight path would fire; `handleEventParsing` and `handleLeague` then suppress their navigation. Per tab. |
 
 ### Settings-Menue (Layout, ab 8.10.0)
 
-| Konstante | Storage Key | Storage | HHType | Beschreibung |
+| Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
-| `menuSingleColumn` | `Setting_menuSingleColumn` | `localStorage` | `Setting` | Menue-Layout: `false` = Reiter-Leiste, `true` = alle Bereiche untereinander |
-| `menuCompact` | `Setting_menuCompact` | `localStorage` | `Setting` | Dichte: `true` = engere Zeilen und kleinere Schrift (ab 8.10.12) |
-| `menuOrder` | `Temp_menuOrder` | `localStorage` | `Setting` | Vom Nutzer festgelegte Reihenfolge der Menue-Bereiche (JSON-Array von Bereichs-IDs) |
-| `menuTab` | `Temp_menuTab` | `sessionStorage` | `Temp` | Zuletzt geoeffneter Bereich (nur Reiter-Layout) |
+| `menuSingleColumn` | `Setting_menuSingleColumn` | `localStorage` | `Setting` | the menu layout: `false` = a tab bar, `true` = all areas stacked |
+| `menuCompact` | `Setting_menuCompact` | `localStorage` | `Setting` | density: `true` = tighter rows and smaller type (from 8.10.12) |
+| `menuOrder` | `Temp_menuOrder` | `localStorage` | `Setting` | the order of the menu areas set by the user (a JSON array of area IDs) |
+| `menuTab` | `Temp_menuTab` | `sessionStorage` | `Temp` | the area opened last (the tab layout only) |
 
-`menuOrder` traegt trotz `Temp_`-Praefix `HHType: "Setting"` -- gleiche Entscheidung wie
-`Temp_pipelineOrder`: eine Nutzer-Entscheidung soll "Temp-Speicher loeschen" ueberleben und
-im JSON-Settings-Export enthalten sein (`extractHHVars` filtert nach `HHType`, nicht nach
-Key-Praefix).
+`menuOrder` carries `HHType: "Setting"` despite the `Temp_` prefix -- the same
+decision as `Temp_pipelineOrder`: a user decision should survive "delete temp
+storage" and be part of the JSON settings export (`extractHHVars` filters by
+`HHType`, not by key prefix).
 
 ---
 
-## Bekannte nicht registrierte Keys
+## Known unregistered keys
 
-Folgende 8 Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStoredVars.ts` registriert (abgeglichen 2026-09-11 gegen 8.13.1). Lesen liefert `undefined`, Schreiben verfaellt:
+The following 8 constants are defined in `StorageKeys.ts` but NOT registered in `HHStoredVars.ts` (cross-checked 2026-09-11 against 8.13.1). Reading returns `undefined`, writing is dropped:
 
 **SK:**
 - `SK.PoAMaskRewards`
@@ -701,66 +711,63 @@ Folgende 8 Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStore
 - `TK.SeasonalEventEndDate`
 
 
-## Tote Keys (Cleanup-Kandidaten)
+## Dead keys (cleanup candidates)
 
-**Keine.** Die Analyse vom 2026-08-19 gegen v8.9.0 hatte acht Keys ohne jeden
-Code-Zugriff gefunden; sie wurden am selben Tag entfernt:
+**None.** The analysis of 2026-08-19 against v8.9.0 had found eight keys with no
+code access at all; they were removed the same day:
 
-| Key | war registriert | Befund |
+| Key | was registered | Finding |
 |-----|-----------------|--------|
-| SK.autoTrollMythicByPassThreshold | nein | Geparktes Feature: auskommentierter Block in `ParanoiaService.ts`, i18n-Eintraege in de/en/es ebenfalls auskommentiert (Versionsmarke 5.6.24) |
-| TK.trollToFight | nein | Waise, kein Vorkommen ausser der Definition |
-| TK.fought | ja | Nur die Registrierung, sonst nichts |
-| TK.EventFightsBeforeRefresh | nein | Geparktes Feature: auskommentiert in `RewardHelper.ts` und `EventModule.ts` (2x) |
-| TK.LeagueSavedData | ja | Nur die Registrierung, sonst nichts |
-| TK.LeagueTempOpponentList | nein | Waise |
-| TK.leaguesTarget | nein | Waise |
-| TK.userLink | nein | Waise |
+| SK.autoTrollMythicByPassThreshold | no | a parked feature: a commented-out block in `ParanoiaService.ts`, with the i18n entries in de/en/es commented out as well (version marker 5.6.24) |
+| TK.trollToFight | no | an orphan, no occurrence besides the definition |
+| TK.fought | yes | the registration only, nothing else |
+| TK.EventFightsBeforeRefresh | no | a parked feature: commented out in `RewardHelper.ts` and `EventModule.ts` (twice) |
+| TK.LeagueSavedData | yes | the registration only, nothing else |
+| TK.LeagueTempOpponentList | no | an orphan |
+| TK.leaguesTarget | no | an orphan |
+| TK.userLink | no | an orphan |
 
-Die auskommentierten Bloecke der beiden geparkten Features blieben bewusst
-stehen. Wer eines davon reaktiviert, muss die zugehoerige Konstante wieder
-anlegen -- eine Zeile.
+The commented-out blocks of the two parked features were deliberately left in
+place. Whoever reactivates one of them has to create the matching constant
+again -- one line.
 
-### Methode fuer die naechste Wiederholung
+### The method for the next round
 
-Ein Key gilt als tot, wenn ihn ausserhalb seiner Definition in
-`StorageKeys.ts` und seiner Registrierung in `HHStoredVars.ts` kein Code
-anfasst. Drei Fallen, die eine naive Suche stellt:
+A key counts as dead when no code touches it outside its definition in
+`StorageKeys.ts` and its registration in `HHStoredVars.ts`. Three traps a naive
+search walks into:
 
-1. **Auskommentierter Code zaehlt nicht als Zugriff.** Ohne Kommentar-Stripping
-   erscheinen geparkte Features faelschlich als lebendig.
-2. **`HHStoredVars.ts` selbst muss durchsucht werden.** Dort stehen
-   `events`-Handler mit echten Schreibzugriffen -- so wird zum Beispiel
-   `SK.autoFreeBundlesCollectablesList` beschrieben.
-3. **`setMenuValues` / `getMenuValues` iterieren ueber die gesamte Registry**
-   und lesen bzw. schreiben jeden Eintrag mit `storage` und `HHType`. Ein
-   registrierter Key wird also bei jedem Menue-Vorgang angefasst, auch wenn ihn
-   kein Feature-Code kennt. Deshalb zuerst den `HHStoredVars`-Eintrag entfernen,
-   dann die Konstante.
+1. **Commented-out code does not count as access.** Without stripping comments,
+   parked features falsely look alive.
+2. **`HHStoredVars.ts` itself has to be searched.** It holds `events` handlers
+   with real writes -- that is how `SK.autoFreeBundlesCollectablesList` is
+   written, for example.
+3. **`setMenuValues` / `getMenuValues` iterate over the whole registry** and
+   read or write every entry with `storage` and `HHType`. A registered key is
+   therefore touched on every menu operation, even when no feature code knows
+   it. So remove the `HHStoredVars` entry first, then the constant.
 
-Zwei weitere dynamische Konsumenten wurden geprueft und sind unkritisch:
-`SurveyService.buildSettingsExport` iteriert `Object.keys(SK)`, ueberspringt
-aber unregistrierte Keys (`if (!varDef) continue`), und `debugDeleteAllVars`
-iteriert die Registry statt SK/TK.
+Two further dynamic consumers were checked and are harmless:
+`SurveyService.buildSettingsExport` iterates `Object.keys(SK)` but skips
+unregistered keys (`if (!varDef) continue`), and `debugDeleteAllVars` iterates
+the registry instead of SK/TK.
 
-## Log-Ringpuffer (seit 8.10.47)
+## The log ring buffer (since 8.10.47)
 
-Der Debug-Log liegt nicht mehr als ein JSON-Objekt unter `Temp_Logging`,
-sondern als Ring aus Textbloecken. Diese Schluessel werden **bewusst nicht** in
-`HHStoredVars` registriert: sie sind kein Zustand des Skripts, sondern der
-Speicher des Loggers selbst, und der Registry-Pfad (`setStoredValue`) raeumt
-im Quota-Fehlerfall genau diesen Log auf -- eine Schleife, die `LogStore`
-vermeidet, indem er direkt auf `sessionStorage` schreibt.
+The debug log no longer lives as one JSON object under `Temp_Logging` but as a
+ring of text blocks. These keys are **deliberately not** registered in
+`HHStoredVars`: they are not state of the script but the logger's own storage,
+and the registry path (`setStoredValue`) clears exactly this log on a quota
+error -- a loop `LogStore` avoids by writing to `sessionStorage` directly.
 
-| Schluessel | Speicher | Inhalt |
+| Key | Storage | Content |
 |---|---|---|
-| `Temp_LogIdx` | `sessionStorage` | `{cur, used[]}` -- aktueller Block und Altersreihenfolge |
-| `Temp_Log0` .. `Temp_Log63` | `sessionStorage` | je bis zu 128 KB Logtext, `<ms base36>\t<caller>\t<text>` je Zeile |
+| `Temp_LogIdx` | `sessionStorage` | `{cur, used[]}` -- the current block and the age order |
+| `Temp_Log0` .. `Temp_Log63` | `sessionStorage` | up to 128 KB of log text each, `<ms base36>\t<caller>\t<text>` per line |
 
-Der Ring belegt nominal 8 MB und schrumpft von selbst: verweigert der Browser
-einen Schreibvorgang, faellt der aelteste Block heraus und der Schreibvorgang
-wird wiederholt. Der Debug-Export baut daraus wieder die alte Form
-(`{"<Datum>.<ms>:<caller>": text}`), damit vorhandene Log-Leser unveraendert
-funktionieren.
+The ring occupies 8 MB nominally and shrinks by itself: when the browser
+refuses a write, the oldest block drops out and the write is retried. The debug
+export rebuilds the old form from it (`{"<date>.<ms>:<caller>": text}`), so that
+existing log readers keep working unchanged.
 
-`clearLog()` (aus dem Quota-Notpfad `cleanLogsInStorage`) leert den ganzen Ring.
+`clearLog()` (from the quota emergency path `cleanLogsInStorage`) empties the whole ring.
