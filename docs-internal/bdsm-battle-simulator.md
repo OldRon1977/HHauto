@@ -4,89 +4,102 @@ verified-against-version: 8.13.1
 status: current
 ---
 
-# BDSM Battle Simulator -- Technische Referenz
+# BDSM battle simulator -- technical reference
 
-Battle Damage Simulation Model: Probabilistischer Kampfsimulator zur Vorhersage von League- und Season-Kampfausgaengen.
-Letzte vollstaendige Verifikation: 2026-05-06 gegen v7.35.21 (Zeile-fuer-Zeile gegen BDSMHelper.ts, BDSMPlayer.ts, BDSMSimu.ts).
+Battle Damage Simulation Model: a probabilistic battle simulator that predicts
+the outcome of league and season fights.
+Last full verification: 2026-05-06 against v7.35.21 (line by line against
+BDSMHelper.ts, BDSMPlayer.ts, BDSMSimu.ts).
 
 ---
 
-## Dateien
+## Files
 
-| Datei | Inhalt |
+| File | Content |
 |-------|--------|
-| src/Helper/BDSMHelper.ts | Hauptklasse, Domination, Crit-Berechnung, Tier-4/5-Skill-Schaetzung, Battle-Simulation |
-| src/model/BDSMPlayer.ts | Kampf-Spieler-Modell |
-| src/model/BDSMSimu.ts | Simulationsergebnis-Modell |
+| src/Helper/BDSMHelper.ts | the main class, domination, crit calculation, tier-4/5 skill estimation, battle simulation |
+| src/model/BDSMPlayer.ts | the battle player model |
+| src/model/BDSMSimu.ts | the simulation result model |
 
-## Aufrufer
+## Callers
 
-| Modul | Funktion | inLeague-Flag |
+| Module | Function | inLeague flag |
 |-------|----------|---------------|
 | Module/League.ts | getSimPowerOpponent() | true |
-| Module/Events/Season.ts | Gegner-Simulation (3 Gegner) | false (Default) |
+| Module/Events/Season.ts | opponent simulation (3 opponents) | false (default) |
 
-Die Liga-Simulation wendet zusaetzlich Element-Domination-Boni auf Ego, Attack und Defense an. Im Season-Modus werden die Boni weggelassen -- die Roh-Stats werden direkt simuliert.
+The league simulation additionally applies element domination bonuses to ego,
+attack and defense. In season mode the bonuses are left out -- the raw stats are
+simulated directly.
 
 ---
 
-## Datenmodelle
+## Data models
 
 ### BDSMPlayer
 
-Datei: src/model/BDSMPlayer.ts. Die im Konstruktor uebergebenen Werte werden 1:1 als Felder gespeichert.
+File: src/model/BDSMPlayer.ts. The values passed to the constructor are stored
+one to one as fields.
 
-| Feld | Typ | Quelle | Beschreibung |
+| Field | Type | Source | Description |
 |------|-----|--------|--------------|
-| hp | number | remaining_ego (ggf. * Domination-Bonus) | Aktuelle Lebenspunkte |
-| atk | number | damage (ggf. * Domination-Bonus) | Angriff |
-| adv_def | number | Gegner-defense (ggf. * (1 - defReduce)) | Verteidigung der Gegenseite |
-| critchance | number | calculateCritChanceShare + dominationChance + synergyCritChance | Crit-Chance |
-| bonuses | any | fightBonues(team) | Synergie-Multiplikatoren {critDamage, critChance, defReduce, healOnHit} |
-| tier4 | any | estimateTier4SkillValue | Pro-Runde-Skalierungsfaktoren {dmg, def} |
-| tier5 | any | estimateTier5SkillValue | Leader-Skill {id, value} |
-| name | string | nickname | Anzeigename |
+| hp | number | remaining_ego (times the domination bonus where applicable) | current hit points |
+| atk | number | damage (times the domination bonus where applicable) | attack |
+| adv_def | number | the opponent's defense (times (1 - defReduce) where applicable) | the other side's defense |
+| critchance | number | calculateCritChanceShare + dominationChance + synergyCritChance | crit chance |
+| bonuses | any | fightBonues(team) | synergy multipliers {critDamage, critChance, defReduce, healOnHit} |
+| tier4 | any | estimateTier4SkillValue | per-round scaling factors {dmg, def} |
+| tier5 | any | estimateTier5SkillValue | the leader skill {id, value} |
+| name | string | nickname | display name |
 
-Zusaetzliche Laufzeit-Felder werden in calculateBattleProbabilities initialisiert:
+Additional runtime fields are initialised in calculateBattleProbabilities:
 
-| Feld | Initialisierung | Bedeutung |
+| Field | Initialisation | Meaning |
 |------|-----------------|-----------|
-| playerShield | tier5.id == 12 ? tier5.value * hp : 0 | Shield-Wert (nur Leader-Element light/stone) |
-| opponentShield | wird im opponentTurn (Runde 1) gesetzt | Schild des Gegners aus dessen Tier-5 |
-| stunned | tier5.id == 11 ? 2 : 0 (auf der Gegenseite) | verbleibende Stun-Runden |
-| alreadyStunned | 0 | nicht aktiv genutzt |
-| reflect | tier5.id == 13 ? 2 : 0 | verbleibende Reflect-Runden |
-| critMultiplier | 2 + bonuses.critDamage | Crit-Schadensfaktor |
+| playerShield | tier5.id == 12 ? tier5.value * hp : 0 | shield value (only for a light/stone leader element) |
+| opponentShield | set in opponentTurn (round 1) | the opponent's shield from their tier 5 |
+| stunned | tier5.id == 11 ? 2 : 0 (on the other side) | remaining stun rounds |
+| alreadyStunned | 0 | not actively used |
+| reflect | tier5.id == 13 ? 2 : 0 | remaining reflect rounds |
+| critMultiplier | 2 + bonuses.critDamage | crit damage factor |
 
 ### BDSMSimu
 
-Datei: src/model/BDSMSimu.ts. Der Konstruktor nimmt (points, win, loss, scoreClass) entgegen, das Feld expectedValue ist mit 0 initialisiert und wird vom Simulator aktuell **nicht gesetzt** -- Aufrufer berechnen es bei Bedarf selbst.
+File: src/model/BDSMSimu.ts. The constructor takes (points, win, loss,
+scoreClass); the field expectedValue is initialised to 0 and is currently
+**not set** by the simulator -- callers compute it themselves when they need it.
 
-| Feld | Typ | Beschreibung |
+| Field | Type | Description |
 |------|-----|--------------|
-| points | {[punkt]: wahrscheinlichkeit} | Verteilung erwarteter Liga-/Season-Punkte |
-| win | number | Gewinnwahrscheinlichkeit (0.0 - 1.0) |
-| loss | number | Verlustwahrscheinlichkeit (0.0 - 1.0) |
+| points | {[point]: probability} | the distribution of expected league/season points |
+| win | number | win probability (0.0 - 1.0) |
+| loss | number | loss probability (0.0 - 1.0) |
 | scoreClass | string | 'plus' (win > 0.9), 'close' (0.5..0.9), 'minus' (< 0.5) |
-| expectedValue | number | Default 0; vom Simulator nicht populiert |
+| expectedValue | number | default 0; not populated by the simulator |
 
 ---
 
-> **Type-Annotation-Inkonsistenz:** Der Konstruktor in BDSMSimu.ts deklariert points: number[]. Tatsaechlich gespeichert wird aber ein Map-Objekt {[point: number]: probability: number} (siehe mergeResult und Endknoten { points: { [point]: 1 } }). Der TypeScript-Typ stimmt also nicht mit dem Laufzeit-Schema ueberein. Das gilt seit Einfuehrung des BDSM-Simulators und ist kein neues Problem.
+> **A type annotation that does not match:** the constructor in BDSMSimu.ts
+> declares points: number[]. What is actually stored is a map object
+> {[point: number]: probability: number} (see mergeResult and the leaf nodes
+> { points: { [point]: 1 } }). The TypeScript type therefore does not match the
+> runtime shape. That has been so since the BDSM simulator was introduced and is
+> not a new problem.
 
-## Element-System
+## The element system
 
-HHAuto kennt **8 Elemente** (kein electric). Die Domination-Logik in BDSMHelper.ELEMENTS arbeitet mit zwei separaten Cycles:
+HHAuto knows **8 elements** (no electric). The domination logic in
+BDSMHelper.ELEMENTS works with two separate cycles:
 
-### egoDamage-Cycle (5 Elemente)
+### The egoDamage cycle (5 elements)
 
-Bei Match: pro getroffenem Gegner-Element +10% Ego UND +10% Attack auf der eigenen Seite.
+On a match: +10% ego AND +10% attack on your own side per opposing element hit.
 
 
 fire -> nature -> stone -> sun -> water -> fire
 
 
-| Element | dominiert |
+| Element | dominates |
 |---|---|
 | fire | nature |
 | nature | stone |
@@ -94,33 +107,32 @@ fire -> nature -> stone -> sun -> water -> fire
 | sun | water |
 | water | fire |
 
-### chance-Cycle (3 Elemente)
+### The chance cycle (3 elements)
 
-Bei Match: pro getroffenem Gegner-Element +20% Crit-Chance auf der eigenen Seite.
+On a match: +20% crit chance on your own side per opposing element hit.
 
 
 darkness -> light -> psychic -> darkness
 
 
-| Element | dominiert |
+| Element | dominates |
 |---|---|
 | darkness | light |
 | light | psychic |
 | psychic | darkness |
 
-Die zweite Spalte ist das Element, gegen das der Bonus greift -- im Code
-`BDSMHelper.ELEMENTS[kette][element]`. Gemessen 2026-09-11 an
-`element_data.domination`/`weakness` aller Maedchen eines Kontos: jedes
-Element dominiert genau das hier genannte, und der Code liest es in dieser
-Richtung (`b.includes(ELEMENTS...[element])` auf der Gegnerseite). Bis dahin
-stand die Spalte als "wird besiegt von" beschriftet; die Werte waren richtig,
-die Beschriftung nicht.
+The second column is the element the bonus works against -- in the code
+`BDSMHelper.ELEMENTS[cycle][element]`. Measured 2026-09-11 against
+`element_data.domination`/`weakness` of all girls of one account: every element
+dominates exactly the one named here, and the code reads it in that direction
+(`b.includes(ELEMENTS...[element])` on the opponent's side). Until then the
+column was labelled "is beaten by"; the values were right, the label was not.
 
-### Element -> Klassen-Anzeigename
+### Element -> class display name
 
-Gemessen 2026-09-11 aus `element_data.flavor`:
+Measured 2026-09-11 from `element_data.flavor`:
 
-| Element | Klassen-Name (UI) |
+| Element | Class name (UI) |
 |---------|--------------------|
 | fire | Eccentric |
 | water | Sensual |
@@ -131,54 +143,65 @@ Gemessen 2026-09-11 aus `element_data.flavor`:
 | psychic | Voyeur |
 | light | Submissive |
 
-`BlessingService.parseElement` und `TeamModule.CLASS_NAME` fuehrten die beiden
-letzten Zeilen bis 8.13.1 vertauscht; im Simulator selbst spielt der Name keine
-Rolle.
+`BlessingService.parseElement` and `TeamModule.CLASS_NAME` carried the last two
+rows swapped until 8.13.1; in the simulator itself the name plays no part.
 
-**Achtung Verwechslungsgefahr:** "Klasse" ist hier doppeldeutig. Es gibt zwei Begriffe:
+**Easy to confuse:** "class" is ambiguous here. There are two terms:
 
-- **Player-Klasse:** Hardcore (1) / Charm (2) / Know-how (3) -- wird von Hero.infos.class ausgelesen.
-- **Girl-Element-Klasse:** Eccentric / Sensual / Exhibitionist / ... -- ist nur eine UI-Bezeichnung des Girl-Elements.
+- **The player class:** Hardcore (1) / Charm (2) / Know-how (3) -- read from
+  Hero.infos.class.
+- **The girl element class:** Eccentric / Sensual / Exhibitionist / ... -- only
+  a UI label for the girl's element.
 
-Die BDSM-Domination wirkt allein auf Element-Ebene, **nicht** auf Player-Klassen-Ebene. Bonus-Berechnung in calculateDominationBonuses zaehlt Matches zwischen Player-Team-Elementen und Gegner-Team-Elementen.
+BDSM domination works on the element level alone, **not** on the player class
+level. The bonus calculation in calculateDominationBonuses counts matches
+between the player team's elements and the opponent team's elements.
 
 ### Stacking
 
-Boni stapeln sich linear, wenn mehrere Element-Matches existieren. Beispiel: Player-Team hat 3x fire, Gegner hat 2x nature -- der Bonus wird trotzdem nur einmal pro Player-Element-Vorkommen vergeben:
+Bonuses stack linearly when several element matches exist. Example: the player
+team has 3x fire and the opponent 2x nature -- the bonus is still given only
+once per occurrence of the player element:
 
 javascript
-a.forEach(element => {  // Player-Element
-    if (b.includes(...)) {  // Gegner hat Counter
+a.forEach(element => {  // player element
+    if (b.includes(...)) {  // the opponent has the counter
         bonuses[k].ego += 0.1
         bonuses[k].attack += 0.1
     }
 })
 
 
-a.forEach iteriert alle Player-Elemente einzeln, b.includes prueft nur auf Existenz. **Drei fire-Girls geben dreimal +10%, ein nature-Girl beim Gegner reicht.**
+a.forEach iterates every player element individually, b.includes only checks
+existence. **Three fire girls give +10% three times, and one nature girl on the
+opponent's side is enough.**
 
 ---
 
-## Synergien (fightBonues)
+## Synergies (fightBonues)
 
-> Hinweis: Die Methode heisst im Code wirklich fightBonues (Tippfehler -- bon**ues** statt bon**uses**). Bei Refactor ueberall gleichzeitig korrigieren.
+> Note: the method really is called fightBonues in the code (a typo -- bon**ues**
+> instead of bon**uses**). When refactoring, correct it everywhere at once.
 
-Liest pro Element den Synergie-Multiplikator aus team.synergies:
+It reads the synergy multiplier per element from team.synergies:
 
-| Element | Synergie-Feld in BDSM | Kampfeffekt |
+| Element | Synergy field in BDSM | Battle effect |
 |---------|-----------------------|-------------|
-| fire | critDamage | erhoeht den Crit-Schadensfaktor |
-| stone | critChance | additive Erhoehung der Crit-Chance |
-| sun | defReduce | reduziert die gegnerische Verteidigung (nur League) |
-| water | healOnHit | Heilung pro getroffenem Schadenstick (% des Schadens) |
+| fire | critDamage | raises the crit damage factor |
+| stone | critChance | an additive increase of the crit chance |
+| sun | defReduce | reduces the opponent's defense (league only) |
+| water | healOnHit | healing per damage tick landed (% of the damage) |
 
-Andere Elemente haben in dieser Engine keine direkt simulierte Synergie-Wirkung. Ihre Team-Synergien werden in den Roh-Stats des Spielers vom Game-Server bereits eingerechnet und kommen ueber damage, defense, remaining_ego, chance in die Simulation.
+Other elements have no directly simulated synergy effect in this engine. Their
+team synergies are already worked into the player's raw stats by the game
+server and reach the simulation through damage, defense, remaining_ego and
+chance.
 
 ---
 
-## Stat-Berechnung (getBdsmPlayersData)
+## Stat calculation (getBdsmPlayersData)
 
-### Player-seitig
+### On the player's side
 
 
 playerCrit = chance
@@ -189,192 +212,204 @@ critChance = calculateCritChanceShare(playerCrit, opponentCrit)
 if (inLeague):
     hp  = remaining_ego * (1 + dominationBonuses.player.ego)
     atk = damage        * (1 + dominationBonuses.player.attack)
-    adv_def = opponentDef    // unmodifiziert in Player-Sicht
+    adv_def = opponentDef    // unmodified in the player's view
 else:
     hp  = remaining_ego
     atk = damage
     adv_def = opponentDef
 
 
-### Gegner-seitig (in Player-Sicht)
+### On the opponent's side (in the player's view)
 
 
 if (inLeague):
     opponent.adv_def = playerDef * (1 - opponentBonuses.defReduce)
 else:
-    opponent.adv_def = playerDef    // unmodifiziert
+    opponent.adv_def = playerDef    // unmodified
 
 
-Die Asymmetrie ist gewollt: League wendet Domination-Bonus auf Player-Ego/Attack an UND gegner-defReduce auf Player-Defense -- Season nicht. Beide Modi addieren aber Domination-Crit-Boni.
+The asymmetry is intended: the league applies the domination bonus to the
+player's ego and attack AND the opponent's defReduce to the player's defense --
+the season does not. Both modes do add the domination crit bonuses.
 
-### Crit-Chance-Formel
+### The crit chance formula
 
 typescript
 calculateCritChanceShare(ownHarmony, otherHarmony)
     = 0.3 * ownHarmony / (ownHarmony + otherHarmony)
 
 
-Maximum theoretischer Basis-Crit: 30% (bei ownHarmony >> otherHarmony).
+The theoretical maximum base crit: 30% (with ownHarmony >> otherHarmony).
 
 ---
 
-## Tier-4 Skills (estimateTier4SkillValue)
+## Tier-4 skills (estimateTier4SkillValue)
 
-Liest team.girls[i].skill_tiers_info[4].skill_points_used, summiert alle Punkte und multipliziert mit 0.002.
+Reads team.girls[i].skill_tiers_info[4].skill_points_used, sums all the points
+and multiplies by 0.002.
 
-| Skill | Faktor pro skill_points_used | Anwendung |
+| Skill | Factor per skill_points_used | Application |
 |-------|------------------------------|-----------|
-| Damage | +0.2% | wird im Schadensfall **exponentiell** mit der Rundenzahl multipliziert: atk * (1 + tier4.dmg)^turns |
-| Defense | nicht implementiert | Code initialisiert def: 0 und addiert nichts -- Tier-4-Defense-Skills werden ignoriert |
+| Damage | +0.2% | multiplied **exponentially** with the round number in the damage case: atk * (1 + tier4.dmg)^turns |
+| Defense | not implemented | the code initialises def: 0 and adds nothing -- tier-4 defense skills are ignored |
 
-Eine `calculateTier4SkillValue`-Funktion haette beide Tier-4-Skills (Index 9 = dmg, Index 10 = def) gelesen. Sie war auskommentiert und wurde am 2026-08-17 geloescht (Commit `chore: delete commented-out code`); in der Git-Historie ist sie erhalten. Tier-4-Defense bleibt damit unimplementiert.
+A `calculateTier4SkillValue` function would have read both tier-4 skills (index
+9 = dmg, index 10 = def). It was commented out and was deleted on 2026-08-17
+(commit `chore: delete commented-out code`); it is preserved in the git
+history. Tier-4 defense therefore stays unimplemented.
 
 ---
 
-## Tier-5 Skills (estimateTier5SkillValue)
+## Tier-5 skills (estimateTier5SkillValue)
 
-Liest skill_tiers_info[5].skill_points_used der **ersten Girl im Team** (team.girls[0], der Leader). Die Skill-Wirkung haengt vom Element des Leaders ab:
+Reads skill_tiers_info[5].skill_points_used of the **first girl in the team**
+(team.girls[0], the leader). The skill's effect depends on the leader's
+element:
 
-| Element des Leaders | Skill | id | Faktor pro skill_points_used | Effekt |
+| The leader's element | Skill | id | Factor per skill_points_used | Effect |
 |---------------------|-------|----|-----------------------------:|--------|
-| sun, darkness | Stun | 11 | 7% | Gegner verliert Runden (initial 2 Runden) |
-| stone, light | Shield | 12 | 8% | % von max-HP als Schild (in Runde 1 gesetzt) |
-| psychic, nature | Reflect | 13 | 20% | % des eingehenden Schadens zurueck (initial 2 Runden) |
-| fire, water | Execute | 14 | 8% | Gegner stirbt sofort, wenn HP-Anteil <= Skill-Wert |
+| sun, darkness | Stun | 11 | 7% | the opponent loses rounds (initially 2 rounds) |
+| stone, light | Shield | 12 | 8% | % of max HP as a shield (set in round 1) |
+| psychic, nature | Reflect | 13 | 20% | % of incoming damage returned (initially 2 rounds) |
+| fire, water | Execute | 14 | 8% | the opponent dies at once when their HP share <= the skill value |
 
-Das Tier-5 des Gegners wird erst in opponentTurn(...turns=1) initialisiert -- in Runde 1 wird der Gegner-Shield gesetzt, der Stun-Counter auf den Player gesetzt etc.
+The opponent's tier 5 is initialised only in opponentTurn(...turns=1) -- in
+round 1 the opponent's shield is set, the stun counter is put on the player,
+and so on.
 
-### Stilistischer Hinweis im Code
+### A stylistic note on the code
 
-Im estimateTier5SkillValue-Block sind nur die ersten beiden Branches mit else if verkettet, die Reflect- und Execute-Branches mit if. Funktional unproblematisch (die Element-Strings koennen sich nicht ueberlappen), aber bei Refactor harmonisieren.
+In the estimateTier5SkillValue block only the first two branches are chained
+with else if, while the reflect and execute branches use if. Functionally
+harmless (the element strings cannot overlap), but worth harmonising in a
+refactor.
 
 ---
 
-## Battle-Loop (calculateBattleProbabilities)
+## The battle loop (calculateBattleProbabilities)
 
-Vollstaendige rekursive Branch-Exploration aller moeglichen Kampfverlaeufe.
+A complete recursive exploration of every possible course a battle can take.
 
 ### Setup
 
 1. critMultiplier = 2 + bonuses.critDamage
-2. hp aufrunden (Math.ceil)
-3. Tier-5 fuer Player initialisieren (playerShield, gegnerischer stunned, reflect)
+2. round hp up (Math.ceil)
+3. initialise tier 5 for the player (playerShield, the opponent's stunned,
+   reflect)
 
-### Rekursion
+### The recursion
 
 
 playerTurn(turns)
-  -> playerAttack(baseAtk, turns)  -> opponentTurn(turns) oder Win
-  -> playerAttack(critAtk, turns)  -> opponentTurn(turns) oder Win
+  -> playerAttack(baseAtk, turns)  -> opponentTurn(turns) or a win
+  -> playerAttack(critAtk, turns)  -> opponentTurn(turns) or a win
   -> mergeResult(weighted by probability)
 
 opponentTurn(turns)
-  if turns == 1: Tier-5 des Gegners initialisieren
-  -> opponentAttack(baseAtk, turns) -> playerTurn(turns+1) oder Loss
-  -> opponentAttack(critAtk, turns) -> playerTurn(turns+1) oder Loss
+  if turns == 1: initialise the opponent's tier 5
+  -> opponentAttack(baseAtk, turns) -> playerTurn(turns+1) or a loss
+  -> opponentAttack(critAtk, turns) -> playerTurn(turns+1) or a loss
   -> mergeResult
 
 
-### Memo in playerTurn
+### The memo in playerTurn
 
-Der Baum ist exponentiell in der Zahl der Schlagabtausche, die ein Kampf
-braucht. Gemessen gegen die Fassung ohne Memo, ein Gegner, synchron:
-12 Schlagabtausche 95 ms, 14 → 502 ms, 16 → 3,1 s, 18 → 19,9 s.
+The tree is exponential in the number of exchanges a battle needs. Measured
+against the version without the memo, one opponent, synchronous: 12 exchanges
+95 ms, 14 -> 502 ms, 16 -> 3.1 s, 18 -> 19.9 s.
 
-playerTurn memoisiert daher ueber den vollstaendigen Zustand: beide Ego-Werte,
-beide Schilde, beide Stun- und Reflect-Zaehler und **turns**. turns gehoert in
-den Schluessel, weil calculateDmg Angriff und Verteidigung mit turns
-potenziert -- dasselbe Ego-Paar eine Runde spaeter ist ein anderer Zustand.
-Genau daran scheiterte die frueher auskommentierte Skizze
-`_cache[playerHP][opponentHP]`: auf das Ego-Paar allein geschluesselt haette
-sie fremde Ergebnisse zurueckgegeben.
+playerTurn therefore memoises over the complete state: both ego values, both
+shields, both stun and reflect counters, and **turns**. turns belongs in the
+key because calculateDmg raises attack and defense to the power of turns -- the
+same ego pair one round later is a different state. That is exactly where the
+sketch that used to be commented out, `_cache[playerHP][opponentHP]`, failed:
+keyed on the ego pair alone, it would have returned foreign results.
 
-Mit Memo dauern dieselben Kaempfe 3 bis 6 ms und liefern **bitgleiche** Werte;
-sie besuchen 507 bis 1786 Knoten und kommen dem Budget unten nicht nahe.
+With the memo the same battles take 3 to 6 ms and deliver **bit-identical**
+values; they visit 507 to 1786 nodes and come nowhere near the budget below.
 
-Der Memo ist nur eingeschaltet, solange der Schaden pro Zug konstant ist, also
-ohne Tier-4-Schadens- oder Verteidigungsbonus auf beiden Seiten. Mit einem
-solchen Bonus unterscheidet sich der Schaden je Zug, die Ego-Werte fallen nicht
-mehr zusammen, und die Map ist reiner Aufwand -- gemessen 290,5 ms gegen
-291,7 ms fuer denselben Kampf. `_memoEnabled` laesst diesen Fall deshalb auf
-der reinen Rekursion, wo das Budget ihn begrenzt.
+The memo is only switched on while the damage per turn is constant, that is,
+without a tier-4 damage or defense bonus on either side. With such a bonus the
+damage differs per turn, the ego values no longer coincide, and the map is pure
+overhead -- measured 290.5 ms against 291.7 ms for the same battle.
+`_memoEnabled` therefore leaves that case on plain recursion, where the budget
+bounds it.
 
-Negativer Schaden kommt nicht mehr vor: `calculateDmg` kappt bei 0. Vorher
-liess ein Treffer unter der Verteidigung des Gegners `shield - damageAmount`
-den Schild *wachsen*, im Krit-Ast staerker, so dass die Zustaende
-auseinanderliefen und der Memo im Patt nichts fand. Die Schadenszeile kappte
-schon vorher bei 0 (`Math.max(0, damageAmount - shield)`); welche Untergrenze
-das Spiel selbst fuer einen solchen Treffer setzt, ist nicht gemessen.
-Gemessen am Patt-Testfall: 596 bis 619 ms vorher, 1 ms nachher.
+Negative damage no longer occurs: `calculateDmg` clamps at 0. Before that, a
+hit below the opponent's defense let `shield - damageAmount` make the shield
+*grow*, more strongly in the crit branch, so the states drifted apart and the
+memo found nothing in a stalemate. The damage line already clamped at 0
+(`Math.max(0, damageAmount - shield)`); what lower bound the game itself sets
+for such a hit is not measured. Measured on the stalemate test case: 596 to 619
+ms before, 1 ms after.
 
-### Schadensformel (calculateDmg)
+### The damage formula (calculateDmg)
 
 
 dmg = atk * (1 + tier4.dmg)^turns - adv_def * (1 + tier4.def)^turns
 
 
-tier4.def ist immer 0, deswegen reduziert sich das praktisch zu:
+tier4.def is always 0, so in practice this reduces to:
 
 
 dmg = atk * (1 + tier4.dmg)^turns - adv_def
 
 
-Pro Aufruf entstehen zwei Aeste:
+Every call creates two branches:
 
-| Ast | Wahrscheinlichkeit | Schaden |
+| Branch | Probability | Damage |
 |-----|--------------------|---------|
 | baseAtk | 1 - critchance | Math.ceil(dmg) |
 | critAtk | critchance | Math.ceil(dmg * critMultiplier) |
 
-### Damage-Application (Reihenfolge im Code)
+### Damage application (the order in the code)
 
 
-1. Stun-Check: wenn gestunnt -> Runde aussetzen (Counter -1, Gegner ist dran)
-2. Schaden = max(0, attack.damageAmount - opponentShield)
+1. Stun check: when stunned -> skip the round (counter -1, the opponent is up)
+2. Damage = max(0, attack.damageAmount - opponentShield)
    opponentShield -= attack.damageAmount   (clamped >= 0)
-3. Execute-Check (Tier-5 #14): opponentHP/maxHP <= skill_value -> opponentHP = 0
-4. Reflect (Tier-5 #13 des Gegners): wenn opponentReflect > 0 und opponentHP > 0,
-   Reflect-Schaden = ceil(opponent.tier5.value * attack.damageAmount).
+3. Execute check (tier 5 #14): opponentHP/maxHP <= skill_value -> opponentHP = 0
+4. Reflect (the opponent's tier 5 #13): when opponentReflect > 0 and opponentHP > 0,
+   reflect damage = ceil(opponent.tier5.value * attack.damageAmount).
    playerHP -= max(0, reflectDmg - playerShield)
    playerShield -= reflectDmg   (clamped)
    opponentReflect -= 1
-5. Heal-on-Hit: playerHP = min(playerMaxHP, playerHP + ceil(healOnHit * dealtDmg))
-6. Win/Loss-Check: opponentHP <= 0 -> Win, sonst opponentTurn
+5. Heal on hit: playerHP = min(playerMaxHP, playerHP + ceil(healOnHit * dealtDmg))
+6. Win/loss check: opponentHP <= 0 -> a win, otherwise opponentTurn
 
 
-Die symmetrische Variante laeuft im opponentAttack mit getauschten Rollen.
+The symmetric variant runs in opponentAttack with the roles swapped.
 
-### Cap und Abbruch
+### The cap and the abort
 
-Zwei Grenzen, beide liefern ein Ergebnis statt zu werfen:
+Two limits, and both deliver a result instead of throwing:
 
-- `maxAllowedTurns = 50` begrenzt die Tiefe.
-- `MAX_SIMULATION_NODES = 200_000` begrenzt die **Arbeit**. Die Tiefe allein
-  tut das nicht: vier Aeste je Runde heisst Tiefe 50 gleich 4^50 Knoten.
+- `maxAllowedTurns = 50` bounds the depth.
+- `MAX_SIMULATION_NODES = 200_000` bounds the **work**. Depth alone does not:
+  four branches per round means depth 50 is 4^50 nodes.
 
-Wird eine der beiden erreicht, endet dieser Ast mit einem halbe-halbe-Ergebnis
-(`win: 0.5, loss: 0.5`) und zwei Punktwerten zu je 0,5, gebildet mit denselben
-Formeln wie die Sieg- und Niederlage-Blaetter. Laufen alle Aeste in die Grenze,
-kommt der Kampf mit genau 50 % heraus -- das ist die Markierung fuer
-"unentschieden". Loesen nur einige Aeste nicht auf, bleiben die Ergebnisse der
-uebrigen erhalten.
+If either is reached, that branch ends with a half-and-half result
+(`win: 0.5, loss: 0.5`) and two point values of 0.5 each, built with the same
+formulas as the win and loss leaves. If every branch runs into the limit, the
+battle comes out at exactly 50 % -- that is the marker for "undecided". If only
+some branches fail to resolve, the results of the others are kept.
 
-Frueher warf die Funktion an dieser Stelle. Der try/catch in
-calculateBattleProbabilities lieferte dann ein leeres `{}`, und
-`LeagueHelper.getSimPowerOpponent` las darauf `simu.points` ohne Pruefung. Der
-TypeError landete in `SimPower()`, einer async-Funktion, die niemand awaitet --
-die Ligenliste hoerte beim ersten solchen Gegner auf, sich zu fuellen. Das
-Ergebnis traegt jetzt immer `points`; die Pruefung im Aufrufer steht trotzdem,
-weil der try/catch bei einem anderen Fehler weiterhin `{}` liefern kann.
+The function used to throw at this point. The try/catch in
+calculateBattleProbabilities then delivered an empty `{}`, and
+`LeagueHelper.getSimPowerOpponent` read `simu.points` on it without checking.
+The TypeError landed in `SimPower()`, an async function nobody awaits -- and the
+league list stopped filling at the first such opponent. The result now always
+carries `points`; the check in the caller stays anyway, because the try/catch
+can still deliver `{}` on a different error.
 
-Gemessen in einer Liga mit 122 offenen Gegnern, gespeicherte Liste vorher
-geloescht, sichtbares Fenster mit GPU: alle 122 in 5 s neu berechnet und
-gespeichert, kein Gegner uebersprungen, kein ungueltiger Wert in der Liste.
-Der Hauptthread war 6-mal blockiert, am laengsten 162 ms, zusammen 511 ms.
+Measured in a league with 122 open opponents, the stored list deleted
+beforehand, a visible window with GPU: all 122 recomputed and stored in 5 s, no
+opponent skipped, no invalid value in the list. The main thread was blocked 6
+times, at most 162 ms, 511 ms in total.
 
 ### Aggregation
 
-Am Ende:
+At the end:
 
 
 sum = ret.win + ret.loss
@@ -383,9 +418,9 @@ ret.loss /= sum
 ret.scoreClass = win > 0.9 ? 'plus' : win < 0.5 ? 'minus' : 'close'
 
 
-scoreClass-Boundaries inklusiv-ausschliessend:
+The scoreClass boundaries, inclusive-exclusive:
 
-| win-Wert | scoreClass |
+| win value | scoreClass |
 |----------|------------|
 | > 0.9 | 'plus' |
 | 0.5 .. 0.9 | 'close' |
@@ -393,37 +428,39 @@ scoreClass-Boundaries inklusiv-ausschliessend:
 
 ---
 
-## Punkte-Verteilung
+## The point distribution
 
-### Sieg
+### A win
 
 
 point = min(25, 15 + ceil(10 * playerHP / playerMaxHP))
 
 
-Bereich: 16 (kein HP uebrig) .. 25 (volle HP). Cap auf 25 wegen Math.min.
+Range: 16 (no HP left) to 25 (full HP). Capped at 25 by Math.min.
 
-### Niederlage
+### A loss
 
 
 point = max(3, 3 + ceil(10 * (opponentMaxHP - opponentHP) / opponentMaxHP))
 
 
-(opponentMaxHP - opponentHP) ist der dem Gegner zugefuegte Schaden. Bereich: 3 (kein Schaden) .. 13 (Gegner fast tot).
+(opponentMaxHP - opponentHP) is the damage dealt to the opponent. Range: 3 (no
+damage) to 13 (the opponent nearly dead).
 
-**An einem echten Kampf gemessen (2026-09-11, Pruefkonto):** HHauto
-simulierte 127 Liga-Gegner in 5 s; fuer den gewaehlten Gegner `win` 1,0,
-`scoreClass` `plus`, Verteilung 17 bis 24 Punkte, Erwartungswert 22,1. Ein
-Einzelkampf gegen ihn brachte **+22** Ligapunkte (1309 -> 1331), und die Antwort
-nennt dieselbe Zahl (`rewards.heroChangesUpdate.league_points`). Nachgerechnet
-aus den `rounds` der Antwort: 8 gegnerische Treffer, davon 2 kritisch; Rest-Ego
-zu Start-Ego 0,642, also 15 + ceil(6,42) = 22 -- die Sieg-Formel oben trifft
-den Wert des Spiels. Ein Kampf ist keine Rate; eine Niederlage ist nicht
-gemessen.
+**Measured on a real fight (2026-09-11, test account):** HHauto simulated 127
+league opponents in 5 s; for the chosen opponent `win` 1.0, `scoreClass`
+`plus`, a distribution of 17 to 24 points, expected value 22.1. A single fight
+against them brought **+22** league points (1309 -> 1331), and the answer names
+the same number (`rewards.heroChangesUpdate.league_points`). Recomputed from
+the `rounds` of the answer: 8 opposing hits, 2 of them critical; remaining ego
+to starting ego 0.642, so 15 + ceil(6.42) = 22 -- the win formula above hits the
+game's value. One fight is not a rate; a loss is not measured.
 
 ### Aggregation
 
-Jede Endknoten-Auswertung tracked points: {[point]: 1} und wird ueber mergeResult mit Wahrscheinlichkeit gewichtet zu einer Punkte-Verteilung gemerged. Aufrufer berechnen den Erwartungswert selbst:
+Every leaf evaluation tracks points: {[point]: 1} and is merged through
+mergeResult, weighted by probability, into one point distribution. Callers
+compute the expected value themselves:
 
 typescript
 expectedValue = Σ(point * probability) over points
@@ -431,7 +468,7 @@ expectedValue = Σ(point * probability) over points
 
 ---
 
-## Hilfsfunktionen
+## Helper functions
 
 ### getSkillPercentage(team, id)
 
@@ -440,17 +477,36 @@ return 1 + (team.girls.map(e => e.skills[id]?.skill.percentage_value ?? 0)
                        .reduce((a, b) => a + b, 0) / 100);
 
 
-Summiert das percentage_value-Feld aller team.girls[*].skills[id] und gibt 1 + (Summe / 100) zurueck. Wird von Aufrufern als Multiplikator verwendet (z.B. fuer getSimPowerOpponent Power-Boni).
+Sums the percentage_value field of all team.girls[*].skills[id] and returns
+1 + (sum / 100). Callers use it as a multiplier (for the getSimPowerOpponent
+power bonuses, say).
 
 ---
 
-## Bekannte Grenzen / Designentscheidungen
+## Known limits / design decisions
 
-1. **Vollstaendige Branch-Exploration statt Monte-Carlo.** Der Simulator besucht jeden moeglichen Crit/Non-Crit-Pfad und gewichtet ihn -- exakt, aber exponentiell in der Rundenzahl, solange der Memo nicht greift. Wo das Budget zuschlaegt, ist der Wert eine Naeherung: gemessen an einem 16-Runden-Kampf ohne Memo 51,7 % gegen exakt 61,3 %.
-2. **Memo nur bei konstantem Schaden.** playerTurn memoisiert ueber den vollen Zustand samt turns. Mit Tier-4-Bonus faellt der Lauf auf die reine Rekursion zurueck; dort begrenzt ihn das Knotenbudget, und der Wert wird zur Naeherung.
-3. **Tier-4 Defense ignoriert.** Der def-Faktor wird nie populiert (estimateTier4SkillValue setzt def: 0). Tier-4-Defense-Skills haben keinen Sim-Effekt.
-4. **Skill-Schaetzung statt API.** Da exakte Skill-Werte nicht zuverlaessig vom Game-API geliefert werden, werden feste Faktoren pro skill_points_used verwendet (Tier-4: 0.002; Tier-5: 0.07/0.08/0.2/0.08 je Element-Familie).
-5. **Asymmetrie League vs. Season.** Liga rechnet Element-Domination auf Ego/Attack/Defense, Season nicht. Domination-Crit-Bonus gilt in beiden Modi.
-6. **Tippfehler fightBonues.** Methodenname ist im Code verankert. Refactor: ueberall gleichzeitig oder garnicht.
-7. **else if vs. if in estimateTier5SkillValue.** Die letzten beiden Branches (Reflect, Execute) sind als if statt else if geschrieben. Funktional unkritisch, stilistisch inkonsistent.
-8. **expectedValue wird vom Simulator nicht gesetzt.** Aufrufer berechnen den Erwartungswert selbst aus points.
+1. **Full branch exploration instead of Monte Carlo.** The simulator visits
+   every possible crit/non-crit path and weights it -- exact, but exponential in
+   the number of rounds as long as the memo does not apply. Where the budget
+   cuts in, the value is an approximation: measured on a 16-round battle
+   without the memo, 51.7 % against an exact 61.3 %.
+2. **The memo only with constant damage.** playerTurn memoises over the full
+   state including turns. With a tier-4 bonus the run falls back to plain
+   recursion; there the node budget bounds it, and the value becomes an
+   approximation.
+3. **Tier-4 defense ignored.** The def factor is never populated
+   (estimateTier4SkillValue sets def: 0). Tier-4 defense skills have no effect
+   on the simulation.
+4. **Estimated skills instead of the API.** Because exact skill values are not
+   reliably delivered by the game API, fixed factors per skill_points_used are
+   used (tier 4: 0.002; tier 5: 0.07/0.08/0.2/0.08 per element family).
+5. **The league/season asymmetry.** The league applies element domination to
+   ego, attack and defense, the season does not. The domination crit bonus
+   applies in both modes.
+6. **The fightBonues typo.** The method name is entrenched in the code. Refactor
+   everywhere at once, or not at all.
+7. **else if vs. if in estimateTier5SkillValue.** The last two branches
+   (reflect, execute) are written as if instead of else if. Functionally
+   harmless, stylistically inconsistent.
+8. **expectedValue is not set by the simulator.** Callers compute the expected
+   value themselves from points.
