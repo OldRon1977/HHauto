@@ -63,6 +63,16 @@ Older entries below were migrated 1:1 from `README.md`.
 - An unused field removed from the simulator's player model.
 - Two unused selector constants removed; four code comments that described the
   game wrongly corrected.
+- The documentation is English throughout, and `docs-internal/` is now
+  `docs/reference/`: the name said "not for you" while holding what a
+  contributor needs. `CONTRIBUTING.md` carries the project's rules and states
+  which parts of the tree are committed and which stay local.
+- A dead model class and an export nobody imported removed. `webpack` was used
+  by the build without being declared and is a devDependency now.
+- Dependencies updated: five advisories in build tooling are gone, and jscpd,
+  source-map-loader and webpack-cli moved a major version. jest 30 and
+  TypeScript 7 were tried and rolled back -- jsdom 26 no longer lets a test
+  redefine `window.location`, and ts-loader does not run on the new compiler.
 
 ### v8.13.0 - Gates for a young account
 
