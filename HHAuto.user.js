@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.13.1
+// @version      8.13.2
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -8281,10 +8281,6 @@ function getHero() {
 // instead of repeating forever. Timestamp-gated so a later, unrelated run on
 // the same page load is not mistaken for no-progress.
 let lastStatAttempt = null;
-// The stat cap the game sends back with every buy (statsPrices.max). It is the
-// hero's base stat plus 30 per level -- measured 575 + 30 x 115 = 4025 -- so
-// level * 30 alone stops one base stat short of it. Used once an answer is in.
-let gameStatMax = null;
 /**
  * Money for raising a stat from `stat` by `count` points. The game charges
  * each point at the curve value of the level it reaches: measured 2026-09-11,
@@ -8306,7 +8302,9 @@ function doStatUpgrades() {
     var money = HeroHelper.getMoney();
     var M = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoStats));
     var MainStat = stats[HeroHelper.getClass() - 1];
-    var Limit = gameStatMax !== null && gameStatMax !== void 0 ? gameStatMax : HeroHelper.getLevel() * 30;
+    // The cap is 30 points per level on the stat value (the game's help text;
+    // at level 10 the buys to 299 and 300 go through, the next one is refused).
+    var Limit = HeroHelper.getLevel() * 30;
     var carac = HeroHelper.getClass();
     var mp = 0;
     var mults = [60, 30, 10, 1];
@@ -8341,7 +8339,7 @@ function doStatUpgrades() {
                 const boughtBy = mult;
                 const cost = price;
                 getHHAjax()(params, function (data) {
-                    var _a, _b;
+                    var _a;
                     logHHAuto('doStatUpgrades resp: success=' + !!(data && data.success)
                         + ' page=' + location.pathname
                         + ' carac' + bought + '=' + getHHVars('Hero.infos.carac' + bought)
@@ -8351,13 +8349,10 @@ function doStatUpgrades() {
                         return;
                     const infos = Hero.infos;
                     infos['carac' + bought] = Number(infos['carac' + bought]) + boughtBy;
-                    const max = Number((_a = data.statsPrices) === null || _a === void 0 ? void 0 : _a.max);
-                    if (max > 0)
-                        gameStatMax = max;
                     // The answer carries the new balance. Hero.update(..., true) left
                     // currencies.soft_currency where it was (measured 2026-09-11), so
                     // the next round bought with money that was already spent.
-                    const balance = Number((_b = data.currency) === null || _b === void 0 ? void 0 : _b.soft_currency);
+                    const balance = Number((_a = data.currency) === null || _a === void 0 ? void 0 : _a.soft_currency);
                     if (Number.isFinite(balance)) {
                         Hero.currencies.soft_currency = balance;
                         Hero.update("soft_currency", balance, false);

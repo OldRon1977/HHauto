@@ -315,18 +315,20 @@ describe("HeroHelper", function() {
       expect(Hero.infos.carac3).toBe(100 + nbOf(ajax, 0) + nbOf(ajax, 1));
     });
 
-    it("takes the stat cap from the game's answer once it has one", async function() {
-      // Cap = base stat + 30 per level (measured 575 + 30 x 115 = 4025); level * 30 alone is too low.
+    it("stops at level * 30 although the answer names a higher statsPrices.max", async function() {
+      // At level 10 the game takes 299 -> 300 and refuses the next point with
+      // "over your maximum"; statsPrices.max lies above that cap.
       const Hero = setupHero();
-      Object.assign(Hero.infos, { level: 10, carac1: 0, carac2: 0, carac3: 250 });
-      const ajax = answering({ success: true, statsPrices: { max: 400 } });
+      Object.assign(Hero.infos, { class: 3, level: 10, carac1: 300, carac2: 300, carac3: 250 });
+      const ajax = answering({ success: true, statsPrices: { max: 875 } });
       unsafeWindow.shared!.general!.hh_ajax = ajax;
 
       const doStatUpgrades = await loadDoStatUpgrades();
-      doStatUpgrades(); // level * 30 = 300: +60 would pass it, +30 does not
-      doStatUpgrades(); // the answer said 400: +60 fits now
-      expect(nbOf(ajax, 0)).toBe(30);
-      expect(nbOf(ajax, 1)).toBe(60);
+      for (let i = 0; i < 8; i++) {
+        doStatUpgrades();
+      }
+      expect(Hero.infos.carac3).toBe(300);
+      expect(ajax.mock.calls.map((_, i) => nbOf(ajax, i))).toEqual([30, 10, 10]);
     });
 
     it("takes the balance from the game's answer and stops when it is spent", async function() {

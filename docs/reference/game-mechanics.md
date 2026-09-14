@@ -71,23 +71,21 @@ point). The other two raise defense and harmony.
 
 ### Buying stat points
 
-Per level: 30 additional stat points per stat (max level 500 -> 15,000 per
-stat = 45,000 in total). The price rises with every purchase of the same stat.
-The script uses this mechanism in HeroHelper.doStatUpgrades() with the
-multipliers 1/10/30/60.
+The cap per stat is level x 30 on the stat value (max level 500 -> 15,000 per
+stat = 45,000 in total). The game's help text says so ("30 points for each
+level (if you are level 100, you can upgrade 3000 points)"), and it holds in
+play: at level 10 the buys 298 -> 299 and 299 -> 300 go through, the next one
+is refused with an "over your maximum" message. The price rises with every
+purchase of the same stat. `HeroHelper.doStatUpgrades()` buys with the
+multipliers 1/10/30/60 up to `level * 30`.
 
 **Measured 2026-09-11** (test account, level 115, one purchase of carac3
-2541 -> 2542): the answer to `hero_update_stats` names `statsPrices.base_stat`
-575 and `statsPrices.max` 4025. 575 + 30 x 115 = 4025 -- the cap per stat is
-therefore the base value plus 30 per level (concluded from this one
-measurement). The point cost 6,173, the curve value of the level reached, 2542;
-`statsPrices.prices.x1` (6,177) is the price of the **next** point.
-`shared.Hero.infos.carac3` stayed at 2541 in the running document, and only
-after a reload did it read 2542. Since 8.13.1 `doStatUpgrades` prices every
-point at the value of the level it reaches (`statBuyPrice`), takes the cap from
-`statsPrices.max` as soon as an answer has arrived (before that `level * 30`,
-without the base value), and counts a confirmed purchase itself, because the
-game does not do so in the document. It takes the balance from
+2541 -> 2542): the point cost 6,173, the curve value of the level
+reached, 2542; `statsPrices.prices.x1` (6,177) is the price of the **next**
+point. `shared.Hero.infos.carac3` stayed at 2541 in the running document, and
+only after a reload did it read 2542. `doStatUpgrades` therefore prices every
+point at the value of the level it reaches (`statBuyPrice`) and counts a
+confirmed purchase itself. It takes the balance from
 `currency.soft_currency` of the answer: `Hero.update("soft_currency", -price,
 true)` left `currencies.soft_currency` unchanged when measured (31,809 across
 three purchases, while the game stood at 4,494 afterwards), and the fourth

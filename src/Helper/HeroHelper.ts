@@ -54,11 +54,6 @@ export function getHero():KKHero
 // the same page load is not mistaken for no-progress.
 let lastStatAttempt: { carac: number; value: number; ts: number } | null = null;
 
-// The stat cap the game sends back with every buy (statsPrices.max). It is the
-// hero's base stat plus 30 per level -- measured 575 + 30 x 115 = 4025 -- so
-// level * 30 alone stops one base stat short of it. Used once an answer is in.
-let gameStatMax: number | null = null;
-
 /**
  * Money for raising a stat from `stat` by `count` points. The game charges
  * each point at the curve value of the level it reaches: measured 2026-09-11,
@@ -84,7 +79,9 @@ export function doStatUpgrades()
     var money = HeroHelper.getMoney();
     var M=Number(getStoredValue(HHStoredVarPrefixKey+SK.autoStats));
     var MainStat = stats[HeroHelper.getClass() -1];
-    var Limit = gameStatMax ?? HeroHelper.getLevel() * 30;
+    // The cap is 30 points per level on the stat value (the game's help text;
+    // at level 10 the buys to 299 and 300 go through, the next one is refused).
+    var Limit = HeroHelper.getLevel() * 30;
     var carac = HeroHelper.getClass();
     var mp=0;
     var mults=[60,30,10,1];
@@ -131,8 +128,6 @@ export function doStatUpgrades()
                     if (!data || !data.success) return;
                     const infos = Hero.infos as unknown as Record<string, number>;
                     infos['carac' + bought] = Number(infos['carac' + bought]) + boughtBy;
-                    const max = Number(data.statsPrices?.max);
-                    if (max > 0) gameStatMax = max;
                     // The answer carries the new balance. Hero.update(..., true) left
                     // currencies.soft_currency where it was (measured 2026-09-11), so
                     // the next round bought with money that was already spent.
