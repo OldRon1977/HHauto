@@ -7,13 +7,17 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.13.2 - Stat cap back to level x 30
+### v8.13.2 - Stat cap back to level x 30, Sultry Mysteries reloads a stale grid
 
 - **Stat buying:** the script stops at 30 points per level again. Since 8.13.1
   it bought up to a higher value from the game's answer, so the game refused
   the buy past the cap and showed its "over your maximum" message on every
   page load. Pricing per point and the balance from the game's answer stay as
   in 8.13.1.
+- **Sultry Mysteries:** when the game refuses a square ("You can't open this
+  square"), the script reloads the event page and reads the grid again instead
+  of pausing Auto-Mystery for an hour. The page can carry an older grid and key
+  count than the server. Only a second refusal right after the reload pauses it.
 
 ### v8.13.1 - Loose ends from 8.13.0
 

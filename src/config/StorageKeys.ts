@@ -356,6 +356,7 @@ export const TK = {
     bossBangTeam: "Temp_bossBangTeam",
     lseManualCollectAll: "Temp_lseManualCollectAll",
     poaManualCollectAll: "Temp_poaManualCollectAll",
+    smStaleGridReload: "Temp_smStaleGridReload",
 
     // Champion
     champBuildTeam: "Temp_champBuildTeam",

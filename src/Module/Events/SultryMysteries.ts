@@ -12,14 +12,14 @@
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getHHVars } from "../../Helper/HHHelper";
 import { getPage } from "../../Helper/PageHelper";
-import { getStoredArray, getStoredValue } from "../../Helper/StorageHelper";
+import { deleteStoredValue, getStoredArray, getStoredValue, setStoredValue } from "../../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage, safeReload } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { FeatureGate } from "../../Service/FeatureGate";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
-import { SK } from "../../config/StorageKeys";
+import { SK, TK } from "../../config/StorageKeys";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 import {
     SmGridSquare,
@@ -35,6 +35,10 @@ import {
 // chest and from villains -- so there is no point in checking more often,
 // and the script should not sprint off the moment a single key appears.
 const SM_NO_KEYS_RETRY_SECONDS = 3600;
+
+// A reload for a refused square counts as "just tried" for this long. A second
+// refusal inside the window pauses the grid instead of reloading again.
+const SM_STALE_GRID_RELOAD_WINDOW_MS = 120_000;
 
 export class SultryMysteries {
     /**
@@ -283,10 +287,25 @@ export class SultryMysteries {
                     return;
                 }
                 if (stillLocked) {
-                    logHHAuto(`Sultry Mysteries: square ${idSquare} did not open, stopping.`);
+                    // The page's grid and key count can be older than the
+                    // server's: measured 2026-09-14, three loads within three
+                    // minutes read 0, 10 and 0 keys on an unchanged grid, and a
+                    // reported run clicked a square the server refused ("You
+                    // can't open this square"). One reload reads the board anew;
+                    // only a second refusal right after it pauses the grid.
+                    const lastReload = Number(getStoredValue(HHStoredVarPrefixKey + TK.smStaleGridReload));
+                    if (!(Date.now() - lastReload < SM_STALE_GRID_RELOAD_WINDOW_MS)) {
+                        logHHAuto(`Sultry Mysteries: square ${idSquare} did not open, reloading the grid.`);
+                        setStoredValue(HHStoredVarPrefixKey + TK.smStaleGridReload, String(Date.now()));
+                        safeReload();
+                        return;
+                    }
+                    deleteStoredValue(HHStoredVarPrefixKey + TK.smStaleGridReload);
+                    logHHAuto(`Sultry Mysteries: square ${idSquare} did not open after a reload, stopping.`);
                     stopRun("square did not open");
                     return;
                 }
+                deleteStoredValue(HHStoredVarPrefixKey + TK.smStaleGridReload);
                 SultryMysteries.closeSquareRewardPopup();
                 setTimeout(step, randomInterval(600, 1000));
             }
