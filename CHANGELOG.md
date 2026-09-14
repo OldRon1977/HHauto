@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.13.2 - Stat cap back to level x 30
+
+- **Stat buying:** the script stops at 30 points per level again. Since 8.13.1
+  it bought up to a higher value from the game's answer, so the game refused
+  the buy past the cap and showed its "over your maximum" message on every
+  page load. Pricing per point and the balance from the game's answer stay as
+  in 8.13.1.
+
 ### v8.13.1 - Loose ends from 8.13.0
 
 - **League power calc:** a hit below the defender's defence no longer counts
