@@ -558,6 +558,7 @@ shown in the info panel as "Auto-Mystery").
 | `bossBangTeam` | `Temp_bossBangTeam` | `sessionStorage` | `Temp` | the boss bang team |
 | `lseManualCollectAll` | `Temp_lseManualCollectAll` | `localStorage` | `Temp` | collect LSE manually |
 | `poaManualCollectAll` | `Temp_poaManualCollectAll` | `localStorage` | `Temp` | collect PoA manually |
+| `smStaleGridReload` | `Temp_smStaleGridReload` | `sessionStorage` | `Temp` | when Sultry Mysteries last reloaded the event page because a square did not open (ms epoch); a second refusal within two minutes pauses the grid |
 
 ### Champion
 

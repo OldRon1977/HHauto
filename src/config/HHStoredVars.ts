@@ -2594,6 +2594,11 @@ HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeam] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + TK.smStaleGridReload] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.boosterStatus] =
     {
     storage:"sessionStorage",

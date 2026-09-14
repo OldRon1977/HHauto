@@ -2803,6 +2803,7 @@ const TK = {
     bossBangTeam: "Temp_bossBangTeam",
     lseManualCollectAll: "Temp_lseManualCollectAll",
     poaManualCollectAll: "Temp_poaManualCollectAll",
+    smStaleGridReload: "Temp_smStaleGridReload",
     // Champion
     champBuildTeam: "Temp_champBuildTeam",
     clubChampLimitReached: "Temp_clubChampLimitReached",
@@ -5633,6 +5634,11 @@ HHStoredVars[HHStoredVarPrefixKey + TK.eventsList] =
         HHType: "Temp"
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeam] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars[HHStoredVarPrefixKey + TK.smStaleGridReload] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -13569,6 +13575,9 @@ function smNextAction(state) {
 // chest and from villains -- so there is no point in checking more often,
 // and the script should not sprint off the moment a single key appears.
 const SM_NO_KEYS_RETRY_SECONDS = 3600;
+// A reload for a refused square counts as "just tried" for this long. A second
+// refusal inside the window pauses the grid instead of reloading again.
+const SM_STALE_GRID_RELOAD_WINDOW_MS = 120000;
 class SultryMysteries {
     static isEnabled() {
         return FeatureGate.isUnlocked('sultryMysteries');
@@ -13781,10 +13790,25 @@ class SultryMysteries {
                     return;
                 }
                 if (stillLocked) {
-                    logHHAuto(`Sultry Mysteries: square ${idSquare} did not open, stopping.`);
+                    // The page's grid and key count can be older than the
+                    // server's: measured 2026-09-14, three loads within three
+                    // minutes read 0, 10 and 0 keys on an unchanged grid, and a
+                    // reported run clicked a square the server refused ("You
+                    // can't open this square"). One reload reads the board anew;
+                    // only a second refusal right after it pauses the grid.
+                    const lastReload = Number(getStoredValue(HHStoredVarPrefixKey + TK.smStaleGridReload));
+                    if (!(Date.now() - lastReload < SM_STALE_GRID_RELOAD_WINDOW_MS)) {
+                        logHHAuto(`Sultry Mysteries: square ${idSquare} did not open, reloading the grid.`);
+                        setStoredValue(HHStoredVarPrefixKey + TK.smStaleGridReload, String(Date.now()));
+                        safeReload();
+                        return;
+                    }
+                    deleteStoredValue(HHStoredVarPrefixKey + TK.smStaleGridReload);
+                    logHHAuto(`Sultry Mysteries: square ${idSquare} did not open after a reload, stopping.`);
                     stopRun("square did not open");
                     return;
                 }
+                deleteStoredValue(HHStoredVarPrefixKey + TK.smStaleGridReload);
                 SultryMysteries.closeSquareRewardPopup();
                 setTimeout(step, randomInterval(600, 1000));
             }
