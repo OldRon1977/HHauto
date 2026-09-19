@@ -7,6 +7,7 @@ import { Timers, setTimer, checkTimer, clearTimer, getSecondsLeft } from '../../
 import { safeReload } from '../../src/Service/PageNavigationService';
 import { MockHelper } from "../testHelpers/MockHelpers";
 import { EventGirl } from '../../src/model/EventGirl';
+import { LoveRaidManager } from '../../src/Module/Events/LoveRaidManager';
 
 // Booster reloads the page after a mythic conflict (the game's conflict popup
 // cannot be closed programmatically); mock navigation so tests never touch
@@ -435,6 +436,58 @@ describe("Booster", function() {
       storeMythicGirl(90);
       Booster.updateEventGirlShards({ rewards: { data: {} } });
       expect(JSON.parse(sessionStorage.getItem(MYTHIC_KEY) as string).shards).toBe(90);
+    });
+  });
+
+  // #1889: a raid girl stored at 72 stayed there for the rest of the raid while
+  // the game had her at 100 -- the reward-popup reader returns early when no
+  // event girl is stored, and the raid page is re-read only when its timer ends.
+  describe("love raid shard read-back after a fight (#1889)", function() {
+    const RAIDS_KEY = HHStoredVarPrefixKey + "Temp_loveRaids";
+    const raid = (id_girl: number, girl_shards: number) => ({ id_girl, girl_shards, girl_to_win: girl_shards < 100, trollId: 19, raid_module_type: 'troll' });
+    const response = (id_girl: number, previous_value: number, value: number) => ({ rewards: { data: { shards: [{ id_girl, previous_value, value }] } } });
+    const stored = () => JSON.parse(sessionStorage.getItem(RAIDS_KEY) as string);
+
+    beforeEach(function() {
+      sessionStorage.setItem(RAIDS_KEY, JSON.stringify([raid(11, 40), raid(22, 72)]));
+    });
+
+    it("writes the new count into the stored raid and nowhere else", function() {
+      Booster.updateLoveRaidShards(response(22, 72, 74));
+      expect(stored()[1].girl_shards).toBe(74);
+      expect(stored()[0].girl_shards).toBe(40);
+    });
+
+    it("marks the girl as won at 100, so getRaidToFight drops the selection with skins off", function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoLoveRaidSelectedIndex", "19_22");
+      Booster.updateLoveRaidShards(response(22, 98, 100));
+      expect(stored()[1].girl_shards).toBe(100);
+      expect(stored()[1].girl_to_win).toBe(false);
+      expect(LoveRaidManager.getRaidToFight([], true)).toBeUndefined();
+      expect(localStorage.getItem(HHStoredVarPrefixKey + "Setting_autoLoveRaidSelectedIndex")).toBe("0");
+    });
+
+    it("re-reads the raid page when the girl completes and skins are wanted", function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusGirlSkins", 'true');
+      setTimer('nextLoveRaidTime', 3600);
+      Booster.updateLoveRaidShards(response(22, 98, 100));
+      expect(checkTimer('nextLoveRaidTime')).toBe(true);
+    });
+
+    it("leaves the raid timer alone when skins are off", function() {
+      setTimer('nextLoveRaidTime', 3600);
+      Booster.updateLoveRaidShards(response(22, 98, 100));
+      expect(checkTimer('nextLoveRaidTime')).toBe(false);
+    });
+
+    it("ignores a drop for a girl that is not in a raid", function() {
+      Booster.updateLoveRaidShards(response(99, 10, 12));
+      expect(stored().map((r: { girl_shards: number }) => r.girl_shards)).toEqual([40, 72]);
+    });
+
+    it("leaves everything alone when the response carries no shard data", function() {
+      Booster.updateLoveRaidShards({ rewards: { data: {} } });
+      expect(stored()[1].girl_shards).toBe(72);
     });
   });
 
