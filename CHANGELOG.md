@@ -28,12 +28,18 @@ page, as 2a/2b did.
   carac1, carac2 and carac3 alike and the game does not: measured on one
   account, a girl in 14th place by `caracs_sum` made the best team of 373.
   The game calculates every candidate. About 100 calculations, 40-50 seconds
-  with a progress line; later rubrics reuse what earlier ones measured.
+  with a progress line; later rubrics reuse what earlier ones measured. The
+  script's own loop pauses while a rubric calculates, so no other task
+  navigates away mid-way, and starts again when it is done. A calculation
+  the game does not answer is tried twice more before the rubric gives up.
 - **Against League opponents.** The battle simulator against the opponents
   of your league. Each opponent counts as often as he can still be fought
   (0-3); opponents fought three times are left out. The script keeps the list
-  from your last visit to the league page and shows how old it is. This one
-  takes a while -- the simulation comes on top of the calculation.
+  from your last visit to the league page and shows how old it is. The 30
+  best candidates by effective power are simulated, in short slices so the
+  page stays responsive; about 80 seconds in all. It runs on request only --
+  the league fights already take the opponents with the best chance of full
+  points first.
 - **Next week.** The coming blessings on today's girls, matched in the page
   language through the game's own tables; a colour blessing counts colour 1
   or colour 2.

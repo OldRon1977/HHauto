@@ -48,7 +48,11 @@ import { LeagueOpponentSnapshot, OpponentSnapshot } from '../Service/LeagueOppon
 import { TeamBuilderService } from '../Service/TeamBuilderService';
 import { TeamCaracs, TeamEvaluationService } from '../Service/TeamEvaluationService';
 import { ElementType, GirlData, PlayerClass, TeamScoringService } from '../Service/TeamScoringService';
-import { TeamSelectionService } from '../Service/TeamSelectionService';
+import { SIMULATED_CANDIDATES, TeamSelectionService } from '../Service/TeamSelectionService';
+import { kickAutoLoop } from '../Service/AutoLoopKick';
+import { getStoredValue, setStoredValue } from '../Helper/StorageHelper';
+import { HHStoredVarPrefixKey } from '../config/HHStoredVars';
+import { TK } from '../config/StorageKeys';
 import { fillHHPopUp } from '../Utils/HHPopup';
 import { logHHAuto } from '../Utils/LogUtils';
 import { getHHAjax } from '../Utils/Utils';
@@ -249,7 +253,14 @@ export class TeamSelectionPopup {
         for (const team of todo) {
             TeamSelectionPopup.out(id, getTextForUI('teamSelMeasuring', 'elementText')
                 .replace('{done}', String(done)).replace('{total}', String(todo.length)));
-            const result = await TeamEvaluationService.measureTeam(team, battleType);
+            // A calculation that does not answer is tried again twice before
+            // the rubric gives up -- one slow answer should not cost the
+            // hundred calculations before it.
+            let result = await TeamEvaluationService.measureTeam(team, battleType);
+            for (let retry = 0; !result && retry < 2; retry++) {
+                await new Promise(r => setTimeout(r, 2000));
+                result = await TeamEvaluationService.measureTeam(team, battleType);
+            }
             if (!result) {
                 logHHAuto('Team selection: the game calculated no stats for a candidate, stopping.');
                 return false;
@@ -369,6 +380,12 @@ export class TeamSelectionPopup {
         if (!getHHAjax()) { TeamSelectionPopup.out(r.id, `<span class="tsBad">${getTextForUI('teamSelNoAjax', 'elementText')}</span>`); return; }
         TeamSelectionPopup.busy = true;
         $('#hhTeamSel .tsCalc').addClass('tsDisabled');
+        // Hold the auto-loop for the length of the calculation: a block that
+        // navigates away takes the measured candidates with it, and one that
+        // sends its own requests competes with a hundred calculations. A
+        // reload in between is safe -- the boot path switches the loop back on.
+        const loopWasOn = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === 'true';
+        if (loopWasOn) setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
         try {
             await TeamSelectionPopup.evaluate(r);
         } catch (err) {
@@ -377,6 +394,10 @@ export class TeamSelectionPopup {
         } finally {
             TeamSelectionPopup.busy = false;
             $('#hhTeamSel .tsCalc').removeClass('tsDisabled');
+            if (loopWasOn) {
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
+                kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
+            }
         }
     }
 
@@ -428,22 +449,26 @@ export class TeamSelectionPopup {
             if (r.scoring === 'effective') {
                 return { ids, caracs, score: TeamEvaluationService.computeEffectivePower(caracs, TeamSelectionService.countElements(teamGirls), harem), detail: '' };
             }
-            const s = TeamSelectionService.scoreAgainstOpponents(TeamSelectionService.buildHeroFighter(caracs, teamGirls, harem), snap!.opponents);
-            // Yield after each team: a hundred teams against a league is a few
-            // seconds of simulation, and the popup should keep painting.
-            await new Promise(res => setTimeout(res, 0));
+            const s = await TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, teamGirls, harem), snap!.opponents);
             return { ids, caracs, score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
         };
+        const effective = (ids: number[]): number => TeamEvaluationService.computeEffectivePower(
+            statsOf(ids), TeamSelectionService.countElements(TeamSelectionPopup.girlsById(pool.evaluated, ids)), harem);
+        // The league rubrics simulate the best candidates by effective power
+        // only (SIMULATED_CANDIDATES); the other rubrics score them all.
+        const scored = r.scoring === 'opponents'
+            ? [...teams].sort((x, y) => effective(y) - effective(x)).slice(0, SIMULATED_CANDIDATES)
+            : teams;
 
         let best: RubricResult | null = null;
         let done = 0;
-        for (const ids of teams) {
+        for (const ids of scored) {
+            if (r.scoring === 'opponents') {
+                TeamSelectionPopup.out(r.id, getTextForUI('teamSelSimulating', 'elementText').replace('{done}', String(done)).replace('{total}', String(scored.length)));
+            }
             const s = await score(ids);
             if (!best || s.score > best.score) best = s;
             done++;
-            if (r.scoring === 'opponents' && done % 10 === 0) {
-                TeamSelectionPopup.out(r.id, getTextForUI('teamSelSimulating', 'elementText').replace('{done}', String(done)).replace('{total}', String(teams.length)));
-            }
         }
         const currentScore = current.length === 7 ? await score(current) : null;
         TeamSelectionPopup.results[r.id] = best!;

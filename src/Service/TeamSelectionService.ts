@@ -32,6 +32,14 @@ import { ElementType, GirlData, TeamScoringService } from './TeamScoringService'
 /** Swap partners tried per position around the stat-sum pick. */
 export const SWAP_ALTERNATIVES = 15;
 
+/**
+ * Candidates the league rubrics simulate: the best by effective power. The
+ * simulation is the slow part (every candidate against every open opponent),
+ * and in the measured data the team that won the simulation always stood
+ * first or second by effective power (373 teams, one account).
+ */
+export const SIMULATED_CANDIDATES = 30;
+
 /** A league opponent can be fought this many times per league week. */
 export const FIGHTS_PER_OPPONENT = 3;
 
@@ -188,6 +196,36 @@ export class TeamSelectionService {
             points += weight * result.points;
             wins += weight * result.win;
             fights += weight;
+        }
+        return { points, winChance: fights > 0 ? wins / fights : 0, fights };
+    }
+
+    /**
+     * scoreAgainstOpponents for the page: the same sums, but the thread is
+     * handed back every `sliceMs`. Seventy-odd fights in one go froze the
+     * tab ("page not responding") on a player's machine.
+     */
+    static async scoreAgainstOpponentsSliced(
+        hero: FighterData,
+        opponents: SnapshotOpponent[],
+        sliceMs: number = 25,
+        simulate: (hero: FighterData, opponent: FighterData) => { points: number; win: number } = TeamSelectionService.simulateFight,
+    ): Promise<OpponentScore> {
+        let points = 0;
+        let wins = 0;
+        let fights = 0;
+        let sliceStart = Date.now();
+        for (const opponent of opponents) {
+            const weight = Math.max(0, Math.min(FIGHTS_PER_OPPONENT, opponent.openFights));
+            if (weight === 0) continue;
+            const result = simulate(hero, opponent.player);
+            points += weight * result.points;
+            wins += weight * result.win;
+            fights += weight;
+            if (Date.now() - sliceStart >= sliceMs) {
+                await new Promise(r => setTimeout(r, 0));
+                sliceStart = Date.now();
+            }
         }
         return { points, winChance: fights > 0 ? wins / fights : 0, fights };
     }
