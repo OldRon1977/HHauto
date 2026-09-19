@@ -7,6 +7,39 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.14.0 - Team selection popup: this week, against the open opponents, next week
+
+A new **Team selection** button at the top of the edit-team column opens a
+popup with three modes, kept visibly apart, and a second column with Unequip
+All and Stuff Team.
+
+- **This week, by stats and blessings.** No opponents -- for the hours after
+  the weekly blessing change, before the league has switched. The candidates
+  are the builder's picks plus every single swap of positions 2-7 against the
+  15 strongest girls outside the team. `caracs_sum` counts carac1, carac2 and
+  carac3 alike and the game does not: measured on one account, a girl in 14th
+  place by `caracs_sum` made the best team of 373. The game calculates every
+  candidate; the one with the highest effective power wins. About 100
+  calculations, 40-50 seconds with a progress line.
+- **This week, against the open opponents.** The same candidates, scored with
+  the script's battle simulator against the league opponents. Each opponent
+  counts as often as he can still be fought (0-3); opponents fought three
+  times are left out. The script keeps the list from your last visit to the
+  league page and shows how old it is.
+- **Next week, preview.** The coming blessings on today's girls, matched in the
+  page language through the game's own tables; a colour blessing counts
+  colour 1 or colour 2. The game only calculates today's blessings, so the
+  stats are an estimate. Display only.
+- Position 1 stays with the builder's leader -- the Mythic with the Tier-5
+  Shield -- in every mode.
+- **Apply** saves the team and reloads the page, so the hexagons show the
+  saved team. The column shows whether hexagons and saved team match, and
+  Stuff Team asks before equipping hexagons that differ from the saved team.
+- **Unequip All** now also refreshes the girl data. The game took the gear off
+  but kept serving the old values -- armor and stats of before, through
+  reloads -- so a build right after still ranked the gear. One more request
+  for a team girl makes the fresh values appear.
+
 ### v8.13.2 - Stat cap back to level x 30, Sultry Mysteries reloads a stale grid, Love Raid stops once the girl is won
 
 - **Stat buying:** the script stops at 30 points per level again. Since 8.13.1

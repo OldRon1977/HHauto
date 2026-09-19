@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.13.2
+// @version      8.14.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -773,6 +773,41 @@ HHAuto_ToolTips.en['costaffection'] = { version: "7.18.0", elementText: "For a t
 HHAuto_ToolTips.en['giveequipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Automatically give all equipment to selected girl." };
 HHAuto_ToolTips.en['giveskills'] = { version: "7.30.0", elementText: "Give skills", tooltip: "Automatically give all skills to selected girl." };
 HHAuto_ToolTips.en['costexperience'] = { version: "7.18.0", elementText: "For a total cost of ", tooltip: "" };
+// Team selection popup (TeamSelectionPopup)
+HHAuto_ToolTips.en['teamSelOpen'] = { version: "8.14.0", elementText: "Team selection", tooltip: "Open the team selection: this week by stats, this week against the open league opponents, next week preview." };
+HHAuto_ToolTips.en['teamSelTitle'] = { version: "8.14.0", elementText: "Team selection", tooltip: "" };
+HHAuto_ToolTips.en['teamSelModeA'] = { version: "8.14.0", elementText: "This week · by stats and blessings", tooltip: "No opponents: for the hours after the blessing change, before the league has switched." };
+HHAuto_ToolTips.en['teamSelModeB'] = { version: "8.14.0", elementText: "This week · against the open opponents", tooltip: "" };
+HHAuto_ToolTips.en['teamSelModeC'] = { version: "8.14.0", elementText: "Next week · preview", tooltip: "The coming blessings on today's girls. Display only." };
+HHAuto_ToolTips.en['teamSelCalculate'] = { version: "8.14.0", elementText: "Calculate", tooltip: "" };
+HHAuto_ToolTips.en['teamSelApply'] = { version: "8.14.0", elementText: "Apply (save)", tooltip: "" };
+HHAuto_ToolTips.en['teamSelPreviewOnly'] = { version: "8.14.0", elementText: "display only", tooltip: "" };
+HHAuto_ToolTips.en['teamSelLeaderNote'] = { version: "8.14.0", elementText: "Position 1 stays with the Mythic Shield leader in every mode. Unequip before calculating, Stuff Team after applying.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "No opponent list yet: open the league page once.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} open fights against {opponents} opponents, read {minutes} min ago", tooltip: "" };
+HHAuto_ToolTips.en['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "The hexagons do not show the saved team. Stuff Team equips the hexagons, the league fights the saved team. Continue?", tooltip: "" };
+HHAuto_ToolTips.en['teamSelGearState'] = { version: "8.14.0", elementText: "Team gear: {pieces} pieces", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSaved'] = { version: "8.14.0", elementText: "Hexagons = saved team", tooltip: "" };
+HHAuto_ToolTips.en['teamSelUnsaved'] = { version: "8.14.0", elementText: "Hexagons differ from the saved team", tooltip: "" };
+HHAuto_ToolTips.en['teamSelMeasuring'] = { version: "8.14.0", elementText: "Game calculation {done}/{total} ...", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSimulating'] = { version: "8.14.0", elementText: "Simulating {done}/{total} ...", tooltip: "" };
+HHAuto_ToolTips.en['teamSelNoAjax'] = { version: "8.14.0", elementText: "The game's request function is not available on this page.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelNoCandidates'] = { version: "8.14.0", elementText: "Not enough eligible girls for a team.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelMeasureFailed'] = { version: "8.14.0", elementText: "The game did not calculate every candidate. Nothing was changed.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelNoBlessings'] = { version: "8.14.0", elementText: "The blessings could not be read.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelChangeIn'] = { version: "8.14.0", elementText: "change in {d} d {h} h", tooltip: "" };
+HHAuto_ToolTips.en['teamSelUnresolved'] = { version: "8.14.0", elementText: "Not recognised", tooltip: "" };
+HHAuto_ToolTips.en['teamSelDamage'] = { version: "8.14.0", elementText: "Damage", tooltip: "" };
+HHAuto_ToolTips.en['teamSelEgo'] = { version: "8.14.0", elementText: "Ego", tooltip: "" };
+HHAuto_ToolTips.en['teamSelDefense'] = { version: "8.14.0", elementText: "Defense", tooltip: "" };
+HHAuto_ToolTips.en['teamSelPoints'] = { version: "8.14.0", elementText: "Expected {points} points, win chance {win}", tooltip: "" };
+HHAuto_ToolTips.en['teamSelEff'] = { version: "8.14.0", elementText: "Effective power {eff}", tooltip: "" };
+HHAuto_ToolTips.en['teamSelVsCurrent'] = { version: "8.14.0", elementText: "vs. the hexagons", tooltip: "" };
+HHAuto_ToolTips.en['teamSelIsCurrent'] = { version: "8.14.0", elementText: "no better than the hexagons", tooltip: "" };
+HHAuto_ToolTips.en['teamSelModelNote'] = { version: "8.14.0", elementText: "Estimated: the game calculates today's blessings only. Stats are today's plus a fitted change.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelCandidates'] = { version: "8.14.0", elementText: "candidates", tooltip: "" };
+HHAuto_ToolTips.en['teamSelApplied'] = { version: "8.14.0", elementText: "Saved. The page reloads.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Not saved", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
 
@@ -1264,6 +1299,41 @@ HHAuto_ToolTips.fr['costaffection'] = { version: "7.18.0", elementText: "Pour un
 HHAuto_ToolTips.fr['giveequipment'] = { version: "7.30.0", elementText: "Donner l'équipement", tooltip: "Donne automatiquement tout l'équipement à la fille sélectionnée." };
 HHAuto_ToolTips.fr['giveskills'] = { version: "7.30.0", elementText: "Donner les compétences", tooltip: "Donne automatiquement toutes les compétences à la fille sélectionnée." };
 HHAuto_ToolTips.fr['costexperience'] = { version: "7.18.0", elementText: "Pour un coût total de ", tooltip: "" };
+// Team selection popup (TeamSelectionPopup)
+HHAuto_ToolTips.fr['teamSelOpen'] = { version: "8.14.0", elementText: "Choix d'équipe", tooltip: "Ouvre le choix d'équipe : cette semaine selon les stats, cette semaine contre les adversaires de ligue restants, aperçu de la semaine prochaine." };
+HHAuto_ToolTips.fr['teamSelTitle'] = { version: "8.14.0", elementText: "Choix d'équipe", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelModeA'] = { version: "8.14.0", elementText: "Cette semaine · selon stats et bénédictions", tooltip: "Sans adversaires : pour les heures après le changement de bénédictions, avant que la ligue ne s'adapte." };
+HHAuto_ToolTips.fr['teamSelModeB'] = { version: "8.14.0", elementText: "Cette semaine · contre les adversaires restants", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelModeC'] = { version: "8.14.0", elementText: "Semaine prochaine · aperçu", tooltip: "Les prochaines bénédictions appliquées aux filles d'aujourd'hui. Affichage seulement." };
+HHAuto_ToolTips.fr['teamSelCalculate'] = { version: "8.14.0", elementText: "Calculer", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelApply'] = { version: "8.14.0", elementText: "Appliquer (enregistrer)", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelPreviewOnly'] = { version: "8.14.0", elementText: "affichage seulement", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelLeaderNote'] = { version: "8.14.0", elementText: "La position 1 reste au leader Mythique Bouclier dans chaque mode. Tout déséquiper avant de calculer, équiper l'équipe après avoir appliqué.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Pas encore de liste d'adversaires : ouvrez une fois la page de ligue.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} combats restants contre {opponents} adversaires, lu il y a {minutes} min", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Les hexagones ne montrent pas l'équipe enregistrée. L'équipement vise les hexagones, la ligue combat avec l'équipe enregistrée. Continuer ?", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelGearState'] = { version: "8.14.0", elementText: "Équipement de l'équipe : {pieces} pièces", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSaved'] = { version: "8.14.0", elementText: "Hexagones = équipe enregistrée", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelUnsaved'] = { version: "8.14.0", elementText: "Les hexagones diffèrent de l'équipe enregistrée", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelMeasuring'] = { version: "8.14.0", elementText: "Calcul du jeu {done}/{total} ...", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSimulating'] = { version: "8.14.0", elementText: "Simulation {done}/{total} ...", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelNoAjax'] = { version: "8.14.0", elementText: "La fonction de requête du jeu n'est pas disponible sur cette page.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelNoCandidates'] = { version: "8.14.0", elementText: "Pas assez de filles éligibles pour une équipe.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelMeasureFailed'] = { version: "8.14.0", elementText: "Le jeu n'a pas calculé tous les candidats. Rien n'a été modifié.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelNoBlessings'] = { version: "8.14.0", elementText: "Les bénédictions n'ont pas pu être lues.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelChangeIn'] = { version: "8.14.0", elementText: "changement dans {d} j {h} h", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelUnresolved'] = { version: "8.14.0", elementText: "Non reconnu", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelDamage'] = { version: "8.14.0", elementText: "Dégâts", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelEgo'] = { version: "8.14.0", elementText: "Ego", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelDefense'] = { version: "8.14.0", elementText: "Défense", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelPoints'] = { version: "8.14.0", elementText: "{points} points attendus, chance de victoire {win}", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelEff'] = { version: "8.14.0", elementText: "Puissance effective {eff}", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelVsCurrent'] = { version: "8.14.0", elementText: "par rapport aux hexagones", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelIsCurrent'] = { version: "8.14.0", elementText: "pas mieux que les hexagones", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelModelNote'] = { version: "8.14.0", elementText: "Estimation : le jeu ne calcule que les bénédictions actuelles. Stats = celles d'aujourd'hui plus une variation ajustée.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelCandidates'] = { version: "8.14.0", elementText: "candidats", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelApplied'] = { version: "8.14.0", elementText: "Enregistré. La page se recharge.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Non enregistré", tooltip: "" };
 
 ;// ./src/i18n/de.ts
 
@@ -1756,6 +1826,41 @@ HHAuto_ToolTips.de['costaffection'] = { version: "7.18.0", elementText: "Für Ge
 HHAuto_ToolTips.de['giveequipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Gibt dem gewählten Mädel automatisch die komplette Ausrüstung." };
 HHAuto_ToolTips.de['giveskills'] = { version: "7.30.0", elementText: "Skills geben", tooltip: "Gibt dem gewählten Mädel automatisch alle Skills." };
 HHAuto_ToolTips.de['costexperience'] = { version: "7.18.0", elementText: "Für Gesamtkosten von ", tooltip: "" };
+// Team selection popup (TeamSelectionPopup)
+HHAuto_ToolTips.de['teamSelOpen'] = { version: "8.14.0", elementText: "Teamwahl", tooltip: "Öffnet die Teamwahl: diese Woche nach Werten, diese Woche gegen die offenen Liga-Gegner, Vorschau nächste Woche." };
+HHAuto_ToolTips.de['teamSelTitle'] = { version: "8.14.0", elementText: "Teamwahl", tooltip: "" };
+HHAuto_ToolTips.de['teamSelModeA'] = { version: "8.14.0", elementText: "Diese Woche · nach Werten und Blessings", tooltip: "Ohne Gegner: für die Stunden nach dem Blessing-Wechsel, bevor die Liga umgestellt hat." };
+HHAuto_ToolTips.de['teamSelModeB'] = { version: "8.14.0", elementText: "Diese Woche · gegen die offenen Gegner", tooltip: "" };
+HHAuto_ToolTips.de['teamSelModeC'] = { version: "8.14.0", elementText: "Nächste Woche · Vorschau", tooltip: "Die kommenden Blessings auf die heutigen Mädels. Nur Anzeige." };
+HHAuto_ToolTips.de['teamSelCalculate'] = { version: "8.14.0", elementText: "Berechnen", tooltip: "" };
+HHAuto_ToolTips.de['teamSelApply'] = { version: "8.14.0", elementText: "Übernehmen (speichern)", tooltip: "" };
+HHAuto_ToolTips.de['teamSelPreviewOnly'] = { version: "8.14.0", elementText: "nur Anzeige", tooltip: "" };
+HHAuto_ToolTips.de['teamSelLeaderNote'] = { version: "8.14.0", elementText: "Platz 1 bleibt in jedem Modus beim Mythic-Shield-Anführer. Vor dem Berechnen ablegen, nach dem Übernehmen Team bestücken.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Noch keine Gegnerliste: einmal die Liga-Seite öffnen.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} offene Kämpfe gegen {opponents} Gegner, vor {minutes} min gelesen", tooltip: "" };
+HHAuto_ToolTips.de['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Die Sechsecke zeigen nicht das gespeicherte Team. Team bestücken rüstet die Sechsecke aus, gekämpft wird mit dem gespeicherten Team. Fortfahren?", tooltip: "" };
+HHAuto_ToolTips.de['teamSelGearState'] = { version: "8.14.0", elementText: "Ausrüstung im Team: {pieces} Teile", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSaved'] = { version: "8.14.0", elementText: "Sechsecke = gespeichertes Team", tooltip: "" };
+HHAuto_ToolTips.de['teamSelUnsaved'] = { version: "8.14.0", elementText: "Sechsecke weichen vom gespeicherten Team ab", tooltip: "" };
+HHAuto_ToolTips.de['teamSelMeasuring'] = { version: "8.14.0", elementText: "Nachrechnung durch das Spiel {done}/{total} ...", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSimulating'] = { version: "8.14.0", elementText: "Simulation {done}/{total} ...", tooltip: "" };
+HHAuto_ToolTips.de['teamSelNoAjax'] = { version: "8.14.0", elementText: "Die Anfragefunktion des Spiels fehlt auf dieser Seite.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelNoCandidates'] = { version: "8.14.0", elementText: "Nicht genug wählbare Mädels für ein Team.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelMeasureFailed'] = { version: "8.14.0", elementText: "Das Spiel hat nicht jeden Kandidaten berechnet. Nichts wurde geändert.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelNoBlessings'] = { version: "8.14.0", elementText: "Die Blessings konnten nicht gelesen werden.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelChangeIn'] = { version: "8.14.0", elementText: "Wechsel in {d} T {h} h", tooltip: "" };
+HHAuto_ToolTips.de['teamSelUnresolved'] = { version: "8.14.0", elementText: "Nicht erkannt", tooltip: "" };
+HHAuto_ToolTips.de['teamSelDamage'] = { version: "8.14.0", elementText: "Schaden", tooltip: "" };
+HHAuto_ToolTips.de['teamSelEgo'] = { version: "8.14.0", elementText: "Ego", tooltip: "" };
+HHAuto_ToolTips.de['teamSelDefense'] = { version: "8.14.0", elementText: "Verteidigung", tooltip: "" };
+HHAuto_ToolTips.de['teamSelPoints'] = { version: "8.14.0", elementText: "Erwartet {points} Punkte, Siegchance {win}", tooltip: "" };
+HHAuto_ToolTips.de['teamSelEff'] = { version: "8.14.0", elementText: "Effektive Stärke {eff}", tooltip: "" };
+HHAuto_ToolTips.de['teamSelVsCurrent'] = { version: "8.14.0", elementText: "gegenüber den Sechsecken", tooltip: "" };
+HHAuto_ToolTips.de['teamSelIsCurrent'] = { version: "8.14.0", elementText: "nicht besser als die Sechsecke", tooltip: "" };
+HHAuto_ToolTips.de['teamSelModelNote'] = { version: "8.14.0", elementText: "Geschätzt: Das Spiel rechnet nur die heutigen Blessings. Werte = heutige plus angepasste Änderung.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelCandidates'] = { version: "8.14.0", elementText: "Kandidaten", tooltip: "" };
+HHAuto_ToolTips.de['teamSelApplied'] = { version: "8.14.0", elementText: "Gespeichert. Die Seite lädt neu.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Nicht gespeichert", tooltip: "" };
 
 ;// ./src/i18n/es.ts
 
@@ -2247,6 +2352,41 @@ HHAuto_ToolTips.es['costaffection'] = { version: "7.18.0", elementText: "Por un 
 HHAuto_ToolTips.es['giveequipment'] = { version: "7.30.0", elementText: "Dar equipo", tooltip: "Da automáticamente todo el equipo a la chica seleccionada." };
 HHAuto_ToolTips.es['giveskills'] = { version: "7.30.0", elementText: "Dar habilidades", tooltip: "Da automáticamente todas las habilidades a la chica seleccionada." };
 HHAuto_ToolTips.es['costexperience'] = { version: "7.18.0", elementText: "Por un coste total de", tooltip: "" };
+// Team selection popup (TeamSelectionPopup)
+HHAuto_ToolTips.es['teamSelOpen'] = { version: "8.14.0", elementText: "Elección de equipo", tooltip: "Abre la elección de equipo: esta semana según estadísticas, esta semana contra los rivales de liga pendientes, vista previa de la próxima semana." };
+HHAuto_ToolTips.es['teamSelTitle'] = { version: "8.14.0", elementText: "Elección de equipo", tooltip: "" };
+HHAuto_ToolTips.es['teamSelModeA'] = { version: "8.14.0", elementText: "Esta semana · según estadísticas y bendiciones", tooltip: "Sin rivales: para las horas tras el cambio de bendiciones, antes de que la liga se adapte." };
+HHAuto_ToolTips.es['teamSelModeB'] = { version: "8.14.0", elementText: "Esta semana · contra los rivales pendientes", tooltip: "" };
+HHAuto_ToolTips.es['teamSelModeC'] = { version: "8.14.0", elementText: "Próxima semana · vista previa", tooltip: "Las próximas bendiciones sobre las chicas de hoy. Solo se muestra." };
+HHAuto_ToolTips.es['teamSelCalculate'] = { version: "8.14.0", elementText: "Calcular", tooltip: "" };
+HHAuto_ToolTips.es['teamSelApply'] = { version: "8.14.0", elementText: "Aplicar (guardar)", tooltip: "" };
+HHAuto_ToolTips.es['teamSelPreviewOnly'] = { version: "8.14.0", elementText: "solo se muestra", tooltip: "" };
+HHAuto_ToolTips.es['teamSelLeaderNote'] = { version: "8.14.0", elementText: "La posición 1 sigue siendo la líder Mítica con Escudo en todos los modos. Desequipar antes de calcular, equipar el equipo después de aplicar.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Aún no hay lista de rivales: abre una vez la página de liga.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} combates pendientes contra {opponents} rivales, leído hace {minutes} min", tooltip: "" };
+HHAuto_ToolTips.es['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Los hexágonos no muestran el equipo guardado. Equipar actúa sobre los hexágonos, la liga lucha con el equipo guardado. ¿Continuar?", tooltip: "" };
+HHAuto_ToolTips.es['teamSelGearState'] = { version: "8.14.0", elementText: "Equipo de la escuadra: {pieces} piezas", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSaved'] = { version: "8.14.0", elementText: "Hexágonos = equipo guardado", tooltip: "" };
+HHAuto_ToolTips.es['teamSelUnsaved'] = { version: "8.14.0", elementText: "Los hexágonos difieren del equipo guardado", tooltip: "" };
+HHAuto_ToolTips.es['teamSelMeasuring'] = { version: "8.14.0", elementText: "Cálculo del juego {done}/{total} ...", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSimulating'] = { version: "8.14.0", elementText: "Simulación {done}/{total} ...", tooltip: "" };
+HHAuto_ToolTips.es['teamSelNoAjax'] = { version: "8.14.0", elementText: "La función de petición del juego no está disponible en esta página.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelNoCandidates'] = { version: "8.14.0", elementText: "No hay suficientes chicas elegibles para un equipo.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelMeasureFailed'] = { version: "8.14.0", elementText: "El juego no calculó todos los candidatos. No se cambió nada.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelNoBlessings'] = { version: "8.14.0", elementText: "No se pudieron leer las bendiciones.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelChangeIn'] = { version: "8.14.0", elementText: "cambio en {d} d {h} h", tooltip: "" };
+HHAuto_ToolTips.es['teamSelUnresolved'] = { version: "8.14.0", elementText: "No reconocido", tooltip: "" };
+HHAuto_ToolTips.es['teamSelDamage'] = { version: "8.14.0", elementText: "Daño", tooltip: "" };
+HHAuto_ToolTips.es['teamSelEgo'] = { version: "8.14.0", elementText: "Ego", tooltip: "" };
+HHAuto_ToolTips.es['teamSelDefense'] = { version: "8.14.0", elementText: "Defensa", tooltip: "" };
+HHAuto_ToolTips.es['teamSelPoints'] = { version: "8.14.0", elementText: "{points} puntos esperados, probabilidad de victoria {win}", tooltip: "" };
+HHAuto_ToolTips.es['teamSelEff'] = { version: "8.14.0", elementText: "Poder efectivo {eff}", tooltip: "" };
+HHAuto_ToolTips.es['teamSelVsCurrent'] = { version: "8.14.0", elementText: "frente a los hexágonos", tooltip: "" };
+HHAuto_ToolTips.es['teamSelIsCurrent'] = { version: "8.14.0", elementText: "no mejor que los hexágonos", tooltip: "" };
+HHAuto_ToolTips.es['teamSelModelNote'] = { version: "8.14.0", elementText: "Estimación: el juego solo calcula las bendiciones actuales. Estadísticas = las de hoy más un cambio ajustado.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelCandidates'] = { version: "8.14.0", elementText: "candidatos", tooltip: "" };
+HHAuto_ToolTips.es['teamSelApplied'] = { version: "8.14.0", elementText: "Guardado. La página se recarga.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelApplyFailed'] = { version: "8.14.0", elementText: "No guardado", tooltip: "" };
 
 ;// ./src/Helper/LanguageHelper.ts
 // LanguageHelper.ts
@@ -2810,6 +2950,9 @@ const TK = {
     // League
     LeagueHumanLikeRun: "Temp_LeagueHumanLikeRun",
     LeagueOpponentList: "Temp_LeagueOpponentList",
+    // Opponents with their open fights, written on the league page for the
+    // team selection on the edit-team page, where opponents_list is missing.
+    leagueOpponentSnapshot: "Temp_leagueOpponentSnapshot",
     hideBeatenOppo: "Temp_hideBeatenOppo",
     // Season
     SeasonEndDate: "Temp_SeasonEndDate",
@@ -5553,6 +5696,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.hideBeatenOppo] =
 HHStoredVars[HHStoredVarPrefixKey + TK.LeagueOpponentList] =
     {
         storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// localStorage: written on the league page, read on the edit-team page -- two
+// separate visits, possibly in two tabs.
+HHStoredVars[HHStoredVarPrefixKey + TK.leagueOpponentSnapshot] =
+    {
+        default: "",
+        storage: "localStorage",
         HHType: "Temp"
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked] =
@@ -23562,6 +23713,733 @@ class BlessingService {
     }
 }
 
+;// ./src/Service/TeamEvaluationService.ts
+// TeamEvaluationService.ts -- Ranks candidate teams by effective battle
+// power instead of by the raw stat sum.
+//
+// Why this exists
+// ---------------
+// The team builder ranks candidates by caracs_sum, which is exactly the
+// "Total Power" the game prints on the edit-team screen. Measured against the
+// live game, that number is literally the sum of the seven girls' caracs -- it
+// contains none of the mechanics that decide a fight:
+//
+//   * Element synergies scale the WHOLE stat (hero base included), and they
+//     are linear from the first girl of an element -- not from the third.
+//     Live values from the game's own `synergies` payload:
+//       darkness +2%/girl damage      nature  +3%/girl ego
+//       light    +2%/girl defense     psychic +2%/girl harmony
+//       fire    +10%/girl crit dmg    stone   +2%/girl crit chance
+//       sun      +2%/girl def-reduce  water   +3%/girl heal-on-hit
+//     Each capped at seven girls; the harem-wide share comes on top.
+//   * Because the multiplier applies to hero base + girls, trading a little
+//     caracs_sum for one more girl of the right element is usually a net win.
+//
+// How it ranks
+// ------------
+// The game exposes its own calculation as `action=team_calculate_caracs`
+// (the edit-team screen fires it on every girl swap). We ask it for each
+// candidate team and get back the authoritative {ego, damage, defense,
+// chance}. Those measured stats are folded into one scalar:
+//
+//   effective = damage * (1 - critChance + critChance * critMultiplier)
+//                      * (1 + sunSynergy)
+//             * ego    * (1 + waterSynergy)
+//
+// i.e. expected damage per hit times how long the team survives -- the
+// time-to-kill product. Against 135 teams measured on the live account and
+// scored with HHauto's own battle simulator over 101 real league opponents,
+// this scalar ranks Spearman 0.96 against simulated points and picks the
+// true best team; caracs_sum alone ranks 0.85 and picks the 9th best.
+//
+// Everything network-facing is optional: without hh_ajax the caller keeps
+// the caracs_sum winner.
+var TeamEvaluationService_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+/** Team-side synergy bonus per girl of that element (game payload). */
+const SYNERGY_PER_GIRL = {
+    darkness: 0.02, light: 0.02, psychic: 0.02, stone: 0.02, sun: 0.02,
+    fire: 0.10, nature: 0.03, water: 0.03,
+};
+/** Cap on the team-side share (= seven girls of that element). */
+const SYNERGY_MAX = {
+    darkness: 0.14, light: 0.14, psychic: 0.14, stone: 0.14, sun: 0.14,
+    fire: 0.70, nature: 0.21, water: 0.21,
+};
+// Harem-wide share, fully built (100+ girls of that element). Used only
+// when the live `synergies` payload is unavailable; it is a per-account
+// value that the page normally hands us.
+const HAREM_SYNERGY_FALLBACK = {
+    darkness: 0.07, light: 0.07, psychic: 0.07, stone: 0.07, sun: 0.07,
+    fire: 0.35, nature: 0.10, water: 0.10,
+};
+// Crit chance is a share of a fixed 30% pool split with the opponent, so a
+// neutral opponent of equal harmony leaves 15%. The game caps the stat at
+// 29%; the stone synergy adds on top of the share.
+const NEUTRAL_CRIT_SHARE = 0.15;
+const CRIT_CHANCE_CAP = 0.29;
+// A critical hit deals double damage plus the fire (crit damage) synergy.
+const CRIT_BASE_MULTIPLIER = 2;
+const MEASURE_DELAY_MS = 350;
+class TeamEvaluationService {
+    /**
+     * Harem-wide synergy share per element, read from the game's own
+     * `synergies` payload on the edit-team page. Falls back to the
+     * fully-built harem values when the page does not expose it.
+     */
+    static getHaremSynergies() {
+        var _a;
+        const out = Object.assign({}, HAREM_SYNERGY_FALLBACK);
+        const live = getHHVars('synergies', false);
+        if (!Array.isArray(live))
+            return out;
+        for (const entry of live) {
+            const type = (_a = entry === null || entry === void 0 ? void 0 : entry.element) === null || _a === void 0 ? void 0 : _a.type;
+            if (!type || !(type in out))
+                continue;
+            const harem = Number(entry.harem_bonus_multiplier);
+            if (Number.isFinite(harem))
+                out[type] = harem;
+        }
+        return out;
+    }
+    /** Team + harem synergy share for one element, capped like the game does. */
+    static getSynergy(counts, element, harem = HAREM_SYNERGY_FALLBACK) {
+        var _a;
+        const teamShare = Math.min((counts[element] || 0) * SYNERGY_PER_GIRL[element], SYNERGY_MAX[element]);
+        return teamShare + ((_a = harem[element]) !== null && _a !== void 0 ? _a : 0);
+    }
+    /** Element histogram of a team. */
+    static countElements(elements) {
+        const counts = {};
+        for (const e of elements)
+            counts[e] = (counts[e] || 0) + 1;
+        return counts;
+    }
+    /**
+     * Time-to-kill scalar: expected damage per hit times survivability.
+     * Pure -- takes the measured stats and the team's element histogram.
+     */
+    static computeEffectivePower(caracs, counts, harem = HAREM_SYNERGY_FALLBACK) {
+        const syn = (e) => TeamEvaluationService.getSynergy(counts, e, harem);
+        const critChance = Math.min(CRIT_CHANCE_CAP, NEUTRAL_CRIT_SHARE + syn('stone'));
+        const critMultiplier = CRIT_BASE_MULTIPLIER + syn('fire');
+        const expectedHit = 1 - critChance + critChance * critMultiplier;
+        const offence = (Number(caracs.damage) || 0) * expectedHit * (1 + syn('sun'));
+        const defence = (Number(caracs.ego) || 0) * (1 + syn('water'));
+        return offence * defence;
+    }
+    /** Which battle type the current edit-team screen belongs to. */
+    static getBattleType() {
+        const fromPage = getHHVars('battle_type', false);
+        if (typeof fromPage === 'string' && fromPage.length > 0)
+            return fromPage;
+        const fromUrl = new URLSearchParams(window.location.search).get('battle_type');
+        return fromUrl || 'leagues';
+    }
+    /**
+     * Ask the game to calculate one team's stats. Resolves null when hh_ajax
+     * is missing or the call fails, so the caller can fall back.
+     */
+    static measureTeam(girlIds, battleType) {
+        const ajax = getHHAjax();
+        if (!ajax)
+            return Promise.resolve(null);
+        return new Promise((resolve) => {
+            let settled = false;
+            const done = (value) => {
+                if (settled)
+                    return;
+                settled = true;
+                resolve(value);
+            };
+            setTimeout(() => done(null), 15000);
+            try {
+                ajax({
+                    action: 'team_calculate_caracs',
+                    girls: girlIds.map(String),
+                    battle_type: battleType,
+                }, (data) => {
+                    if (!data || !data.caracs)
+                        return done(null);
+                    done({
+                        caracs: {
+                            ego: Number(data.caracs.ego) || 0,
+                            damage: Number(data.caracs.damage) || 0,
+                            defense: Number(data.caracs.defense) || 0,
+                            chance: Number(data.caracs.chance) || 0,
+                        },
+                        totalPower: Number(data.total_power) || 0,
+                    });
+                });
+            }
+            catch (err) {
+                logHHAuto('TeamEvaluationService: team_calculate_caracs failed: ' + err);
+                done(null);
+            }
+        });
+    }
+    /**
+     * Measure every candidate and return them ranked by effective power.
+     * Returns an empty array when the game calculation is unavailable --
+     * the caller then keeps its caracs_sum ranking.
+     */
+    static rankCandidates(candidates, girlIdsOf, elementsOf) {
+        return TeamEvaluationService_awaiter(this, void 0, void 0, function* () {
+            if (candidates.length === 0 || !getHHAjax())
+                return [];
+            const battleType = TeamEvaluationService.getBattleType();
+            const harem = TeamEvaluationService.getHaremSynergies();
+            const measured = [];
+            for (const candidate of candidates) {
+                const ids = girlIdsOf(candidate);
+                const result = yield TeamEvaluationService.measureTeam(ids, battleType);
+                if (!result) {
+                    logHHAuto('TeamEvaluationService: no game calculation for a candidate, keeping stat-sum ranking');
+                    return [];
+                }
+                const counts = TeamEvaluationService.countElements(elementsOf(candidate));
+                measured.push({
+                    candidate,
+                    caracs: result.caracs,
+                    totalPower: result.totalPower,
+                    effectivePower: TeamEvaluationService.computeEffectivePower(result.caracs, counts, harem),
+                });
+                yield new Promise(r => setTimeout(r, MEASURE_DELAY_MS));
+            }
+            measured.sort((a, b) => b.effectivePower - a.effectivePower);
+            return measured;
+        });
+    }
+}
+
+;// ./src/Service/TeamScoringService.ts
+// TeamScoringService.ts -- Pure scoring helpers for the Spec-driven team builder.
+//
+// Public surface:
+//   - Types:    ElementType, RarityType, TraitCategory, PlayerClass, GirlData,
+//               Tier5Skill
+//   - Scoring:  caracsSum (raw), scoreCurrentBest (mode 1), scoreBestPossible
+//               (mode 2 -- projected to level 750 + max grades)
+//   - Filters:  filterEligible (Mythic + Legendary 5*)
+//   - Tier-3 :  getTier3Category, getTraitValue, calculateTier3TeamBonus
+//   - Tier-5 :  getTier5Skill
+//   - Element:  getElementPowerCoeff
+//
+// The rules these helpers encode -- rarity filter, Tier-3 trait chain, Tier-5
+// leader priority, element coefficients -- are written out in the CHANGELOG.
+// Tier-5 mapping. Priority controls the leader pick (Shield > Stun > Execute > Reflect).
+const ELEMENT_TO_TIER5 = {
+    light: { id: 12, name: 'Shield', priority: 4 },
+    stone: { id: 12, name: 'Shield', priority: 4 },
+    sun: { id: 11, name: 'Stun', priority: 3 },
+    darkness: { id: 11, name: 'Stun', priority: 3 },
+    fire: { id: 14, name: 'Execute', priority: 2 },
+    water: { id: 14, name: 'Execute', priority: 2 },
+    psychic: { id: 13, name: 'Reflect', priority: 1 },
+    nature: { id: 13, name: 'Reflect', priority: 1 },
+};
+// Element -> Tier-3 trait category. Pairs share a category.
+const ELEMENT_TO_TIER3_CATEGORY = {
+    darkness: 'eyeColor',
+    fire: 'eyeColor',
+    light: 'hairColor',
+    nature: 'hairColor',
+    stone: 'zodiac',
+    psychic: 'zodiac',
+    water: 'position',
+    sun: 'position',
+};
+// Per-element power coefficient (empirical strength table).
+// Used as a tiebreaker in the leader rule (key 7), in Pos-2-7-Regel
+// sub-group ordering and score comparison, and in Cluster-Wahl-Regel
+// step 2 when no trait category resolves.
+const ELEMENT_POWER_COEFF = {
+    darkness: 1.20, // Dominatrice
+    fire: 1.12, // Excentrique
+    stone: 1.12, // Physique
+    nature: 1.10, // Exhibitionniste
+    water: 1.08, // Sensuelle
+    psychic: 1.025, // Soumise
+    light: 1.00, // Voyeuse
+    sun: 1.00, // Joueuse
+};
+// Tier-3 bonus per matching teammate.
+const TIER3_BONUS_MYTHIC = 0.01;
+const TIER3_BONUS_LEGENDARY = 0.008;
+// Spec step 0: 'Best Possible' projects every girl to the awakening cap.
+const PROJECTION_LEVEL_CAP = 750;
+class TeamScoringService {
+    /**
+     * Sum of all three carac fields. Game-authoritative: the caracs
+     * sub-object already includes blessings AND the girl's equipment
+     * (measured, see docs/reference/data-sources-team.md). A girl
+     * therefore ranks partly on who currently wears the good gear, which is
+     * why a team should be built after "Unequip All". Falls back to
+     * carac1/2/3 when caracs is absent.
+     */
+    static caracsSum(girl) {
+        var _a;
+        const src = (_a = girl.caracs) !== null && _a !== void 0 ? _a : { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
+        return (Number(src.carac1) || 0)
+            + (Number(src.carac2) || 0)
+            + (Number(src.carac3) || 0);
+    }
+    /**
+     * Spec step 0, mode 1. caracs_sum = carac1 + carac2 + carac3.
+     * Player class is irrelevant for ranking (Mythic/Legendary 5* differ
+     * uniformly across all three caracs).
+     */
+    static scoreCurrentBest(girl, _playerClass) {
+        return TeamScoringService.caracsSum(girl);
+    }
+    /**
+     * Spec step 0, mode 2. Projects caracs_sum to level 750 + max grades.
+     *
+     *   projected = current * (750 / level) * (1 + 0.3 * nb_grades) / (1 + 0.3 * graded)
+     *
+     * For voll-awakte girls (level 750, graded == nb_grades), projected == current.
+     */
+    static scoreBestPossible(girl, _playerClass) {
+        const current = TeamScoringService.caracsSum(girl);
+        // Clamp the level into [1, PROJECTION_LEVEL_CAP]. 750 is the hard
+        // girl cap (a girl can be developed to 750 regardless of player
+        // level), so level > 750 should not occur; the guard is pure
+        // game-drift defence -- without it a drifted level > 750 would
+        // make the factor < 1 and wrongly devalue a fully-developed girl.
+        const level = Math.min(Math.max(girl.level || 1, 1), PROJECTION_LEVEL_CAP);
+        const currentGrades = girl.graded || 0;
+        const maxGrades = girl.nb_grades || 0;
+        return current
+            * (PROJECTION_LEVEL_CAP / level)
+            * (1 + 0.3 * maxGrades)
+            / (1 + 0.3 * currentGrades);
+    }
+    /**
+     * Spec eligible-pool filter: Mythic + Legendary 5*.
+     *
+     * Cross-class girls are kept; the leader rule does not consider player
+     * class as a tiebreaker.
+     *
+     * playerClass is ignored; kept in the signature for backwards compat.
+     */
+    static filterEligible(girls, _playerClass) {
+        return girls.filter(g => {
+            if (g.rarity === 'mythic')
+                return true;
+            if (g.rarity === 'legendary')
+                return (g.nb_grades || 0) >= 5;
+            return false;
+        });
+    }
+    static getTier5Skill(element) {
+        return ELEMENT_TO_TIER5[element];
+    }
+    static getTier3Category(element) {
+        return ELEMENT_TO_TIER3_CATEGORY[element];
+    }
+    /**
+     * Trait value for a girl based on her element-pair Tier-3 category.
+     * Returns undefined when the field is missing.
+     */
+    static getTraitValue(girl) {
+        const category = ELEMENT_TO_TIER3_CATEGORY[girl.element];
+        switch (category) {
+            case 'eyeColor': return girl.eyeColor;
+            case 'hairColor': return girl.hairColor;
+            case 'zodiac': return girl.zodiac;
+            case 'position': return girl.position;
+        }
+    }
+    /**
+     * Per-element power coefficient. Tiebreaker in the leader pick (key 7),
+     * in Pos-2-7-Regel sub-group ordering and score comparison, and in
+     * Cluster-Wahl-Regel step 2 when no trait category resolves.
+     */
+    static getElementPowerCoeff(element) {
+        var _a;
+        return (_a = ELEMENT_POWER_COEFF[element]) !== null && _a !== void 0 ? _a : 1.0;
+    }
+    /**
+     * Total Tier-3 bonus for a built team. Each girl scans her teammates;
+     * matches inside the same element-pair trait category yield 1.0%
+     * (Mythic) or 0.8% (Legendary).
+     */
+    static calculateTier3TeamBonus(team) {
+        let totalBonus = 0;
+        for (const girl of team) {
+            const cat = ELEMENT_TO_TIER3_CATEGORY[girl.element];
+            const value = TeamScoringService.getTraitValue(girl);
+            if (!value)
+                continue;
+            let matches = 0;
+            for (const other of team) {
+                if (other.id_girl === girl.id_girl)
+                    continue;
+                if (ELEMENT_TO_TIER3_CATEGORY[other.element] !== cat)
+                    continue;
+                if (TeamScoringService.getTraitValue(other) === value)
+                    matches++;
+            }
+            const bonus = girl.rarity === 'mythic' ? TIER3_BONUS_MYTHIC : TIER3_BONUS_LEGENDARY;
+            totalBonus += matches * bonus;
+        }
+        return totalBonus;
+    }
+}
+
+;// ./src/Service/TeamSelectionService.ts
+// TeamSelectionService.ts -- Pure helpers behind the three team selection
+// modes of the edit-team popup (this week by stats, this week against the
+// open league opponents, next week by stats).
+//
+// Why a wider candidate set: the builder ranks girls by caracs_sum, which
+// weighs carac1, carac2 and carac3 alike. The game does not -- measured on a
+// live account (2026-09-19), a class-1 mythic with 2,270 LESS caracs_sum
+// raised the team's damage by 5,374, and the team with her won 80.3 % of the
+// simulated league fights against 79.3 % for the stat-sum pick. She stood
+// 14th by caracs_sum. One round of single swaps around the stat-sum pick,
+// measured by the game, finds such girls; 373 measured teams found nothing a
+// single swap could still improve.
+//
+// Why the opponents are weighed by open fights: a league opponent can be
+// fought exactly three times. One who has been fought three times no longer
+// matters for the team, one with a single fight left matters a third.
+//
+// Why next week needs a model: the game calculates today's blessings only.
+// Ego is exactly additive in the girls' caracs (measured: 0.07 % over 173
+// teams); damage and defense are not (up to 5 %). The projection therefore
+// starts from the stats the game measured TODAY for the same seven girls and
+// adds only the change the blessing swap causes, estimated by a linear fit
+// over all measured candidates.
+//
+// Depends on: BDSMHelper.ts (league fight simulation), TeamEvaluationService.ts (synergies)
+// Used by: TeamSelectionPopup.ts
+
+
+
+/** Swap partners tried per position around the stat-sum pick. */
+const SWAP_ALTERNATIVES = 15;
+/** A league opponent can be fought this many times per league week. */
+const FIGHTS_PER_OPPONENT = 3;
+const ELEMENTS = ['fire', 'water', 'nature', 'stone', 'sun', 'darkness', 'light', 'psychic'];
+/** Element whose team synergy multiplies each stat (game `synergies` payload). */
+const STAT_SYNERGY = {
+    ego: 'nature',
+    damage: 'darkness',
+    defense: 'light',
+};
+class TeamSelectionService {
+    /** Order-independent identity of a team. */
+    static teamKey(ids) {
+        return [...ids].sort((a, b) => a - b).join(',');
+    }
+    /**
+     * Every team that differs from `base` in one of the positions 2-7, the
+     * swap partner taken from the `alternatives` strongest girls of the pool
+     * by caracs_sum that are not in the team. Position 1 stays: the leader
+     * rule (Mythic with the Tier-5 Shield first) is not up for trade.
+     */
+    static buildSwapNeighbours(base, pool, alternatives = SWAP_ALTERNATIVES) {
+        const inTeam = new Set(base);
+        const partners = pool
+            .filter(g => !inTeam.has(g.id_girl))
+            .sort((a, b) => TeamScoringService.caracsSum(b) - TeamScoringService.caracsSum(a))
+            .slice(0, alternatives)
+            .map(g => g.id_girl);
+        const out = [];
+        for (let pos = 1; pos < base.length; pos++) {
+            for (const partner of partners) {
+                const team = [...base];
+                team[pos] = partner;
+                out.push(team);
+            }
+        }
+        return out;
+    }
+    /**
+     * Open fights against one opponent: the `null` entries of his
+     * match_history record. Counted here rather than through
+     * LeagueHelper.numberOfFightAvailable, which answers 1 for every
+     * opponent while autoLeaguesForceOneFight is on -- right for the fight
+     * loop, wrong for a count.
+     */
+    static openFights(history) {
+        if (!Array.isArray(history))
+            return 0;
+        const open = history.filter(entry => entry === null || entry === undefined).length;
+        return Math.max(0, Math.min(FIGHTS_PER_OPPONENT, open));
+    }
+    /** Element histogram of the girls. */
+    static countElements(girls) {
+        return TeamEvaluationService.countElements(girls.map(g => g.element));
+    }
+    /**
+     * The shape BDSMHelper.getBdsmPlayersData reads for our side, built from
+     * the stats the game calculated for the team: team and harem synergy per
+     * element, the theme from three girls of one element on, and the girls'
+     * skill tiers for the Tier-4/Tier-5 estimate (leader first).
+     */
+    static buildHeroFighter(caracs, girls, harem) {
+        const counts = TeamSelectionService.countElements(girls);
+        return {
+            damage: caracs.damage,
+            defense: caracs.defense,
+            chance: caracs.chance,
+            remaining_ego: caracs.ego,
+            nickname: '',
+            team: {
+                theme_elements: ELEMENTS.filter(e => (counts[e] || 0) >= 3).map(type => ({ type })),
+                synergies: ELEMENTS.map(e => ({
+                    element: { type: e },
+                    bonus_multiplier: TeamEvaluationService.getSynergy(counts, e, harem),
+                })),
+                girls: girls.map(g => ({
+                    skill_tiers_info: (g.skill_tiers_info || {}),
+                    girl: { element_data: { type: g.element } },
+                })),
+            },
+        };
+    }
+    /** Expected league points and win chance of one simulated fight. */
+    static simulateFight(hero, opponent) {
+        const players = BDSMHelper.getBdsmPlayersData(hero, opponent, true);
+        // BDSMSimu declares points as number[]; at runtime it is a map from
+        // point value to probability (see bdsm-battle-simulator.md).
+        const simu = calculateBattleProbabilities(players.player, players.opponent);
+        let points = 0;
+        if (simu && simu.points) {
+            for (const [value, probability] of Object.entries(simu.points)) {
+                points += Number(value) * Number(probability);
+            }
+        }
+        return { points, win: Number(simu === null || simu === void 0 ? void 0 : simu.win) || 0 };
+    }
+    /**
+     * Score one team against the snapshot: every opponent counts as often as
+     * he can still be fought, opponents fought three times not at all.
+     */
+    static scoreAgainstOpponents(hero, opponents, simulate = TeamSelectionService.simulateFight) {
+        let points = 0;
+        let wins = 0;
+        let fights = 0;
+        for (const opponent of opponents) {
+            const weight = Math.max(0, Math.min(FIGHTS_PER_OPPONENT, opponent.openFights));
+            if (weight === 0)
+                continue;
+            const result = simulate(hero, opponent.player);
+            points += weight * result.points;
+            wins += weight * result.win;
+            fights += weight;
+        }
+        return { points, winChance: fights > 0 ? wins / fights : 0, fights };
+    }
+    // ---- Next-week projection -------------------------------------------
+    /** Sum of each carac over the team. */
+    static caracSums(girls) {
+        var _a;
+        const sums = [0, 0, 0];
+        for (const g of girls) {
+            const c = (_a = g.caracs) !== null && _a !== void 0 ? _a : { carac1: g.carac1, carac2: g.carac2, carac3: g.carac3 };
+            sums[0] += Number(c.carac1) || 0;
+            sums[1] += Number(c.carac2) || 0;
+            sums[2] += Number(c.carac3) || 0;
+        }
+        return sums;
+    }
+    /**
+     * Least-squares fit of `stat / (1 + synergy)` against the three carac
+     * sums, over every team the game has measured. Returns the three slopes,
+     * or null when the samples cannot carry a fit (too few, or collinear).
+     */
+    static fitCaracSlopes(samples) {
+        if (samples.length < 6)
+            return null;
+        // Normal equations for [1, c1, c2, c3]; the sums are scaled to keep
+        // the matrix well conditioned (they run into the hundreds of thousands).
+        const scale = 1e-5;
+        const n = 4;
+        const a = Array.from({ length: n }, () => new Array(n + 1).fill(0));
+        for (const s of samples) {
+            const x = [1, s.sums[0] * scale, s.sums[1] * scale, s.sums[2] * scale];
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++)
+                    a[i][j] += x[i] * x[j];
+                a[i][n] += x[i] * s.value;
+            }
+        }
+        // Gaussian elimination with partial pivoting.
+        for (let col = 0; col < n; col++) {
+            let pivot = col;
+            for (let r = col + 1; r < n; r++)
+                if (Math.abs(a[r][col]) > Math.abs(a[pivot][col]))
+                    pivot = r;
+            if (Math.abs(a[pivot][col]) < 1e-9)
+                return null;
+            [a[col], a[pivot]] = [a[pivot], a[col]];
+            for (let r = 0; r < n; r++) {
+                if (r === col)
+                    continue;
+                const f = a[r][col] / a[col][col];
+                for (let k = col; k <= n; k++)
+                    a[r][k] -= f * a[col][k];
+            }
+        }
+        const coef = a.map((row, i) => row[n] / row[i]);
+        return [coef[1] * scale, coef[2] * scale, coef[3] * scale];
+    }
+    /**
+     * Next week's stats for a team: the stats the game measured today for
+     * the same girls, plus the fitted effect of the carac change. Harmony
+     * does not follow the girls' caracs (measured slope 0), so it stays.
+     */
+    static projectCaracs(measuredToday, sumsToday, sumsNext, counts, harem, slopes) {
+        const out = Object.assign({}, measuredToday);
+        for (const stat of ['ego', 'damage', 'defense']) {
+            const synergyElement = STAT_SYNERGY[stat];
+            const multiplier = 1 + TeamEvaluationService.getSynergy(counts, synergyElement, harem);
+            const slope = slopes[stat];
+            if (slope) {
+                const delta = slope[0] * (sumsNext[0] - sumsToday[0])
+                    + slope[1] * (sumsNext[1] - sumsToday[1])
+                    + slope[2] * (sumsNext[2] - sumsToday[2]);
+                out[stat] = measuredToday[stat] + multiplier * delta;
+            }
+            else {
+                // No fit: scale with the total, the rough share the girls carry.
+                const today = sumsToday[0] + sumsToday[1] + sumsToday[2];
+                const next = sumsNext[0] + sumsNext[1] + sumsNext[2];
+                out[stat] = today > 0 ? measuredToday[stat] * (next / today) : measuredToday[stat];
+            }
+        }
+        return out;
+    }
+    /** Which stat a synergy element scales, for the fit in the popup. */
+    static synergyElementOf(stat) {
+        return STAT_SYNERGY[stat];
+    }
+}
+
+;// ./src/Service/LeagueOpponentSnapshot.ts
+// LeagueOpponentSnapshot.ts -- The league opponents, kept for the edit-team
+// page.
+//
+// The team selection against the open opponents runs on the edit-team page,
+// and `opponents_list` exists only on the league page. Every visit to the
+// league page therefore writes a snapshot: per opponent the four numbers the
+// simulator reads, the team theme, synergies and skill tiers -- and how many
+// of his three fights are still open. Nothing that names a player is kept.
+//
+// The snapshot ages with every fight fought after it; the popup shows its
+// age, and a new league visit replaces it.
+//
+// Depends on: TeamSelectionService.ts (SnapshotOpponent, openFights)
+// Used by: AutoLoopPageHandlers.ts (writes it), TeamSelectionPopup.ts (reads it)
+
+
+
+
+
+
+// The simulator reads the synergy of these four elements only
+// (BDSMHelper.fightBonues); the other four are already inside the stats.
+const SIMULATED_SYNERGIES = ['fire', 'stone', 'sun', 'water'];
+// A league runs one week; without a known end, a snapshot older than that
+// describes another league.
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+class LeagueOpponentSnapshot {
+    /** Only the tiers the simulator reads (4 = damage passive, 5 = leader skill). */
+    static stripTiers(info) {
+        const out = {};
+        for (const tier of ['4', '5']) {
+            const t = info === null || info === void 0 ? void 0 : info[tier];
+            if (t)
+                out[tier] = { skill_points_used: Number(t.skill_points_used) || 0 };
+        }
+        return out;
+    }
+    /** Pure: one opponents_list entry -> the snapshot record, or null. */
+    static fromListEntry(entry) {
+        const p = entry === null || entry === void 0 ? void 0 : entry.player;
+        if (!p || !p.team)
+            return null;
+        const history = (entry === null || entry === void 0 ? void 0 : entry.match_history) && p.id_fighter !== undefined ? entry.match_history[String(p.id_fighter)] : undefined;
+        return {
+            openFights: TeamSelectionService.openFights(history),
+            player: {
+                damage: Number(p.damage) || 0,
+                defense: Number(p.defense) || 0,
+                remaining_ego: Number(p.remaining_ego) || 0,
+                chance: Number(p.chance) || 0,
+                team: {
+                    theme_elements: (p.team.theme_elements || []).map(e => { var _a; return ({ type: String((_a = e === null || e === void 0 ? void 0 : e.type) !== null && _a !== void 0 ? _a : '') }); }),
+                    synergies: (p.team.synergies || []).filter(s => { var _a; return SIMULATED_SYNERGIES.includes(String((_a = s === null || s === void 0 ? void 0 : s.element) === null || _a === void 0 ? void 0 : _a.type)); }).map(s => {
+                        var _a, _b;
+                        return ({
+                            element: { type: String((_b = (_a = s === null || s === void 0 ? void 0 : s.element) === null || _a === void 0 ? void 0 : _a.type) !== null && _b !== void 0 ? _b : '') },
+                            bonus_multiplier: Number(s === null || s === void 0 ? void 0 : s.bonus_multiplier) || 0,
+                        });
+                    }),
+                    girls: (p.team.girls || []).map(g => {
+                        var _a, _b, _c, _d;
+                        return ({
+                            skill_tiers_info: LeagueOpponentSnapshot.stripTiers(g === null || g === void 0 ? void 0 : g.skill_tiers_info),
+                            girl: { element_data: { type: String((_d = (_c = (_b = (_a = g === null || g === void 0 ? void 0 : g.girl) === null || _a === void 0 ? void 0 : _a.element_data) === null || _b === void 0 ? void 0 : _b.type) !== null && _c !== void 0 ? _c : g === null || g === void 0 ? void 0 : g.element) !== null && _d !== void 0 ? _d : '') } },
+                        });
+                    }),
+                },
+            },
+        };
+    }
+    /**
+     * League page: write the snapshot from opponents_list. `leagueEndsInSec`
+     * is the league timer (LeagueHelper.getLeagueEndTime), passed in so this
+     * file does not pull the league module in. False when the list is not
+     * on the page (yet).
+     */
+    static capture(leagueEndsInSec = -1) {
+        const list = getHHVars('opponents_list', false);
+        if (!Array.isArray(list) || list.length === 0)
+            return false;
+        const me = Number(HeroHelper.getPlayerId());
+        const opponents = list
+            .filter(entry => { var _a; return Number((_a = entry === null || entry === void 0 ? void 0 : entry.player) === null || _a === void 0 ? void 0 : _a.id_fighter) !== me; })
+            .map(entry => LeagueOpponentSnapshot.fromListEntry(entry))
+            .filter((o) => o !== null);
+        if (opponents.length === 0)
+            return false;
+        const now = Date.now();
+        const snapshot = {
+            timestamp: now,
+            leagueEndsAt: leagueEndsInSec > 0 ? now + leagueEndsInSec * 1000 : 0,
+            opponents,
+        };
+        setStoredValue(HHStoredVarPrefixKey + TK.leagueOpponentSnapshot, JSON.stringify(snapshot));
+        return true;
+    }
+    /** The stored snapshot, or null when there is none or it is from another league. */
+    static load(now = Date.now()) {
+        const snap = getStoredJSON(HHStoredVarPrefixKey + TK.leagueOpponentSnapshot, null);
+        if (!snap || !Array.isArray(snap.opponents) || typeof snap.timestamp !== 'number')
+            return null;
+        if (snap.leagueEndsAt > 0 && now > snap.leagueEndsAt)
+            return null;
+        if (now - snap.timestamp > MAX_AGE_MS)
+            return null;
+        return snap;
+    }
+}
+
 ;// ./src/model/Champion.ts
 // Model representing a Champion (boss encounter) in the game.
 // Tracks the champion's index, timer state, whether it has been started,
@@ -28554,181 +29432,6 @@ class Shop {
     }
 }
 
-;// ./src/Service/TeamScoringService.ts
-// TeamScoringService.ts -- Pure scoring helpers for the Spec-driven team builder.
-//
-// Public surface:
-//   - Types:    ElementType, RarityType, TraitCategory, PlayerClass, GirlData,
-//               Tier5Skill
-//   - Scoring:  caracsSum (raw), scoreCurrentBest (mode 1), scoreBestPossible
-//               (mode 2 -- projected to level 750 + max grades)
-//   - Filters:  filterEligible (Mythic + Legendary 5*)
-//   - Tier-3 :  getTier3Category, getTraitValue, calculateTier3TeamBonus
-//   - Tier-5 :  getTier5Skill
-//   - Element:  getElementPowerCoeff
-//
-// The rules these helpers encode -- rarity filter, Tier-3 trait chain, Tier-5
-// leader priority, element coefficients -- are written out in the CHANGELOG.
-// Tier-5 mapping. Priority controls the leader pick (Shield > Stun > Execute > Reflect).
-const ELEMENT_TO_TIER5 = {
-    light: { id: 12, name: 'Shield', priority: 4 },
-    stone: { id: 12, name: 'Shield', priority: 4 },
-    sun: { id: 11, name: 'Stun', priority: 3 },
-    darkness: { id: 11, name: 'Stun', priority: 3 },
-    fire: { id: 14, name: 'Execute', priority: 2 },
-    water: { id: 14, name: 'Execute', priority: 2 },
-    psychic: { id: 13, name: 'Reflect', priority: 1 },
-    nature: { id: 13, name: 'Reflect', priority: 1 },
-};
-// Element -> Tier-3 trait category. Pairs share a category.
-const ELEMENT_TO_TIER3_CATEGORY = {
-    darkness: 'eyeColor',
-    fire: 'eyeColor',
-    light: 'hairColor',
-    nature: 'hairColor',
-    stone: 'zodiac',
-    psychic: 'zodiac',
-    water: 'position',
-    sun: 'position',
-};
-// Per-element power coefficient (empirical strength table).
-// Used as a tiebreaker in the leader rule (key 7), in Pos-2-7-Regel
-// sub-group ordering and score comparison, and in Cluster-Wahl-Regel
-// step 2 when no trait category resolves.
-const ELEMENT_POWER_COEFF = {
-    darkness: 1.20, // Dominatrice
-    fire: 1.12, // Excentrique
-    stone: 1.12, // Physique
-    nature: 1.10, // Exhibitionniste
-    water: 1.08, // Sensuelle
-    psychic: 1.025, // Soumise
-    light: 1.00, // Voyeuse
-    sun: 1.00, // Joueuse
-};
-// Tier-3 bonus per matching teammate.
-const TIER3_BONUS_MYTHIC = 0.01;
-const TIER3_BONUS_LEGENDARY = 0.008;
-// Spec step 0: 'Best Possible' projects every girl to the awakening cap.
-const PROJECTION_LEVEL_CAP = 750;
-class TeamScoringService {
-    /**
-     * Sum of all three carac fields. Game-authoritative: the caracs
-     * sub-object already includes blessings AND the girl's equipment
-     * (measured, see docs/reference/data-sources-team.md). A girl
-     * therefore ranks partly on who currently wears the good gear, which is
-     * why a team should be built after "Unequip All". Falls back to
-     * carac1/2/3 when caracs is absent.
-     */
-    static caracsSum(girl) {
-        var _a;
-        const src = (_a = girl.caracs) !== null && _a !== void 0 ? _a : { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
-        return (Number(src.carac1) || 0)
-            + (Number(src.carac2) || 0)
-            + (Number(src.carac3) || 0);
-    }
-    /**
-     * Spec step 0, mode 1. caracs_sum = carac1 + carac2 + carac3.
-     * Player class is irrelevant for ranking (Mythic/Legendary 5* differ
-     * uniformly across all three caracs).
-     */
-    static scoreCurrentBest(girl, _playerClass) {
-        return TeamScoringService.caracsSum(girl);
-    }
-    /**
-     * Spec step 0, mode 2. Projects caracs_sum to level 750 + max grades.
-     *
-     *   projected = current * (750 / level) * (1 + 0.3 * nb_grades) / (1 + 0.3 * graded)
-     *
-     * For voll-awakte girls (level 750, graded == nb_grades), projected == current.
-     */
-    static scoreBestPossible(girl, _playerClass) {
-        const current = TeamScoringService.caracsSum(girl);
-        // Clamp the level into [1, PROJECTION_LEVEL_CAP]. 750 is the hard
-        // girl cap (a girl can be developed to 750 regardless of player
-        // level), so level > 750 should not occur; the guard is pure
-        // game-drift defence -- without it a drifted level > 750 would
-        // make the factor < 1 and wrongly devalue a fully-developed girl.
-        const level = Math.min(Math.max(girl.level || 1, 1), PROJECTION_LEVEL_CAP);
-        const currentGrades = girl.graded || 0;
-        const maxGrades = girl.nb_grades || 0;
-        return current
-            * (PROJECTION_LEVEL_CAP / level)
-            * (1 + 0.3 * maxGrades)
-            / (1 + 0.3 * currentGrades);
-    }
-    /**
-     * Spec eligible-pool filter: Mythic + Legendary 5*.
-     *
-     * Cross-class girls are kept; the leader rule does not consider player
-     * class as a tiebreaker.
-     *
-     * playerClass is ignored; kept in the signature for backwards compat.
-     */
-    static filterEligible(girls, _playerClass) {
-        return girls.filter(g => {
-            if (g.rarity === 'mythic')
-                return true;
-            if (g.rarity === 'legendary')
-                return (g.nb_grades || 0) >= 5;
-            return false;
-        });
-    }
-    static getTier5Skill(element) {
-        return ELEMENT_TO_TIER5[element];
-    }
-    static getTier3Category(element) {
-        return ELEMENT_TO_TIER3_CATEGORY[element];
-    }
-    /**
-     * Trait value for a girl based on her element-pair Tier-3 category.
-     * Returns undefined when the field is missing.
-     */
-    static getTraitValue(girl) {
-        const category = ELEMENT_TO_TIER3_CATEGORY[girl.element];
-        switch (category) {
-            case 'eyeColor': return girl.eyeColor;
-            case 'hairColor': return girl.hairColor;
-            case 'zodiac': return girl.zodiac;
-            case 'position': return girl.position;
-        }
-    }
-    /**
-     * Per-element power coefficient. Tiebreaker in the leader pick (key 7),
-     * in Pos-2-7-Regel sub-group ordering and score comparison, and in
-     * Cluster-Wahl-Regel step 2 when no trait category resolves.
-     */
-    static getElementPowerCoeff(element) {
-        var _a;
-        return (_a = ELEMENT_POWER_COEFF[element]) !== null && _a !== void 0 ? _a : 1.0;
-    }
-    /**
-     * Total Tier-3 bonus for a built team. Each girl scans her teammates;
-     * matches inside the same element-pair trait category yield 1.0%
-     * (Mythic) or 0.8% (Legendary).
-     */
-    static calculateTier3TeamBonus(team) {
-        let totalBonus = 0;
-        for (const girl of team) {
-            const cat = ELEMENT_TO_TIER3_CATEGORY[girl.element];
-            const value = TeamScoringService.getTraitValue(girl);
-            if (!value)
-                continue;
-            let matches = 0;
-            for (const other of team) {
-                if (other.id_girl === girl.id_girl)
-                    continue;
-                if (ELEMENT_TO_TIER3_CATEGORY[other.element] !== cat)
-                    continue;
-                if (TeamScoringService.getTraitValue(other) === value)
-                    matches++;
-            }
-            const bonus = girl.rarity === 'mythic' ? TIER3_BONUS_MYTHIC : TIER3_BONUS_LEGENDARY;
-            totalBonus += matches * bonus;
-        }
-        return totalBonus;
-    }
-}
-
 ;// ./src/Service/TeamBuilderService.ts
 // TeamBuilderService.ts -- Spec-driven team builder.
 //
@@ -29556,48 +30259,198 @@ class TeamBuilderService {
     }
 }
 
-;// ./src/Service/TeamEvaluationService.ts
-// TeamEvaluationService.ts -- Ranks candidate teams by effective battle
-// power instead of by the raw stat sum.
+;// ./src/Service/BlessingForecast.ts
+// BlessingForecast.ts -- Next week's league blessings, matched to the girls.
 //
-// Why this exists
-// ---------------
-// The team builder ranks candidates by caracs_sum, which is exactly the
-// "Total Power" the game prints on the edit-team screen. Measured against the
-// live game, that number is literally the sum of the seven girls' caracs -- it
-// contains none of the mechanics that decide a fight:
+// The blessing API sends the coming week along with the current one
+// (`upcoming` next to `active`, every week), but only as display text:
+// "Eye Color Golden", "Favorite position Doggie style". The girls carry codes
+// instead (`eye_color1: "FD0"`, `figure: 1`). The game's own lookup tables in
+// `window.GT` hold the same display names for those codes, in the same
+// language the description comes in. Measured 2026-09-19 in en, de, fr, es,
+// it and ja: every condition ended on exactly one table name, and for the
+// running week the girls picked that way were exactly the girls with the
+// bonus (2/2, 2/2, 5/5 in every language).
 //
-//   * Element synergies scale the WHOLE stat (hero base included), and they
-//     are linear from the first girl of an element -- not from the third.
-//     Live values from the game's own `synergies` payload:
-//       darkness +2%/girl damage      nature  +3%/girl ego
-//       light    +2%/girl defense     psychic +2%/girl harmony
-//       fire    +10%/girl crit dmg    stone   +2%/girl crit chance
-//       sun      +2%/girl def-reduce  water   +3%/girl heal-on-hit
-//     Each capped at seven girls; the harem-wide share comes on top.
-//   * Because the multiplier applies to hero base + girls, trading a little
-//     caracs_sum for one more girl of the right element is usually a net win.
+// Two rules the data taught:
+//   - A colour blessing counts colour 1 OR colour 2. Measured on 1,807 girls:
+//     178 carried "Eye Color Golden", 160 by eye_color1, 18 by eye_color2
+//     alone, none by neither.
+//   - The Role blessing applies in the Love Labyrinth only; the league set
+//     (pvp_v3) never contains it. It is dropped here.
 //
-// How it ranks
-// ------------
-// The game exposes its own calculation as `action=team_calculate_caracs`
-// (the edit-team screen fires it on every girl swap). We ask it for each
-// candidate team and get back the authoritative {ego, damage, defense,
-// chance}. Those measured stats are folded into one scalar:
+// Depends on: BlessingService.ts (today's multiplier)
+// Used by: TeamSelectionPopup.ts
+
+const RARITIES = ['starting', 'common', 'rare', 'epic', 'legendary', 'mythic'];
+const BlessingForecast_ELEMENTS = ['darkness', 'fire', 'light', 'nature', 'psychic', 'stone', 'sun', 'water'];
+const norm = (s) => String(s !== null && s !== void 0 ? s : '').replace(/\s+/g, ' ').trim().toLowerCase();
+class BlessingForecast {
+    /** Condition text and bonus percent of one API entry, or null. */
+    static parseEntry(entry) {
+        var _a;
+        const desc = String((_a = entry === null || entry === void 0 ? void 0 : entry.description) !== null && _a !== void 0 ? _a : '');
+        const cond = desc.match(/blessing-condition[^>]*>([^<]+)</i);
+        const bonus = desc.match(/blessing-bonus[^>]*>[^0-9<]*(\d+)/i);
+        if (!cond || !bonus)
+            return null;
+        return { text: cond[1].replace(/\s+/g, ' ').trim(), percent: Number(bonus[1]) };
+    }
+    static candidates(gt) {
+        const d = gt.design || {};
+        const out = [];
+        for (const [code, name] of Object.entries(gt.colors || {})) {
+            out.push({ kind: 'eyeColor', code, name, prefix: d.haremdex_eye_color });
+            out.push({ kind: 'hairColor', code, name, prefix: d.haremdex_hair_color });
+        }
+        for (const [code, name] of Object.entries(gt.zodiac || {})) {
+            out.push({ kind: 'zodiac', code, name, prefix: d.haremdex_zodiac_sign });
+        }
+        (gt.figures || []).forEach((name, index) => {
+            if (index > 0)
+                out.push({ kind: 'position', code: String(index), name });
+        });
+        for (const r of RARITIES) {
+            if (d['girls_rarity_' + r])
+                out.push({ kind: 'rarity', code: r, name: d['girls_rarity_' + r], prefix: d.selectors_Rarity });
+        }
+        for (const e of BlessingForecast_ELEMENTS) {
+            if (d[e + '_flavor_element'])
+                out.push({ kind: 'element', code: e, name: d[e + '_flavor_element'], prefix: d.element });
+        }
+        for (let i = 1; i <= 30; i++) {
+            const name = d['girl_role_' + i + '_name'];
+            // Unset roles come back as the raw key ("!!HH_design:...!!").
+            if (name && !/^!!/.test(name))
+                out.push({ kind: 'role', code: String(i), name, prefix: d.girl_role });
+        }
+        return out.filter(c => norm(c.name).length > 0);
+    }
+    /**
+     * Map a condition text onto a girl-side code. The text is "<prefix>
+     * <name>"; the longest table name the text ends on wins ("Dark Pink"
+     * over "Dark"), and when two kinds share that name -- a colour is both an
+     * eye and a hair colour -- the prefix decides. Null when nothing or
+     * several things fit.
+     */
+    static resolve(text, percent, gt) {
+        const t = norm(text);
+        const byName = BlessingForecast.candidates(gt).filter(c => t === norm(c.name) || t.endsWith(' ' + norm(c.name)));
+        if (byName.length === 0)
+            return null;
+        const longest = Math.max(...byName.map(c => norm(c.name).length));
+        let hits = byName.filter(c => norm(c.name).length === longest);
+        if (hits.length > 1) {
+            const byPrefix = hits.filter(c => c.prefix && t.startsWith(norm(c.prefix)));
+            if (byPrefix.length > 0)
+                hits = byPrefix;
+        }
+        if (hits.length !== 1)
+            return null;
+        const h = hits[0];
+        return { text, percent, kind: h.kind, code: h.code, name: h.name };
+    }
+    /**
+     * League-relevant conditions of the coming week. Unresolvable entries
+     * are returned separately so the popup can say what it could not read.
+     */
+    static upcomingLeagueConditions(response, gt) {
+        const conditions = [];
+        const unresolved = [];
+        for (const entry of Array.isArray(response === null || response === void 0 ? void 0 : response.upcoming) ? response.upcoming : []) {
+            const parsed = BlessingForecast.parseEntry(entry);
+            if (!parsed)
+                continue;
+            const cond = BlessingForecast.resolve(parsed.text, parsed.percent, gt);
+            if (!cond) {
+                unresolved.push(parsed.text);
+                continue;
+            }
+            if (cond.kind === 'role')
+                continue;
+            conditions.push(cond);
+        }
+        return { conditions, unresolved };
+    }
+    /** Does a raw availableGirls entry meet the condition? */
+    static girlMatches(girl, cond) {
+        var _a, _b, _c, _d;
+        switch (cond.kind) {
+            case 'eyeColor': return girl.eye_color1 === cond.code || girl.eye_color2 === cond.code;
+            case 'hairColor': return girl.hair_color1 === cond.code || girl.hair_color2 === cond.code;
+            case 'zodiac': return norm(String((_a = girl.zodiac) !== null && _a !== void 0 ? _a : '').replace(/^\S+\s*/, '')) === norm(cond.name);
+            case 'position': {
+                if (girl.figure !== undefined && girl.figure !== null)
+                    return String(girl.figure) === cond.code;
+                return String((_b = girl.position_img) !== null && _b !== void 0 ? _b : '').replace(/\.png$/i, '') === cond.code;
+            }
+            case 'rarity': return girl.rarity === cond.code;
+            case 'element': return ((_d = (_c = girl.element_data) === null || _c === void 0 ? void 0 : _c.type) !== null && _d !== void 0 ? _d : girl.element) === cond.code;
+            default: return false;
+        }
+    }
+    /** Next week's league multiplier of one girl. */
+    static nextMultiplier(girl, conditions) {
+        let m = 1;
+        for (const c of conditions)
+            if (BlessingForecast.girlMatches(girl, c))
+                m *= 1 + c.percent / 100;
+        return m;
+    }
+    /**
+     * A copy of a raw availableGirls entry with next week's caracs: today's
+     * league blessing taken out, next week's put in. The copy carries next
+     * week's multiplier as its only league blessing, so everything reading
+     * blessing_bonuses downstream sees the coming week.
+     */
+    static projectGirl(girl, conditions) {
+        const today = BlessingService.getEffectiveMultiplier(girl, 'league') || 1;
+        const next = BlessingForecast.nextMultiplier(girl, conditions);
+        const factor = next / today;
+        const caracs = girl.caracs || { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
+        const projected = {
+            carac1: (Number(caracs.carac1) || 0) * factor,
+            carac2: (Number(caracs.carac2) || 0) * factor,
+            carac3: (Number(caracs.carac3) || 0) * factor,
+        };
+        const percents = conditions.filter(c => BlessingForecast.girlMatches(girl, c)).map(c => c.percent);
+        return Object.assign(Object.assign({}, girl), { caracs: projected, carac1: projected.carac1, carac2: projected.carac2, carac3: projected.carac3, blessing_bonuses: percents.length > 0 ? { pvp_v3: { carac1: percents, carac2: percents, carac3: percents } } : [], can_be_blessed: percents.length > 0 });
+    }
+}
+
+;// ./src/Module/TeamSelectionPopup.ts
+// TeamSelectionPopup.ts -- The team selection popup on the edit-team page.
 //
-//   effective = damage * (1 - critChance + critChance * critMultiplier)
-//                      * (1 + sunSynergy)
-//             * ego    * (1 + waterSynergy)
+// Three modes, kept visibly apart because they answer different questions:
 //
-// i.e. expected damage per hit times how long the team survives -- the
-// time-to-kill product. Against 135 teams measured on the live account and
-// scored with HHauto's own battle simulator over 101 real league opponents,
-// this scalar ranks Spearman 0.96 against simulated points and picks the
-// true best team; caracs_sum alone ranks 0.85 and picks the 9th best.
+//   A  This week, by stats and blessings -- no opponents. For the hours after
+//      the weekly blessing change, when the league has not switched yet and
+//      the opponents' teams describe last week.
+//   B  This week, against the open opponents -- the league snapshot, every
+//      opponent weighed by the fights still open against him (0-3).
+//   C  Next week, by stats -- the coming blessings on today's girls. Display
+//      only: a team for next week is weaker this week.
 //
-// Everything network-facing is optional: without hh_ajax the caller keeps
-// the caracs_sum winner.
-var TeamEvaluationService_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+// All three start from the same candidates: the builder's picks plus one
+// round of single swaps around the stat-sum pick (TeamSelectionService).
+// Position 1 stays with the builder's leader -- the Mythic with the Tier-5
+// Shield -- in every candidate. The game calculates every candidate
+// (team_calculate_caracs, the request the edit screen sends on every swap);
+// A ranks by effective power, B by simulated league points, C by effective
+// power on the projected stats. Measurements are shared: B and C after A
+// cost no new requests for the teams A already measured.
+//
+// The right-hand column holds Unequip All and Stuff Team, each with the state
+// it acts on: the gear on the team, and whether the hexagons match the saved
+// team (Stuff Team equips the hexagons, the league fights the saved team).
+//
+// The actions that live in TeamModule are handed in, so this file does not
+// import TeamModule (which opens it).
+//
+// Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
+//   BlessingForecast.ts, LeagueOpponentSnapshot.ts
+// Used by: TeamModule.ts
+var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -29609,162 +30462,397 @@ var TeamEvaluationService_awaiter = (undefined && undefined.__awaiter) || functi
 
 
 
-/** Team-side synergy bonus per girl of that element (game payload). */
-const SYNERGY_PER_GIRL = {
-    darkness: 0.02, light: 0.02, psychic: 0.02, stone: 0.02, sun: 0.02,
-    fire: 0.10, nature: 0.03, water: 0.03,
-};
-/** Cap on the team-side share (= seven girls of that element). */
-const SYNERGY_MAX = {
-    darkness: 0.14, light: 0.14, psychic: 0.14, stone: 0.14, sun: 0.14,
-    fire: 0.70, nature: 0.21, water: 0.21,
-};
-// Harem-wide share, fully built (100+ girls of that element). Used only
-// when the live `synergies` payload is unavailable; it is a per-account
-// value that the page normally hands us.
-const HAREM_SYNERGY_FALLBACK = {
-    darkness: 0.07, light: 0.07, psychic: 0.07, stone: 0.07, sun: 0.07,
-    fire: 0.35, nature: 0.10, water: 0.10,
-};
-// Crit chance is a share of a fixed 30% pool split with the opponent, so a
-// neutral opponent of equal harmony leaves 15%. The game caps the stat at
-// 29%; the stone synergy adds on top of the share.
-const NEUTRAL_CRIT_SHARE = 0.15;
-const CRIT_CHANCE_CAP = 0.29;
-// A critical hit deals double damage plus the fire (crit damage) synergy.
-const CRIT_BASE_MULTIPLIER = 2;
-const MEASURE_DELAY_MS = 350;
-class TeamEvaluationService {
-    /**
-     * Harem-wide synergy share per element, read from the game's own
-     * `synergies` payload on the edit-team page. Falls back to the
-     * fully-built harem values when the page does not expose it.
-     */
-    static getHaremSynergies() {
-        var _a;
-        const out = Object.assign({}, HAREM_SYNERGY_FALLBACK);
-        const live = getHHVars('synergies', false);
-        if (!Array.isArray(live))
-            return out;
-        for (const entry of live) {
-            const type = (_a = entry === null || entry === void 0 ? void 0 : entry.element) === null || _a === void 0 ? void 0 : _a.type;
-            if (!type || !(type in out))
-                continue;
-            const harem = Number(entry.harem_bonus_multiplier);
-            if (Number.isFinite(harem))
-                out[type] = harem;
-        }
-        return out;
+
+
+
+
+
+
+
+
+
+const TeamSelectionPopup_MEASURE_DELAY_MS = 350;
+class TeamSelectionPopup {
+    static open(actions) {
+        TeamSelectionPopup.actions = actions;
+        TeamSelectionPopup.addStyles();
+        fillHHPopUp('hhTeamSelectionPopup', getTextForUI('teamSelTitle', 'elementText'), TeamSelectionPopup.render());
+        TeamSelectionPopup.bind();
+        TeamSelectionPopup.refreshStatus();
     }
-    /** Team + harem synergy share for one element, capped like the game does. */
-    static getSynergy(counts, element, harem = HAREM_SYNERGY_FALLBACK) {
-        var _a;
-        const teamShare = Math.min((counts[element] || 0) * SYNERGY_PER_GIRL[element], SYNERGY_MAX[element]);
-        return teamShare + ((_a = harem[element]) !== null && _a !== void 0 ? _a : 0);
+    static addStyles() {
+        if (TeamSelectionPopup.stylesAdded)
+            return;
+        TeamSelectionPopup.stylesAdded = true;
+        GM_addStyle('.hhTeamSelectionPopup #HHAutoPopupGlobalContent{max-width:820px;}'
+            + '#hhTeamSel{display:grid;grid-template-columns:1fr 170px;gap:10px;font-size:13px;}'
+            + '#hhTeamSel .tsModes{display:flex;flex-direction:column;gap:10px;}'
+            + '#hhTeamSel .tsMode{border-left:6px solid;padding:6px 10px;background:rgba(255,255,255,0.04);}'
+            + '#hhTeamSel .tsModeA{border-color:#4fa3e0;}'
+            + '#hhTeamSel .tsModeB{border-color:#e0a14f;}'
+            + '#hhTeamSel .tsModeC{border-color:#9b7fe0;}'
+            + '#hhTeamSel .tsHead{font-weight:bold;font-size:14px;margin-bottom:2px;}'
+            + '#hhTeamSel .tsSub{color:#aaa;font-size:11px;margin-bottom:4px;}'
+            + '#hhTeamSel .tsButtons{display:flex;gap:6px;margin:4px 0;}'
+            + '#hhTeamSel .tsButtons .myButton{padding:3px 10px;font-size:12px;}'
+            + '#hhTeamSel .tsOut{font-size:12px;line-height:1.45;}'
+            + '#hhTeamSel .tsOut .tsGood{color:#7f7;} #hhTeamSel .tsOut .tsBad{color:#f77;} #hhTeamSel .tsOut .tsWarn{color:#fc6;}'
+            + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #555;padding-left:10px;}'
+            + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;}'
+            + '#hhTeamSel .tsState{font-size:11px;color:#aaa;margin-top:3px;}'
+            + '#hhTeamSel .myButton.tsDisabled{opacity:0.45;pointer-events:none;}');
     }
-    /** Element histogram of a team. */
-    static countElements(elements) {
-        const counts = {};
-        for (const e of elements)
-            counts[e] = (counts[e] || 0) + 1;
-        return counts;
+    static mode(id, titleKey, subHtml, canApply) {
+        return `<div class="tsMode tsMode${id}">
+            <div class="tsHead">${getTextForUI(titleKey, 'elementText')}</div>
+            <div class="tsSub" id="hhTsSub${id}">${subHtml}</div>
+            <div class="tsButtons">
+                <label class="myButton" id="hhTsCalc${id}">${getTextForUI('teamSelCalculate', 'elementText')}</label>
+                ${canApply
+            ? `<label class="myButton tsDisabled" id="hhTsApply${id}">${getTextForUI('teamSelApply', 'elementText')}</label>`
+            : `<span class="tsSub">${getTextForUI('teamSelPreviewOnly', 'elementText')}</span>`}
+            </div>
+            <div class="tsOut" id="hhTsOut${id}"></div>
+        </div>`;
     }
-    /**
-     * Time-to-kill scalar: expected damage per hit times survivability.
-     * Pure -- takes the measured stats and the team's element histogram.
-     */
-    static computeEffectivePower(caracs, counts, harem = HAREM_SYNERGY_FALLBACK) {
-        const syn = (e) => TeamEvaluationService.getSynergy(counts, e, harem);
-        const critChance = Math.min(CRIT_CHANCE_CAP, NEUTRAL_CRIT_SHARE + syn('stone'));
-        const critMultiplier = CRIT_BASE_MULTIPLIER + syn('fire');
-        const expectedHit = 1 - critChance + critChance * critMultiplier;
-        const offence = (Number(caracs.damage) || 0) * expectedHit * (1 + syn('sun'));
-        const defence = (Number(caracs.ego) || 0) * (1 + syn('water'));
-        return offence * defence;
+    static render() {
+        return `<div id="hhTeamSel">
+            <div class="tsModes">
+                ${TeamSelectionPopup.mode('A', 'teamSelModeA', getTextForUI('teamSelModeA', 'tooltip'), true)}
+                ${TeamSelectionPopup.mode('B', 'teamSelModeB', TeamSelectionPopup.snapshotLine(), true)}
+                ${TeamSelectionPopup.mode('C', 'teamSelModeC', getTextForUI('teamSelModeC', 'tooltip'), false)}
+            </div>
+            <div class="tsSide">
+                <div>
+                    <label class="myButton" id="hhTsUnequip">${getTextForUI('UnequipAll', 'elementText')}</label>
+                    <div class="tsState" id="hhTsGearState"></div>
+                </div>
+                <div>
+                    <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
+                    <div class="tsState" id="hhTsSavedState"></div>
+                </div>
+                <div class="tsState">${getTextForUI('teamSelLeaderNote', 'elementText')}</div>
+            </div>
+        </div>`;
     }
-    /** Which battle type the current edit-team screen belongs to. */
-    static getBattleType() {
-        const fromPage = getHHVars('battle_type', false);
-        if (typeof fromPage === 'string' && fromPage.length > 0)
-            return fromPage;
-        const fromUrl = new URLSearchParams(window.location.search).get('battle_type');
-        return fromUrl || 'leagues';
+    static snapshotLine() {
+        const snap = LeagueOpponentSnapshot.load();
+        if (!snap)
+            return `<span class="tsWarn">${getTextForUI('teamSelNoSnapshot', 'elementText')}</span>`;
+        const open = snap.opponents.reduce((s, o) => s + o.openFights, 0);
+        const withOpen = snap.opponents.filter(o => o.openFights > 0).length;
+        const minutes = Math.max(0, Math.round((Date.now() - snap.timestamp) / 60000));
+        return getTextForUI('teamSelSnapshot', 'elementText')
+            .replace('{fights}', String(open))
+            .replace('{opponents}', String(withOpen))
+            .replace('{minutes}', String(minutes));
     }
-    /**
-     * Ask the game to calculate one team's stats. Resolves null when hh_ajax
-     * is missing or the call fails, so the caller can fall back.
-     */
-    static measureTeam(girlIds, battleType) {
-        const ajax = getHHAjax();
-        if (!ajax)
-            return Promise.resolve(null);
-        return new Promise((resolve) => {
-            let settled = false;
-            const done = (value) => {
-                if (settled)
-                    return;
-                settled = true;
-                resolve(value);
-            };
-            setTimeout(() => done(null), 15000);
+    static bind() {
+        ['A', 'B', 'C'].forEach(id => {
+            $('#hhTsCalc' + id).on('click', () => { void TeamSelectionPopup.run(id); });
+            $('#hhTsApply' + id).on('click', () => TeamSelectionPopup.apply(id));
+        });
+        $('#hhTsUnequip').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.unequipAll(); });
+        $('#hhTsStuff').on('click', () => {
+            const a = TeamSelectionPopup.actions;
+            if (!a)
+                return;
+            if (!TeamSelectionPopup.hexagonsMatchSaved() && !window.confirm(getTextForUI('teamSelStuffUnsaved', 'elementText')))
+                return;
+            a.stuffTeam();
+        });
+    }
+    static hexagonsMatchSaved() {
+        const a = TeamSelectionPopup.actions;
+        if (!a)
+            return false;
+        const hex = a.getHexagonIds();
+        const saved = a.getSavedIds();
+        return hex.length > 0 && TeamSelectionService.teamKey(hex) === TeamSelectionService.teamKey(saved);
+    }
+    static refreshStatus() {
+        const a = TeamSelectionPopup.actions;
+        if (!a)
+            return;
+        const raw = TeamSelectionPopup.rawGirls();
+        const hex = a.getHexagonIds();
+        const pieces = hex.reduce((sum, id) => {
+            const g = raw.find(r => Number(r.id_girl) === id);
+            const armor = g === null || g === void 0 ? void 0 : g.armor;
+            return sum + (Array.isArray(armor) ? armor.length : (armor ? Object.keys(armor).length : 0));
+        }, 0);
+        $('#hhTsGearState').html(getTextForUI('teamSelGearState', 'elementText').replace('{pieces}', String(pieces)));
+        $('#hhTsSavedState').html(TeamSelectionPopup.hexagonsMatchSaved()
+            ? `<span class="tsGood">${getTextForUI('teamSelSaved', 'elementText')}</span>`
+            : `<span class="tsWarn">${getTextForUI('teamSelUnsaved', 'elementText')}</span>`);
+    }
+    // ---- Data ------------------------------------------------------------
+    static rawGirls() {
+        const raw = getHHVars('availableGirls', false);
+        return Array.isArray(raw) ? raw : [];
+    }
+    static out(id, html) {
+        $('#hhTsOut' + id).html(html);
+    }
+    /** Measure every candidate the cache does not know yet. */
+    static measureAll(teams, id) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            const battleType = TeamEvaluationService.getBattleType();
+            const todo = teams.filter(t => !TeamSelectionPopup.measured.has(TeamSelectionService.teamKey(t)));
+            let done = 0;
+            for (const team of todo) {
+                if (TeamSelectionPopup.cancelled)
+                    return false;
+                TeamSelectionPopup.out(id, getTextForUI('teamSelMeasuring', 'elementText')
+                    .replace('{done}', String(done)).replace('{total}', String(todo.length)));
+                const result = yield TeamEvaluationService.measureTeam(team, battleType);
+                if (!result) {
+                    logHHAuto('Team selection: the game calculated no stats for a candidate, stopping.');
+                    return false;
+                }
+                TeamSelectionPopup.measured.set(TeamSelectionService.teamKey(team), { ids: team, caracs: result.caracs });
+                done++;
+                yield new Promise(r => setTimeout(r, TeamSelectionPopup_MEASURE_DELAY_MS));
+            }
+            return true;
+        });
+    }
+    /** The builder's candidates plus single swaps around the stat-sum pick. */
+    static candidates(girls) {
+        const level = Number(HeroHelper.getLevel());
+        const rawClass = Number(HeroHelper.getClass());
+        const playerClass = (rawClass === 1 || rawClass === 2 || rawClass === 3) ? rawClass : 1;
+        const built = TeamBuilderService.buildTeamCandidates(girls, 1, level, playerClass);
+        if (built.length === 0)
+            return [];
+        const base = built[0].girls.map(g => g.id_girl);
+        const pool = TeamScoringService.filterEligible(girls, playerClass);
+        const all = [...built.map(r => r.girls.map(g => g.id_girl)), ...TeamSelectionService.buildSwapNeighbours(base, pool)];
+        const seen = new Set();
+        return all.filter(t => {
+            const key = TeamSelectionService.teamKey(t);
+            if (t.length === 0 || seen.has(key))
+                return false;
+            seen.add(key);
+            return true;
+        });
+    }
+    static girlsById(girls, ids) {
+        return ids.map(id => girls.find(g => g.id_girl === id)).filter((g) => !!g);
+    }
+    // ---- Modes -----------------------------------------------------------
+    static run(id) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            if (TeamSelectionPopup.busy)
+                return;
+            const a = TeamSelectionPopup.actions;
+            if (!a)
+                return;
+            if (!getHHAjax()) {
+                TeamSelectionPopup.out(id, `<span class="tsBad">${getTextForUI('teamSelNoAjax', 'elementText')}</span>`);
+                return;
+            }
+            TeamSelectionPopup.busy = true;
+            TeamSelectionPopup.cancelled = false;
+            $('#hhTeamSel .tsButtons .myButton').addClass('tsDisabled');
             try {
-                ajax({
-                    action: 'team_calculate_caracs',
-                    girls: girlIds.map(String),
-                    battle_type: battleType,
-                }, (data) => {
-                    if (!data || !data.caracs)
-                        return done(null);
-                    done({
-                        caracs: {
-                            ego: Number(data.caracs.ego) || 0,
-                            damage: Number(data.caracs.damage) || 0,
-                            defense: Number(data.caracs.defense) || 0,
-                            chance: Number(data.caracs.chance) || 0,
-                        },
-                        totalPower: Number(data.total_power) || 0,
-                    });
-                });
+                if (id === 'C')
+                    yield TeamSelectionPopup.runNextWeek();
+                else
+                    yield TeamSelectionPopup.runThisWeek(id);
             }
             catch (err) {
-                logHHAuto('TeamEvaluationService: team_calculate_caracs failed: ' + err);
-                done(null);
+                logHHAuto('Team selection ' + id + ' failed: ' + err);
+                TeamSelectionPopup.out(id, `<span class="tsBad">${String(err)}</span>`);
+            }
+            finally {
+                TeamSelectionPopup.busy = false;
+                $('#hhTeamSel .tsButtons .myButton').removeClass('tsDisabled');
+                ['A', 'B'].forEach(m => { if (!TeamSelectionPopup.results[m])
+                    $('#hhTsApply' + m).addClass('tsDisabled'); });
             }
         });
     }
-    /**
-     * Measure every candidate and return them ranked by effective power.
-     * Returns an empty array when the game calculation is unavailable --
-     * the caller then keeps its caracs_sum ranking.
-     */
-    static rankCandidates(candidates, girlIdsOf, elementsOf) {
-        return TeamEvaluationService_awaiter(this, void 0, void 0, function* () {
-            if (candidates.length === 0 || !getHHAjax())
-                return [];
-            const battleType = TeamEvaluationService.getBattleType();
-            const harem = TeamEvaluationService.getHaremSynergies();
-            const measured = [];
-            for (const candidate of candidates) {
-                const ids = girlIdsOf(candidate);
-                const result = yield TeamEvaluationService.measureTeam(ids, battleType);
-                if (!result) {
-                    logHHAuto('TeamEvaluationService: no game calculation for a candidate, keeping stat-sum ranking');
-                    return [];
-                }
-                const counts = TeamEvaluationService.countElements(elementsOf(candidate));
-                measured.push({
-                    candidate,
-                    caracs: result.caracs,
-                    totalPower: result.totalPower,
-                    effectivePower: TeamEvaluationService.computeEffectivePower(result.caracs, counts, harem),
-                });
-                yield new Promise(r => setTimeout(r, MEASURE_DELAY_MS));
+    static runThisWeek(id) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            const a = TeamSelectionPopup.actions;
+            const girls = TeamSelectionPopup.rawGirls().map(r => a.mapGirl(r));
+            const teams = TeamSelectionPopup.candidates(girls);
+            if (teams.length === 0) {
+                TeamSelectionPopup.out(id, `<span class="tsBad">${getTextForUI('teamSelNoCandidates', 'elementText')}</span>`);
+                return;
             }
-            measured.sort((a, b) => b.effectivePower - a.effectivePower);
-            return measured;
+            const current = a.getHexagonIds();
+            const toMeasure = current.length === 7 ? [...teams, current] : teams;
+            const snap = id === 'B' ? LeagueOpponentSnapshot.load() : null;
+            if (id === 'B' && (!snap || snap.opponents.every(o => o.openFights === 0))) {
+                TeamSelectionPopup.out(id, `<span class="tsWarn">${getTextForUI('teamSelNoSnapshot', 'elementText')}</span>`);
+                return;
+            }
+            if (!(yield TeamSelectionPopup.measureAll(toMeasure, id))) {
+                TeamSelectionPopup.out(id, `<span class="tsBad">${getTextForUI('teamSelMeasureFailed', 'elementText')}</span>`);
+                return;
+            }
+            const harem = TeamEvaluationService.getHaremSynergies();
+            const score = (ids) => TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+                const m = TeamSelectionPopup.measured.get(TeamSelectionService.teamKey(ids));
+                const teamGirls = TeamSelectionPopup.girlsById(girls, ids);
+                if (id === 'A') {
+                    const eff = TeamEvaluationService.computeEffectivePower(m.caracs, TeamSelectionService.countElements(teamGirls), harem);
+                    return { score: eff, detail: '' };
+                }
+                const hero = TeamSelectionService.buildHeroFighter(m.caracs, teamGirls, harem);
+                const s = TeamSelectionService.scoreAgainstOpponents(hero, snap.opponents);
+                // Yield after each team: a hundred teams against a league is a few
+                // seconds of simulation, and the popup should keep painting.
+                yield new Promise(r => setTimeout(r, 0));
+                return { score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
+            });
+            let best = null;
+            let done = 0;
+            for (const ids of teams) {
+                const s = yield score(ids);
+                if (!best || s.score > best.score) {
+                    best = { ids, caracs: TeamSelectionPopup.measured.get(TeamSelectionService.teamKey(ids)).caracs, score: s.score, detail: s.detail };
+                }
+                done++;
+                if (id === 'B' && done % 10 === 0) {
+                    TeamSelectionPopup.out(id, getTextForUI('teamSelSimulating', 'elementText').replace('{done}', String(done)).replace('{total}', String(teams.length)));
+                }
+            }
+            const currentScore = current.length === 7 ? yield score(current) : null;
+            TeamSelectionPopup.results[id] = best;
+            TeamSelectionPopup.out(id, TeamSelectionPopup.describe(id, best, girls, currentScore, teams.length));
+            $('#hhTsApply' + id).removeClass('tsDisabled');
+            logHHAuto(`Team selection ${id}: ${teams.length} candidates, best ${best.ids.join(',')} score ${best.score}`);
+        });
+    }
+    static runNextWeek() {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            const a = TeamSelectionPopup.actions;
+            const ajax = getHHAjax();
+            const response = yield new Promise(resolve => {
+                let settled = false;
+                setTimeout(() => { if (!settled) {
+                    settled = true;
+                    resolve(null);
+                } }, 15000);
+                ajax({ action: 'get_girls_blessings' }, (data) => { if (!settled) {
+                    settled = true;
+                    resolve(data);
+                } });
+            });
+            const gt = unsafeWindow.GT || {};
+            const { conditions, unresolved } = BlessingForecast.upcomingLeagueConditions(response, gt);
+            if (!response || !response.success) {
+                TeamSelectionPopup.out('C', `<span class="tsBad">${getTextForUI('teamSelNoBlessings', 'elementText')}</span>`);
+                return;
+            }
+            const startsIn = Number((_b = (_a = response.upcoming) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.starts_in) || 0;
+            $('#hhTsSubC').html(TeamSelectionPopup.blessingLine(conditions, unresolved, startsIn));
+            const raw = TeamSelectionPopup.rawGirls();
+            const todayGirls = raw.map(r => a.mapGirl(r));
+            const nextGirls = raw.map(r => a.mapGirl(BlessingForecast.projectGirl(r, conditions)));
+            const teams = TeamSelectionPopup.candidates(nextGirls);
+            if (teams.length === 0) {
+                TeamSelectionPopup.out('C', `<span class="tsBad">${getTextForUI('teamSelNoCandidates', 'elementText')}</span>`);
+                return;
+            }
+            // Today's stats of the same girls, measured by the game; the fit runs
+            // over every team the popup has measured so far.
+            if (!(yield TeamSelectionPopup.measureAll(teams, 'C'))) {
+                TeamSelectionPopup.out('C', `<span class="tsBad">${getTextForUI('teamSelMeasureFailed', 'elementText')}</span>`);
+                return;
+            }
+            const harem = TeamEvaluationService.getHaremSynergies();
+            const samples = [...TeamSelectionPopup.measured.values()].map(m => {
+                const g = TeamSelectionPopup.girlsById(todayGirls, m.ids);
+                return { m, sums: TeamSelectionService.caracSums(g), counts: TeamSelectionService.countElements(g) };
+            });
+            const slopes = {};
+            for (const stat of ['ego', 'damage', 'defense']) {
+                const el = TeamSelectionService.synergyElementOf(stat);
+                slopes[stat] = TeamSelectionService.fitCaracSlopes(samples.map(s => ({
+                    sums: s.sums,
+                    value: s.m.caracs[stat] / (1 + TeamEvaluationService.getSynergy(s.counts, el, harem)),
+                })));
+            }
+            let best = null;
+            for (const ids of teams) {
+                const m = TeamSelectionPopup.measured.get(TeamSelectionService.teamKey(ids));
+                const today = TeamSelectionPopup.girlsById(todayGirls, ids);
+                const next = TeamSelectionPopup.girlsById(nextGirls, ids);
+                const counts = TeamSelectionService.countElements(today);
+                const projected = TeamSelectionService.projectCaracs(m.caracs, TeamSelectionService.caracSums(today), TeamSelectionService.caracSums(next), counts, harem, slopes);
+                const eff = TeamEvaluationService.computeEffectivePower(projected, counts, harem);
+                if (!best || eff > best.score)
+                    best = { ids, caracs: projected, score: eff, detail: '' };
+            }
+            TeamSelectionPopup.results.C = best;
+            TeamSelectionPopup.out('C', TeamSelectionPopup.describe('C', best, nextGirls, null, teams.length));
+        });
+    }
+    static blessingLine(conditions, unresolved, startsInSec) {
+        const list = conditions.map(c => `${c.text} +${c.percent} %`).join(', ') || '--';
+        const h = Math.floor(startsInSec / 3600);
+        const when = startsInSec > 0 ? getTextForUI('teamSelChangeIn', 'elementText').replace('{d}', String(Math.floor(h / 24))).replace('{h}', String(h % 24)) : '';
+        const miss = unresolved.length > 0 ? `<br/><span class="tsWarn">${getTextForUI('teamSelUnresolved', 'elementText')}: ${unresolved.join(', ')}</span>` : '';
+        return `${list}${when ? ' &middot; ' + when : ''}${miss}`;
+    }
+    // ---- Output ----------------------------------------------------------
+    static describe(id, r, girls, current, candidates) {
+        const a = TeamSelectionPopup.actions;
+        const hex = new Set(a.getHexagonIds());
+        const names = TeamSelectionPopup.girlsById(girls, r.ids).map((g, i) => {
+            const isNew = !hex.has(g.id_girl);
+            const label = `${i === 0 ? '&#9733; ' : ''}${g.name} <span class="tsSub">(${g.element}, ${g.rarity})</span>`;
+            return isNew ? `<b class="tsGood">${label}</b>` : label;
+        }).join('<br/>');
+        const caracs = `${getTextForUI('teamSelDamage', 'elementText')} ${Math.round(r.caracs.damage).toLocaleString()} &middot; `
+            + `${getTextForUI('teamSelEgo', 'elementText')} ${Math.round(r.caracs.ego).toLocaleString()} &middot; `
+            + `${getTextForUI('teamSelDefense', 'elementText')} ${Math.round(r.caracs.defense).toLocaleString()}`;
+        let headline = '';
+        if (id === 'B') {
+            headline = getTextForUI('teamSelPoints', 'elementText').replace('{points}', r.score.toFixed(0)).replace('{win}', r.detail);
+        }
+        else {
+            headline = getTextForUI('teamSelEff', 'elementText').replace('{eff}', r.score.toExponential(3));
+        }
+        let delta = '';
+        if (current && current.score > 0) {
+            const pct = (r.score / current.score - 1) * 100;
+            delta = pct > 0.005
+                ? ` <span class="tsGood">(+${pct.toFixed(2)} % ${getTextForUI('teamSelVsCurrent', 'elementText')})</span>`
+                : ` <span class="tsSub">(${getTextForUI('teamSelIsCurrent', 'elementText')})</span>`;
+        }
+        const note = id === 'C' ? `<div class="tsSub">${getTextForUI('teamSelModelNote', 'elementText')}</div>` : '';
+        return `<div>${headline}${delta}</div><div class="tsSub">${caracs} &middot; ${candidates} ${getTextForUI('teamSelCandidates', 'elementText')}</div>${note}<div>${names}</div>`;
+    }
+    // ---- Apply -----------------------------------------------------------
+    static apply(id) {
+        const a = TeamSelectionPopup.actions;
+        const r = TeamSelectionPopup.results[id];
+        if (!a || !r || id === 'C')
+            return;
+        $('#hhTsApply' + id).addClass('tsDisabled');
+        a.saveTeam(r.ids, (ok, message) => {
+            const html = ok
+                ? `<span class="tsGood">${getTextForUI('teamSelApplied', 'elementText')}</span>`
+                : `<span class="tsBad">${getTextForUI('teamSelApplyFailed', 'elementText')}: ${message}</span>`;
+            $('#hhTsOut' + id).prepend(`<div>${html}</div>`);
+            if (!ok)
+                $('#hhTsApply' + id).removeClass('tsDisabled');
         });
     }
 }
+TeamSelectionPopup.actions = null;
+TeamSelectionPopup.measured = new Map();
+TeamSelectionPopup.results = {};
+TeamSelectionPopup.busy = false;
+TeamSelectionPopup.cancelled = false;
+// ---- Rendering -------------------------------------------------------
+TeamSelectionPopup.stylesAdded = false;
 
 ;// ./src/Service/TraitMappings.ts
 // TraitMappings.ts -- Maps internal hex / image / unicode codes to
@@ -29954,6 +31042,7 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
+
 class TeamModule {
     static resetTeam() {
         $('#clear-team').trigger('click');
@@ -30000,12 +31089,14 @@ class TeamModule {
         // 2c (Assign first 7) only exists after a team was picked, so it gets
         // a slot here and is filled in by ensureAssignTopTeamButton.
         $("#contains_all section").append('<div id="hhTeamWorkflow">'
+            + hhButton('teamSelOpen', 'hhTeamSelectionOpen', '', '', '')
             + hhButton('UnequipAll', 'UnequipAll', '', '', '1 ')
             + hhButton('ChangeTeamButton', 'ChangeTeamButton', '', '', '2a ')
             + hhButton('ChangeTeamButton2', 'ChangeTeamButton2', '', '', '2b ')
             + '<div id="hhAssignSlot"></div>'
             + hhButton('StuffTeam', 'StuffTeam', '', '', '3 ')
             + '</div>');
+        $("#hhTeamSelectionOpen").on("click", () => TeamModule.openTeamSelection());
         $("#UnequipAll").on("click", TeamModule.unequipAllGirls);
         $("#ChangeTeamButton").on("click", () => { TeamModule.setTopTeam(1); });
         $("#ChangeTeamButton2").on("click", () => { TeamModule.setTopTeam(2); });
@@ -30044,7 +31135,7 @@ class TeamModule {
             var params1 = {
                 action: "girl_equipment_unequip_all_girls"
             };
-            getHHAjax()(params1, function (_data) {
+            const finish = function () {
                 $("#UnequipAll").removeAttr('disabled');
                 // change referer
                 window.history.replaceState(null, '', addNutakuSession(currentPage));
@@ -30056,6 +31147,16 @@ class TeamModule {
                     // + reload, with mutex protection (issue #1598).
                     safeReload(randomInterval(200, 500));
                 }
+            };
+            getHHAjax()(params1, function (_data) {
+                // Measured 2026-09-19: the server answers {success:true} and
+                // takes the gear off, but keeps serving the old girl data --
+                // armor and caracs of before -- through reloads and get_girl,
+                // so the next build still ranks the gear. The per-girl unequip
+                // of one team girl finds nothing left to take off
+                // (unequipped_armor: []) and after it every girl reads fresh.
+                // Hence the second call; its girl needs no gear to be removed.
+                getHHAjax()({ action: "girl_equipment_unequip_all", id_girl: girlId }, function () { finish(); });
             });
         }
     }
@@ -30380,9 +31481,19 @@ class TeamModule {
             logHHAuto('Not saving team: only ' + girls.length + ' girls in the hexagons.');
             return;
         }
+        TeamModule.saveTeamIds(girls, () => { if (onDone)
+            onDone(); });
+    }
+    /**
+     * Save a given team (leader first) with the request the game's Validate
+     * button sends. Reports the outcome instead of only logging it: the
+     * team selection popup shows it next to the team it applied.
+     */
+    static saveTeamIds(girls, onDone) {
         const ajax = getHHAjax();
         if (!ajax) {
             logHHAuto('Can\'t save team: hh_ajax unavailable. Use the game\'s Validate button.');
+            onDone(false, 'hh_ajax unavailable');
             return;
         }
         const params = {
@@ -30396,14 +31507,37 @@ class TeamModule {
             params.id_team = teamId;
         logHHAuto('Saving team in place: ' + girls.join(', '));
         ajax(params, (data) => {
+            var _a, _b;
             if (data && data.success === false) {
                 logHHAuto('Team save rejected by the game: ' + JSON.stringify(data));
+                onDone(false, String((_b = (_a = data.error) !== null && _a !== void 0 ? _a : data.message) !== null && _b !== void 0 ? _b : JSON.stringify(data)));
             }
             else {
                 logHHAuto('Team saved. Staying on the edit page -- "3 Stuff Team" is ready.');
+                onDone(true, '');
             }
-            if (onDone)
-                onDone();
+        });
+    }
+    /**
+     * The team selection popup (TeamSelectionPopup). A team it applies is
+     * saved and the page reloaded, so the hexagons show the saved team and
+     * "Stuff Team" equips the girls that will actually fight.
+     */
+    static openTeamSelection() {
+        TeamSelectionPopup.open({
+            mapGirl: raw => TeamModule.mapAvailableGirl(raw),
+            getHexagonIds: () => TeamModule.getEditTeamGirlIds(),
+            getSavedIds: () => {
+                const saved = getHHVars('teamGirls', false);
+                return Array.isArray(saved) ? saved.map((g) => Number(g === null || g === void 0 ? void 0 : g.id_girl)).filter((id) => id > 0) : [];
+            },
+            saveTeam: (ids, onDone) => TeamModule.saveTeamIds(ids, (ok, message) => {
+                onDone(ok, message);
+                if (ok)
+                    safeReload(randomInterval(800, 1200));
+            }),
+            unequipAll: () => TeamModule.unequipAllGirls(),
+            stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
         });
     }
     static assignTopTeam() {
@@ -31398,11 +32532,14 @@ var AutoLoopPageHandlers_awaiter = (undefined && undefined.__awaiter) || functio
 
 
 
+
 // Tracks whether the read-only Season-arena power-calc preview has already
 // been rendered on the current page load. Reset implicitly on every page
 // navigation (full reload re-initialises the module). Used instead of
 // wrapping Season.moduleSimSeasonBattle in callItOnce -- see issue #1722.
 let seasonArenaPreviewShown = false;
+// Same lifetime: the league opponent snapshot is written once per page load.
+let opponentSnapshotTaken = false;
 function handlePageSpecific(ctx) {
     return AutoLoopPageHandlers_awaiter(this, void 0, void 0, function* () {
         // The mythic upgrade page carries no `page` attribute, so it never
@@ -31418,6 +32555,12 @@ function handlePageSpecific(ctx) {
         }
         switch (ctx.currentPage) {
             case ConfigHelper.getHHScriptVars("pagesIDLeaderboard"):
+                // Once per page load, and only once the list is there: the team
+                // selection against the open opponents reads this snapshot on the
+                // edit-team page, where opponents_list does not exist.
+                if (!opponentSnapshotTaken) {
+                    opponentSnapshotTaken = LeagueOpponentSnapshot.capture(LeagueHelper.getLeagueEndTime());
+                }
                 if (getStoredValue(HHStoredVarPrefixKey + SK.showCalculatePower) === "true") {
                     LeagueHelper.moduleSimLeague = callItOnce(LeagueHelper.moduleSimLeague);
                     LeagueHelper.moduleSimLeague();
