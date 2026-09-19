@@ -60,8 +60,11 @@ export function isStillWorthFighting(
     return shards < 100 || (wantsSkins && hasSkinToWin(girl));
 }
 
-/** One entry of `rewards.data.shards` in a battle response. */
+/** One entry of `rewards.data.shards` in a battle response. The game's own
+ *  reward code reads `id_girl`, `value` and `previous_value` from it
+ *  (build/shared.js). */
 export interface ShardDrop {
+    id_girl?: number | string;
     previous_value?: number;
     value?: number;
 }
@@ -85,6 +88,25 @@ export function shardTotalAfterFight(
     const entry = matched ?? (drops.length === 1 ? drops[0] : undefined);
     const value = entry?.value;
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * A love raid girl's new shard total after a fight, or null when the response
+ * carries no entry for her (#1889).
+ *
+ * Attribution is by `id_girl` only. The single-entry fallback of
+ * shardTotalAfterFight does not apply here: an event girl can drop in the same
+ * fight, and crediting her shards to the raid girl would end the raid early.
+ */
+export function raidShardTotalAfterFight(
+    drops: readonly ShardDrop[] | null | undefined,
+    idGirl: number,
+): number | null {
+    if (!Array.isArray(drops)) return null;
+    const raw = drops.find(d => d?.id_girl != null && Number(d.id_girl) === Number(idGirl))?.value;
+    if (raw == null) return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
 }
 
 /**

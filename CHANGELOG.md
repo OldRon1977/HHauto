@@ -7,7 +7,7 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.13.2 - Stat cap back to level x 30, Sultry Mysteries reloads a stale grid
+### v8.13.2 - Stat cap back to level x 30, Sultry Mysteries reloads a stale grid, Love Raid stops once the girl is won
 
 - **Stat buying:** the script stops at 30 points per level again. Since 8.13.1
   it bought up to a higher value from the game's answer, so the game refused
@@ -18,6 +18,13 @@ Older entries below were migrated 1:1 from `README.md`.
   square"), the script reloads the event page and reads the grid again instead
   of pausing Auto-Mystery for an hour. The page can carry an older grid and key
   count than the server. Only a second refusal right after the reload pauses it.
+- **Love Raid:** the script reads the raid girl's shard count from every troll
+  fight. Until now the count moved only when the raid page was read again,
+  which with no event running could be hours later. The script kept fighting
+  a girl it had already won and collected her skin shards, even with
+  "+Girl Skins" off. It now drops the raid as soon as she reaches 100/100.
+  With "+Girl Skins" on, it reads the raid page again at that point to see
+  whether a skin is still open.
 
 ### v8.13.1 - Loose ends from 8.13.0
 

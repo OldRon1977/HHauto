@@ -1,4 +1,4 @@
-import { hasSkinToWin, isSkinPhase, isStillWorthFighting, shardTotalAfterFight } from '../../../src/Module/Events/GirlSkins.pure';
+import { hasSkinToWin, isSkinPhase, isStillWorthFighting, raidShardTotalAfterFight, shardTotalAfterFight } from '../../../src/Module/Events/GirlSkins.pure';
 
 // Shapes taken from a live mythic event (#1842): the girl was fully owned
 // (shards 100) and the game still listed an unowned, released skin.
@@ -83,6 +83,30 @@ describe('shardTotalAfterFight', () => {
         expect(shardTotalAfterFight([], 10)).toBeNull();
         expect(shardTotalAfterFight([{}], 10)).toBeNull();
         expect(shardTotalAfterFight('nope' as never, 10)).toBeNull();
+    });
+});
+
+// #1889: love raid drops are matched to the girl by id. The game's reward code
+// reads id_girl, value and previous_value from each entry of data.shards.
+describe('raidShardTotalAfterFight', () => {
+    it("reads the raid girl's entry by id", () => {
+        expect(raidShardTotalAfterFight([{ id_girl: 11, previous_value: 3, value: 5 }, { id_girl: 22, previous_value: 70, value: 72 }], 22)).toBe(72);
+    });
+
+    it('matches an id sent as a string', () => {
+        expect(raidShardTotalAfterFight([{ id_girl: '22', previous_value: 98, value: 100 }], 22)).toBe(100);
+    });
+
+    it("does not take another girl's single entry", () => {
+        // shardTotalAfterFight would take it; for a raid that would credit an
+        // event girl's drop to the raid girl.
+        expect(raidShardTotalAfterFight([{ id_girl: 11, previous_value: 72, value: 74 }], 22)).toBeNull();
+    });
+
+    it('returns null without an id, without data, or without a value', () => {
+        expect(raidShardTotalAfterFight([{ previous_value: 72, value: 74 }], 22)).toBeNull();
+        expect(raidShardTotalAfterFight(undefined, 22)).toBeNull();
+        expect(raidShardTotalAfterFight([{ id_girl: 22, previous_value: 72 }], 22)).toBeNull();
     });
 });
 

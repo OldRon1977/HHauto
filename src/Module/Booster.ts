@@ -3,7 +3,7 @@ import { HeroHelper } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { deleteStoredValue, getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
-import { checkTimer, setTimer } from "../Helper/TimerHelper";
+import { checkTimer, clearTimer, setTimer } from "../Helper/TimerHelper";
 import { gotoPage, safeReload } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { onAjaxResponse } from "../Utils/Utils";
@@ -13,7 +13,7 @@ import { EventGirl } from '../model/EventGirl';
 import { LoveRaid } from '../model/LoveRaid';
 import { MYTHIC_CODE_RE } from "./Booster.pure";
 import { EventModule } from "./Events/EventModule";
-import { isSkinPhase, shardTotalAfterFight, ShardDrop } from "./Events/GirlSkins.pure";
+import { isSkinPhase, raidShardTotalAfterFight, shardTotalAfterFight, ShardDrop } from "./Events/GirlSkins.pure";
 import { LoveRaidManager } from "./Events/LoveRaidManager";
 
 const DEFAULT_BOOSTERS: { normal: any[]; mythic: any[] } = {normal: [], mythic:[]};
@@ -144,6 +144,7 @@ export class Booster {
                     // keeps fighting a girl it has already completed.
                     if (action === 'do_battles_trolls') {
                         Booster.updateEventGirlShards(response);
+                        Booster.updateLoveRaidShards(response);
                     }
 
                     if (sandalwood && action === 'do_battles_trolls') {
@@ -1175,6 +1176,46 @@ export class Booster {
                 sessionStorage.removeItem(HHStoredVarPrefixKey + key);
                 logHHAuto(`[SKIN] girl ${girl.girl_id} complete, dropping her as a fight target`);
             }
+        }
+    }
+
+    /**
+     * Write the shard count from a battle response back into the stored love
+     * raids (#1889).
+     *
+     * The raid list was refreshed only by parsing the raid page, and that
+     * page's timer runs until the next raid ends -- hours. The reward-popup
+     * reader that also updates raids returns early when no event girl is
+     * stored, so without an event running the count never moved: in the log
+     * of the report a raid girl stayed at 72 for the rest of the raid, while
+     * the game had her at 100 and was handing out skin shards.
+     *
+     * With the count at 100, getRaidToFight drops the selection by itself when
+     * skins are off. When skins are wanted, the raid page is re-read, because
+     * only it says whether a skin is still open.
+     */
+    static updateLoveRaidShards(response: { rewards?: { data?: { shards?: readonly ShardDrop[] } } }): void {
+        const drops = response?.rewards?.data?.shards;
+        if (!Array.isArray(drops) || drops.length === 0) return;
+        const raids = LoveRaidManager.getAllRaids();
+        let changed = false;
+        let girlCompleted = false;
+        for (const raid of raids) {
+            const after = raidShardTotalAfterFight(drops, raid.id_girl);
+            if (after === null) continue;
+            const before = Number(raid.girl_shards);
+            if (after === before) continue;
+            raid.girl_shards = after;
+            raid.girl_to_win = after < 100;
+            changed = true;
+            logHHAuto(`[RAID] girl ${raid.id_girl} shards ${before} -> ${after}`);
+            if (before < 100 && after >= 100) girlCompleted = true;
+        }
+        if (!changed) return;
+        LoveRaidManager.saveLoveRaids(raids);
+        if (girlCompleted && getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === 'true') {
+            clearTimer('nextLoveRaidTime');
+            logHHAuto('[RAID] girl complete, re-reading the raid page for skins');
         }
     }
 
