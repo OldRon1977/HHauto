@@ -172,9 +172,23 @@ shows a small live counter overlay in the top-right corner.
 
 ## Contributing
 
-The rules this project runs on -- what to read before a change, what counts as
-a finding, the gates every commit passes, and how captures are anonymised --
-are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Every commit passes the same gates CI runs:
+
+```
+npm run typecheck
+npm run lint:ci
+npm test
+npm run deps:circular:check
+npm run check:gm-grants
+npm run check:docs
+npm run check:headers
+npm run check:player-data
+npm run build            # HHAuto.user.js belongs in the same commit
+```
+
+Test fixtures carry no real players: your own account is `1`, other players
+start at `1000`, names are `Player_N`. `npm run hooks:install` sets up the
+pre-commit hook that checks this.
 
 ---
 

@@ -1,5 +1,6 @@
-# What belongs in the repository and what does not is explained in
-# CONTRIBUTING.md, section "What is in the repository, and what stays local".
+# The repository carries what the script needs: its source, tests, build,
+# the delivered HHAuto.user.js, the bonus scripts, and the gates CI runs.
+# Working notes, assistant instructions and measuring tools stay local.
 
 # Dependencies and generated output
 node_modules/
@@ -10,14 +11,26 @@ jest-*.json
 
 # Captured from the game: carries account data, and stale within days
 INPUT/
-scripts/catalogue/out/
-docs/reference/diagrams/
 
 # The local workspace: notes, drafts, reports, logs -- anything only this
 # machine needs. Personal files outside it belong in .git/info/exclude.
 local/
 *.log
 _logs_*/
+
+# Local working documents and measuring tools -- kept on disk, not shared.
+# The gates read three files under docs/reference, and the README links the
+# inspector's share-mode reference; those stay tracked.
+CLAUDE.md
+CONTRIBUTING.md
+docs/decisions/
+docs/reference/*
+!docs/reference/storage-keys.md
+!docs/reference/page-mapping.md
+!docs/reference/circular-baseline.json
+!docs/reference/inspector-pii-share-mode.md
+scripts/live-check/
+scripts/catalogue/
 
 # Assistant and editor state
 .claude/
