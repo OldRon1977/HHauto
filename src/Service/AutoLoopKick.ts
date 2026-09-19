@@ -18,7 +18,7 @@
 // the storage read that supplies the delay, which is why the delay is the
 // caller's to pass.
 //
-// Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts,
+// Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts, TeamSelectionPopup.ts,
 //   DoublePenetration.ts, PathOfAttraction.ts; wired in index.ts
 
 let kick: () => void = () => {};

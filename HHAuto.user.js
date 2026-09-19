@@ -12103,7 +12103,7 @@ function getGoToClubChampionButton() {
 // the storage read that supplies the delay, which is why the delay is the
 // caller's to pass.
 //
-// Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts,
+// Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts, TeamSelectionPopup.ts,
 //   DoublePenetration.ts, PathOfAttraction.ts; wired in index.ts
 let kick = () => { };
 /** Wired once from the boot path with the real autoLoop. */
@@ -24139,11 +24139,27 @@ class TeamScoringService {
 //
 // Depends on: BDSMHelper.ts (league fight simulation), TeamEvaluationService.ts (synergies)
 // Used by: TeamSelectionPopup.ts
+var TeamSelectionService_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 
 
 
 /** Swap partners tried per position around the stat-sum pick. */
 const SWAP_ALTERNATIVES = 15;
+/**
+ * Candidates the league rubrics simulate: the best by effective power. The
+ * simulation is the slow part (every candidate against every open opponent),
+ * and in the measured data the team that won the simulation always stood
+ * first or second by effective power (373 teams, one account).
+ */
+const SIMULATED_CANDIDATES = 30;
 /** A league opponent can be fought this many times per league week. */
 const FIGHTS_PER_OPPONENT = 3;
 const ELEMENTS = ['fire', 'water', 'nature', 'stone', 'sun', 'darkness', 'light', 'psychic'];
@@ -24257,6 +24273,33 @@ class TeamSelectionService {
             fights += weight;
         }
         return { points, winChance: fights > 0 ? wins / fights : 0, fights };
+    }
+    /**
+     * scoreAgainstOpponents for the page: the same sums, but the thread is
+     * handed back every `sliceMs`. Seventy-odd fights in one go froze the
+     * tab ("page not responding") on a player's machine.
+     */
+    static scoreAgainstOpponentsSliced(hero_1, opponents_1) {
+        return TeamSelectionService_awaiter(this, arguments, void 0, function* (hero, opponents, sliceMs = 25, simulate = TeamSelectionService.simulateFight) {
+            let points = 0;
+            let wins = 0;
+            let fights = 0;
+            let sliceStart = Date.now();
+            for (const opponent of opponents) {
+                const weight = Math.max(0, Math.min(FIGHTS_PER_OPPONENT, opponent.openFights));
+                if (weight === 0)
+                    continue;
+                const result = simulate(hero, opponent.player);
+                points += weight * result.points;
+                wins += weight * result.win;
+                fights += weight;
+                if (Date.now() - sliceStart >= sliceMs) {
+                    yield new Promise(r => setTimeout(r, 0));
+                    sliceStart = Date.now();
+                }
+            }
+            return { points, winChance: fights > 0 ? wins / fights : 0, fights };
+        });
     }
     // ---- Next-week projection -------------------------------------------
     /** Sum of each carac over the team. */
@@ -30489,6 +30532,10 @@ var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function 
 
 
 
+
+
+
+
 const RUBRICS = [
     { id: 'S1', group: 'stats', titleKey: 'teamSelThisStats', week: 'this', possible: false, scoring: 'effective', canApply: true },
     { id: 'S2', group: 'stats', titleKey: 'teamSelThisStatsPossible', week: 'this', possible: true, scoring: 'effective', canApply: true },
@@ -30623,7 +30670,14 @@ class TeamSelectionPopup {
             for (const team of todo) {
                 TeamSelectionPopup.out(id, getTextForUI('teamSelMeasuring', 'elementText')
                     .replace('{done}', String(done)).replace('{total}', String(todo.length)));
-                const result = yield TeamEvaluationService.measureTeam(team, battleType);
+                // A calculation that does not answer is tried again twice before
+                // the rubric gives up -- one slow answer should not cost the
+                // hundred calculations before it.
+                let result = yield TeamEvaluationService.measureTeam(team, battleType);
+                for (let retry = 0; !result && retry < 2; retry++) {
+                    yield new Promise(r => setTimeout(r, 2000));
+                    result = yield TeamEvaluationService.measureTeam(team, battleType);
+                }
                 if (!result) {
                     logHHAuto('Team selection: the game calculated no stats for a candidate, stopping.');
                     return false;
@@ -30762,6 +30816,13 @@ class TeamSelectionPopup {
             }
             TeamSelectionPopup.busy = true;
             $('#hhTeamSel .tsCalc').addClass('tsDisabled');
+            // Hold the auto-loop for the length of the calculation: a block that
+            // navigates away takes the measured candidates with it, and one that
+            // sends its own requests competes with a hundred calculations. A
+            // reload in between is safe -- the boot path switches the loop back on.
+            const loopWasOn = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === 'true';
+            if (loopWasOn)
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
             try {
                 yield TeamSelectionPopup.evaluate(r);
             }
@@ -30772,6 +30833,10 @@ class TeamSelectionPopup {
             finally {
                 TeamSelectionPopup.busy = false;
                 $('#hhTeamSel .tsCalc').removeClass('tsDisabled');
+                if (loopWasOn) {
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
+                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
+                }
             }
         });
     }
@@ -30829,22 +30894,25 @@ class TeamSelectionPopup {
                 if (r.scoring === 'effective') {
                     return { ids, caracs, score: TeamEvaluationService.computeEffectivePower(caracs, TeamSelectionService.countElements(teamGirls), harem), detail: '' };
                 }
-                const s = TeamSelectionService.scoreAgainstOpponents(TeamSelectionService.buildHeroFighter(caracs, teamGirls, harem), snap.opponents);
-                // Yield after each team: a hundred teams against a league is a few
-                // seconds of simulation, and the popup should keep painting.
-                yield new Promise(res => setTimeout(res, 0));
+                const s = yield TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, teamGirls, harem), snap.opponents);
                 return { ids, caracs, score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
             });
+            const effective = (ids) => TeamEvaluationService.computeEffectivePower(statsOf(ids), TeamSelectionService.countElements(TeamSelectionPopup.girlsById(pool.evaluated, ids)), harem);
+            // The league rubrics simulate the best candidates by effective power
+            // only (SIMULATED_CANDIDATES); the other rubrics score them all.
+            const scored = r.scoring === 'opponents'
+                ? [...teams].sort((x, y) => effective(y) - effective(x)).slice(0, (/* inlined export .SIMULATED_CANDIDATES */30))
+                : teams;
             let best = null;
             let done = 0;
-            for (const ids of teams) {
+            for (const ids of scored) {
+                if (r.scoring === 'opponents') {
+                    TeamSelectionPopup.out(r.id, getTextForUI('teamSelSimulating', 'elementText').replace('{done}', String(done)).replace('{total}', String(scored.length)));
+                }
                 const s = yield score(ids);
                 if (!best || s.score > best.score)
                     best = s;
                 done++;
-                if (r.scoring === 'opponents' && done % 10 === 0) {
-                    TeamSelectionPopup.out(r.id, getTextForUI('teamSelSimulating', 'elementText').replace('{done}', String(done)).replace('{total}', String(teams.length)));
-                }
             }
             const currentScore = current.length === 7 ? yield score(current) : null;
             TeamSelectionPopup.results[r.id] = best;

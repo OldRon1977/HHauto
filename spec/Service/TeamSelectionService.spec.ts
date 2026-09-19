@@ -111,3 +111,13 @@ describe('TeamSelectionService.developmentFactor', () => {
         expect(TeamSelectionService.developmentFactor(girl(1, 3000))).toBeCloseTo(1);
     });
 });
+
+describe('TeamSelectionService.scoreAgainstOpponentsSliced', () => {
+    it('gives the same sums as the plain version', async () => {
+        const sim = (_h: FighterData, p: FighterData) => ({ points: 10 + p.damage, win: 0.25 });
+        const opps = [opponent(3), opponent(0), opponent(2)];
+        const plain = TeamSelectionService.scoreAgainstOpponents(opps[0].player, opps, sim);
+        const sliced = await TeamSelectionService.scoreAgainstOpponentsSliced(opps[0].player, opps, 0, sim);
+        expect(sliced).toEqual(plain);
+    });
+});
