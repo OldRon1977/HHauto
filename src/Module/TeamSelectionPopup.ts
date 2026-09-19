@@ -158,6 +158,9 @@ export class TeamSelectionPopup {
             + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:calc(13px + 1pt);}'
             + '#hhTeamSel .tsState{font-size:calc(11px + 1pt);color:#555;margin-top:3px;}'
             + '#hhTeamSel .myButton.tsDisabled{opacity:0.45;pointer-events:none;}'
+            + '#hhTeamSel .tsInfo{display:inline-block;width:1.25em;height:1.25em;line-height:1.25em;border-radius:50%;'
+            + 'background:#476e9e;color:#fff;text-align:center;font-weight:bold;font-style:italic;cursor:pointer;user-select:none;}'
+            + '#hhTeamSel .tsInfoText{border-left:2px solid #476e9e;padding-left:6px;margin-top:2px;}'
         );
     }
 
@@ -175,7 +178,13 @@ export class TeamSelectionPopup {
     private static render(): string {
         // The league rubrics simulate every candidate against every open
         // opponent on top of the game calculation -- a minute or more.
-        const hint = (g: Rubric['group']) => g === 'league' ? `<div class="tsSub">${getTextForUI('teamSelSlowHint', 'elementText')}</div>` : '';
+        // The "i" folds the reason open on click rather than as a tooltip:
+        // tooltips can be switched off in the menu, and this one matters.
+        const hint = (g: Rubric['group']) => g === 'league'
+            ? `<div class="tsSub">${getTextForUI('teamSelSlowHint', 'elementText')}`
+              + ` <span class="tsInfo" id="hhTsSlowInfoToggle" title="${getTextForUI('teamSelSlowInfo', 'elementText')}">i</span></div>`
+              + `<div class="tsSub tsInfoText" id="hhTsSlowInfo" style="display:none">${getTextForUI('teamSelSlowInfo', 'elementText')}</div>`
+            : '';
         const group = (g: Rubric['group']) => `<div class="tsGroup tsGroup-${g}">${hint(g)}${RUBRICS.filter(r => r.group === g).map(r => TeamSelectionPopup.rubricHtml(r)).join('')}</div>`;
         return `<div id="hhTeamSel">
             <div class="tsGroups">${group('stats')}${group('league')}${group('next')}</div>
@@ -197,6 +206,7 @@ export class TeamSelectionPopup {
             $('#hhTsCalc' + r.id).on('click', () => { void TeamSelectionPopup.run(r); });
             if (r.canApply) $('#hhTsApply' + r.id).on('click', () => TeamSelectionPopup.apply(r));
         }
+        $('#hhTsSlowInfoToggle').on('click', () => $('#hhTsSlowInfo').toggle());
         $('#hhTsUnequip').on('click', () => TeamSelectionPopup.actions?.unequipAll());
         $('#hhTsStuff').on('click', () => {
             const a = TeamSelectionPopup.actions;
