@@ -120,7 +120,6 @@ export class TeamSelectionPopup {
         TeamSelectionPopup.actions = actions;
         TeamSelectionPopup.addStyles();
         fillHHPopUp('hhTeamSelectionPopup', getTextForUI('teamSelTitle', 'elementText'), TeamSelectionPopup.render());
-        TeamSelectionPopup.matchTitleFont();
         TeamSelectionPopup.bind();
         TeamSelectionPopup.refreshStatus();
     }
@@ -133,7 +132,8 @@ export class TeamSelectionPopup {
         TeamSelectionPopup.stylesAdded = true;
         // The popup is white: the light greens and yellows of the dark team
         // panel are unreadable on it, so every state colour here is a dark one.
-        // Sizes are the former ones plus 1pt.
+        // Sizes are the former ones plus 1pt; the font is the script's own
+        // (IBM Plex Sans, set on the popup in HHAuto.template.js).
         GM_addStyle(
             '.hhTeamSelectionPopup #HHAutoPopupGlobalContent{max-width:900px;}'
             + '#hhTeamSel{display:grid;grid-template-columns:1fr 180px;gap:10px;font-size:calc(13px + 1pt);}'
@@ -152,20 +152,8 @@ export class TeamSelectionPopup {
             + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #999;padding-left:10px;}'
             + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:calc(13px + 1pt);}'
             + '#hhTeamSel .tsState{font-size:calc(11px + 1pt);color:#555;margin-top:3px;}'
-            + '#hhTeamSel .myButton{font-family:inherit;}'
             + '#hhTeamSel .myButton.tsDisabled{opacity:0.45;pointer-events:none;}'
         );
-    }
-
-    /**
-     * The popup title takes its font from the game's stylesheet; the content
-     * follows it, whichever font the game variant uses.
-     */
-    private static matchTitleFont(): void {
-        const title = document.getElementById('HHAutoPopupGlobalTitle');
-        const content = document.getElementById('hhTeamSel');
-        if (!title || !content) return;
-        content.style.fontFamily = window.getComputedStyle(title).fontFamily;
     }
 
     private static rubricHtml(r: Rubric): string {
