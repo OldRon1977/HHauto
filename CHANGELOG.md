@@ -7,34 +7,44 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.14.0 - Team selection popup: this week, against the open opponents, next week
+### v8.14.0 - Team selection popup: this week, against the league, next week
 
 A new **Team selection** button at the top of the edit-team column opens a
-popup with three modes, kept visibly apart, and a second column with Unequip
-All and Stuff Team.
+popup with six rubrics in three coloured groups, and a second column with
+Unequip All and Stuff Team.
 
-- **This week, by stats and blessings.** No opponents -- for the hours after
-  the weekly blessing change, before the league has switched. The candidates
-  are the builder's picks plus every single swap of positions 2-7 against the
-  15 strongest girls outside the team. `caracs_sum` counts carac1, carac2 and
-  carac3 alike and the game does not: measured on one account, a girl in 14th
-  place by `caracs_sum` made the best team of 373. The game calculates every
-  candidate; the one with the highest effective power wins. About 100
-  calculations, 40-50 seconds with a progress line.
-- **This week, against the open opponents.** The same candidates, scored with
-  the script's battle simulator against the league opponents. Each opponent
-  counts as often as he can still be fought (0-3); opponents fought three
-  times are left out. The script keeps the list from your last visit to the
-  league page and shows how old it is.
-- **Next week, preview.** The coming blessings on today's girls, matched in the
-  page language through the game's own tables; a colour blessing counts
-  colour 1 or colour 2. The game only calculates today's blessings, so the
-  stats are an estimate. Display only.
+| Group | Rubric | Scored by |
+|---|---|---|
+| This week - by stats and blessings | best now / possibly best | effective power |
+| This week - against League opponents | best now / possibly best | simulated league points |
+| Next week - by stats and blessings | best now / possibly best | effective power |
+
+- **Candidates.** The builder's picks plus every single swap of positions 2-7
+  against the 15 strongest girls outside the team. `caracs_sum` counts
+  carac1, carac2 and carac3 alike and the game does not: measured on one
+  account, a girl in 14th place by `caracs_sum` made the best team of 373.
+  The game calculates every candidate. About 100 calculations, 40-50 seconds
+  with a progress line; later rubrics reuse what earlier ones measured.
+- **Against League opponents.** The battle simulator against the opponents
+  of your league. Each opponent counts as often as he can still be fought
+  (0-3); opponents fought three times are left out. The script keeps the list
+  from your last visit to the league page and shows how old it is. This one
+  takes a while -- the simulation comes on top of the calculation.
+- **Next week.** The coming blessings on today's girls, matched in the page
+  language through the game's own tables; a colour blessing counts colour 1
+  or colour 2.
+- **Possibly best.** Every girl projected to level 750 with every grade, as
+  "Possible Best" does.
+- Where the girls are not today's (next week, possibly best) the game cannot
+  calculate them. The stats are today's plus an estimated change, and the
+  result says so.
 - Position 1 stays with the builder's leader -- the Mythic with the Tier-5
-  Shield -- in every mode.
-- **Apply** saves the team and reloads the page, so the hexagons show the
-  saved team. The column shows whether hexagons and saved team match, and
-  Stuff Team asks before equipping hexagons that differ from the saved team.
+  Shield -- in every rubric.
+- **Apply** works in every rubric and saves into the team slot whose edit
+  page is open -- keep next week's team or a development team in a slot of
+  its own. The page reloads so the hexagons show the saved team. The column
+  shows whether hexagons and saved team match, and Stuff Team asks before
+  equipping hexagons that differ from the saved team.
 - **Unequip All** now also refreshes the girl data. The game took the gear off
   but kept serving the old values -- armor and stats of before, through
   reloads -- so a build right after still ranked the gear. One more request

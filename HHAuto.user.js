@@ -776,13 +776,8 @@ HHAuto_ToolTips.en['costexperience'] = { version: "7.18.0", elementText: "For a 
 // Team selection popup (TeamSelectionPopup)
 HHAuto_ToolTips.en['teamSelOpen'] = { version: "8.14.0", elementText: "Team selection", tooltip: "Open the team selection: this week by stats, this week against the open league opponents, next week preview." };
 HHAuto_ToolTips.en['teamSelTitle'] = { version: "8.14.0", elementText: "Team selection", tooltip: "" };
-HHAuto_ToolTips.en['teamSelModeA'] = { version: "8.14.0", elementText: "This week · by stats and blessings", tooltip: "No opponents: for the hours after the blessing change, before the league has switched." };
-HHAuto_ToolTips.en['teamSelModeB'] = { version: "8.14.0", elementText: "This week · against the open opponents", tooltip: "" };
-HHAuto_ToolTips.en['teamSelModeC'] = { version: "8.14.0", elementText: "Next week · preview", tooltip: "The coming blessings on today's girls. Display only." };
 HHAuto_ToolTips.en['teamSelCalculate'] = { version: "8.14.0", elementText: "Calculate", tooltip: "" };
 HHAuto_ToolTips.en['teamSelApply'] = { version: "8.14.0", elementText: "Apply (save)", tooltip: "" };
-HHAuto_ToolTips.en['teamSelPreviewOnly'] = { version: "8.14.0", elementText: "display only", tooltip: "" };
-HHAuto_ToolTips.en['teamSelLeaderNote'] = { version: "8.14.0", elementText: "Position 1 stays with the Mythic Shield leader in every mode. Unequip before calculating, Stuff Team after applying.", tooltip: "" };
 HHAuto_ToolTips.en['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "No opponent list yet: open the league page once.", tooltip: "" };
 HHAuto_ToolTips.en['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} open fights against {opponents} opponents, read {minutes} min ago", tooltip: "" };
 HHAuto_ToolTips.en['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "The hexagons do not show the saved team. Stuff Team equips the hexagons, the league fights the saved team. Continue?", tooltip: "" };
@@ -808,6 +803,13 @@ HHAuto_ToolTips.en['teamSelModelNote'] = { version: "8.14.0", elementText: "Esti
 HHAuto_ToolTips.en['teamSelCandidates'] = { version: "8.14.0", elementText: "candidates", tooltip: "" };
 HHAuto_ToolTips.en['teamSelApplied'] = { version: "8.14.0", elementText: "Saved. The page reloads.", tooltip: "" };
 HHAuto_ToolTips.en['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Not saved", tooltip: "" };
+HHAuto_ToolTips.en['teamSelThisStats'] = { version: "8.14.0", elementText: "This week - by stats and blessings", tooltip: "" };
+HHAuto_ToolTips.en['teamSelThisStatsPossible'] = { version: "8.14.0", elementText: "This week's possibly best - by stats and blessings", tooltip: "" };
+HHAuto_ToolTips.en['teamSelThisLeague'] = { version: "8.14.0", elementText: "This week - against League opponents", tooltip: "" };
+HHAuto_ToolTips.en['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "This week's possibly best - against League opponents", tooltip: "" };
+HHAuto_ToolTips.en['teamSelNextStats'] = { version: "8.14.0", elementText: "Next week - by stats and blessings", tooltip: "" };
+HHAuto_ToolTips.en['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Next week's possibly best - by stats and blessings", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.14.0", elementText: "This might take a while to calculate.", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
 
@@ -1302,13 +1304,8 @@ HHAuto_ToolTips.fr['costexperience'] = { version: "7.18.0", elementText: "Pour u
 // Team selection popup (TeamSelectionPopup)
 HHAuto_ToolTips.fr['teamSelOpen'] = { version: "8.14.0", elementText: "Choix d'équipe", tooltip: "Ouvre le choix d'équipe : cette semaine selon les stats, cette semaine contre les adversaires de ligue restants, aperçu de la semaine prochaine." };
 HHAuto_ToolTips.fr['teamSelTitle'] = { version: "8.14.0", elementText: "Choix d'équipe", tooltip: "" };
-HHAuto_ToolTips.fr['teamSelModeA'] = { version: "8.14.0", elementText: "Cette semaine · selon stats et bénédictions", tooltip: "Sans adversaires : pour les heures après le changement de bénédictions, avant que la ligue ne s'adapte." };
-HHAuto_ToolTips.fr['teamSelModeB'] = { version: "8.14.0", elementText: "Cette semaine · contre les adversaires restants", tooltip: "" };
-HHAuto_ToolTips.fr['teamSelModeC'] = { version: "8.14.0", elementText: "Semaine prochaine · aperçu", tooltip: "Les prochaines bénédictions appliquées aux filles d'aujourd'hui. Affichage seulement." };
 HHAuto_ToolTips.fr['teamSelCalculate'] = { version: "8.14.0", elementText: "Calculer", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelApply'] = { version: "8.14.0", elementText: "Appliquer (enregistrer)", tooltip: "" };
-HHAuto_ToolTips.fr['teamSelPreviewOnly'] = { version: "8.14.0", elementText: "affichage seulement", tooltip: "" };
-HHAuto_ToolTips.fr['teamSelLeaderNote'] = { version: "8.14.0", elementText: "La position 1 reste au leader Mythique Bouclier dans chaque mode. Tout déséquiper avant de calculer, équiper l'équipe après avoir appliqué.", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Pas encore de liste d'adversaires : ouvrez une fois la page de ligue.", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} combats restants contre {opponents} adversaires, lu il y a {minutes} min", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Les hexagones ne montrent pas l'équipe enregistrée. L'équipement vise les hexagones, la ligue combat avec l'équipe enregistrée. Continuer ?", tooltip: "" };
@@ -1334,6 +1331,13 @@ HHAuto_ToolTips.fr['teamSelModelNote'] = { version: "8.14.0", elementText: "Esti
 HHAuto_ToolTips.fr['teamSelCandidates'] = { version: "8.14.0", elementText: "candidats", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelApplied'] = { version: "8.14.0", elementText: "Enregistré. La page se recharge.", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Non enregistré", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelThisStats'] = { version: "8.14.0", elementText: "Cette semaine - selon stats et bénédictions", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelThisStatsPossible'] = { version: "8.14.0", elementText: "Meilleure possible cette semaine - selon stats et bénédictions", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelThisLeague'] = { version: "8.14.0", elementText: "Cette semaine - contre les adversaires de ligue", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Meilleure possible cette semaine - contre les adversaires de ligue", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelNextStats'] = { version: "8.14.0", elementText: "Semaine prochaine - selon stats et bénédictions", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Meilleure possible semaine prochaine - selon stats et bénédictions", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSlowHint'] = { version: "8.14.0", elementText: "Le calcul peut prendre un moment.", tooltip: "" };
 
 ;// ./src/i18n/de.ts
 
@@ -1829,13 +1833,8 @@ HHAuto_ToolTips.de['costexperience'] = { version: "7.18.0", elementText: "Für G
 // Team selection popup (TeamSelectionPopup)
 HHAuto_ToolTips.de['teamSelOpen'] = { version: "8.14.0", elementText: "Teamwahl", tooltip: "Öffnet die Teamwahl: diese Woche nach Werten, diese Woche gegen die offenen Liga-Gegner, Vorschau nächste Woche." };
 HHAuto_ToolTips.de['teamSelTitle'] = { version: "8.14.0", elementText: "Teamwahl", tooltip: "" };
-HHAuto_ToolTips.de['teamSelModeA'] = { version: "8.14.0", elementText: "Diese Woche · nach Werten und Blessings", tooltip: "Ohne Gegner: für die Stunden nach dem Blessing-Wechsel, bevor die Liga umgestellt hat." };
-HHAuto_ToolTips.de['teamSelModeB'] = { version: "8.14.0", elementText: "Diese Woche · gegen die offenen Gegner", tooltip: "" };
-HHAuto_ToolTips.de['teamSelModeC'] = { version: "8.14.0", elementText: "Nächste Woche · Vorschau", tooltip: "Die kommenden Blessings auf die heutigen Mädels. Nur Anzeige." };
 HHAuto_ToolTips.de['teamSelCalculate'] = { version: "8.14.0", elementText: "Berechnen", tooltip: "" };
 HHAuto_ToolTips.de['teamSelApply'] = { version: "8.14.0", elementText: "Übernehmen (speichern)", tooltip: "" };
-HHAuto_ToolTips.de['teamSelPreviewOnly'] = { version: "8.14.0", elementText: "nur Anzeige", tooltip: "" };
-HHAuto_ToolTips.de['teamSelLeaderNote'] = { version: "8.14.0", elementText: "Platz 1 bleibt in jedem Modus beim Mythic-Shield-Anführer. Vor dem Berechnen ablegen, nach dem Übernehmen Team bestücken.", tooltip: "" };
 HHAuto_ToolTips.de['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Noch keine Gegnerliste: einmal die Liga-Seite öffnen.", tooltip: "" };
 HHAuto_ToolTips.de['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} offene Kämpfe gegen {opponents} Gegner, vor {minutes} min gelesen", tooltip: "" };
 HHAuto_ToolTips.de['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Die Sechsecke zeigen nicht das gespeicherte Team. Team bestücken rüstet die Sechsecke aus, gekämpft wird mit dem gespeicherten Team. Fortfahren?", tooltip: "" };
@@ -1861,6 +1860,13 @@ HHAuto_ToolTips.de['teamSelModelNote'] = { version: "8.14.0", elementText: "Gesc
 HHAuto_ToolTips.de['teamSelCandidates'] = { version: "8.14.0", elementText: "Kandidaten", tooltip: "" };
 HHAuto_ToolTips.de['teamSelApplied'] = { version: "8.14.0", elementText: "Gespeichert. Die Seite lädt neu.", tooltip: "" };
 HHAuto_ToolTips.de['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Nicht gespeichert", tooltip: "" };
+HHAuto_ToolTips.de['teamSelThisStats'] = { version: "8.14.0", elementText: "Diese Woche - nach Werten und Blessings", tooltip: "" };
+HHAuto_ToolTips.de['teamSelThisStatsPossible'] = { version: "8.14.0", elementText: "Mögliches Bestes diese Woche - nach Werten und Blessings", tooltip: "" };
+HHAuto_ToolTips.de['teamSelThisLeague'] = { version: "8.14.0", elementText: "Diese Woche - gegen Liga-Gegner", tooltip: "" };
+HHAuto_ToolTips.de['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Mögliches Bestes diese Woche - gegen Liga-Gegner", tooltip: "" };
+HHAuto_ToolTips.de['teamSelNextStats'] = { version: "8.14.0", elementText: "Nächste Woche - nach Werten und Blessings", tooltip: "" };
+HHAuto_ToolTips.de['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mögliches Bestes nächste Woche - nach Werten und Blessings", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSlowHint'] = { version: "8.14.0", elementText: "Die Berechnung kann eine Weile dauern.", tooltip: "" };
 
 ;// ./src/i18n/es.ts
 
@@ -2355,13 +2361,8 @@ HHAuto_ToolTips.es['costexperience'] = { version: "7.18.0", elementText: "Por un
 // Team selection popup (TeamSelectionPopup)
 HHAuto_ToolTips.es['teamSelOpen'] = { version: "8.14.0", elementText: "Elección de equipo", tooltip: "Abre la elección de equipo: esta semana según estadísticas, esta semana contra los rivales de liga pendientes, vista previa de la próxima semana." };
 HHAuto_ToolTips.es['teamSelTitle'] = { version: "8.14.0", elementText: "Elección de equipo", tooltip: "" };
-HHAuto_ToolTips.es['teamSelModeA'] = { version: "8.14.0", elementText: "Esta semana · según estadísticas y bendiciones", tooltip: "Sin rivales: para las horas tras el cambio de bendiciones, antes de que la liga se adapte." };
-HHAuto_ToolTips.es['teamSelModeB'] = { version: "8.14.0", elementText: "Esta semana · contra los rivales pendientes", tooltip: "" };
-HHAuto_ToolTips.es['teamSelModeC'] = { version: "8.14.0", elementText: "Próxima semana · vista previa", tooltip: "Las próximas bendiciones sobre las chicas de hoy. Solo se muestra." };
 HHAuto_ToolTips.es['teamSelCalculate'] = { version: "8.14.0", elementText: "Calcular", tooltip: "" };
 HHAuto_ToolTips.es['teamSelApply'] = { version: "8.14.0", elementText: "Aplicar (guardar)", tooltip: "" };
-HHAuto_ToolTips.es['teamSelPreviewOnly'] = { version: "8.14.0", elementText: "solo se muestra", tooltip: "" };
-HHAuto_ToolTips.es['teamSelLeaderNote'] = { version: "8.14.0", elementText: "La posición 1 sigue siendo la líder Mítica con Escudo en todos los modos. Desequipar antes de calcular, equipar el equipo después de aplicar.", tooltip: "" };
 HHAuto_ToolTips.es['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Aún no hay lista de rivales: abre una vez la página de liga.", tooltip: "" };
 HHAuto_ToolTips.es['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} combates pendientes contra {opponents} rivales, leído hace {minutes} min", tooltip: "" };
 HHAuto_ToolTips.es['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Los hexágonos no muestran el equipo guardado. Equipar actúa sobre los hexágonos, la liga lucha con el equipo guardado. ¿Continuar?", tooltip: "" };
@@ -2387,6 +2388,13 @@ HHAuto_ToolTips.es['teamSelModelNote'] = { version: "8.14.0", elementText: "Esti
 HHAuto_ToolTips.es['teamSelCandidates'] = { version: "8.14.0", elementText: "candidatos", tooltip: "" };
 HHAuto_ToolTips.es['teamSelApplied'] = { version: "8.14.0", elementText: "Guardado. La página se recarga.", tooltip: "" };
 HHAuto_ToolTips.es['teamSelApplyFailed'] = { version: "8.14.0", elementText: "No guardado", tooltip: "" };
+HHAuto_ToolTips.es['teamSelThisStats'] = { version: "8.14.0", elementText: "Esta semana - según estadísticas y bendiciones", tooltip: "" };
+HHAuto_ToolTips.es['teamSelThisStatsPossible'] = { version: "8.14.0", elementText: "Mejor posible esta semana - según estadísticas y bendiciones", tooltip: "" };
+HHAuto_ToolTips.es['teamSelThisLeague'] = { version: "8.14.0", elementText: "Esta semana - contra rivales de liga", tooltip: "" };
+HHAuto_ToolTips.es['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Mejor posible esta semana - contra rivales de liga", tooltip: "" };
+HHAuto_ToolTips.es['teamSelNextStats'] = { version: "8.14.0", elementText: "Próxima semana - según estadísticas y bendiciones", tooltip: "" };
+HHAuto_ToolTips.es['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mejor posible la próxima semana - según estadísticas y bendiciones", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.14.0", elementText: "El cálculo puede tardar un rato.", tooltip: "" };
 
 ;// ./src/Helper/LanguageHelper.ts
 // LanguageHelper.ts
@@ -24116,12 +24124,12 @@ class TeamScoringService {
 // fought exactly three times. One who has been fought three times no longer
 // matters for the team, one with a single fight left matters a third.
 //
-// Why next week needs a model: the game calculates today's blessings only.
-// Ego is exactly additive in the girls' caracs (measured: 0.07 % over 173
-// teams); damage and defense are not (up to 5 %). The projection therefore
-// starts from the stats the game measured TODAY for the same seven girls and
-// adds only the change the blessing swap causes, estimated by a linear fit
-// over all measured candidates.
+// Why next week and full development need a model: the game calculates the
+// girls as they are today, with today's blessings. Ego is exactly additive in
+// the girls' caracs (measured: 0.07 % over 173 teams); damage and defense are
+// not (up to 5 %). The projection therefore starts from the stats the game
+// measured TODAY for the same seven girls and adds only the change of their
+// carac sum, times a slope fitted over all measured candidates (fitSumSlope).
 //
 // Depends on: BDSMHelper.ts (league fight simulation), TeamEvaluationService.ts (synergies)
 // Used by: TeamSelectionPopup.ts
@@ -24258,45 +24266,30 @@ class TeamSelectionService {
         return sums;
     }
     /**
-     * Least-squares fit of `stat / (1 + synergy)` against the three carac
-     * sums, over every team the game has measured. Returns the three slopes,
-     * or null when the samples cannot carry a fit (too few, or collinear).
+     * Least-squares slope of `stat / (1 + synergy)` against the team's carac
+     * sum, over every team the game has measured; null when the samples
+     * cannot carry it. One slope, not one per carac: the candidates are
+     * single swaps of one another, so their carac1/2/3 sums move together and
+     * three separate slopes came out unstable -- measured live, the same team
+     * read 3 % weaker fully developed than as it is, because the slopes had
+     * tipped when new candidates joined the fit. Never negative: more caracs
+     * cannot cost stats.
      */
-    static fitCaracSlopes(samples) {
+    static fitSumSlope(samples) {
         if (samples.length < 6)
             return null;
-        // Normal equations for [1, c1, c2, c3]; the sums are scaled to keep
-        // the matrix well conditioned (they run into the hundreds of thousands).
-        const scale = 1e-5;
-        const n = 4;
-        const a = Array.from({ length: n }, () => new Array(n + 1).fill(0));
-        for (const s of samples) {
-            const x = [1, s.sums[0] * scale, s.sums[1] * scale, s.sums[2] * scale];
-            for (let i = 0; i < n; i++) {
-                for (let j = 0; j < n; j++)
-                    a[i][j] += x[i] * x[j];
-                a[i][n] += x[i] * s.value;
-            }
+        const n = samples.length;
+        const mx = samples.reduce((s, x) => s + x.sum, 0) / n;
+        const my = samples.reduce((s, x) => s + x.value, 0) / n;
+        let sxx = 0;
+        let sxy = 0;
+        for (const x of samples) {
+            sxx += (x.sum - mx) * (x.sum - mx);
+            sxy += (x.sum - mx) * (x.value - my);
         }
-        // Gaussian elimination with partial pivoting.
-        for (let col = 0; col < n; col++) {
-            let pivot = col;
-            for (let r = col + 1; r < n; r++)
-                if (Math.abs(a[r][col]) > Math.abs(a[pivot][col]))
-                    pivot = r;
-            if (Math.abs(a[pivot][col]) < 1e-9)
-                return null;
-            [a[col], a[pivot]] = [a[pivot], a[col]];
-            for (let r = 0; r < n; r++) {
-                if (r === col)
-                    continue;
-                const f = a[r][col] / a[col][col];
-                for (let k = col; k <= n; k++)
-                    a[r][k] -= f * a[col][k];
-            }
-        }
-        const coef = a.map((row, i) => row[n] / row[i]);
-        return [coef[1] * scale, coef[2] * scale, coef[3] * scale];
+        if (sxx <= 1e-9 * n * Math.max(1, mx * mx))
+            return null;
+        return Math.max(0, sxy / sxx);
     }
     /**
      * Next week's stats for a team: the stats the game measured today for
@@ -24309,11 +24302,9 @@ class TeamSelectionService {
             const synergyElement = STAT_SYNERGY[stat];
             const multiplier = 1 + TeamEvaluationService.getSynergy(counts, synergyElement, harem);
             const slope = slopes[stat];
-            if (slope) {
-                const delta = slope[0] * (sumsNext[0] - sumsToday[0])
-                    + slope[1] * (sumsNext[1] - sumsToday[1])
-                    + slope[2] * (sumsNext[2] - sumsToday[2]);
-                out[stat] = measuredToday[stat] + multiplier * delta;
+            if (slope !== null && slope !== undefined) {
+                const delta = (sumsNext[0] + sumsNext[1] + sumsNext[2]) - (sumsToday[0] + sumsToday[1] + sumsToday[2]);
+                out[stat] = measuredToday[stat] + multiplier * slope * delta;
             }
             else {
                 // No fit: scale with the total, the rough share the girls carry.
@@ -24323,6 +24314,17 @@ class TeamSelectionService {
             }
         }
         return out;
+    }
+    /**
+     * Factor from today's caracs to a girl's caracs at full development
+     * (level 750, every grade) -- the projection of "Best Possible"
+     * (TeamScoringService.scoreBestPossible), as a multiplier on the caracs.
+     */
+    static developmentFactor(girl) {
+        const today = TeamScoringService.caracsSum(girl);
+        if (today <= 0)
+            return 1;
+        return TeamScoringService.scoreBestPossible(girl) / today;
     }
     /** Which stat a synergy element scales, for the fit in the popup. */
     static synergyElementOf(stat) {
@@ -30421,24 +30423,34 @@ class BlessingForecast {
 ;// ./src/Module/TeamSelectionPopup.ts
 // TeamSelectionPopup.ts -- The team selection popup on the edit-team page.
 //
-// Three modes, kept visibly apart because they answer different questions:
+// Six rubrics in three groups, kept visibly apart because they answer
+// different questions:
 //
-//   A  This week, by stats and blessings -- no opponents. For the hours after
-//      the weekly blessing change, when the league has not switched yet and
-//      the opponents' teams describe last week.
-//   B  This week, against the open opponents -- the league snapshot, every
-//      opponent weighed by the fights still open against him (0-3).
-//   C  Next week, by stats -- the coming blessings on today's girls. Display
-//      only: a team for next week is weaker this week.
+//   This week, by stats and blessings -- no opponents. For the hours after
+//     the weekly blessing change, when the league has not switched yet.
+//   This week, against the league opponents -- the league snapshot, every
+//     opponent weighed by the fights still open against him (0-3).
+//   Next week, by stats and blessings -- the coming blessings on today's
+//     girls.
 //
-// All three start from the same candidates: the builder's picks plus one
-// round of single swaps around the stat-sum pick (TeamSelectionService).
-// Position 1 stays with the builder's leader -- the Mythic with the Tier-5
-// Shield -- in every candidate. The game calculates every candidate
-// (team_calculate_caracs, the request the edit screen sends on every swap);
-// A ranks by effective power, B by simulated league points, C by effective
-// power on the projected stats. Measurements are shared: B and C after A
-// cost no new requests for the teams A already measured.
+// Each group comes twice: the best team now, and the "possibly best" one --
+// every girl projected to full development (level 750, every grade), the
+// projection of "Best Possible" (TeamScoringService.scoreBestPossible).
+//
+// Every rubric can be applied. It saves into the team slot whose edit page
+// is open: players who keep more than one team set next week's or a
+// development team in a slot of its own.
+//
+// All rubrics start from the same kind of candidates: the builder's picks
+// plus one round of single swaps around the stat-sum pick
+// (TeamSelectionService). Position 1 stays with the builder's leader -- the
+// Mythic with the Tier-5 Shield -- in every candidate. The game calculates
+// every candidate (team_calculate_caracs, the request the edit screen sends
+// on every swap). Where the girls are not today's -- next week's blessings,
+// full development -- the game cannot calculate them; the stats are then the
+// ones measured today plus the fitted effect of the carac change
+// (TeamSelectionService.projectCaracs). Measurements are shared between the
+// rubrics, so a later rubric pays only for teams not yet measured.
 //
 // The right-hand column holds Unequip All and Stuff Team, each with the state
 // it acts on: the gear on the team, and whether the hexagons match the saved
@@ -30471,6 +30483,14 @@ var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function 
 
 
 
+const RUBRICS = [
+    { id: 'S1', group: 'stats', titleKey: 'teamSelThisStats', week: 'this', possible: false, scoring: 'effective', canApply: true },
+    { id: 'S2', group: 'stats', titleKey: 'teamSelThisStatsPossible', week: 'this', possible: true, scoring: 'effective', canApply: true },
+    { id: 'L1', group: 'league', titleKey: 'teamSelThisLeague', week: 'this', possible: false, scoring: 'opponents', canApply: true },
+    { id: 'L2', group: 'league', titleKey: 'teamSelThisLeaguePossible', week: 'this', possible: true, scoring: 'opponents', canApply: true },
+    { id: 'N1', group: 'next', titleKey: 'teamSelNextStats', week: 'next', possible: false, scoring: 'effective', canApply: true },
+    { id: 'N2', group: 'next', titleKey: 'teamSelNextStatsPossible', week: 'next', possible: true, scoring: 'effective', canApply: true },
+];
 const TeamSelectionPopup_MEASURE_DELAY_MS = 350;
 class TeamSelectionPopup {
     static open(actions) {
@@ -30484,44 +30504,42 @@ class TeamSelectionPopup {
         if (TeamSelectionPopup.stylesAdded)
             return;
         TeamSelectionPopup.stylesAdded = true;
-        GM_addStyle('.hhTeamSelectionPopup #HHAutoPopupGlobalContent{max-width:820px;}'
+        GM_addStyle('.hhTeamSelectionPopup #HHAutoPopupGlobalContent{max-width:860px;}'
             + '#hhTeamSel{display:grid;grid-template-columns:1fr 170px;gap:10px;font-size:13px;}'
-            + '#hhTeamSel .tsModes{display:flex;flex-direction:column;gap:10px;}'
-            + '#hhTeamSel .tsMode{border-left:6px solid;padding:6px 10px;background:rgba(255,255,255,0.04);}'
-            + '#hhTeamSel .tsModeA{border-color:#4fa3e0;}'
-            + '#hhTeamSel .tsModeB{border-color:#e0a14f;}'
-            + '#hhTeamSel .tsModeC{border-color:#9b7fe0;}'
-            + '#hhTeamSel .tsHead{font-weight:bold;font-size:14px;margin-bottom:2px;}'
-            + '#hhTeamSel .tsSub{color:#aaa;font-size:11px;margin-bottom:4px;}'
-            + '#hhTeamSel .tsButtons{display:flex;gap:6px;margin:4px 0;}'
-            + '#hhTeamSel .tsButtons .myButton{padding:3px 10px;font-size:12px;}'
+            + '#hhTeamSel .tsGroups{display:flex;flex-direction:column;gap:10px;}'
+            + '#hhTeamSel .tsGroup{border-left:6px solid;padding:4px 10px;background:rgba(255,255,255,0.04);display:flex;flex-direction:column;gap:6px;}'
+            + '#hhTeamSel .tsGroup-stats{border-color:#4fa3e0;}'
+            + '#hhTeamSel .tsGroup-league{border-color:#e0a14f;}'
+            + '#hhTeamSel .tsGroup-next{border-color:#9b7fe0;}'
+            + '#hhTeamSel .tsRubric + .tsRubric{border-top:1px dashed #555;padding-top:6px;}'
+            + '#hhTeamSel .tsRow{display:flex;align-items:center;gap:6px;}'
+            + '#hhTeamSel .tsHead{font-weight:bold;font-size:13px;flex:1;}'
+            + '#hhTeamSel .tsRow .myButton{padding:3px 10px;font-size:12px;}'
+            + '#hhTeamSel .tsSub{color:#aaa;font-size:11px;}'
             + '#hhTeamSel .tsOut{font-size:12px;line-height:1.45;}'
-            + '#hhTeamSel .tsOut .tsGood{color:#7f7;} #hhTeamSel .tsOut .tsBad{color:#f77;} #hhTeamSel .tsOut .tsWarn{color:#fc6;}'
+            + '#hhTeamSel .tsGood{color:#7f7;} #hhTeamSel .tsBad{color:#f77;} #hhTeamSel .tsWarn{color:#fc6;}'
             + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #555;padding-left:10px;}'
-            + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;}'
+            + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:13px;}'
             + '#hhTeamSel .tsState{font-size:11px;color:#aaa;margin-top:3px;}'
             + '#hhTeamSel .myButton.tsDisabled{opacity:0.45;pointer-events:none;}');
     }
-    static mode(id, titleKey, subHtml, canApply) {
-        return `<div class="tsMode tsMode${id}">
-            <div class="tsHead">${getTextForUI(titleKey, 'elementText')}</div>
-            <div class="tsSub" id="hhTsSub${id}">${subHtml}</div>
-            <div class="tsButtons">
-                <label class="myButton" id="hhTsCalc${id}">${getTextForUI('teamSelCalculate', 'elementText')}</label>
-                ${canApply
-            ? `<label class="myButton tsDisabled" id="hhTsApply${id}">${getTextForUI('teamSelApply', 'elementText')}</label>`
-            : `<span class="tsSub">${getTextForUI('teamSelPreviewOnly', 'elementText')}</span>`}
+    static rubricHtml(r) {
+        return `<div class="tsRubric">
+            <div class="tsRow">
+                <span class="tsHead">${getTextForUI(r.titleKey, 'elementText')}</span>
+                <label class="myButton tsCalc" id="hhTsCalc${r.id}">${getTextForUI('teamSelCalculate', 'elementText')}</label>
+                ${r.canApply ? `<label class="myButton tsDisabled" id="hhTsApply${r.id}">${getTextForUI('teamSelApply', 'elementText')}</label>` : ''}
             </div>
-            <div class="tsOut" id="hhTsOut${id}"></div>
+            <div class="tsOut" id="hhTsOut${r.id}"></div>
         </div>`;
     }
     static render() {
+        // The league rubrics simulate every candidate against every open
+        // opponent on top of the game calculation -- a minute or more.
+        const hint = (g) => g === 'league' ? `<div class="tsSub">${getTextForUI('teamSelSlowHint', 'elementText')}</div>` : '';
+        const group = (g) => `<div class="tsGroup tsGroup-${g}">${hint(g)}${RUBRICS.filter(r => r.group === g).map(r => TeamSelectionPopup.rubricHtml(r)).join('')}</div>`;
         return `<div id="hhTeamSel">
-            <div class="tsModes">
-                ${TeamSelectionPopup.mode('A', 'teamSelModeA', getTextForUI('teamSelModeA', 'tooltip'), true)}
-                ${TeamSelectionPopup.mode('B', 'teamSelModeB', TeamSelectionPopup.snapshotLine(), true)}
-                ${TeamSelectionPopup.mode('C', 'teamSelModeC', getTextForUI('teamSelModeC', 'tooltip'), false)}
-            </div>
+            <div class="tsGroups">${group('stats')}${group('league')}${group('next')}</div>
             <div class="tsSide">
                 <div>
                     <label class="myButton" id="hhTsUnequip">${getTextForUI('UnequipAll', 'elementText')}</label>
@@ -30531,27 +30549,15 @@ class TeamSelectionPopup {
                     <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
                     <div class="tsState" id="hhTsSavedState"></div>
                 </div>
-                <div class="tsState">${getTextForUI('teamSelLeaderNote', 'elementText')}</div>
             </div>
         </div>`;
     }
-    static snapshotLine() {
-        const snap = LeagueOpponentSnapshot.load();
-        if (!snap)
-            return `<span class="tsWarn">${getTextForUI('teamSelNoSnapshot', 'elementText')}</span>`;
-        const open = snap.opponents.reduce((s, o) => s + o.openFights, 0);
-        const withOpen = snap.opponents.filter(o => o.openFights > 0).length;
-        const minutes = Math.max(0, Math.round((Date.now() - snap.timestamp) / 60000));
-        return getTextForUI('teamSelSnapshot', 'elementText')
-            .replace('{fights}', String(open))
-            .replace('{opponents}', String(withOpen))
-            .replace('{minutes}', String(minutes));
-    }
     static bind() {
-        ['A', 'B', 'C'].forEach(id => {
-            $('#hhTsCalc' + id).on('click', () => { void TeamSelectionPopup.run(id); });
-            $('#hhTsApply' + id).on('click', () => TeamSelectionPopup.apply(id));
-        });
+        for (const r of RUBRICS) {
+            $('#hhTsCalc' + r.id).on('click', () => { void TeamSelectionPopup.run(r); });
+            if (r.canApply)
+                $('#hhTsApply' + r.id).on('click', () => TeamSelectionPopup.apply(r));
+        }
         $('#hhTsUnequip').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.unequipAll(); });
         $('#hhTsStuff').on('click', () => {
             const a = TeamSelectionPopup.actions;
@@ -30594,6 +30600,10 @@ class TeamSelectionPopup {
     static out(id, html) {
         $('#hhTsOut' + id).html(html);
     }
+    static playerClass() {
+        const rawClass = Number(HeroHelper.getClass());
+        return (rawClass === 1 || rawClass === 2 || rawClass === 3) ? rawClass : 1;
+    }
     /** Measure every candidate the cache does not know yet. */
     static measureAll(teams, id) {
         return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
@@ -30601,8 +30611,6 @@ class TeamSelectionPopup {
             const todo = teams.filter(t => !TeamSelectionPopup.measured.has(TeamSelectionService.teamKey(t)));
             let done = 0;
             for (const team of todo) {
-                if (TeamSelectionPopup.cancelled)
-                    return false;
                 TeamSelectionPopup.out(id, getTextForUI('teamSelMeasuring', 'elementText')
                     .replace('{done}', String(done)).replace('{total}', String(todo.length)));
                 const result = yield TeamEvaluationService.measureTeam(team, battleType);
@@ -30620,8 +30628,7 @@ class TeamSelectionPopup {
     /** The builder's candidates plus single swaps around the stat-sum pick. */
     static candidates(girls) {
         const level = Number(HeroHelper.getLevel());
-        const rawClass = Number(HeroHelper.getClass());
-        const playerClass = (rawClass === 1 || rawClass === 2 || rawClass === 3) ? rawClass : 1;
+        const playerClass = TeamSelectionPopup.playerClass();
         const built = TeamBuilderService.buildTeamCandidates(girls, 1, level, playerClass);
         if (built.length === 0)
             return [];
@@ -30640,97 +30647,10 @@ class TeamSelectionPopup {
     static girlsById(girls, ids) {
         return ids.map(id => girls.find(g => g.id_girl === id)).filter((g) => !!g);
     }
-    // ---- Modes -----------------------------------------------------------
-    static run(id) {
-        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
-            if (TeamSelectionPopup.busy)
-                return;
-            const a = TeamSelectionPopup.actions;
-            if (!a)
-                return;
-            if (!getHHAjax()) {
-                TeamSelectionPopup.out(id, `<span class="tsBad">${getTextForUI('teamSelNoAjax', 'elementText')}</span>`);
-                return;
-            }
-            TeamSelectionPopup.busy = true;
-            TeamSelectionPopup.cancelled = false;
-            $('#hhTeamSel .tsButtons .myButton').addClass('tsDisabled');
-            try {
-                if (id === 'C')
-                    yield TeamSelectionPopup.runNextWeek();
-                else
-                    yield TeamSelectionPopup.runThisWeek(id);
-            }
-            catch (err) {
-                logHHAuto('Team selection ' + id + ' failed: ' + err);
-                TeamSelectionPopup.out(id, `<span class="tsBad">${String(err)}</span>`);
-            }
-            finally {
-                TeamSelectionPopup.busy = false;
-                $('#hhTeamSel .tsButtons .myButton').removeClass('tsDisabled');
-                ['A', 'B'].forEach(m => { if (!TeamSelectionPopup.results[m])
-                    $('#hhTsApply' + m).addClass('tsDisabled'); });
-            }
-        });
-    }
-    static runThisWeek(id) {
-        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
-            const a = TeamSelectionPopup.actions;
-            const girls = TeamSelectionPopup.rawGirls().map(r => a.mapGirl(r));
-            const teams = TeamSelectionPopup.candidates(girls);
-            if (teams.length === 0) {
-                TeamSelectionPopup.out(id, `<span class="tsBad">${getTextForUI('teamSelNoCandidates', 'elementText')}</span>`);
-                return;
-            }
-            const current = a.getHexagonIds();
-            const toMeasure = current.length === 7 ? [...teams, current] : teams;
-            const snap = id === 'B' ? LeagueOpponentSnapshot.load() : null;
-            if (id === 'B' && (!snap || snap.opponents.every(o => o.openFights === 0))) {
-                TeamSelectionPopup.out(id, `<span class="tsWarn">${getTextForUI('teamSelNoSnapshot', 'elementText')}</span>`);
-                return;
-            }
-            if (!(yield TeamSelectionPopup.measureAll(toMeasure, id))) {
-                TeamSelectionPopup.out(id, `<span class="tsBad">${getTextForUI('teamSelMeasureFailed', 'elementText')}</span>`);
-                return;
-            }
-            const harem = TeamEvaluationService.getHaremSynergies();
-            const score = (ids) => TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
-                const m = TeamSelectionPopup.measured.get(TeamSelectionService.teamKey(ids));
-                const teamGirls = TeamSelectionPopup.girlsById(girls, ids);
-                if (id === 'A') {
-                    const eff = TeamEvaluationService.computeEffectivePower(m.caracs, TeamSelectionService.countElements(teamGirls), harem);
-                    return { score: eff, detail: '' };
-                }
-                const hero = TeamSelectionService.buildHeroFighter(m.caracs, teamGirls, harem);
-                const s = TeamSelectionService.scoreAgainstOpponents(hero, snap.opponents);
-                // Yield after each team: a hundred teams against a league is a few
-                // seconds of simulation, and the popup should keep painting.
-                yield new Promise(r => setTimeout(r, 0));
-                return { score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
-            });
-            let best = null;
-            let done = 0;
-            for (const ids of teams) {
-                const s = yield score(ids);
-                if (!best || s.score > best.score) {
-                    best = { ids, caracs: TeamSelectionPopup.measured.get(TeamSelectionService.teamKey(ids)).caracs, score: s.score, detail: s.detail };
-                }
-                done++;
-                if (id === 'B' && done % 10 === 0) {
-                    TeamSelectionPopup.out(id, getTextForUI('teamSelSimulating', 'elementText').replace('{done}', String(done)).replace('{total}', String(teams.length)));
-                }
-            }
-            const currentScore = current.length === 7 ? yield score(current) : null;
-            TeamSelectionPopup.results[id] = best;
-            TeamSelectionPopup.out(id, TeamSelectionPopup.describe(id, best, girls, currentScore, teams.length));
-            $('#hhTsApply' + id).removeClass('tsDisabled');
-            logHHAuto(`Team selection ${id}: ${teams.length} candidates, best ${best.ids.join(',')} score ${best.score}`);
-        });
-    }
-    static runNextWeek() {
+    /** Next week's league blessings, or an error text for the output line. */
+    static upcomingConditions() {
         return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
             var _a, _b;
-            const a = TeamSelectionPopup.actions;
             const ajax = getHHAjax();
             const response = yield new Promise(resolve => {
                 let settled = false;
@@ -30743,114 +30663,234 @@ class TeamSelectionPopup {
                     resolve(data);
                 } });
             });
+            if (!response || !response.success)
+                return getTextForUI('teamSelNoBlessings', 'elementText');
             const gt = unsafeWindow.GT || {};
             const { conditions, unresolved } = BlessingForecast.upcomingLeagueConditions(response, gt);
-            if (!response || !response.success) {
-                TeamSelectionPopup.out('C', `<span class="tsBad">${getTextForUI('teamSelNoBlessings', 'elementText')}</span>`);
-                return;
-            }
             const startsIn = Number((_b = (_a = response.upcoming) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.starts_in) || 0;
-            $('#hhTsSubC').html(TeamSelectionPopup.blessingLine(conditions, unresolved, startsIn));
-            const raw = TeamSelectionPopup.rawGirls();
-            const todayGirls = raw.map(r => a.mapGirl(r));
-            const nextGirls = raw.map(r => a.mapGirl(BlessingForecast.projectGirl(r, conditions)));
-            const teams = TeamSelectionPopup.candidates(nextGirls);
-            if (teams.length === 0) {
-                TeamSelectionPopup.out('C', `<span class="tsBad">${getTextForUI('teamSelNoCandidates', 'elementText')}</span>`);
+            const list = conditions.map(c => `${c.text} +${c.percent} %`).join(', ') || '--';
+            const h = Math.floor(startsIn / 3600);
+            const when = startsIn > 0 ? ' &middot; ' + getTextForUI('teamSelChangeIn', 'elementText').replace('{d}', String(Math.floor(h / 24))).replace('{h}', String(h % 24)) : '';
+            const miss = unresolved.length > 0 ? ` &middot; <span class="tsWarn">${getTextForUI('teamSelUnresolved', 'elementText')}: ${unresolved.join(', ')}</span>` : '';
+            return { conditions, info: list + when + miss };
+        });
+    }
+    /** The girls a rubric evaluates. */
+    static pool(r) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            const a = TeamSelectionPopup.actions;
+            let raw = TeamSelectionPopup.rawGirls();
+            const today = raw.map(g => a.mapGirl(g));
+            let info = '';
+            if (r.week === 'next') {
+                const next = yield TeamSelectionPopup.upcomingConditions();
+                if (typeof next === 'string')
+                    return next;
+                raw = raw.map(g => BlessingForecast.projectGirl(g, next.conditions));
+                info = next.info;
+            }
+            if (r.possible) {
+                raw = raw.map(g => {
+                    const f = TeamSelectionService.developmentFactor(a.mapGirl(g));
+                    const c = g.caracs || { carac1: Number(g.carac1) || 0, carac2: Number(g.carac2) || 0, carac3: Number(g.carac3) || 0 };
+                    const caracs = { carac1: c.carac1 * f, carac2: c.carac2 * f, carac3: c.carac3 * f };
+                    return Object.assign(Object.assign({}, g), { caracs, carac1: caracs.carac1, carac2: caracs.carac2, carac3: caracs.carac3 });
+                });
+            }
+            const transformed = r.week === 'next' || r.possible;
+            return { today, evaluated: transformed ? raw.map(g => a.mapGirl(g)) : today, transformed, info };
+        });
+    }
+    /**
+     * Measure today's candidates once: the fixed set every projection slope
+     * is fitted on. Fitted on whatever had been measured, the slope moved
+     * with the order the rubrics were run in -- measured live, the same team
+     * came out 3 % weaker fully developed than as it is.
+     */
+    static ensureCalibration(today, id) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            if (TeamSelectionPopup.calibration)
+                return true;
+            const teams = TeamSelectionPopup.candidates(today);
+            if (!(yield TeamSelectionPopup.measureAll(teams, id)))
+                return false;
+            TeamSelectionPopup.calibration = new Set(teams.map(t => TeamSelectionService.teamKey(t)));
+            return true;
+        });
+    }
+    /**
+     * Slope of each stat against the carac sum, over today's candidates --
+     * what projectCaracs adds for girls the game cannot calculate.
+     */
+    static fitSlopes(today, harem) {
+        var _a;
+        const calibration = (_a = TeamSelectionPopup.calibration) !== null && _a !== void 0 ? _a : new Set();
+        const samples = [...TeamSelectionPopup.measured.values()].filter(m => calibration.has(TeamSelectionService.teamKey(m.ids))).map(m => {
+            const g = TeamSelectionPopup.girlsById(today, m.ids);
+            return { m, sums: TeamSelectionService.caracSums(g), counts: TeamSelectionService.countElements(g) };
+        });
+        const slopes = {};
+        for (const stat of ['ego', 'damage', 'defense']) {
+            const el = TeamSelectionService.synergyElementOf(stat);
+            slopes[stat] = TeamSelectionService.fitSumSlope(samples.map(s => ({
+                sum: s.sums[0] + s.sums[1] + s.sums[2],
+                value: s.m.caracs[stat] / (1 + TeamEvaluationService.getSynergy(s.counts, el, harem)),
+            })));
+        }
+        return slopes;
+    }
+    // ---- Rubrics ---------------------------------------------------------
+    static run(r) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            if (TeamSelectionPopup.busy)
+                return;
+            if (!TeamSelectionPopup.actions)
+                return;
+            if (!getHHAjax()) {
+                TeamSelectionPopup.out(r.id, `<span class="tsBad">${getTextForUI('teamSelNoAjax', 'elementText')}</span>`);
                 return;
             }
-            // Today's stats of the same girls, measured by the game; the fit runs
-            // over every team the popup has measured so far.
-            if (!(yield TeamSelectionPopup.measureAll(teams, 'C'))) {
-                TeamSelectionPopup.out('C', `<span class="tsBad">${getTextForUI('teamSelMeasureFailed', 'elementText')}</span>`);
+            TeamSelectionPopup.busy = true;
+            $('#hhTeamSel .tsCalc').addClass('tsDisabled');
+            try {
+                yield TeamSelectionPopup.evaluate(r);
+            }
+            catch (err) {
+                logHHAuto('Team selection ' + r.id + ' failed: ' + err);
+                TeamSelectionPopup.out(r.id, `<span class="tsBad">${String(err)}</span>`);
+            }
+            finally {
+                TeamSelectionPopup.busy = false;
+                $('#hhTeamSel .tsCalc').removeClass('tsDisabled');
+            }
+        });
+    }
+    static evaluate(r) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            const a = TeamSelectionPopup.actions;
+            let snap = null;
+            let info = '';
+            if (r.scoring === 'opponents') {
+                snap = LeagueOpponentSnapshot.load();
+                if (!snap || snap.opponents.every(o => o.openFights === 0)) {
+                    TeamSelectionPopup.out(r.id, `<span class="tsWarn">${getTextForUI('teamSelNoSnapshot', 'elementText')}</span>`);
+                    return;
+                }
+                info = getTextForUI('teamSelSnapshot', 'elementText')
+                    .replace('{fights}', String(snap.opponents.reduce((s, o) => s + o.openFights, 0)))
+                    .replace('{opponents}', String(snap.opponents.filter(o => o.openFights > 0).length))
+                    .replace('{minutes}', String(Math.max(0, Math.round((Date.now() - snap.timestamp) / 60000))));
+            }
+            const pool = yield TeamSelectionPopup.pool(r);
+            if (typeof pool === 'string') {
+                TeamSelectionPopup.out(r.id, `<span class="tsBad">${pool}</span>`);
+                return;
+            }
+            if (pool.info)
+                info = info ? info + ' &middot; ' + pool.info : pool.info;
+            const teams = TeamSelectionPopup.candidates(pool.evaluated);
+            if (teams.length === 0) {
+                TeamSelectionPopup.out(r.id, `<span class="tsBad">${getTextForUI('teamSelNoCandidates', 'elementText')}</span>`);
+                return;
+            }
+            const current = a.getHexagonIds();
+            const withCurrent = current.length === 7 ? [...teams, current] : teams;
+            if (!(yield TeamSelectionPopup.measureAll(withCurrent, r.id))) {
+                TeamSelectionPopup.out(r.id, `<span class="tsBad">${getTextForUI('teamSelMeasureFailed', 'elementText')}</span>`);
+                return;
+            }
+            if (pool.transformed && !(yield TeamSelectionPopup.ensureCalibration(pool.today, r.id))) {
+                TeamSelectionPopup.out(r.id, `<span class="tsBad">${getTextForUI('teamSelMeasureFailed', 'elementText')}</span>`);
                 return;
             }
             const harem = TeamEvaluationService.getHaremSynergies();
-            const samples = [...TeamSelectionPopup.measured.values()].map(m => {
-                const g = TeamSelectionPopup.girlsById(todayGirls, m.ids);
-                return { m, sums: TeamSelectionService.caracSums(g), counts: TeamSelectionService.countElements(g) };
+            const slopes = pool.transformed ? TeamSelectionPopup.fitSlopes(pool.today, harem) : {};
+            const statsOf = (ids) => {
+                const measured = TeamSelectionPopup.measured.get(TeamSelectionService.teamKey(ids)).caracs;
+                if (!pool.transformed)
+                    return measured;
+                const today = TeamSelectionPopup.girlsById(pool.today, ids);
+                const evaluated = TeamSelectionPopup.girlsById(pool.evaluated, ids);
+                return TeamSelectionService.projectCaracs(measured, TeamSelectionService.caracSums(today), TeamSelectionService.caracSums(evaluated), TeamSelectionService.countElements(today), harem, slopes);
+            };
+            const score = (ids) => TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+                const caracs = statsOf(ids);
+                const teamGirls = TeamSelectionPopup.girlsById(pool.evaluated, ids);
+                if (r.scoring === 'effective') {
+                    return { ids, caracs, score: TeamEvaluationService.computeEffectivePower(caracs, TeamSelectionService.countElements(teamGirls), harem), detail: '' };
+                }
+                const s = TeamSelectionService.scoreAgainstOpponents(TeamSelectionService.buildHeroFighter(caracs, teamGirls, harem), snap.opponents);
+                // Yield after each team: a hundred teams against a league is a few
+                // seconds of simulation, and the popup should keep painting.
+                yield new Promise(res => setTimeout(res, 0));
+                return { ids, caracs, score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
             });
-            const slopes = {};
-            for (const stat of ['ego', 'damage', 'defense']) {
-                const el = TeamSelectionService.synergyElementOf(stat);
-                slopes[stat] = TeamSelectionService.fitCaracSlopes(samples.map(s => ({
-                    sums: s.sums,
-                    value: s.m.caracs[stat] / (1 + TeamEvaluationService.getSynergy(s.counts, el, harem)),
-                })));
-            }
             let best = null;
+            let done = 0;
             for (const ids of teams) {
-                const m = TeamSelectionPopup.measured.get(TeamSelectionService.teamKey(ids));
-                const today = TeamSelectionPopup.girlsById(todayGirls, ids);
-                const next = TeamSelectionPopup.girlsById(nextGirls, ids);
-                const counts = TeamSelectionService.countElements(today);
-                const projected = TeamSelectionService.projectCaracs(m.caracs, TeamSelectionService.caracSums(today), TeamSelectionService.caracSums(next), counts, harem, slopes);
-                const eff = TeamEvaluationService.computeEffectivePower(projected, counts, harem);
-                if (!best || eff > best.score)
-                    best = { ids, caracs: projected, score: eff, detail: '' };
+                const s = yield score(ids);
+                if (!best || s.score > best.score)
+                    best = s;
+                done++;
+                if (r.scoring === 'opponents' && done % 10 === 0) {
+                    TeamSelectionPopup.out(r.id, getTextForUI('teamSelSimulating', 'elementText').replace('{done}', String(done)).replace('{total}', String(teams.length)));
+                }
             }
-            TeamSelectionPopup.results.C = best;
-            TeamSelectionPopup.out('C', TeamSelectionPopup.describe('C', best, nextGirls, null, teams.length));
+            const currentScore = current.length === 7 ? yield score(current) : null;
+            TeamSelectionPopup.results[r.id] = best;
+            TeamSelectionPopup.out(r.id, TeamSelectionPopup.describe(r, best, pool.evaluated, currentScore, teams.length, info, pool.transformed));
+            if (r.canApply)
+                $('#hhTsApply' + r.id).removeClass('tsDisabled');
+            logHHAuto(`Team selection ${r.id}: ${teams.length} candidates, best ${best.ids.join(',')} score ${best.score}`);
         });
     }
-    static blessingLine(conditions, unresolved, startsInSec) {
-        const list = conditions.map(c => `${c.text} +${c.percent} %`).join(', ') || '--';
-        const h = Math.floor(startsInSec / 3600);
-        const when = startsInSec > 0 ? getTextForUI('teamSelChangeIn', 'elementText').replace('{d}', String(Math.floor(h / 24))).replace('{h}', String(h % 24)) : '';
-        const miss = unresolved.length > 0 ? `<br/><span class="tsWarn">${getTextForUI('teamSelUnresolved', 'elementText')}: ${unresolved.join(', ')}</span>` : '';
-        return `${list}${when ? ' &middot; ' + when : ''}${miss}`;
-    }
     // ---- Output ----------------------------------------------------------
-    static describe(id, r, girls, current, candidates) {
-        const a = TeamSelectionPopup.actions;
-        const hex = new Set(a.getHexagonIds());
-        const names = TeamSelectionPopup.girlsById(girls, r.ids).map((g, i) => {
-            const isNew = !hex.has(g.id_girl);
+    static describe(r, res, girls, current, candidates, info, estimated) {
+        const hex = new Set(TeamSelectionPopup.actions.getHexagonIds());
+        const names = TeamSelectionPopup.girlsById(girls, res.ids).map((g, i) => {
             const label = `${i === 0 ? '&#9733; ' : ''}${g.name} <span class="tsSub">(${g.element}, ${g.rarity})</span>`;
-            return isNew ? `<b class="tsGood">${label}</b>` : label;
+            return hex.has(g.id_girl) ? label : `<b class="tsGood">${label}</b>`;
         }).join('<br/>');
-        const caracs = `${getTextForUI('teamSelDamage', 'elementText')} ${Math.round(r.caracs.damage).toLocaleString()} &middot; `
-            + `${getTextForUI('teamSelEgo', 'elementText')} ${Math.round(r.caracs.ego).toLocaleString()} &middot; `
-            + `${getTextForUI('teamSelDefense', 'elementText')} ${Math.round(r.caracs.defense).toLocaleString()}`;
-        let headline = '';
-        if (id === 'B') {
-            headline = getTextForUI('teamSelPoints', 'elementText').replace('{points}', r.score.toFixed(0)).replace('{win}', r.detail);
-        }
-        else {
-            headline = getTextForUI('teamSelEff', 'elementText').replace('{eff}', r.score.toExponential(3));
-        }
+        const caracs = `${getTextForUI('teamSelDamage', 'elementText')} ${Math.round(res.caracs.damage).toLocaleString()} &middot; `
+            + `${getTextForUI('teamSelEgo', 'elementText')} ${Math.round(res.caracs.ego).toLocaleString()} &middot; `
+            + `${getTextForUI('teamSelDefense', 'elementText')} ${Math.round(res.caracs.defense).toLocaleString()}`;
+        const headline = r.scoring === 'opponents'
+            ? getTextForUI('teamSelPoints', 'elementText').replace('{points}', res.score.toFixed(0)).replace('{win}', res.detail)
+            : getTextForUI('teamSelEff', 'elementText').replace('{eff}', res.score.toExponential(3));
         let delta = '';
         if (current && current.score > 0) {
-            const pct = (r.score / current.score - 1) * 100;
+            const pct = (res.score / current.score - 1) * 100;
             delta = pct > 0.005
                 ? ` <span class="tsGood">(+${pct.toFixed(2)} % ${getTextForUI('teamSelVsCurrent', 'elementText')})</span>`
                 : ` <span class="tsSub">(${getTextForUI('teamSelIsCurrent', 'elementText')})</span>`;
         }
-        const note = id === 'C' ? `<div class="tsSub">${getTextForUI('teamSelModelNote', 'elementText')}</div>` : '';
-        return `<div>${headline}${delta}</div><div class="tsSub">${caracs} &middot; ${candidates} ${getTextForUI('teamSelCandidates', 'elementText')}</div>${note}<div>${names}</div>`;
+        const infoLine = info ? `<div class="tsSub">${info}</div>` : '';
+        const note = estimated ? `<div class="tsSub">${getTextForUI('teamSelModelNote', 'elementText')}</div>` : '';
+        return `${infoLine}<div>${headline}${delta}</div><div class="tsSub">${caracs} &middot; ${candidates} ${getTextForUI('teamSelCandidates', 'elementText')}</div>${note}<div>${names}</div>`;
     }
     // ---- Apply -----------------------------------------------------------
-    static apply(id) {
+    static apply(r) {
         const a = TeamSelectionPopup.actions;
-        const r = TeamSelectionPopup.results[id];
-        if (!a || !r || id === 'C')
+        const res = TeamSelectionPopup.results[r.id];
+        if (!a || !res || !r.canApply)
             return;
-        $('#hhTsApply' + id).addClass('tsDisabled');
-        a.saveTeam(r.ids, (ok, message) => {
+        $('#hhTsApply' + r.id).addClass('tsDisabled');
+        a.saveTeam(res.ids, (ok, message) => {
             const html = ok
                 ? `<span class="tsGood">${getTextForUI('teamSelApplied', 'elementText')}</span>`
                 : `<span class="tsBad">${getTextForUI('teamSelApplyFailed', 'elementText')}: ${message}</span>`;
-            $('#hhTsOut' + id).prepend(`<div>${html}</div>`);
+            $('#hhTsOut' + r.id).prepend(`<div>${html}</div>`);
             if (!ok)
-                $('#hhTsApply' + id).removeClass('tsDisabled');
+                $('#hhTsApply' + r.id).removeClass('tsDisabled');
         });
     }
 }
 TeamSelectionPopup.actions = null;
 TeamSelectionPopup.measured = new Map();
+/** Teams the projection slope is fitted on: today's candidates only. */
+TeamSelectionPopup.calibration = null;
 TeamSelectionPopup.results = {};
 TeamSelectionPopup.busy = false;
-TeamSelectionPopup.cancelled = false;
 // ---- Rendering -------------------------------------------------------
 TeamSelectionPopup.stylesAdded = false;
 

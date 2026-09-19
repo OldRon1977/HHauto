@@ -15,12 +15,12 @@
 // fought exactly three times. One who has been fought three times no longer
 // matters for the team, one with a single fight left matters a third.
 //
-// Why next week needs a model: the game calculates today's blessings only.
-// Ego is exactly additive in the girls' caracs (measured: 0.07 % over 173
-// teams); damage and defense are not (up to 5 %). The projection therefore
-// starts from the stats the game measured TODAY for the same seven girls and
-// adds only the change the blessing swap causes, estimated by a linear fit
-// over all measured candidates.
+// Why next week and full development need a model: the game calculates the
+// girls as they are today, with today's blessings. Ego is exactly additive in
+// the girls' caracs (measured: 0.07 % over 173 teams); damage and defense are
+// not (up to 5 %). The projection therefore starts from the stats the game
+// measured TODAY for the same seven girls and adds only the change of their
+// carac sum, times a slope fitted over all measured candidates (fitSumSlope).
 //
 // Depends on: BDSMHelper.ts (league fight simulation), TeamEvaluationService.ts (synergies)
 // Used by: TeamSelectionPopup.ts
@@ -207,38 +207,28 @@ export class TeamSelectionService {
     }
 
     /**
-     * Least-squares fit of `stat / (1 + synergy)` against the three carac
-     * sums, over every team the game has measured. Returns the three slopes,
-     * or null when the samples cannot carry a fit (too few, or collinear).
+     * Least-squares slope of `stat / (1 + synergy)` against the team's carac
+     * sum, over every team the game has measured; null when the samples
+     * cannot carry it. One slope, not one per carac: the candidates are
+     * single swaps of one another, so their carac1/2/3 sums move together and
+     * three separate slopes came out unstable -- measured live, the same team
+     * read 3 % weaker fully developed than as it is, because the slopes had
+     * tipped when new candidates joined the fit. Never negative: more caracs
+     * cannot cost stats.
      */
-    static fitCaracSlopes(samples: { sums: [number, number, number]; value: number }[]): [number, number, number] | null {
+    static fitSumSlope(samples: { sum: number; value: number }[]): number | null {
         if (samples.length < 6) return null;
-        // Normal equations for [1, c1, c2, c3]; the sums are scaled to keep
-        // the matrix well conditioned (they run into the hundreds of thousands).
-        const scale = 1e-5;
-        const n = 4;
-        const a: number[][] = Array.from({ length: n }, () => new Array(n + 1).fill(0));
-        for (const s of samples) {
-            const x = [1, s.sums[0] * scale, s.sums[1] * scale, s.sums[2] * scale];
-            for (let i = 0; i < n; i++) {
-                for (let j = 0; j < n; j++) a[i][j] += x[i] * x[j];
-                a[i][n] += x[i] * s.value;
-            }
+        const n = samples.length;
+        const mx = samples.reduce((s, x) => s + x.sum, 0) / n;
+        const my = samples.reduce((s, x) => s + x.value, 0) / n;
+        let sxx = 0;
+        let sxy = 0;
+        for (const x of samples) {
+            sxx += (x.sum - mx) * (x.sum - mx);
+            sxy += (x.sum - mx) * (x.value - my);
         }
-        // Gaussian elimination with partial pivoting.
-        for (let col = 0; col < n; col++) {
-            let pivot = col;
-            for (let r = col + 1; r < n; r++) if (Math.abs(a[r][col]) > Math.abs(a[pivot][col])) pivot = r;
-            if (Math.abs(a[pivot][col]) < 1e-9) return null;
-            [a[col], a[pivot]] = [a[pivot], a[col]];
-            for (let r = 0; r < n; r++) {
-                if (r === col) continue;
-                const f = a[r][col] / a[col][col];
-                for (let k = col; k <= n; k++) a[r][k] -= f * a[col][k];
-            }
-        }
-        const coef = a.map((row, i) => row[n] / row[i]);
-        return [coef[1] * scale, coef[2] * scale, coef[3] * scale];
+        if (sxx <= 1e-9 * n * Math.max(1, mx * mx)) return null;
+        return Math.max(0, sxy / sxx);
     }
 
     /**
@@ -252,18 +242,16 @@ export class TeamSelectionService {
         sumsNext: [number, number, number],
         counts: ElementCounts,
         harem: Record<ElementType, number>,
-        slopes: Partial<Record<keyof TeamCaracs, [number, number, number] | null>>,
+        slopes: Partial<Record<keyof TeamCaracs, number | null>>,
     ): TeamCaracs {
         const out: TeamCaracs = { ...measuredToday };
         for (const stat of ['ego', 'damage', 'defense'] as const) {
             const synergyElement = STAT_SYNERGY[stat]!;
             const multiplier = 1 + TeamEvaluationService.getSynergy(counts, synergyElement, harem);
             const slope = slopes[stat];
-            if (slope) {
-                const delta = slope[0] * (sumsNext[0] - sumsToday[0])
-                            + slope[1] * (sumsNext[1] - sumsToday[1])
-                            + slope[2] * (sumsNext[2] - sumsToday[2]);
-                out[stat] = measuredToday[stat] + multiplier * delta;
+            if (slope !== null && slope !== undefined) {
+                const delta = (sumsNext[0] + sumsNext[1] + sumsNext[2]) - (sumsToday[0] + sumsToday[1] + sumsToday[2]);
+                out[stat] = measuredToday[stat] + multiplier * slope * delta;
             } else {
                 // No fit: scale with the total, the rough share the girls carry.
                 const today = sumsToday[0] + sumsToday[1] + sumsToday[2];
@@ -272,6 +260,17 @@ export class TeamSelectionService {
             }
         }
         return out;
+    }
+
+    /**
+     * Factor from today's caracs to a girl's caracs at full development
+     * (level 750, every grade) -- the projection of "Best Possible"
+     * (TeamScoringService.scoreBestPossible), as a multiplier on the caracs.
+     */
+    static developmentFactor(girl: GirlData): number {
+        const today = TeamScoringService.caracsSum(girl);
+        if (today <= 0) return 1;
+        return TeamScoringService.scoreBestPossible(girl) / today;
     }
 
     /** Which stat a synergy element scales, for the fit in the popup. */

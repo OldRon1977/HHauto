@@ -73,22 +73,16 @@ describe('TeamSelectionService.buildHeroFighter', () => {
 });
 
 describe('TeamSelectionService next-week projection', () => {
-    it('recovers the slopes of an exactly linear stat', () => {
-        const samples = [];
-        for (let i = 0; i < 12; i++) {
-            const sums: [number, number, number] = [100000 + i * 3000, 90000 + (i % 4) * 5000, 80000 + (i % 3) * 7000];
-            samples.push({ sums, value: 5000 + 2.3 * sums[0] + 1.1 * sums[1] + 0.4 * sums[2] });
-        }
-        const slopes = TeamSelectionService.fitCaracSlopes(samples)!;
-        expect(slopes[0]).toBeCloseTo(2.3, 6);
-        expect(slopes[1]).toBeCloseTo(1.1, 6);
-        expect(slopes[2]).toBeCloseTo(0.4, 6);
+    it('recovers the slope of an exactly linear stat', () => {
+        const samples = Array.from({ length: 12 }, (_, i) => ({ sum: 200000 + i * 4000, value: 5000 + 2.33 * (200000 + i * 4000) }));
+        expect(TeamSelectionService.fitSumSlope(samples)).toBeCloseTo(2.33, 6);
     });
 
-    it('refuses a fit it cannot carry', () => {
-        expect(TeamSelectionService.fitCaracSlopes([])).toBeNull();
-        const same = Array.from({ length: 8 }, () => ({ sums: [1, 1, 1] as [number, number, number], value: 1 }));
-        expect(TeamSelectionService.fitCaracSlopes(same)).toBeNull();
+    it('refuses a fit it cannot carry, and never answers a negative slope', () => {
+        expect(TeamSelectionService.fitSumSlope([])).toBeNull();
+        expect(TeamSelectionService.fitSumSlope(Array.from({ length: 8 }, () => ({ sum: 1000, value: 1 })))).toBeNull();
+        const falling = Array.from({ length: 8 }, (_, i) => ({ sum: 1000 + i * 10, value: 500 - i }));
+        expect(TeamSelectionService.fitSumSlope(falling)).toBe(0);
     });
 
     it("adds only the change to today's measured stats, synergy included", () => {
@@ -96,12 +90,24 @@ describe('TeamSelectionService next-week projection', () => {
         const out = TeamSelectionService.projectCaracs(
             { ego: 1000, damage: 500, defense: 200, chance: 50 },
             [100, 100, 100], [110, 100, 100], { nature: 1 }, harem,
-            { ego: [2, 0, 0], damage: null, defense: [0, 0, 0] },
+            { ego: 2, damage: null, defense: 0 },
         );
         // ego: 1000 + (1 + 0.03 + 0.1) * 2 * 10
         expect(out.ego).toBeCloseTo(1000 + 1.13 * 20);
         // damage without a fit: scaled with the total (310 / 300)
         expect(out.damage).toBeCloseTo(500 * 310 / 300);
         expect(out.chance).toBe(50);
+    });
+});
+
+describe('TeamSelectionService.developmentFactor', () => {
+    it('is the Best Possible projection as a multiplier on the caracs', () => {
+        // level 375 of 750, 2 of 6 grades: 2 * (1 + 0.3 * 6) / (1 + 0.3 * 2)
+        const g = girl(1, 3000, 'fire', { level: 375, graded: 2, nb_grades: 6 });
+        expect(TeamSelectionService.developmentFactor(g)).toBeCloseTo(2 * 2.8 / 1.6);
+    });
+
+    it('leaves a fully developed girl as she is', () => {
+        expect(TeamSelectionService.developmentFactor(girl(1, 3000))).toBeCloseTo(1);
     });
 });
