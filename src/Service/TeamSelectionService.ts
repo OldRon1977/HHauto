@@ -32,14 +32,6 @@ import { ElementType, GirlData, TeamScoringService } from './TeamScoringService'
 /** Swap partners tried per position around the stat-sum pick. */
 export const SWAP_ALTERNATIVES = 15;
 
-/**
- * Candidates the league rubrics simulate: the best by effective power. The
- * simulation is the slow part (every candidate against every open opponent),
- * and in the measured data the team that won the simulation always stood
- * first or second by effective power (373 teams, one account).
- */
-export const SIMULATED_CANDIDATES = 30;
-
 /** A league opponent can be fought this many times per league week. */
 export const FIGHTS_PER_OPPONENT = 3;
 
@@ -201,6 +193,21 @@ export class TeamSelectionService {
     }
 
     /**
+     * Hand the thread back to the page for one turn. Through a MessageChannel,
+     * not setTimeout(0): browsers stretch zero timers (4 ms when nested, up to
+     * a second in a tab that is not in front), and measured live the sliced
+     * simulation had covered 37 of 96 teams after 88 seconds that way.
+     */
+    static yieldToPage(): Promise<void> {
+        if (typeof MessageChannel === 'undefined') return new Promise(r => setTimeout(r, 0));
+        return new Promise(resolve => {
+            const channel = new MessageChannel();
+            channel.port1.onmessage = () => { channel.port1.close(); resolve(); };
+            channel.port2.postMessage(null);
+        });
+    }
+
+    /**
      * scoreAgainstOpponents for the page: the same sums, but the thread is
      * handed back every `sliceMs`. Seventy-odd fights in one go froze the
      * tab ("page not responding") on a player's machine.
@@ -223,7 +230,7 @@ export class TeamSelectionService {
             wins += weight * result.win;
             fights += weight;
             if (Date.now() - sliceStart >= sliceMs) {
-                await new Promise(r => setTimeout(r, 0));
+                await TeamSelectionService.yieldToPage();
                 sliceStart = Date.now();
             }
         }

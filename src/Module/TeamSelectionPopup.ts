@@ -48,7 +48,7 @@ import { LeagueOpponentSnapshot, OpponentSnapshot } from '../Service/LeagueOppon
 import { TeamBuilderService } from '../Service/TeamBuilderService';
 import { TeamCaracs, TeamEvaluationService } from '../Service/TeamEvaluationService';
 import { ElementType, GirlData, PlayerClass, TeamScoringService } from '../Service/TeamScoringService';
-import { SIMULATED_CANDIDATES, TeamSelectionService } from '../Service/TeamSelectionService';
+import { TeamSelectionService } from '../Service/TeamSelectionService';
 import { kickAutoLoop } from '../Service/AutoLoopKick';
 import { getStoredValue, setStoredValue } from '../Helper/StorageHelper';
 import { HHStoredVarPrefixKey } from '../config/HHStoredVars';
@@ -452,13 +452,9 @@ export class TeamSelectionPopup {
             const s = await TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, teamGirls, harem), snap!.opponents);
             return { ids, caracs, score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
         };
-        const effective = (ids: number[]): number => TeamEvaluationService.computeEffectivePower(
-            statsOf(ids), TeamSelectionService.countElements(TeamSelectionPopup.girlsById(pool.evaluated, ids)), harem);
-        // The league rubrics simulate the best candidates by effective power
-        // only (SIMULATED_CANDIDATES); the other rubrics score them all.
-        const scored = r.scoring === 'opponents'
-            ? [...teams].sort((x, y) => effective(y) - effective(x)).slice(0, SIMULATED_CANDIDATES)
-            : teams;
+        // Every candidate is scored, and in the league rubrics every candidate
+        // against every opponent with an open fight.
+        const scored = teams;
 
         let best: RubricResult | null = null;
         let done = 0;
