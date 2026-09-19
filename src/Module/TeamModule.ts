@@ -20,6 +20,7 @@ import { addNutakuSession, gotoPage, safeReload } from '../Service/PageNavigatio
 import { themeFromElementCounts } from '../Service/EquipmentOptimizerService';
 import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuilderService';
 import { TeamEvaluationService } from '../Service/TeamEvaluationService';
+import { TeamSelectionPopup } from './TeamSelectionPopup';
 import { GirlData, ElementType, RarityType, PlayerClass } from '../Service/TeamScoringService';
 import { TraitMappings } from '../Service/TraitMappings';
 import { fillHHPopUp } from "../Utils/HHPopup";
@@ -83,6 +84,7 @@ export class TeamModule {
         // 2c (Assign first 7) only exists after a team was picked, so it gets
         // a slot here and is filled in by ensureAssignTopTeamButton.
         $("#contains_all section").append('<div id="hhTeamWorkflow">'
+            + hhButton('teamSelOpen', 'hhTeamSelectionOpen', '', '', '')
             + hhButton('UnequipAll', 'UnequipAll', '', '', '1 ')
             + hhButton('ChangeTeamButton', 'ChangeTeamButton', '', '', '2a ')
             + hhButton('ChangeTeamButton2', 'ChangeTeamButton2', '', '', '2b ')
@@ -90,6 +92,7 @@ export class TeamModule {
             + hhButton('StuffTeam', 'StuffTeam', '', '', '3 ')
             + '</div>');
 
+        $("#hhTeamSelectionOpen").on("click", () => TeamModule.openTeamSelection());
         $("#UnequipAll").on("click", TeamModule.unequipAllGirls);
         $("#ChangeTeamButton" ).on("click", () => { TeamModule.setTopTeam(1) });
         $("#ChangeTeamButton2").on("click", () => { TeamModule.setTopTeam(2) });
@@ -137,7 +140,7 @@ export class TeamModule {
             var params1 = {
                 action: "girl_equipment_unequip_all_girls"
             };
-            getHHAjax()!(params1, function(_data:any) {
+            const finish = function() {
                 $("#UnequipAll").removeAttr('disabled');
                 // change referer
                 window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
@@ -148,6 +151,16 @@ export class TeamModule {
                     // + reload, with mutex protection (issue #1598).
                     safeReload(randomInterval(200, 500));
                 }
+            };
+            getHHAjax()!(params1, function(_data:any) {
+                // Measured 2026-09-19: the server answers {success:true} and
+                // takes the gear off, but keeps serving the old girl data --
+                // armor and caracs of before -- through reloads and get_girl,
+                // so the next build still ranks the gear. The per-girl unequip
+                // of one team girl finds nothing left to take off
+                // (unequipped_armor: []) and after it every girl reads fresh.
+                // Hence the second call; its girl needs no gear to be removed.
+                getHHAjax()!({ action: "girl_equipment_unequip_all", id_girl: girlId }, function() { finish(); });
             });
         }
     }
@@ -496,9 +509,19 @@ export class TeamModule {
             logHHAuto('Not saving team: only ' + girls.length + ' girls in the hexagons.');
             return;
         }
+        TeamModule.saveTeamIds(girls, () => { if (onDone) onDone(); });
+    }
+
+    /**
+     * Save a given team (leader first) with the request the game's Validate
+     * button sends. Reports the outcome instead of only logging it: the
+     * team selection popup shows it next to the team it applied.
+     */
+    static saveTeamIds(girls: number[], onDone: (ok: boolean, message: string) => void) {
         const ajax = getHHAjax();
         if (!ajax) {
             logHHAuto('Can\'t save team: hh_ajax unavailable. Use the game\'s Validate button.');
+            onDone(false, 'hh_ajax unavailable');
             return;
         }
         const params: Record<string, any> = {
@@ -514,10 +537,33 @@ export class TeamModule {
         ajax(params, (data: any) => {
             if (data && data.success === false) {
                 logHHAuto('Team save rejected by the game: ' + JSON.stringify(data));
+                onDone(false, String(data.error ?? data.message ?? JSON.stringify(data)));
             } else {
                 logHHAuto('Team saved. Staying on the edit page -- "3 Stuff Team" is ready.');
+                onDone(true, '');
             }
-            if (onDone) onDone();
+        });
+    }
+
+    /**
+     * The team selection popup (TeamSelectionPopup). A team it applies is
+     * saved and the page reloaded, so the hexagons show the saved team and
+     * "Stuff Team" equips the girls that will actually fight.
+     */
+    static openTeamSelection() {
+        TeamSelectionPopup.open({
+            mapGirl: raw => TeamModule.mapAvailableGirl(raw),
+            getHexagonIds: () => TeamModule.getEditTeamGirlIds(),
+            getSavedIds: () => {
+                const saved = getHHVars('teamGirls', false);
+                return Array.isArray(saved) ? saved.map((g: { id_girl?: unknown }) => Number(g?.id_girl)).filter((id: number) => id > 0) : [];
+            },
+            saveTeam: (ids, onDone) => TeamModule.saveTeamIds(ids, (ok, message) => {
+                onDone(ok, message);
+                if (ok) safeReload(randomInterval(800, 1200));
+            }),
+            unequipAll: () => TeamModule.unequipAllGirls(),
+            stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
         });
     }
 

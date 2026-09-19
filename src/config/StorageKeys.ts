@@ -365,6 +365,9 @@ export const TK = {
     // League
     LeagueHumanLikeRun: "Temp_LeagueHumanLikeRun",
     LeagueOpponentList: "Temp_LeagueOpponentList",
+    // Opponents with their open fights, written on the league page for the
+    // team selection on the edit-team page, where opponents_list is missing.
+    leagueOpponentSnapshot: "Temp_leagueOpponentSnapshot",
     hideBeatenOppo: "Temp_hideBeatenOppo",
 
     // Season

@@ -22,6 +22,7 @@ import { checkTimer, getTimer } from "../Helper/TimerHelper";
 import { PentaDrill } from '../Module/PentaDrill';
 import { Spreadsheet } from '../Module/Spreadsheet';
 import { BlessingService } from './BlessingService';
+import { LeagueOpponentSnapshot } from './LeagueOpponentSnapshot';
 import { Booster } from "../Module/Booster";
 import { Champion } from "../Module/Champion";
 import { Club } from "../Module/Club";
@@ -56,6 +57,8 @@ import { AdsService } from "./AdsService";
 // navigation (full reload re-initialises the module). Used instead of
 // wrapping Season.moduleSimSeasonBattle in callItOnce -- see issue #1722.
 let seasonArenaPreviewShown = false;
+// Same lifetime: the league opponent snapshot is written once per page load.
+let opponentSnapshotTaken = false;
 
 export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
     // The mythic upgrade page carries no `page` attribute, so it never
@@ -73,6 +76,12 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
     switch (ctx.currentPage)
     {
         case ConfigHelper.getHHScriptVars("pagesIDLeaderboard"):
+            // Once per page load, and only once the list is there: the team
+            // selection against the open opponents reads this snapshot on the
+            // edit-team page, where opponents_list does not exist.
+            if (!opponentSnapshotTaken) {
+                opponentSnapshotTaken = LeagueOpponentSnapshot.capture(LeagueHelper.getLeagueEndTime());
+            }
             if (getStoredValue(HHStoredVarPrefixKey+SK.showCalculatePower) === "true")
             {
                 LeagueHelper.moduleSimLeague = callItOnce(LeagueHelper.moduleSimLeague);

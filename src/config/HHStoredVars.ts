@@ -2511,6 +2511,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.LeagueOpponentList] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// localStorage: written on the league page, read on the edit-team page -- two
+// separate visits, possibly in two tabs.
+HHStoredVars[HHStoredVarPrefixKey + TK.leagueOpponentSnapshot] =
+    {
+    default:"",
+    storage:"localStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked] =
     {
     storage:"sessionStorage",

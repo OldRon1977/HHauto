@@ -573,6 +573,7 @@ shown in the info panel as "Auto-Mystery").
 |-----------|-------------|---------|--------|--------------|
 | `LeagueHumanLikeRun` | `Temp_LeagueHumanLikeRun` | `sessionStorage` | `Temp` | human-like league runs |
 | `LeagueOpponentList` | `Temp_LeagueOpponentList` | `sessionStorage` | `Temp` | the opponent list |
+| `leagueOpponentSnapshot` | `Temp_leagueOpponentSnapshot` | `localStorage` | `Temp` | the league opponents with their open fights (0-3), written on the league page (`LeagueOpponentSnapshot.capture`) for the team selection against the open opponents on the edit-team page; no player names or ids |
 | `hideBeatenOppo` | `Temp_hideBeatenOppo` | `Storage()` | `Temp` | hide the ones already beaten |
 
 ### Season
