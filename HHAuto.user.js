@@ -24153,13 +24153,6 @@ var TeamSelectionService_awaiter = (undefined && undefined.__awaiter) || functio
 
 /** Swap partners tried per position around the stat-sum pick. */
 const SWAP_ALTERNATIVES = 15;
-/**
- * Candidates the league rubrics simulate: the best by effective power. The
- * simulation is the slow part (every candidate against every open opponent),
- * and in the measured data the team that won the simulation always stood
- * first or second by effective power (373 teams, one account).
- */
-const SIMULATED_CANDIDATES = 30;
 /** A league opponent can be fought this many times per league week. */
 const FIGHTS_PER_OPPONENT = 3;
 const ELEMENTS = ['fire', 'water', 'nature', 'stone', 'sun', 'darkness', 'light', 'psychic'];
@@ -24275,6 +24268,21 @@ class TeamSelectionService {
         return { points, winChance: fights > 0 ? wins / fights : 0, fights };
     }
     /**
+     * Hand the thread back to the page for one turn. Through a MessageChannel,
+     * not setTimeout(0): browsers stretch zero timers (4 ms when nested, up to
+     * a second in a tab that is not in front), and measured live the sliced
+     * simulation had covered 37 of 96 teams after 88 seconds that way.
+     */
+    static yieldToPage() {
+        if (typeof MessageChannel === 'undefined')
+            return new Promise(r => setTimeout(r, 0));
+        return new Promise(resolve => {
+            const channel = new MessageChannel();
+            channel.port1.onmessage = () => { channel.port1.close(); resolve(); };
+            channel.port2.postMessage(null);
+        });
+    }
+    /**
      * scoreAgainstOpponents for the page: the same sums, but the thread is
      * handed back every `sliceMs`. Seventy-odd fights in one go froze the
      * tab ("page not responding") on a player's machine.
@@ -24294,7 +24302,7 @@ class TeamSelectionService {
                 wins += weight * result.win;
                 fights += weight;
                 if (Date.now() - sliceStart >= sliceMs) {
-                    yield new Promise(r => setTimeout(r, 0));
+                    yield TeamSelectionService.yieldToPage();
                     sliceStart = Date.now();
                 }
             }
@@ -30897,12 +30905,9 @@ class TeamSelectionPopup {
                 const s = yield TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, teamGirls, harem), snap.opponents);
                 return { ids, caracs, score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
             });
-            const effective = (ids) => TeamEvaluationService.computeEffectivePower(statsOf(ids), TeamSelectionService.countElements(TeamSelectionPopup.girlsById(pool.evaluated, ids)), harem);
-            // The league rubrics simulate the best candidates by effective power
-            // only (SIMULATED_CANDIDATES); the other rubrics score them all.
-            const scored = r.scoring === 'opponents'
-                ? [...teams].sort((x, y) => effective(y) - effective(x)).slice(0, (/* inlined export .SIMULATED_CANDIDATES */30))
-                : teams;
+            // Every candidate is scored, and in the league rubrics every candidate
+            // against every opponent with an open fight.
+            const scored = teams;
             let best = null;
             let done = 0;
             for (const ids of scored) {
