@@ -9,9 +9,13 @@ Older entries below were migrated 1:1 from `README.md`.
 
 ### v8.14.0 - Team selection popup: this week, against the league, next week
 
-A new **Team selection** button at the top of the edit-team column opens a
+The edit-team column now holds one button, **Team selection**. It opens a
 popup with six rubrics in three coloured groups, and a second column with
-Unequip All and Stuff Team.
+Unequip All and Stuff Team. The former buttons 1 Unequip All, 2a Current
+Best, 2b Possible Best, 2c Assign first 7 and 3 Stuff Team are gone: the
+rubrics replace 2a/2b, Apply replaces 2c, and the other two sit in the popup.
+Applying a team also hands its theme to the gear optimiser on the market
+page, as 2a/2b did.
 
 | Group | Rubric | Scored by |
 |---|---|---|
