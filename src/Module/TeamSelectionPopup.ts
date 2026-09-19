@@ -37,7 +37,7 @@
 // import TeamModule (which opens it).
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
-//   BlessingForecast.ts, LeagueOpponentSnapshot.ts
+//   BlessingForecast.ts, LeagueOpponentSnapshot.ts, AutoLoopHold.ts
 // Used by: TeamModule.ts
 
 import { getHHVars } from '../Helper/HHHelper';
@@ -50,6 +50,7 @@ import { TeamCaracs, TeamEvaluationService } from '../Service/TeamEvaluationServ
 import { ElementType, GirlData, PlayerClass, TeamScoringService } from '../Service/TeamScoringService';
 import { TeamSelectionService } from '../Service/TeamSelectionService';
 import { kickAutoLoop } from '../Service/AutoLoopKick';
+import { holdAutoLoop, releaseAutoLoopHold } from '../Service/AutoLoopHold';
 import { getStoredValue, setStoredValue } from '../Helper/StorageHelper';
 import { HHStoredVarPrefixKey } from '../config/HHStoredVars';
 import { TK } from '../config/StorageKeys';
@@ -384,8 +385,11 @@ export class TeamSelectionPopup {
         // navigates away takes the measured candidates with it, and one that
         // sends its own requests competes with a hundred calculations. A
         // reload in between is safe -- the boot path switches the loop back on.
+        // Both: the flag stops new ticks, the hold keeps a tick that runs
+        // anyway (already scheduled, or kicked by another module) from acting.
         const loopWasOn = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === 'true';
         if (loopWasOn) setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
+        holdAutoLoop('team selection');
         try {
             await TeamSelectionPopup.evaluate(r);
         } catch (err) {
@@ -394,6 +398,7 @@ export class TeamSelectionPopup {
         } finally {
             TeamSelectionPopup.busy = false;
             $('#hhTeamSel .tsCalc').removeClass('tsDisabled');
+            releaseAutoLoopHold();
             if (loopWasOn) {
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                 kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);

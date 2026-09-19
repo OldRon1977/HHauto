@@ -30,7 +30,9 @@ page, as 2a/2b did.
   The game calculates every candidate. About 100 calculations, 40-50 seconds
   with a progress line; later rubrics reuse what earlier ones measured. The
   script's own loop pauses while a rubric calculates, so no other task
-  navigates away mid-way, and starts again when it is done. A calculation
+  navigates away mid-way, and starts again when it is done. That covers the
+  tick that was already due when you clicked, and ticks other modules start
+  on their own -- those still ran their actions and cut the calculation off. A calculation
   the game does not answer is tried twice more before the rubric gives up.
 - **Against League opponents.** The battle simulator against the opponents
   of your league. Each opponent counts as often as he can still be fought

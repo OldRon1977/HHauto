@@ -30477,6 +30477,39 @@ class BlessingForecast {
     }
 }
 
+;// ./src/Service/AutoLoopHold.ts
+// AutoLoopHold.ts -- Keep the auto-loop's actions out of a long calculation.
+//
+// Setting `Temp_autoLoop` to "false" stops the loop from scheduling its next
+// tick, and nothing more: autoLoop() reads the flag only at its end. The tick
+// that was already scheduled when a player clicked, and every tick a module
+// starts through kickAutoLoop, still runs the action pipeline -- and an
+// action that navigates takes a running team calculation with it. Players
+// reported exactly that: the team selection interrupted again and again, the
+// last time shortly before it finished.
+//
+// A holder takes the hold for the length of its work; while it is held,
+// autoLoop() skips the action pipeline and the paranoia switch. It lives in
+// memory only, so a reload -- the page is gone anyway -- ends it.
+//
+// This file imports nothing, for the reason AutoLoopKick.ts gives: a leaf
+// cannot join an import cycle.
+//
+// Used by: AutoLoop.ts (reads it), TeamSelectionPopup.ts (holds it)
+let holder = null;
+/** Take the hold. */
+function holdAutoLoop(name) {
+    holder = name;
+}
+/** Give the hold back. */
+function releaseAutoLoopHold() {
+    holder = null;
+}
+/** Who holds the loop's actions, or null. */
+function autoLoopHolder() {
+    return holder;
+}
+
 ;// ./src/Module/TeamSelectionPopup.ts
 // TeamSelectionPopup.ts -- The team selection popup on the edit-team page.
 //
@@ -30517,7 +30550,7 @@ class BlessingForecast {
 // import TeamModule (which opens it).
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
-//   BlessingForecast.ts, LeagueOpponentSnapshot.ts
+//   BlessingForecast.ts, LeagueOpponentSnapshot.ts, AutoLoopHold.ts
 // Used by: TeamModule.ts
 var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -30528,6 +30561,7 @@ var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 
 
 
@@ -30828,9 +30862,12 @@ class TeamSelectionPopup {
             // navigates away takes the measured candidates with it, and one that
             // sends its own requests competes with a hundred calculations. A
             // reload in between is safe -- the boot path switches the loop back on.
+            // Both: the flag stops new ticks, the hold keeps a tick that runs
+            // anyway (already scheduled, or kicked by another module) from acting.
             const loopWasOn = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === 'true';
             if (loopWasOn)
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
+            holdAutoLoop('team selection');
             try {
                 yield TeamSelectionPopup.evaluate(r);
             }
@@ -30841,6 +30878,7 @@ class TeamSelectionPopup {
             finally {
                 TeamSelectionPopup.busy = false;
                 $('#hhTeamSel .tsCalc').removeClass('tsDisabled');
+                releaseAutoLoopHold();
                 if (loopWasOn) {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                     kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
@@ -32971,6 +33009,7 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+
 function getBurst() {
     const sMenu = document.getElementById('sMenu');
     const sMenuVisible = sMenu != null && sMenu.style.display !== 'none';
@@ -33077,7 +33116,15 @@ function autoLoop() {
             lastMousePauseLog = Date.now();
             logHHAuto("Mouse pause active, holding automation.");
         }
-        if (burst && !userPaused /*|| checkTimer('nextMissionTime')*/) {
+        // A long calculation on the page (team selection) holds the actions: the
+        // Temp_autoLoop flag only stops the NEXT tick from being scheduled, not
+        // this one (AutoLoopHold.ts).
+        const heldBy = autoLoopHolder();
+        if (burst && heldBy && Date.now() - lastMousePauseLog >= 2000) {
+            lastMousePauseLog = Date.now();
+            logHHAuto("Automation held by " + heldBy + ".");
+        }
+        if (burst && !userPaused && !heldBy /*|| checkTimer('nextMissionTime')*/) {
             if (!checkTimer("paranoiaSwitch")) {
                 ParanoiaService.clearParanoiaSpendings();
             }
@@ -33118,7 +33165,7 @@ function autoLoop() {
         }
         // --- Page-specific UI handlers ---
         yield handlePageSpecific(ctx);
-        if (ctx.busy === false && !isUserPauseActive() && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
+        if (ctx.busy === false && !isUserPauseActive() && !autoLoopHolder() && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
             if (checkTimer("paranoiaSwitch")) {
                 ParanoiaService.flipParanoia();
             }

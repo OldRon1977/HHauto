@@ -45,6 +45,7 @@ import { setDefaults } from "./StartService";
 import { AutoLoopContext } from './AutoLoopContext';
 import { decideBurst } from './AutoLoop.pure';
 import { handlePageSpecific } from './AutoLoopPageHandlers';
+import { autoLoopHolder } from './AutoLoopHold';
 
 
 export function getBurst()
@@ -187,7 +188,15 @@ export async function autoLoop()
         lastMousePauseLog = Date.now();
         logHHAuto("Mouse pause active, holding automation.");
     }
-    if (burst && !userPaused /*|| checkTimer('nextMissionTime')*/)
+    // A long calculation on the page (team selection) holds the actions: the
+    // Temp_autoLoop flag only stops the NEXT tick from being scheduled, not
+    // this one (AutoLoopHold.ts).
+    const heldBy = autoLoopHolder();
+    if (burst && heldBy && Date.now() - lastMousePauseLog >= 2000) {
+        lastMousePauseLog = Date.now();
+        logHHAuto("Automation held by " + heldBy + ".");
+    }
+    if (burst && !userPaused && !heldBy /*|| checkTimer('nextMissionTime')*/)
     {
 
         if (!checkTimer("paranoiaSwitch") )
@@ -234,7 +243,7 @@ export async function autoLoop()
     // --- Page-specific UI handlers ---
     await handlePageSpecific(ctx);
 
-    if (ctx.busy === false && !isUserPauseActive() && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
+    if (ctx.busy === false && !isUserPauseActive() && !autoLoopHolder() && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
         if (checkTimer("paranoiaSwitch")) {
             ParanoiaService.flipParanoia();
         }
