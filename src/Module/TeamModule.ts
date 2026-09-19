@@ -43,62 +43,30 @@ export class TeamModule {
     }
     
     /**
-     * Edit-team page: the four buttons in the order a player needs them.
-     *
-     *   1  Unequip All   -- equipment sits inside availableGirls.caracs, so
-     *                       a build with the old team still wearing the gear
-     *                       ranks that team for its items rather than its
-     *                       girls (see docs/reference/data-sources-team.md).
-     *   2a Current Best  -- pick by today's stats
-     *   2b Possible Best -- pick by stats at full development
-     *   2c Assign first 7-- rendered next to the harem panel by updateTeamUI
-     *   3  Stuff Team    -- equipment + skills for the team that was just
-     *                       assigned. Used to exist only on the battle-teams
-     *                       page, which the player reached only by leaving
-     *                       this one.
+     * Edit-team page: one button, "Team selection", which opens the team
+     * selection popup (TeamSelectionPopup). The popup holds everything the
+     * former column did -- Unequip All, picking a team, applying it, Stuff
+     * Team -- and the modes that replaced "Current Best" / "Possible Best".
      */
     static moduleChangeTeam()
     {
-        if (document.getElementById("ChangeTeamButton") !== null || document.getElementById("ChangeTeamButton2") !== null)
+        if (document.getElementById("hhTeamSelectionOpen") !== null)
         {
             return;
         }
-        // One flow-laid-out column instead of four absolutely positioned
-        // buttons: stacking them by hand meant every label that wrapped grew
-        // past its 50px slot and slid under the next one. Flex + a fixed box
-        // per button cannot overlap, whatever the labels or the language.
-        GM_addStyle('.topNumber{top: 2px;left: 12px;width: 100%;position: absolute;text-shadow: 1px 1px 1px black, -1px -1px 1px black;}'
-            + '#hhTeamWorkflow{position:absolute;left:60%;top:100px;z-index:10;'
-            + 'display:flex;flex-direction:column;align-items:stretch;gap:6px;width:84px;}'
+        GM_addStyle('#hhTeamWorkflow{position:absolute;left:60%;top:100px;z-index:10;width:84px;}'
             + '#hhTeamWorkflow .tooltipHH{width:100%;margin:0;padding:0;}'
-            // 44px holds three wrapped lines at this size, which is one more
-            // than the longest translated label needs (fr "2c Assigner les 7
-            // premieres" wraps to two). overflow:hidden is the last resort so
-            // a longer label can never push the column apart again.
             + '#hhTeamWorkflow .myButton{display:flex;align-items:center;justify-content:center;'
             + 'box-sizing:border-box;width:100%;height:44px;margin:0;padding:2px 4px;'
-            + 'font-size:11px;line-height:13px;text-align:center;overflow:hidden;}'
-            + '#hhAssignSlot{width:100%;}'
-            + '#hhAssignSlot:empty{display:none;}');
+            + 'font-size:11px;line-height:13px;text-align:center;overflow:hidden;}');
 
-        // 2c (Assign first 7) only exists after a team was picked, so it gets
-        // a slot here and is filled in by ensureAssignTopTeamButton.
         $("#contains_all section").append('<div id="hhTeamWorkflow">'
             + hhButton('teamSelOpen', 'hhTeamSelectionOpen', '', '', '')
-            + hhButton('UnequipAll', 'UnequipAll', '', '', '1 ')
-            + hhButton('ChangeTeamButton', 'ChangeTeamButton', '', '', '2a ')
-            + hhButton('ChangeTeamButton2', 'ChangeTeamButton2', '', '', '2b ')
-            + '<div id="hhAssignSlot"></div>'
-            + hhButton('StuffTeam', 'StuffTeam', '', '', '3 ')
             + '</div>');
 
         $("#hhTeamSelectionOpen").on("click", () => TeamModule.openTeamSelection());
-        $("#UnequipAll").on("click", TeamModule.unequipAllGirls);
-        $("#ChangeTeamButton" ).on("click", () => { TeamModule.setTopTeam(1) });
-        $("#ChangeTeamButton2").on("click", () => { TeamModule.setTopTeam(2) });
-        $("#StuffTeam").on("click", TeamModule.buildStuffTeamSelectPopUp);
     }
-    
+
     static moduleEquipTeam()
     {
         if (document.getElementById("EquipAll") !== null)
@@ -560,7 +528,19 @@ export class TeamModule {
             },
             saveTeam: (ids, onDone) => TeamModule.saveTeamIds(ids, (ok, message) => {
                 onDone(ok, message);
-                if (ok) safeReload(randomInterval(800, 1200));
+                if (!ok) return;
+                // The gear optimiser on the market page needs the theme of the
+                // fielded team (equipment-resonance.md, section 5); the market
+                // page has no team data of its own.
+                const available = getHHVars('availableGirls', false);
+                const counts: Record<string, number> = {};
+                for (const id of ids) {
+                    const g = Array.isArray(available) ? available.find((a: { id_girl?: unknown }) => Number(a.id_girl) === id) : undefined;
+                    const element = g?.element_data?.type || g?.element;
+                    if (element) counts[element] = (counts[element] || 0) + 1;
+                }
+                setStoredValue(HHStoredVarPrefixKey + TK.teamTheme, themeFromElementCounts(counts));
+                safeReload(randomInterval(800, 1200));
             }),
             unequipAll: () => TeamModule.unequipAllGirls(),
             stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),

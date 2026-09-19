@@ -120,6 +120,7 @@ export class TeamSelectionPopup {
         TeamSelectionPopup.actions = actions;
         TeamSelectionPopup.addStyles();
         fillHHPopUp('hhTeamSelectionPopup', getTextForUI('teamSelTitle', 'elementText'), TeamSelectionPopup.render());
+        TeamSelectionPopup.matchTitleFont();
         TeamSelectionPopup.bind();
         TeamSelectionPopup.refreshStatus();
     }
@@ -130,26 +131,41 @@ export class TeamSelectionPopup {
     private static addStyles(): void {
         if (TeamSelectionPopup.stylesAdded) return;
         TeamSelectionPopup.stylesAdded = true;
+        // The popup is white: the light greens and yellows of the dark team
+        // panel are unreadable on it, so every state colour here is a dark one.
+        // Sizes are the former ones plus 1pt.
         GM_addStyle(
-            '.hhTeamSelectionPopup #HHAutoPopupGlobalContent{max-width:860px;}'
-            + '#hhTeamSel{display:grid;grid-template-columns:1fr 170px;gap:10px;font-size:13px;}'
+            '.hhTeamSelectionPopup #HHAutoPopupGlobalContent{max-width:900px;}'
+            + '#hhTeamSel{display:grid;grid-template-columns:1fr 180px;gap:10px;font-size:calc(13px + 1pt);}'
             + '#hhTeamSel .tsGroups{display:flex;flex-direction:column;gap:10px;}'
-            + '#hhTeamSel .tsGroup{border-left:6px solid;padding:4px 10px;background:rgba(255,255,255,0.04);display:flex;flex-direction:column;gap:6px;}'
+            + '#hhTeamSel .tsGroup{border-left:6px solid;padding:4px 10px;background:rgba(0,0,0,0.03);display:flex;flex-direction:column;gap:6px;}'
             + '#hhTeamSel .tsGroup-stats{border-color:#4fa3e0;}'
             + '#hhTeamSel .tsGroup-league{border-color:#e0a14f;}'
             + '#hhTeamSel .tsGroup-next{border-color:#9b7fe0;}'
-            + '#hhTeamSel .tsRubric + .tsRubric{border-top:1px dashed #555;padding-top:6px;}'
+            + '#hhTeamSel .tsRubric + .tsRubric{border-top:1px dashed #999;padding-top:6px;}'
             + '#hhTeamSel .tsRow{display:flex;align-items:center;gap:6px;}'
-            + '#hhTeamSel .tsHead{font-weight:bold;font-size:13px;flex:1;}'
-            + '#hhTeamSel .tsRow .myButton{padding:3px 10px;font-size:12px;}'
-            + '#hhTeamSel .tsSub{color:#aaa;font-size:11px;}'
-            + '#hhTeamSel .tsOut{font-size:12px;line-height:1.45;}'
-            + '#hhTeamSel .tsGood{color:#7f7;} #hhTeamSel .tsBad{color:#f77;} #hhTeamSel .tsWarn{color:#fc6;}'
-            + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #555;padding-left:10px;}'
-            + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:13px;}'
-            + '#hhTeamSel .tsState{font-size:11px;color:#aaa;margin-top:3px;}'
+            + '#hhTeamSel .tsHead{font-weight:bold;font-size:calc(13px + 1pt);flex:1;}'
+            + '#hhTeamSel .tsRow .myButton{padding:3px 10px;font-size:calc(12px + 1pt);}'
+            + '#hhTeamSel .tsSub{color:#555;font-size:calc(11px + 1pt);}'
+            + '#hhTeamSel .tsOut{font-size:calc(12px + 1pt);line-height:1.45;}'
+            + '#hhTeamSel .tsGood{color:#1b6e2a;} #hhTeamSel .tsBad{color:#b3261e;} #hhTeamSel .tsWarn{color:#9a5a00;}'
+            + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #999;padding-left:10px;}'
+            + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:calc(13px + 1pt);}'
+            + '#hhTeamSel .tsState{font-size:calc(11px + 1pt);color:#555;margin-top:3px;}'
+            + '#hhTeamSel .myButton{font-family:inherit;}'
             + '#hhTeamSel .myButton.tsDisabled{opacity:0.45;pointer-events:none;}'
         );
+    }
+
+    /**
+     * The popup title takes its font from the game's stylesheet; the content
+     * follows it, whichever font the game variant uses.
+     */
+    private static matchTitleFont(): void {
+        const title = document.getElementById('HHAutoPopupGlobalTitle');
+        const content = document.getElementById('hhTeamSel');
+        if (!title || !content) return;
+        content.style.fontFamily = window.getComputedStyle(title).fontFamily;
     }
 
     private static rubricHtml(r: Rubric): string {
