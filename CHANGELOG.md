@@ -49,6 +49,11 @@ page, as 2a/2b did.
   its own. The page reloads so the hexagons show the saved team. The column
   shows whether hexagons and saved team match, and Stuff Team asks before
   equipping hexagons that differ from the saved team.
+- **One typeface for everything the script shows.** The menu's IBM Plex Sans
+  now also covers the popup title, every script button (they hard-coded
+  Arial), the tooltips, the gear controls on the market page, the league
+  score labels and the small marks on the team and harem pages. The game's
+  own elements keep the game's fonts.
 - **Unequip All** now also refreshes the girl data. The game took the gear off
   but kept serving the old values -- armor and stats of before, through
   reloads -- so a build right after still ranked the gear. One more request

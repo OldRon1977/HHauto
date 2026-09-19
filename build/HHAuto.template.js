@@ -54,9 +54,16 @@
 // the font-face is declared across the whole axis instead of faux-bolding.
 GM_addStyle('@font-face {font-family:"IBM Plex Sans"; font-style:normal; font-weight:100 700;'
             + ' font-display:swap; src:url(data:font/woff2;base64,{{menuFontBase64}}) format("woff2");}');
-// Only the script's own surfaces: the settings panel, the popups it opens, the
-// info overlay and the tooltip box. The game's own pages are left alone.
-GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoTooltip'
+// Every surface the script puts on the page, and only those: the settings
+// panel, the popup (its h2 title included -- the game gives h2 a font of its
+// own, which beats inheritance), every script button, the tooltips, the info
+// overlay, the gear controls on the market page, the league score labels and
+// the small marks and panels on the team and harem pages. The game's own
+// elements are left alone.
+GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoPopupGlobal h2, #HHAutoTooltip,'
+            + ' .myButton, .tooltipHHtext, .HHAutoOverlay, .HHpopup_message, .hhScrollTooltip, .hhTeamSynergyInfo,'
+            + ' .topNumber, .HHKeepMark, #hhTeamWorkflow, #HHGearButtons, #HHGearMenuList, #HHGearPreview, #HHGearStatus,'
+            + ' #HHPowerCalcScore, #HHPowerCalcPoints'
             + ' {font-family:"IBM Plex Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;}');
 // Form controls do not inherit font-family -- they take the browser's own
 // control font (Arial here). Left alone, the number fields would have kept
@@ -64,10 +71,9 @@ GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoToolt
 // The ch-based widths a few rules down now resolve against Plex's digit,
 // which is exactly 0.6em, so "17ch" really is seventeen digits wide.
 GM_addStyle('#sMenu input, #sMenu select, #sMenu textarea,'
-            + ' .HHAutoScriptMenu input, .HHAutoScriptMenu select, .HHAutoScriptMenu textarea'
+            + ' .HHAutoScriptMenu input, .HHAutoScriptMenu select, .HHAutoScriptMenu textarea,'
+            + ' #HHAutoPopupGlobal input, #HHAutoPopupGlobal select, #HHAutoPopupGlobal textarea'
             + ' {font-family:inherit;}');
-// .myButton hard-codes Arial; inside the panel it should read like the panel.
-GM_addStyle('#sMenu .myButton, .HHAutoScriptMenu .myButton {font-family:inherit;}');
 GM_addStyle('.HHAutoScriptMenu .switch { position: relative; display: inline-block; width: 34px; height: 20px; top:0 }/* The switch - the box around the slider */ '
             +'.HHAutoScriptMenu .switch input { display:none } /* Hide default HTML checkbox */ '
             +'.HHAutoScriptMenu .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s; margin-right: 4px; } /* The slider */'
@@ -227,7 +233,7 @@ GM_addStyle('div.labelAndButton {padding:3px; display:flex;flex-direction:column
 GM_addStyle('div.HHMenuItemBox {padding:0.2em}');
 GM_addStyle('div.HHMenuRow {display:flex; flex-direction:row; align-items:center; align-content:center; justify-content:flex-start}');
 GM_addStyle('input.maxMoneyInputField  {text-align:right; width:70px}');
-GM_addStyle('.myButton {box-shadow: 0px 0px 0px 2px #9fb4f2; background:linear-gradient(to bottom, #7892c2 5%, #476e9e 100%); background-color:#7892c2; border-radius:10px; border:1px solid #4e6096; display:inline-block; cursor:pointer; color:#ffffff; font-family:Arial; font-size:8px; padding:3px 7px; text-decoration:none; text-shadow:0px 1px 0px #283966;}'
+GM_addStyle('.myButton {box-shadow: 0px 0px 0px 2px #9fb4f2; background:linear-gradient(to bottom, #7892c2 5%, #476e9e 100%); background-color:#7892c2; border-radius:10px; border:1px solid #4e6096; display:inline-block; cursor:pointer; color:#ffffff; font-size:8px; padding:3px 7px; text-decoration:none; text-shadow:0px 1px 0px #283966;}'
             +'.myButton:hover { background:linear-gradient(to bottom, #476e9e 5%, #7892c2 100%); background-color:#476e9e; }'
             +'.myButton:active { position:relative; top:1px;}'
             +'.myButton:disabled, .myButton[disabled] { background: grey;}');
