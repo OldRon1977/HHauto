@@ -39,7 +39,9 @@ page, as 2a/2b did.
   (0-3); opponents fought three times are left out. The script keeps the list
   from your last visit to the league page and shows how old it is. Every
   candidate is simulated against every opponent with an open fight, in short
-  slices so the page stays responsive. It runs on request only --
+  slices so the page stays responsive. The group asks you to turn the
+  script off while it simulates; the "i" next to it says why. It runs on
+  request only --
   the league fights already take the opponents with the best chance of full
   points first.
 - **Next week.** The coming blessings on today's girls, matched in the page

@@ -525,4 +525,5 @@ HHAuto_ToolTips.es['teamSelThisLeague'] = { version: "8.14.0", elementText: "Est
 HHAuto_ToolTips.es['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Mejor posible esta semana - contra rivales de liga", tooltip: ""};
 HHAuto_ToolTips.es['teamSelNextStats'] = { version: "8.14.0", elementText: "Próxima semana - según estadísticas y bendiciones", tooltip: ""};
 HHAuto_ToolTips.es['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mejor posible la próxima semana - según estadísticas y bendiciones", tooltip: ""};
-HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.14.0", elementText: "El cálculo puede tardar un rato.", tooltip: ""};
+HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.14.0", elementText: "El cálculo puede tardar un rato. Desactiva el script durante la simulación.", tooltip: ""};
+HHAuto_ToolTips.es['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Si no, el script puede interrumpir la simulación -- por ejemplo al cambiar de página -- y el cálculo tiene que empezar de nuevo.", tooltip: ""};

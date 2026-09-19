@@ -527,4 +527,5 @@ HHAuto_ToolTips.en['teamSelThisLeague'] = { version: "8.14.0", elementText: "Thi
 HHAuto_ToolTips.en['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "This week's possibly best - against League opponents", tooltip: ""};
 HHAuto_ToolTips.en['teamSelNextStats'] = { version: "8.14.0", elementText: "Next week - by stats and blessings", tooltip: ""};
 HHAuto_ToolTips.en['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Next week's possibly best - by stats and blessings", tooltip: ""};
-HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.14.0", elementText: "This might take a while to calculate.", tooltip: ""};
+HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.14.0", elementText: "This might take a while to calculate. Turn off the script while simulating.", tooltip: ""};
+HHAuto_ToolTips.en['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Otherwise the script may interrupt the simulation run -- for example by moving to another page -- and you have to start the calculation again from the beginning.", tooltip: ""};

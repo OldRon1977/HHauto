@@ -815,7 +815,8 @@ HHAuto_ToolTips.en['teamSelThisLeague'] = { version: "8.14.0", elementText: "Thi
 HHAuto_ToolTips.en['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "This week's possibly best - against League opponents", tooltip: "" };
 HHAuto_ToolTips.en['teamSelNextStats'] = { version: "8.14.0", elementText: "Next week - by stats and blessings", tooltip: "" };
 HHAuto_ToolTips.en['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Next week's possibly best - by stats and blessings", tooltip: "" };
-HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.14.0", elementText: "This might take a while to calculate.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.14.0", elementText: "This might take a while to calculate. Turn off the script while simulating.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Otherwise the script may interrupt the simulation run -- for example by moving to another page -- and you have to start the calculation again from the beginning.", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
 
@@ -1343,7 +1344,8 @@ HHAuto_ToolTips.fr['teamSelThisLeague'] = { version: "8.14.0", elementText: "Cet
 HHAuto_ToolTips.fr['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Meilleure possible cette semaine - contre les adversaires de ligue", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelNextStats'] = { version: "8.14.0", elementText: "Semaine prochaine - selon stats et bénédictions", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Meilleure possible semaine prochaine - selon stats et bénédictions", tooltip: "" };
-HHAuto_ToolTips.fr['teamSelSlowHint'] = { version: "8.14.0", elementText: "Le calcul peut prendre un moment.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSlowHint'] = { version: "8.14.0", elementText: "Le calcul peut prendre un moment. Désactivez le script pendant la simulation.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Sinon, le script peut interrompre la simulation -- par exemple en changeant de page -- et le calcul doit reprendre depuis le début.", tooltip: "" };
 
 ;// ./src/i18n/de.ts
 
@@ -1872,7 +1874,8 @@ HHAuto_ToolTips.de['teamSelThisLeague'] = { version: "8.14.0", elementText: "Die
 HHAuto_ToolTips.de['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Mögliches Bestes diese Woche - gegen Liga-Gegner", tooltip: "" };
 HHAuto_ToolTips.de['teamSelNextStats'] = { version: "8.14.0", elementText: "Nächste Woche - nach Werten und Blessings", tooltip: "" };
 HHAuto_ToolTips.de['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mögliches Bestes nächste Woche - nach Werten und Blessings", tooltip: "" };
-HHAuto_ToolTips.de['teamSelSlowHint'] = { version: "8.14.0", elementText: "Die Berechnung kann eine Weile dauern.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSlowHint'] = { version: "8.14.0", elementText: "Die Berechnung kann eine Weile dauern. Schalte das Skript während der Simulation aus.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Sonst kann das Skript den Simulationslauf unterbrechen -- etwa indem es auf eine andere Seite wechselt -- und die Berechnung muss von vorne beginnen.", tooltip: "" };
 
 ;// ./src/i18n/es.ts
 
@@ -2400,7 +2403,8 @@ HHAuto_ToolTips.es['teamSelThisLeague'] = { version: "8.14.0", elementText: "Est
 HHAuto_ToolTips.es['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Mejor posible esta semana - contra rivales de liga", tooltip: "" };
 HHAuto_ToolTips.es['teamSelNextStats'] = { version: "8.14.0", elementText: "Próxima semana - según estadísticas y bendiciones", tooltip: "" };
 HHAuto_ToolTips.es['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mejor posible la próxima semana - según estadísticas y bendiciones", tooltip: "" };
-HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.14.0", elementText: "El cálculo puede tardar un rato.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.14.0", elementText: "El cálculo puede tardar un rato. Desactiva el script durante la simulación.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Si no, el script puede interrumpir la simulación -- por ejemplo al cambiar de página -- y el cálculo tiene que empezar de nuevo.", tooltip: "" };
 
 ;// ./src/Helper/LanguageHelper.ts
 // LanguageHelper.ts
@@ -30620,7 +30624,10 @@ class TeamSelectionPopup {
             + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #999;padding-left:10px;}'
             + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:calc(13px + 1pt);}'
             + '#hhTeamSel .tsState{font-size:calc(11px + 1pt);color:#555;margin-top:3px;}'
-            + '#hhTeamSel .myButton.tsDisabled{opacity:0.45;pointer-events:none;}');
+            + '#hhTeamSel .myButton.tsDisabled{opacity:0.45;pointer-events:none;}'
+            + '#hhTeamSel .tsInfo{display:inline-block;width:1.25em;height:1.25em;line-height:1.25em;border-radius:50%;'
+            + 'background:#476e9e;color:#fff;text-align:center;font-weight:bold;font-style:italic;cursor:pointer;user-select:none;}'
+            + '#hhTeamSel .tsInfoText{border-left:2px solid #476e9e;padding-left:6px;margin-top:2px;}');
     }
     static rubricHtml(r) {
         return `<div class="tsRubric">
@@ -30635,7 +30642,13 @@ class TeamSelectionPopup {
     static render() {
         // The league rubrics simulate every candidate against every open
         // opponent on top of the game calculation -- a minute or more.
-        const hint = (g) => g === 'league' ? `<div class="tsSub">${getTextForUI('teamSelSlowHint', 'elementText')}</div>` : '';
+        // The "i" folds the reason open on click rather than as a tooltip:
+        // tooltips can be switched off in the menu, and this one matters.
+        const hint = (g) => g === 'league'
+            ? `<div class="tsSub">${getTextForUI('teamSelSlowHint', 'elementText')}`
+                + ` <span class="tsInfo" id="hhTsSlowInfoToggle" title="${getTextForUI('teamSelSlowInfo', 'elementText')}">i</span></div>`
+                + `<div class="tsSub tsInfoText" id="hhTsSlowInfo" style="display:none">${getTextForUI('teamSelSlowInfo', 'elementText')}</div>`
+            : '';
         const group = (g) => `<div class="tsGroup tsGroup-${g}">${hint(g)}${RUBRICS.filter(r => r.group === g).map(r => TeamSelectionPopup.rubricHtml(r)).join('')}</div>`;
         return `<div id="hhTeamSel">
             <div class="tsGroups">${group('stats')}${group('league')}${group('next')}</div>
@@ -30657,6 +30670,7 @@ class TeamSelectionPopup {
             if (r.canApply)
                 $('#hhTsApply' + r.id).on('click', () => TeamSelectionPopup.apply(r));
         }
+        $('#hhTsSlowInfoToggle').on('click', () => $('#hhTsSlowInfo').toggle());
         $('#hhTsUnequip').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.unequipAll(); });
         $('#hhTsStuff').on('click', () => {
             const a = TeamSelectionPopup.actions;
