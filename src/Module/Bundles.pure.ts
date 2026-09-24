@@ -22,9 +22,7 @@
 export type ExpiryTimeState = {
     /**
      * The seconds value scraped from the popup timer span. null when
-     * the DOM lookup found no matching element. The original code
-     * keyed on $(...).length > 0 -- that boolean maps to (scraped !==
-     * null) here.
+     * the DOM lookup found no matching element.
      */
     scrapedSeconds: number | null;
     /**
@@ -36,15 +34,14 @@ export type ExpiryTimeState = {
 };
 
 /**
- * Reproduce Bundles.getExpiryTime bit by bit:
+ * The expiry decision behind Bundles.getExpiryTime:
  *
  *   if scrapedSeconds === null            -> fallbackSeconds
  *   if scrapedSeconds >= 24 * 3600        -> fallbackSeconds
  *   otherwise                              -> scrapedSeconds
  *
- * The 24-hour boundary is strict (<): the original code reads
- * `if (freeBundleTimer < 24 * 3600) return freeBundleTimer`, so
- * exactly 24 * 3600 falls through to the fallback branch.
+ * The 24-hour boundary is strict: exactly 24 * 3600 falls through to the
+ * fallback branch.
  */
 export function decideExpiryTime(state: ExpiryTimeState): number {
     if (state.scrapedSeconds === null) return state.fallbackSeconds;

@@ -1,9 +1,10 @@
-// Shop.ts -- Automates the equipment shop: buys and sells equipment, manages
-// inventory.
+// Shop.ts -- The market page: when to visit it, what to read there, and the
+// manual sell tools.
 //
-// Handles automated interactions with the in-game equipment shop. Buys
-// desired equipment, sells unwanted items, and manages inventory slots.
-// Tracks shop refresh timers and available currency.
+// Decides when the script walks to the market (isTimeToCheckShop), reads the
+// merchant assortment and the player's inventory into storage for Market.ts
+// and Booster.ts (updateShop), and draws the sell menu and its filters on the
+// page (moduleShopActions). The buying itself lives in Market.ts.
 //
 // Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
@@ -132,8 +133,8 @@ export class Shop {
 
     /**
      * Build a jQuery selector for armor inventory slots matching the given
-     * carac/type/rarity/lock filter. Pure string builder extracted from
-     * moduleShopActions (Shop review I4) so it can be unit-tested. "*" means
+     * carac/type/rarity/lock filter. A pure string builder, so it can be
+     * unit-tested. "*" means
      * "any" for carac/type/rarity; inLockedValue true/"locked" selects locked
      * slots, anything else selects unlocked.
      *
@@ -170,8 +171,8 @@ export class Shop {
 
     /**
      * Build a jQuery selector for the sell-menu table cells matching the given
-     * carac/type/rarity filter. Pure string builder extracted from
-     * moduleShopActions (Shop review I4) for unit-testing. "*" means "any".
+     * carac/type/rarity filter. A pure string builder, so it can be
+     * unit-tested. "*" means "any".
      */
     private static buildCellsFilter(inCaracsValue: string, inTypeValue: string, inRarityValue: string): string
     {
@@ -638,8 +639,8 @@ export class Shop {
             // flag is "true"). A direct setTimeout(autoLoop) here would
             // require a top-level import of Service/AutoLoop, which makes
             // Shop.ts part of a Module -> Service -> Module import cycle
-            // and breaks Pipeline.config.ts (which imports Shop): in the
-            // resulting cycle a cycle can hand a module an uninitialised binding at load.
+            // and breaks Pipeline.config.ts (which imports Shop): inside such
+            // a cycle a module can meet an uninitialised binding at load.
             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
         }
     

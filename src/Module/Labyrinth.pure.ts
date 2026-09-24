@@ -1,11 +1,11 @@
 // Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline
 // and the "find better option" selector.
 //
-// Extracted from Labyrinth.createPathFromMatrix,
-// Labyrinth.filterPathWithNoTreasue, Labyrinth.sortPathsByDifficulty,
-// and Labyrinth.findBetter so the path-building DFS, the treasure
-// filter, the difficulty sort, and the option ranker can be unit-
-// tested without DOM access, jQuery, globals, or storage.
+// Behind Labyrinth.createPathFromMatrix, Labyrinth.keepPathsWithTreasure,
+// Labyrinth.sortPathsByDifficulty and Labyrinth.findBetter, so the
+// path-building DFS, the treasure filter, the difficulty sort and the
+// option ranker can be unit-tested without DOM access, jQuery, globals or
+// storage.
 //
 // The functions are generic over the opponent record so the impure
 // adapter can keep its DOM-bound `LabyrinthOpponent` shape (with
@@ -44,17 +44,15 @@ export interface LabyrinthOpponentLite {
 }
 
 /**
- * Reproduce the inner `getNextIndices` closure of
- * createPathFromMatrix bit by bit. Returns the indices in the next
- * row that the cell at (currIdx, currLen) can reach.
+ * The indices in the next row that the cell at (currIdx, currLen) can
+ * reach.
  *
- * Adjacency rules from the original code:
+ * Adjacency rules:
  *   - nextLen === 1 (boss row): every cell maps to [0]
  *   - currLen 1 -> nextLen 2: 0 -> [0, 1]
  *   - currLen 2 -> nextLen 3: 0 -> [0, 1], 1 -> [1, 2]
  *   - currLen 3 -> nextLen 2: 0 -> [0], 1 -> [0, 1], 2 -> [1]
- *   - any other shape returns undefined (matches the original
- *     fallback where the function exits without a return value)
+ *   - any other shape returns undefined
  */
 export function getNextIndices(
     currIdx: number,
@@ -73,13 +71,12 @@ export function getNextIndices(
 }
 
 /**
- * Reproduce createPathFromMatrix bit by bit. DFS over a
- * row-of-cells matrix using the adjacency rules in
- * getNextIndices.
+ * Every path through the labyrinth: DFS over a row-of-cells matrix using
+ * the adjacency rules in getNextIndices.
  *
  * Empty leading rows are skipped (`while !matrix[startRow] ||
- * length === 0`) -- this preserves the original quirk that the
- * matrix may carry empty rows ahead of the first real row.
+ * length === 0`): the matrix may carry empty rows ahead of the first real
+ * row.
  */
 export function buildPathsFromMatrix<T extends LabyrinthPathOpponent>(
     matrix: T[][],
@@ -105,11 +102,8 @@ export function buildPathsFromMatrix<T extends LabyrinthPathOpponent>(
 
         const nextIndices = getNextIndices(idx, currLen, nextLen);
         if (nextIndices === undefined) {
-            // Original fallback path: function returns undefined and
-            // the for-of below would throw. The impure adapter logged
-            // an error before the (commented-out) fallback. Pure
-            // version keeps the same shape: no further descent on an
-            // unrecognised row pair.
+            // An unrecognised row pair: no further descent from here,
+            // instead of iterating an undefined list below.
             acc.pop();
             return;
         }
@@ -135,8 +129,8 @@ export function buildPathsFromMatrix<T extends LabyrinthPathOpponent>(
 }
 
 /**
- * Reproduce filterPathWithNoTreasue (typo preserved at the adapter
- * boundary). Keep only paths that contain at least one treasure cell.
+ * Keep only paths that contain at least one treasure cell (behind
+ * Labyrinth.keepPathsWithTreasure).
  */
 export function filterPathsWithTreasure<T extends LabyrinthPathOpponent>(
     paths: T[][],
@@ -147,10 +141,8 @@ export function filterPathsWithTreasure<T extends LabyrinthPathOpponent>(
 }
 
 /**
- * Reproduce sortPathsByDifficulty. Sort paths ascending by the sum
- * of their opponent difficulties. The original used a mutating
- * .sort() and returned the same array; the pure version mirrors that
- * (callers must accept that the input array is sorted in place).
+ * Sort paths ascending by the sum of their opponent difficulties. The
+ * sort mutates: the input array is sorted in place and returned.
  */
 export function sortPathsByDifficulty<T extends LabyrinthPathOpponent>(
     paths: T[][],
@@ -189,7 +181,7 @@ export type FindBetterState<T extends LabyrinthOpponentLite> = {
 };
 
 /**
- * Reproduce Labyrinth.findBetter bit by bit. Filter cascade:
+ * The option ranker behind Labyrinth.findBetter. Filter cascade:
  *
  *   1. shrines: drop unless (haveGirlWounded AND floor >= 3)
  *      else if floor >= 3 AND any shrine present: keep only shrines

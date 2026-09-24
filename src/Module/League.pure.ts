@@ -19,22 +19,6 @@ export type ShouldFightState = {
 };
 
 /**
- * Decide whether the league module should fight right now.
- *
- * Mirrors the original logic of LeagueHelper.isTimeToFight bit by bit:
- *   - timerExpired:        timerLeft <= 0 (checkTimer returns true once it has
- *                          run out)
- *   - energyAboveThreshold: humanLikeRun loosens the upper bound, otherwise
- *                          energy must exceed max(threshold, runThreshold - 1)
- *   - paranoiaOverride:    spend any positive amount of paranoia energy as
- *                          long as energy > 0
- *   - boosterCheck:        either boosters are not required, or they are
- *                          required AND equipped
- *
- * Returns true if (timer expired AND energy ok AND booster ok) OR paranoia
- * spending is active.
- */
-/**
  * Size of the league promotion zone.
  *
  * Kinkoid rule (March 2026): a player is promoted if they finish in the
@@ -51,6 +35,23 @@ export function leaguePromotionCutoff(bracketSize: number): number {
     return Math.max(Math.round(0.15 * bracketSize), 20);
 }
 
+/**
+ * Decide whether the league module should fight right now.
+ *
+ * The decision behind LeagueHelper.isTimeToFight:
+ *   - timerExpired:        timerLeft <= 0 (checkTimer returns true once it has
+ *                          run out)
+ *   - energyAboveThreshold: with humanLikeRun, energy above threshold is
+ *                          enough; otherwise energy must exceed
+ *                          max(threshold, runThreshold - 1)
+ *   - paranoiaOverride:    spend any positive amount of paranoia energy as
+ *                          long as energy > 0
+ *   - boosterCheck:        either boosters are not required, or they are
+ *                          required AND equipped
+ *
+ * Returns true if (timer expired AND energy ok AND booster ok) OR paranoia
+ * spending is active.
+ */
 export function decideShouldFight(state: ShouldFightState): boolean {
     const {
         energy,

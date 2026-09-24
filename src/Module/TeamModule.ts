@@ -1,10 +1,10 @@
-// TeamModule.ts -- Team management: auto-selects optimal teams for different
-// battle modes.
+// TeamModule.ts -- The edit-team page.
 //
-// Different game modes (league, troll, labyrinth, etc.) benefit from different
-// team compositions. This module automatically selects and switches to the
-// optimal team configuration before each fight type, saving the player from
-// manual team management.
+// Puts the "Team selection" button on the page and hands the team selection
+// popup its actions: read the hexagons and the saved team, save a team in
+// place, unequip and equip the girls' gear, and Stuff Team (skill scrolls).
+// setTopTeam and assignTopTeam, the team workflow before the popup, have no
+// caller any more.
 //
 // Used by: AutoLoopPageHandlers.ts (team building on the fight pages)
 //

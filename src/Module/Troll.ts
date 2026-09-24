@@ -4,7 +4,8 @@
 // Trolls are PvE bosses that cost fight energy to battle. This module manages
 // troll fight scheduling, selects which troll to fight (including event-specific
 // trolls during mythic events), tracks energy regeneration, and processes
-// fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
+// fight rewards. The event and love-raid targets come from EventModule and
+// LoveRaidManager.
 //
 // Depends on: EventModule.ts and LoveRaidManager.ts (event routing), Harem, Booster
 // Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts and others
@@ -512,7 +513,7 @@ export class Troll {
         }
 
         // Valid troll resolved: clear the one-shot invalid-retry guard so a future
-        // invalid target can retry once again (the flag was never reset before).
+        // invalid target can retry once again.
         if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
             setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "false");
         }
@@ -548,9 +549,7 @@ export class Troll {
             logHHAuto("Navigating to chosen Troll.");
             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
-            //week 28 new battle modification
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"),{id_opponent:TTF});
-            //End week 28 new battle modification
             return true;
         }
     }
@@ -901,7 +900,7 @@ export class Troll {
 
     
     /**
-     * Shared core for canBuyFight / canBuyFightForRaid (Troll review I5).
+     * Shared core for canBuyFight / canBuyFightForRaid.
      * Each public wrapper computes its strategy-specific buy amounts, the
      * activation predicate and the x50 gate, then delegates the common
      * shard/energy gate, x50-vs-x20 decision, koban check, logging and result
@@ -1038,7 +1037,7 @@ export class Troll {
         const activated = !!(
             getStoredValue(HHStoredVarPrefixKey + SK.buyLoveRaidCombat) === "true"
             && LoveRaidManager.isAnyActivated()
-            && raid?.seconds_until_event_end > 0 // new Date() < new Date(raid.end_datetime)
+            && raid?.seconds_until_event_end > 0
             && raid?.id_girl
         );
 

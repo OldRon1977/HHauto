@@ -1,9 +1,9 @@
 // GenericBattle.ts -- Handles the battle result page UI across all fight types.
 //
-// When a battle completes (troll, event, league, etc.), this module manages
-// the result page: adds skip buttons, auto-skips fight animations, and parses
-// reward drops. It acts as a shared handler for all battle outcomes rather
-// than being specific to one game mode.
+// After a fight (troll, league, season, penta drill, pantheon, labyrinth) this
+// module sends the script back to the page the fight started from. On a troll
+// fight for an event or love-raid girl it first reads the shard reward from
+// the popup (RewardHelper.ObserveAndGetGirlRewards).
 //
 // Used by: Service/Pipeline.config.ts
 //          and other fight modules that navigate to battle pages

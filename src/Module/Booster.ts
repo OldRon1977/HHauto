@@ -192,9 +192,6 @@ export class Booster {
 
                     setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
 
-                    /*if (mythicUpdated) {
-                        $(document).trigger('boosters:updated-mythic')
-                    }*/
 
                     try{
                         if (sandalwood && mythicUpdated && sandalwoodEnded) {
@@ -296,7 +293,7 @@ export class Booster {
         const serverNow = getHHVars('server_now_ts');
         if(boosterCode == '') {
             // have at least one
-            return /*boosterStatus.mythic.length > 0 ||*/ boosterStatus.normal.some((booster) => booster.endAt > serverNow)
+            return boosterStatus.normal.some((booster) => booster.endAt > serverNow)
         }else {
             return boosterStatus.mythic.some((booster) => booster.item.identifier === boosterCode)
             || boosterStatus.normal.some((booster) => booster.item.identifier === boosterCode && booster.endAt > serverNow)

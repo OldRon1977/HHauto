@@ -100,10 +100,9 @@ export class QuestHelper {
             return navOk;
         }
         if (page !== ConfigHelper.getHHScriptVars("pagesIDQuest") || (doMainQuest && mainQuestUrl.split("?")[0] != window.location.pathname)) {
-            // Resolve the next quest URL ourselves; the navigation service
-            // does not know about the Quest module any more (Cluster C of
-            // the page-nav refactor). When all quests are done, fall back
-            // to the home page and arm the back-off timer.
+            // Resolve the next quest URL here; the navigation service does
+            // not know about the Quest module. When all quests are done, fall
+            // back to the home page and arm the back-off timer.
             const nextQuestUrl = QuestHelper.getNextQuestLink();
             let navOk: boolean;
             if (nextQuestUrl !== undefined) {

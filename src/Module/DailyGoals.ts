@@ -162,12 +162,9 @@ export class DailyGoals {
                         return false;
                     }
                 } catch (err) {
-                    // Pre-fix this destructured `{ errName, message }` from the
-                    // thrown value, which crashed on primitive throws (the
-                    // destructure itself raised TypeError) and silently logged
-                    // `undefined` on non-Error objects. Standard catch handles
-                    // both safely; the message extraction stays defensive so a
-                    // primitive throw still produces a readable log line.
+                    // The thrown value may be a primitive or a plain object, so
+                    // the message is extracted defensively rather than
+                    // destructured -- a destructure would itself throw.
                     const errMessage = err instanceof Error ? err.message : String(err);
                     logHHAuto(`ERROR during daily goals run: ${errMessage}, retry in 1h`);
                     setTimer('nextDailyGoalsCollectTime', randomInterval(3600, 4000));
@@ -182,10 +179,7 @@ export class DailyGoals {
             }
         }
         // Default branch: timer not yet elapsed or autoDailyGoalsCollect
-        // disabled. Pre-fix the function fell through with an implicit
-        // `undefined` return that the Pipeline adapter coerced to falsy
-        // (busy=false). Spell that out explicitly to match the declared
-        // boolean return type and to survive a future strict-TS push.
+        // disabled. Not busy.
         return false;
     }
 
@@ -254,7 +248,6 @@ export class DailyGoals {
 export class DailyGoalsIcon {
 
     static getIcon(){
-    //static getIcon(current: number, max: number){
         // TODO translation
         return $(`<i class="daily_goals_potion_icn general_potion_icn hhauto" title="Have daily goal"></i>`);
     }

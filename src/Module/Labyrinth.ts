@@ -6,7 +6,7 @@
 // remaining attempts and cooldowns, and coordinating with LabyrinthAuto.ts
 // for the actual fight logic and RelicManager.ts for relic selection.
 //
-// Depends on: RelicManager.ts (relic selection), Labyrinth.pure.ts (parsing)
+// Depends on: RelicManager.ts (relic selection), Labyrinth.pure.ts (paths and choice)
 // Used by: Module/LabyrinthAuto.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
@@ -139,14 +139,10 @@ export class Labyrinth {
             await TimeHelper.sleep(randomInterval(200, 500));
         }
 
-        // await Labyrinth._removeLowPowerGirls();
 
         const girlClassFront = Number($('#autoLabyrinthBuildFront').val());
         const frontGirls = Labyrinth.getHaremGirl(girlClassFront);
         let frontGirlIndex = 0;
-        if (frontGirls.length >= 2) {
-            // await Labyrinth._buildTwoGirlsRow(2, 3, frontGirls[frontGirlIndex++], frontGirls[frontGirlIndex++]);
-        }
         if (frontGirls.length >= 1) await Labyrinth._selectGirl(2, frontGirls[frontGirlIndex++]);
         if (frontGirls.length >= 2) await Labyrinth._selectGirl(3, frontGirls[frontGirlIndex++]);
 
@@ -160,9 +156,6 @@ export class Labyrinth {
         const girlClassBack = Number($('#autoLabyrinthBuildBack').val());
         const backGirls = Labyrinth.getHaremGirl(girlClassBack, false, 7);
         let backGirlIndex = girlClassBack === girlClassMid ? midGirlIndex : girlClassBack === girlClassFront ? frontGirlIndex : 0;
-        if (backGirls.length >= (backGirlIndex+2)) {
-            //await Labyrinth._buildTwoGirlsRow(5, 6, backGirls[backGirlIndex++], backGirls[backGirlIndex++]);
-        }
         if (backGirls.length >= (backGirlIndex + 1)) await Labyrinth._selectGirl(5, backGirls[backGirlIndex++]);
         if (backGirls.length >= (backGirlIndex + 1)) await Labyrinth._selectGirl(6, backGirls[backGirlIndex++]);
 

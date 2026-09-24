@@ -6,15 +6,14 @@
 // settings; output = the deterministic tuple (minTime, minTimeEnded)
 // that the impure adapter feeds into randomInterval and _setTimer.
 //
-// The variable naming is preserved from the original implementation:
-// despite the name, both fields hold MAX values for the entries that
-// match their respective bucket. minTime is the largest entry below
-// 1800s, minTimeEnded is the largest known positive timer overall.
-// We do not change this contract here -- only extract it.
+// Despite their names, both fields hold MAX values for the entries that
+// match their respective bucket: minTime is the largest entry below 1800s,
+// minTimeEnded is the largest known positive timer overall. The adapter
+// relies on that contract.
 
 export type ChampionTimerEntry = {
     /**
-     * inFilter == false -> ignored entirely (matches original behaviour).
+     * inFilter == false -> ignored entirely.
      */
     inFilter: boolean;
     /**
@@ -25,7 +24,7 @@ export type ChampionTimerEntry = {
     timer: number;
     /**
      * started == false combined with autoChampsForceStart triggers an
-     * immediate-act result, mirroring the original break.
+     * immediate-act result and ends the scan.
      */
     started: boolean;
 };
@@ -39,21 +38,18 @@ export type ChampionTimerDecision = {
     minTime: number;
     /**
      * -1: either no entry has a positive timer, or the loop short-circuited
-     *     on a ready/force-start entry (in which case the original code
-     *     intentionally drops this signal).
+     *     on a ready/force-start entry (which deliberately drops this
+     *     signal).
      * >0: the largest positive timer across all eligible entries.
      */
     minTimeEnded: number;
 };
 
 /**
- * Reproduce the existing findNextChamptionTime scan bit by bit. The input
- * list is iterated in order; the first ready (timer === 0) or
- * force-start-eligible entry short-circuits with minTime=0/minTimeEnded=-1.
- *
- * Bit-for-bit equivalence to the in-place loop is the explicit goal -- the
- * inner > comparison (instead of <) and the early break are preserved on
- * purpose so that the adapter behaviour does not shift.
+ * The timer scan behind findNextChamptionTime. The input list is iterated
+ * in order; the first ready (timer === 0) or force-start-eligible entry
+ * short-circuits with minTime=0/minTimeEnded=-1. The > comparisons (a
+ * maximum, not a minimum) and the early break are part of the contract.
  */
 export function decideNextChampionTime(
     champions: ChampionTimerEntry[],
@@ -74,7 +70,7 @@ export function decideNextChampionTime(
             if (currTime > minTimeEnded) {
                 minTimeEnded = currTime;
             }
-            // Original wording (preserved): largest timer below 1800s.
+            // Largest timer below 1800s.
             if (currTime > minTime && currTime < 1800) {
                 minTime = currTime;
             }

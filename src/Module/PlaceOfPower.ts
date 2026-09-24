@@ -202,10 +202,9 @@ export class PlaceOfPower {
             if ($(buttonClaimQuery).length >0)
             {
                 // Serialise the claim POST through the global mutex (#1598,
-                // docs/decisions/ADR-003-ajax-post-mutex.md):
-                // the global mutex so AutoLoop and other handlers cannot
-                // stack a second POST on top while the server is still
-                // processing this one (which produces HTTP Forbidden on
+                // docs/decisions/ADR-003-ajax-post-mutex.md), so AutoLoop and
+                // other handlers cannot stack a second POST on top while the
+                // server is still processing this one (which produces HTTP Forbidden on
                 // accounts with very large rosters). If another caller
                 // already holds the mutex we yield this tick.
                 if (!acquirePostMutex('pop:claim')) {
@@ -252,7 +251,7 @@ export class PlaceOfPower {
                 // The HTTP response is back, but the server still needs
                 // time to commit the claim. Acting on the next request
                 // before that commit produces Forbidden on the 2400-girls
-                // account (Frank-Capture: claim 6.7s, safe gap ~27s).
+                // account (measured capture: claim 6.7s, safe gap ~27s).
                 await awaitServerSettleAfterPost(claimDuration);
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(1500, 2500));
                 return true;
@@ -309,7 +308,9 @@ export class PlaceOfPower {
             {
                 if ( minTime > 7*60*60 )
                 {
-                    //force check of PowerPlaces every 7 hours // TODO: check time 20min != 7h
+                    // The next PoP ends in more than 7 hours: look again in
+                    // 20-25 minutes instead. (Open: whether 20 minutes rather
+                    // than a longer wait is intended.)
                     setTimer('minPowerPlacesTime',randomInterval(20*60, 25*60));
                 }
                 else if (getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlacesWaitMax) === "true" && maxTime != -1)
@@ -372,12 +373,10 @@ export class PlaceOfPower {
         if(getPage() !== "powerplace"+index)
         {
             // Self-heal for failed PoP navigation: storage round-trips numbers as
-            // strings, so the previous strict-equality check (index === stored)
-            // never matched and this branch was dead code -- the bot stayed in
-            // an infinite "Navigating to powerplaceN page" loop on locked PoPs
-            // (issue #1598 root cause). Coerce the stored value to a Number
-            // before comparing so the index goes onto the unable-to-start list
-            // and the loop terminates.
+            // strings, so the stored value is compared as a Number. Compared
+            // strictly as stored, it never matched, and a locked PoP kept the
+            // bot in an endless "Navigating to powerplaceN page" loop (#1598).
+            // Matched, the index goes onto the unable-to-start list.
             const storedPopTarget = getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);
             const storedPopTargetNum = storedPopTarget !== undefined ? Number(storedPopTarget) : NaN;
             if (!isNaN(storedPopTargetNum) && index === storedPopTargetNum) {
@@ -530,7 +529,8 @@ export class PlaceOfPower {
         const powerNeeded = PlaceOfPower.getPowerNeeded();
 
         // Goal is to select girls which add to required power without going over
-        // Once completed, if the time will be under 7.5 hours, proceed
+        // Once completed, the start goes ahead if the time stays under 9.5
+        // hours (checked in doPowerPlacesStuff).
         const girlsList:{id: number; power: number}[] = [];
         if (document.querySelectorAll('[girl]').length>0) {
             const availGirls = document.querySelectorAll('[girl]');
@@ -587,14 +587,7 @@ export class PlaceOfPower {
             });
             // Give the team a score to try and use more efficient teams (ie: fewer girls) instead of just the fastest
             const xValue = thisPower / powerText;
-            // Reverted to previous algo, seems to work better for now...
             const thisScore = Math.min(1, ((xValue) * ((1 / Math.sqrt(theseGirls.length))+0.28)));
-            //     {
-            //         xValue: xValue,
-            //         power: thisPower + ' / ' + powerText,
-            //         score: thisScore + ' / ' + teamScore,
-            //         scores:  Math.pow(xValue, theseGirls.length) + ' / ' + Math.pow(xValue, kValue),
-            //         nbGirls: theseGirls.length
             if (thisScore > teamScore) {
                 teamScore = thisScore;
                 chosenTeam = theseGirls;

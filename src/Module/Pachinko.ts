@@ -268,7 +268,7 @@ export class Pachinko {
             updateOrbsNumber(orbsLeft);
         });
 
-        // Add options //changed
+        // Add options
         const pachinkoOptions = <HTMLSelectElement>document.getElementById("PachinkoSelector");
         let countTimers = 0;
         const pachinkoTypeEl = $("div.playing-zone #playzone-replace-info div.cover h2")[0];
@@ -606,8 +606,8 @@ export class Pachinko {
     // counterpart to the stop logic in playXPachinko_func (issue 1745): the run
     // continues only while fewer than orbsToGo orbs have been spent AND at least
     // one orb remains. currentOrbsLeft is the resolveStopOrbsLeft() result
-    // (server-authoritative when available). Extracted to unit-test the
-    // over-consumption boundary (Pachinko review I4, Option A).
+    // (server-authoritative when available). Its own function so the
+    // over-consumption boundary can be unit-tested.
     static shouldContinuePachinkoRun(orbLeftOnAutoStart: number, currentOrbsLeft: number, orbsToGo: number): boolean {
         const spendedOrbs = Number(orbLeftOnAutoStart - currentOrbsLeft);
         return spendedOrbs < orbsToGo && currentOrbsLeft > 0;

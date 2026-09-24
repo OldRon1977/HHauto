@@ -44,12 +44,12 @@ export function needsStoreContentsForBuying(state: CheckShopState): boolean {
 }
 
 /**
- * Reproduce Shop.isTimeToCheckShop:
+ * The visit decision behind Shop.isTimeToCheckShop:
  *
  *     (updateMarket || needBoosterStatus || needsStoreContentsForBuying)
  *     && (!paranoia || !paranoiaSwitchReady)
  *
- * The paranoia leg is unchanged: while paranoia mode is on, the market
+ * The paranoia leg: while paranoia mode is on, the market
  * is only visited inside a burst window (a pending paranoiaSwitch timer).
  */
 export function decideCheckShop(state: CheckShopState): boolean {

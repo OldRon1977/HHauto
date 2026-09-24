@@ -1,10 +1,10 @@
-// Pantheon.ts -- Automates Pantheon fights: opponent selection and energy management.
+// Pantheon.ts -- Automates Pantheon fights.
 //
-// The Pantheon is a PvP arena with its own energy system. This module selects
-// opponents, manages Pantheon-specific fight energy, and handles cooldown
-// timers. Similar to League but uses a separate energy pool and ranking system.
+// The Pantheon is a ladder of temple fights paid with worship energy. This
+// module decides when to fight (threshold, booster, a pantheon daily goal,
+// paranoia) and walks to the next temple's fight, with its cooldown timer.
 //
-// Depends on: Pantheon.pure.ts (parsing), ParanoiaService, Booster
+// Depends on: Pantheon.pure.ts (the fight decision), ParanoiaService, Booster
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts and others
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
