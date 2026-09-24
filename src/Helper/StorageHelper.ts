@@ -20,8 +20,8 @@
 //   - All keys are prefixed (HHStoredVarPrefixKey) to avoid collisions
 //     with game data in the same storage.
 //   - Write errors (storage full) trigger a log cleanup and one retry.
-//   - Migration logic (migrateHHVars) handles key prefix changes
-//     between script versions.
+//   - migrateHHVars copies settings over to a custom key prefix; dormant
+//     while the prefix is hardcoded, see its comment.
 //
 // Also provides export/import of settings as JSON files and a popup
 // for selecting which reward types to auto-collect.
@@ -401,7 +401,8 @@ export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = g
     createPopUpCollectables();
     // Plain checkboxes, the whole label clickable: the animated switches of
     // the settings panel were slow to work through twenty-odd entries.
-    // "Toggle All" inverts every box.
+    // "Toggle All" inverts every box. "All but XP" only shows for a pool that
+    // has XP, "Copy to all" only in a list of GENERIC_COLLECT_LISTS.
     function createPopUpCollectables()
     {
         // Features with their own reward pool (Sultry Mysteries) pass their

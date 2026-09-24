@@ -10,7 +10,8 @@
 // shortcut.
 //
 // updateData() is called every loop iteration to refresh the display
-// with current timer values and module states.
+// with current timer values and module states. A row for an event shows
+// only while that event runs.
 //
 // Used by: StartService (creates the panel), AutoLoop (refreshes it)
 import { ConfigHelper } from "../Helper/ConfigHelper";

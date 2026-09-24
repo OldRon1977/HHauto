@@ -6,7 +6,8 @@
 //
 // Depends on: RewardHelper (reward parsing), PageNavigationService
 // Used by: AutoLoopPageHandlers.ts (the event page), Pipeline.config.ts
-//          (the collect blocks), RewardHelper
+//          (the collect blocks), InfoService.ts (isActiveEvent for the timer
+//          row)
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getHHVars } from "../../Helper/HHHelper";
@@ -206,7 +207,8 @@ export class SeasonalEvent {
         if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true")
         {
             SeasonalEvent.displayRewardsSeasonalDiv();
-            // SeasonalEvent.displayGirlsMileStones(); // TODO fixme
+            // displayGirlsMileStones() stays off until its markup is fixed for
+            // the current event page.
             SeasonalEvent.displayCollectAllButton()
         }
 
@@ -226,15 +228,10 @@ export class SeasonalEvent {
         var arrayz;
         let modified = false;
         
-        // Both the mega and non-mega masking selectors were identical
-        // (.mega-progress-bar-tiers .mega-tier-container), so the
-        // isMegaSeasonalEvent ternary was a no-op and the flag was only
-        // computed to feed it. Collapsed to a single selector (no
-        // behaviour change). FYI: goAndCollect uses a DISTINCT mega
-        // selector here (.mega-progress-bar-section ...). Whether the
-        // mega masking selector should likewise differ is unverified --
-        // not changed on suspicion (would alter masking for mega events
-        // without evidence the current behaviour is wrong).
+        // One selector masks mega and non-mega events alike. goAndCollect
+        // reads mega tiers through a different one (.mega-progress-bar-section
+        // ...); whether masking should follow it is unverified, and without
+        // evidence the masking is left as it is.
         const tierQuery = ".mega-progress-bar-tiers .mega-tier-container";
 
         arrayz = $(tierQuery + ':not([style*="display:none"]):not([style*="display: none"])');
@@ -257,16 +254,11 @@ export class SeasonalEvent {
             const divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
             if (divToModify.length > 0)
             {
-                //(divToModify as any).getNiceScroll().resize();
-    
                 const width_px = 152.1;
                 const start_px = 101;
                 const rewards_unclaimed = $('.mega-tier.unclaimed, .free-slot:not(.claimed)').length;
                 const scroll_width_hidden = Math.floor(start_px + (rewards_unclaimed - 1) * width_px);
                 $('.seasonal-progress-bar-current, .mega-progress-bar').css('width', scroll_width_hidden + 'px');
-    
-                // try {
-                //     (divToModify as any).getNiceScroll(0).doScrollLeft(0, 200);
             }
         }
     }
@@ -292,10 +284,9 @@ export class SeasonalEvent {
         }
     }
     static removeCollectAllButtonIfNeeded(){
-        // Remove the collect-all button when there is nothing left to claim
-        // AND the button is still in the DOM. The previous condition required
-        // length == 0 before calling .remove(), so it could never remove an
-        // existing button -- the button lingered after a bot collect-all run.
+        // Removes the collect-all button once nothing is left to claim -- after
+        // a collect-all run of the script as well, where no claim click of the
+        // user fires displayCollectAllButton's own check.
         if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length > 0) {
             $('#SeasonalCollectAll').parent('.tooltipHH').remove();
             $('#SeasonalCollectAll').remove();
@@ -329,7 +320,7 @@ export class SeasonalEvent {
         return girlDiv;
     }
     static displayRewardsSeasonalDiv() {
-        const target = $('.girls-reward-container'); // $('.event-resource-location');
+        const target = $('.girls-reward-container');
         const hhRewardId = 'HHSeasonalRewards';
         const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
         try{
