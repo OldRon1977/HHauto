@@ -23,7 +23,7 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { HHAuto_inputPattern } from "../config/InputPattern";
 import { TK } from "../config/StorageKeys";
 
-// Decoupled autoLoop kick (see lesson zirkulaerer-import-tdz-crash). Pachinko
+// Decoupled autoLoop kick. Pachinko
 // must restart the loop after a run -- it sets autoLoop="false" during the
 // pulls, which stops AutoLoop's self-reschedule. Importing autoLoop directly
 // put Pachinko in a Module->Service import cycle; the entry point (index.ts)

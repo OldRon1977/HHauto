@@ -638,9 +638,8 @@ export class Shop {
             // flag is "true"). A direct setTimeout(autoLoop) here would
             // require a top-level import of Service/AutoLoop, which makes
             // Shop.ts part of a Module -> Service -> Module import cycle
-            // and breaks Pipeline.config.ts (which imports Shop). The
-            // resulting TDZ-style cycle is the pattern guarded against
-            // by the zirkulaerer-import-tdz-crash lesson.
+            // and breaks Pipeline.config.ts (which imports Shop): in the
+            // resulting cycle a cycle can hand a module an uninitialised binding at load.
             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
         }
     

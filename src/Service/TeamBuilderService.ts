@@ -407,7 +407,7 @@ export class TeamBuilderService {
     private static matchesBlessing(girl: GirlData, bless: BlessingSummary): boolean {
         if (BlessingService.getEffectiveMultiplier(girl) <= 1) return false;
         // Field resolution is shared with BlessingService.detectActiveBlessings
-        // via resolveTraitField (single source of truth, lesson mapping-fix).
+        // via resolveTraitField (single source of truth).
         const value = BlessingService.resolveTraitField(girl, bless.kind);
         return String(value ?? '') === bless.value;
     }

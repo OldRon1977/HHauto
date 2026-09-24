@@ -25,7 +25,7 @@ import { BlockOrder, BlockRegistry } from "./BlockTypes";
 // Registry provider injected at boot (index.ts) instead of a static import of
 // BlockPipeline -- a static import would pull Pipeline.config (all 33 handlers)
 // into StartService's module subtree and create a large import cycle / TDZ risk
-// (same decoupling as AutoLoop's setBlockTick, lesson zirkulaerer-import-tdz-crash).
+// (same decoupling as AutoLoop's setBlockTick).
 type RegistryProvider = () => { registry: BlockRegistry; defaultOrder: BlockOrder };
 let registryProvider: RegistryProvider | null = null;
 export function setPipelineRegistryProvider(p: RegistryProvider): void { registryProvider = p; }

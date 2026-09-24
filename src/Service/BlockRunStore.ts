@@ -9,8 +9,8 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";
 import { BlockRun } from "./BlockTypes";
 
-// Key computed at call-time, never at module top level (TDZ-safety;
-// lesson zirkulaerer-import-tdz-crash).
+// Key computed at call-time, never at module top level: inside an import
+// cycle the prefix may not be initialised yet when this module loads.
 function key(): string { return HHStoredVarPrefixKey + TK.activeBlockRun; }
 
 /** Narrow an unknown parsed value to a structurally valid BlockRun. */

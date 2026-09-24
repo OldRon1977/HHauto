@@ -10,7 +10,6 @@ const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
 export const HHAuto_inputPattern = {
     nWith1000sSeparator:"[0-9"+thousandsSeparator+"]+",
 
-    //kobanBank:"[0-9]+",
     buyCombTimer:"[0-9]+",
     buyMythicCombTimer:"[0-9]+",
     // Defined once in Market.pure so the field and the runtime cannot drift
@@ -22,7 +21,6 @@ export const HHAuto_inputPattern = {
     // the stored value had drifted to different lengths, so a list of more
     // than five codes was wiped on the next load (#1865).
     autoEquipMythicBooster: MYTHIC_LIST_PATTERN,
-    //calculatePowerLimits:"(\-?[0-9]+;\-?[0-9]+)|default",
     mousePauseTimeout:"[0-9]+",
     safeSecondsForContest:"[0-9]+",
     collectAllTimer:"[1-9][0-9]|[1-9]",
@@ -46,11 +44,6 @@ export const HHAuto_inputPattern = {
     autoPowerPlacesIndexFilter:"[1-9][0-9]{0,1}(;[1-9][0-9]{0,1})*",
     autoChampsFilter:"[1-6](;[1-6])*",
     autoChampsTeamLoop:"[1-9][0-9]|[1-9]",
-    //autoStats:"[0-9]+",
-    //autoExp:"[0-9]+",
-    //maxExp:"[0-9]+",
-    //autoAff:"[0-9]+",
-    //maxAff:"[0-9]+",
     menuSellNumber:"[0-9]+",
     autoClubChampMax:"[0-9]+",
     menuExpLevel:"[1-4]?[0-9]?[0-9]",

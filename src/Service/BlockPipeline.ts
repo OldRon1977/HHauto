@@ -196,8 +196,7 @@ function buildScheduler(): BlockScheduler {
 
 // Lazy singleton: built on the first tick from the boot path, not at module
 // eval, so reading the `pipeline` array cannot hit a TDZ when the cyclic module
-// graph evaluates BlockPipeline before Pipeline.config (lesson
-// zirkulaerer-import-tdz-crash).
+// graph evaluates BlockPipeline before Pipeline.config.
 let _scheduler: BlockScheduler | null = null;
 export function getBlockScheduler(): BlockScheduler {
   if (!_scheduler) _scheduler = buildScheduler();

@@ -17,8 +17,8 @@
 //
 // NOTE: the sessionStorage key is built at call time in StartService,
 // never at module top level, to keep this module free of the
-// HHStoredVars TDZ/import-cycle hazard (lesson zirkulaerer-import-tdz-crash)
-// and the top-level-storage-key CI gate.
+// HHStoredVars import-cycle hazard (inside a cycle the prefix may not be
+// initialised yet) and the top-level-storage-key CI gate.
 
 // How many automatic reloads to attempt before giving up for real and
 // asking the user to reload manually. Each reload costs one full Hero

@@ -1103,7 +1103,7 @@ export class TeamModule {
             : '';
 
         // The panel sits over the workflow buttons, so it folds away. The
-        // state is remembered: "1 Unequip All" reloads the page, and folding
+        // state is remembered: "Unequip All" reloads the page, and folding
         // it again on every pass through the workflow would be tiresome.
         const collapsed = getStoredValue(HHStoredVarPrefixKey + TK.teamInfoCollapsed) === 'true';
         const headline = teamResult.currentModeName || 'Team selection';

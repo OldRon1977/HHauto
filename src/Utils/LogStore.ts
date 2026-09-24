@@ -47,7 +47,7 @@ const FLUSH_MS = 1_000;
 const RECOVERY_DROP_CHUNKS = 2;
 
 // Both computed at call time, never at module scope: a top-level read of
-// the prefix crashes on a circular import (lesson zirkulaerer-import-tdz-crash).
+// the prefix crashes on a circular import.
 const idxKey = () => HHStoredVarPrefixKey + "Temp_LogIdx";
 const chunkKey = (i: number) => HHStoredVarPrefixKey + "Temp_Log" + i;
 

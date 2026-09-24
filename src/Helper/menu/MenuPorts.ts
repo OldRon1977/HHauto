@@ -10,8 +10,8 @@
 // To keep the menu/* files as graph leaves, they read those helpers from this
 // module instead. src/index.ts imports the real implementations (it sits
 // outside every cycle) and calls setMenuPorts(...) once at boot, before any
-// menu function runs. See lesson zirkulaerer-import-tdz-crash and the
-// setPachinkoAutoLoopKick / setBlockTick wiring in src/index.ts.
+// menu function runs -- the same wiring as setPachinkoAutoLoopKick /
+// setBlockTick in src/index.ts.
 //
 // This module deliberately imports NOTHING from the project so it stays a leaf.
 // `storedVarPrefix` is a plain string set at call time (never evaluated at
