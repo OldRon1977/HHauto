@@ -23,7 +23,7 @@ import { safeReload } from "./PageNavigationService";
 import { BlockOrder, BlockRegistry } from "./BlockTypes";
 
 // Registry provider injected at boot (index.ts) instead of a static import of
-// BlockPipeline -- a static import would pull Pipeline.config (all 33 handlers)
+// BlockPipeline -- a static import would pull Pipeline.config (every handler)
 // into StartService's module subtree and create a large import cycle / TDZ risk
 // (same decoupling as AutoLoop's setBlockTick).
 type RegistryProvider = () => { registry: BlockRegistry; defaultOrder: BlockOrder };

@@ -1,16 +1,15 @@
 // AutoLoopPageHandlers.ts
 //
-// Handles page-specific UI enhancements that run on every loop
-// iteration regardless of whether the automation is "busy". These
-// are read-only or display-only operations that enrich the current
-// page with HHAuto overlays (reward previews, opponent info, timer
-// displays, etc.) without navigating away.
+// The page handlers: what runs for the current page on every loop
+// iteration, after the pipeline blocks and outside the master switch.
 //
-// Unlike AutoLoopActions (which fire one-at-a-time and navigate),
-// page handlers run unconditionally based on the current page ID.
-// They add informational elements, parse visible data, and set up
-// page-specific features like the league opponent list or labyrinth
-// auto-battle.
+// Most of it enriches the page -- reward recaps, opponent info, timers,
+// power calc, the gear and sell tools -- and parses what the page shows.
+// Some of it acts: the event pages resume a collect sweep a reload
+// interrupted (Path of Attraction, Double Penetration, Lively Scene run()),
+// the harem tools (Harem.run, HaremGirl.run) and the queued mythic upgrade
+// run on their own pages. Unlike the pipeline blocks, nothing here is
+// picked one at a time; the page ID alone decides.
 //
 // Used by: AutoLoop.autoLoop() (called after action handlers)
 
@@ -141,10 +140,8 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
                 {
                     // parseEventPage is idempotent within a page-load via the
                     // 'parsed' attribute on #contains_all #events, so calling it
-                    // unconditionally here is safe. The previous ctx.eventParsed
-                    // wrapper was never written to (Cluster A2: dead code) and
-                    // the second-call path inside parseEventPage already short-
-                    // circuits when checkEvent(eventID) returns false.
+                    // unconditionally here is safe; a second call also
+                    // short-circuits when checkEvent(eventID) returns false.
                     EventModule.parseEventPage(eventID);
                     EventModule.moduleDisplayEventPriority();
                     EventModule.hideOwnedGilrs();
@@ -158,10 +155,9 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
                     // a shortcut button: gating the collect on it would switch
                     // off Path of Attraction collecting with the button. The
                     // Collect all button calls goAndCollect directly, which is
-                    // exactly
-                    // the "works when I press it, never on its own" report.
-                    // The club button now decides only about itself, inside
-                    // run().
+                    // exactly the "works when I press it, never on its own"
+                    // report. The club button decides only about itself,
+                    // inside run().
                     PathOfAttraction.run = callItOnce(PathOfAttraction.run);
                     PathOfAttraction.run();
                 }

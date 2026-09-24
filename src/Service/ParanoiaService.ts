@@ -238,9 +238,8 @@ export class ParanoiaService {
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true") {
                 const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
                 if (eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
-                    //             {
                     //mythic onGoing and still have some fight above threshold
-                    if (Troll.getEnergy() > 0) //trollThreshold)
+                    if (Troll.getEnergy() > 0)
                     {
                         logHHAuto("Forced bypass Paranoia for mythic (can fight).");
                         setTimer('paranoiaSwitch', 60);

@@ -9,14 +9,14 @@
 // after a manual navigation fires before any fresh mouse event can re-arm the
 // pause, and the bot navigates away from the page the user just opened
 // (#1774). The last activity timestamp is therefore kept in sessionStorage
-// (survives a
-// same-tab reload) and a short startup grace period blocks automation
-// right after every load while mouse-pause is enabled.
+// (survives a same-tab reload) and a short startup grace period blocks
+// automation right after every load while mouse-pause is enabled.
 //
-// While the pause is active (isUserPauseActive), AutoLoop and the
-// Scheduler skip all actions to avoid interfering with manual gameplay.
+// While the pause is active (isUserPauseActive), AutoLoop runs neither the
+// block pipeline nor the paranoia switch, so manual play is not interfered
+// with.
 //
-// Used by: StartService (binds events), AutoLoop + Scheduler (check pause)
+// Used by: StartService (binds events), AutoLoop (checks the pause)
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";

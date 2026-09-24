@@ -210,7 +210,7 @@ export class BlessingService {
 
         // Class names as the game's own element_data.flavor gives them
         // (measured 2026-09-11 on 24 girls): light is Submissive, psychic is
-        // Voyeur. The two were swapped here before.
+        // Voyeur.
         const elementMap: Record<string, string> = {
             'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
             'physical': 'stone', 'playful': 'sun', 'dominatrix': 'darkness',

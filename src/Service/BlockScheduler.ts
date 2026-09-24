@@ -3,8 +3,8 @@
 // Runs one uninterrupted BlockRun at a time and persists its progress across
 // reloads. All side-effecting dependencies (clock, storage, page, home-routing,
 // version, logging) are injected as ports, so the engine is unit-testable
-// without the DOM. BlockPipeline builds it and index.ts drives it, one tick per
-// auto-loop iteration.
+// without the DOM. BlockPipeline builds it, index.ts wires its tick into
+// AutoLoop, and AutoLoop runs one tick per iteration.
 //
 // See docs/decisions/ADR-004-pipeline-block-architecture.md.
 import { AutoLoopContext } from "./AutoLoopContext";

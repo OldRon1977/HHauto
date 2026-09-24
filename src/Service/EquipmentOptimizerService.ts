@@ -486,8 +486,8 @@ export function planCurrentBest(
  * Only the tier matters here. Every mythic reaches the same caracs at level
  * 20, so the choice is purely which resonances it carries -- no projection
  * arithmetic, no stat comparison. It deliberately equips items that are
- * weaker today, the same way "Best Possible" on the team page fields a
- * level-1 girl; `caracDelta` says by how much, per slot and in total.
+ * weaker today, the same way the team selection's "possibly best" rubrics
+ * field a level-1 girl; `caracDelta` says by how much, per slot and in total.
  */
 export function planPossibleBest(
     items: ArmorItem[],
