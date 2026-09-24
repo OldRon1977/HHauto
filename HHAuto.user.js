@@ -22086,6 +22086,417 @@ class PentaDrill {
     }
 }
 
+;// ./src/Module/Events/Seasonal.ts
+var Seasonal_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// Seasonal.ts -- Seasonal mega-events: collection and reward claiming.
+//
+// Seasonal events are large-scale, time-limited events that span multiple
+// days. This module tracks seasonal event progress, collects available
+// rewards at each milestone, and manages event timers and page navigation.
+//
+// Depends on: RewardHelper (reward parsing), PageNavigationService
+// Used by: AutoLoopPageHandlers.ts (the event page), Pipeline.config.ts
+//          (the collect blocks), RewardHelper
+//
+
+
+
+
+
+
+
+
+
+
+
+
+class SeasonalEvent {
+    static isMegaSeasonalEvent() {
+        return $('#get_mega_pass_kobans_btn').length > 0;
+    }
+    static isMegaPassPaid() {
+        return $('#get_mega_pass_kobans_btn:visible').length <= 0;
+    }
+    static isActiveEvent() {
+        return unsafeWindow.seasonal_event_active || unsafeWindow.seasonal_time_remaining > 0 || unsafeWindow.mega_event_active || unsafeWindow.mega_event_time_remaining > 0;
+    }
+    static getRemainingTime() {
+        const seasonalEventTimerRequest = `.mega-event-panel .mega-event-container .mega-timer span[rel=expires]`;
+        if ($(seasonalEventTimerRequest).length > 0 && (getSecondsLeft("SeasonalEventRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.SeasonalEventEndDate) === undefined)) {
+            const seasonalEventTimer = Number(convertTimeToInt($(seasonalEventTimerRequest).text()));
+            setTimer("SeasonalEventRemainingTime", seasonalEventTimer);
+            setStoredValue(HHStoredVarPrefixKey + TK.SeasonalEventEndDate, Math.ceil(new Date().getTime() / 1000) + seasonalEventTimer);
+        }
+    }
+    static getGlobalRankRemainingTime() {
+        const rankTimerRequest = `#top_ranking_tab_container .ranking-timer-reset .ranking-timer span[rel=expires]`;
+        if ($(rankTimerRequest).length > 0) {
+            const rankTimer = Number(convertTimeToInt($(rankTimerRequest).text()));
+            return rankTimer;
+        }
+        logHHAuto('ERROR: can\'t get seasonal rank timer, default to maxCollectionDelay');
+        return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
+    }
+    static displayRemainingTime() {
+        logHHAuto('Not implemented');
+    }
+    static getSeasonalNotClaimedRewards() {
+        const arrayz = $(SeasonalEvent.SEASONAL_REWARD_PATH);
+        const freeSlotSelectors = ".slot";
+        const paidSlotSelectors = ""; // Not available
+        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    }
+    static getMegaSeasonalNotClaimedRewards() {
+        const arrayz = $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH);
+        const freeSlotSelectors = ".free-slot .slot";
+        const paidSlotSelectors = SeasonalEvent.isMegaPassPaid() ? ".paid-unclaimed .slot" : "";
+        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    }
+    static goAndCollect(manualCollectAll = false) {
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList);
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
+            try {
+                SeasonalEvent.getRemainingTime();
+                const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
+                const seasonalEventEnd = getSecondsLeft("SeasonalEventRemainingTime");
+                const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true");
+                const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true");
+                const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
+                const megaSeasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-section div.mega-tier-container:has(.free-slot button.mega-claim-reward)";
+                const seasonalFreeSlotQuery = ".mega-slot .slot,.mega-slot .slot_girl_shards";
+                const seasonalPaidSlotQuery = ""; // N/A
+                const megaSeasonalFreeSlotQuery = ".free-slot .slot";
+                const megaSeasonalPaidSlotQuery = ".pass-slot.paid-unclaimed .slot";
+                if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
+                    if (needToCollect)
+                        logHHAuto("Checking SeasonalEvent for collectable rewards.");
+                    if (needToCollectAllBeforeEnd)
+                        logHHAuto("Going to collect all SeasonalEvent rewards.");
+                    if (manualCollectAll)
+                        logHHAuto("Going to collect all SeasonalEvent rewards after collect all button usage.");
+                    logHHAuto("setting autoloop to false");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    const buttonsToCollect = [];
+                    const listSeasonalEventTiersToClaim = isMegaSeasonalEvent ? $(megaSeasonalTierQuery) : $(seasonalTierQuery);
+                    const freeSlotQuery = isMegaSeasonalEvent ? megaSeasonalFreeSlotQuery : seasonalFreeSlotQuery;
+                    const paidSlotQuery = isMegaSeasonalEvent ? megaSeasonalPaidSlotQuery : seasonalPaidSlotQuery;
+                    const isPassPaid = isMegaSeasonalEvent && SeasonalEvent.isMegaPassPaid();
+                    for (let currentTier = 0; currentTier < listSeasonalEventTiersToClaim.length; currentTier++) {
+                        const currentButton = $("button[rel='claim']", listSeasonalEventTiersToClaim[currentTier])[0];
+                        const currentTierNb = currentButton.getAttribute("tier");
+                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
+                        if (rewardsToCollect.includes(freeSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
+                            if (isPassPaid) {
+                                // One button for both
+                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(paidSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
+                                if (rewardsToCollect.includes(paidSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
+                                    buttonsToCollect.push(currentButton);
+                                    logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
+                                }
+                                else {
+                                    logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
+                                }
+                            }
+                            else {
+                                buttonsToCollect.push(currentButton);
+                                logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
+                            }
+                        }
+                    }
+                    if (buttonsToCollect.length > 0) {
+                        function closeRewardAndCollectagain() {
+                            RewardHelper.closeRewardPopupIfAny(false);
+                            setTimeout(collectSeasonalEventRewards, randomInterval(300, 500));
+                        }
+                        function collectSeasonalEventRewards() {
+                            if (buttonsToCollect.length > 0) {
+                                logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
+                                buttonsToCollect[0].click();
+                                buttonsToCollect.shift();
+                                setTimeout(closeRewardAndCollectagain, randomInterval(300, 500));
+                            }
+                            else {
+                                logHHAuto("SeasonalEvent collection finished.");
+                                setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                                if (!manualCollectAll) {
+                                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                                }
+                                SeasonalEvent.removeCollectAllButtonIfNeeded();
+                            }
+                        }
+                        collectSeasonalEventRewards();
+                        return true;
+                    }
+                    else {
+                        logHHAuto("No SeasonalEvent reward to collect.");
+                        setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        setTimer('nextSeasonalEventCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        if (!manualCollectAll) {
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        }
+                        SeasonalEvent.removeCollectAllButtonIfNeeded();
+                        return false;
+                    }
+                }
+            }
+            catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                const errName = err instanceof Error ? err.name : 'Error';
+                logHHAuto(`ERROR: Can't collect rewards retry later: ${errName}, ${message}`);
+                setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+            }
+            return false;
+        }
+        else if (SeasonalEvent.isActiveEvent()) {
+            logHHAuto("Switching to SeasonalEvent screen.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
+            return true;
+        }
+        else {
+            // Only the game's globals are read here, no page is loaded, so an
+            // hourly look costs nothing and finds a new event on its first day.
+            logHHAuto("No SeasonalEvent active.");
+            setTimer('nextSeasonalEventCollectTime', randomInterval(3600, 4200));
+            setTimer('nextSeasonalEventCollectAllTime', randomInterval(3600, 4200));
+            return false;
+        }
+    }
+    static styles() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
+            SeasonalEvent.maskReward();
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
+            SeasonalEvent.displayRewardsSeasonalDiv();
+            // SeasonalEvent.displayGirlsMileStones(); // TODO fixme
+            SeasonalEvent.displayCollectAllButton();
+        }
+        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers.double-mega-event .mega-tier-container {
+                width: 77px;}`);
+        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers .double-tier .mega-tier {
+                margin: 1rem 0 0;}`);
+    }
+    static hasUnclaimedRewards() {
+        return $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH + ', ' + SeasonalEvent.SEASONAL_REWARD_PATH).length > 0;
+    }
+    static maskReward() {
+        var arrayz;
+        let modified = false;
+        // Both the mega and non-mega masking selectors were identical
+        // (.mega-progress-bar-tiers .mega-tier-container), so the
+        // isMegaSeasonalEvent ternary was a no-op and the flag was only
+        // computed to feed it. Collapsed to a single selector (no
+        // behaviour change). FYI: goAndCollect uses a DISTINCT mega
+        // selector here (.mega-progress-bar-section ...). Whether the
+        // mega masking selector should likewise differ is unverified --
+        // not changed on suspicion (would alter masking for mega events
+        // without evidence the current behaviour is wrong).
+        const tierQuery = ".mega-progress-bar-tiers .mega-tier-container";
+        arrayz = $(tierQuery + ':not([style*="display:none"]):not([style*="display: none"])');
+        var obj;
+        if (arrayz.length > 0) {
+            for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
+                obj = $(arrayz[i2]).find('.claimed:not([style*="display:none"]):not([style*="display: none"])'); // TODO ".paid-claimed .slot"
+                if (obj.length >= 1) {
+                    arrayz[i2].style.display = "none";
+                    modified = true;
+                }
+            }
+        }
+        if (modified) {
+            const divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
+            if (divToModify.length > 0) {
+                //(divToModify as any).getNiceScroll().resize();
+                const width_px = 152.1;
+                const start_px = 101;
+                const rewards_unclaimed = $('.mega-tier.unclaimed, .free-slot:not(.claimed)').length;
+                const scroll_width_hidden = Math.floor(start_px + (rewards_unclaimed - 1) * width_px);
+                $('.seasonal-progress-bar-current, .mega-progress-bar').css('width', scroll_width_hidden + 'px');
+                // try {
+                //     (divToModify as any).getNiceScroll(0).doScrollLeft(0, 200);
+            }
+        }
+    }
+    static displayCollectAllButton() {
+        if (SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length === 0) {
+            const button = $(`<button class="purple_button_L" id="SeasonalCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
+            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 260px;width: 110px;font-size: small;"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
+            divTooltip.append(button);
+            $('#home_tab_container .bottom-container').append(divTooltip);
+            button.one('click', () => {
+                SeasonalEvent.goAndCollect(true);
+            });
+            $('button[rel="claim"]').on('click', () => {
+                // Wait 1s to let the reward popup open and then check if there is still unclaimed rewards, if not remove the collect all button and tooltip
+                setTimeout(() => {
+                    if (!SeasonalEvent.hasUnclaimedRewards()) {
+                        $('#SeasonalCollectAll').remove();
+                        divTooltip.remove();
+                    }
+                }, 1000);
+            });
+        }
+    }
+    static removeCollectAllButtonIfNeeded() {
+        // Remove the collect-all button when there is nothing left to claim
+        // AND the button is still in the DOM. The previous condition required
+        // length == 0 before calling .remove(), so it could never remove an
+        // existing button -- the button lingered after a bot collect-all run.
+        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length > 0) {
+            $('#SeasonalCollectAll').parent('.tooltipHH').remove();
+            $('#SeasonalCollectAll').remove();
+        }
+    }
+    static displayGirlsMileStones() {
+        if ($('.HHGirlMilestone').length > 0)
+            return;
+        const $playerPoints = $('.player-shards .mega-event-currency');
+        if ($playerPoints.length === 0) {
+            logHHAuto("ERROR: Can't find player points");
+        }
+        const playerPoints = $playerPoints.length ? Number($playerPoints.text()) : 0;
+        const girlContainer = $('.girls-reward-container');
+        const girlSlotRewards = $('#home_tab_container .bottom-container .slot.slot_girl_shards');
+        girlSlotRewards.each(function (index, girlSlot) {
+            const milestone = Number($('.tier-level p', $(girlSlot).parents('.mega-tier-container')).text());
+            if (milestone > 0) {
+                girlContainer.append(SeasonalEvent.getGirlMileStonesDiv(playerPoints, milestone, index + 1));
+            }
+        });
+    }
+    static getGirlMileStonesDiv(playerPoints, girlPointsTarget, girlIndex) {
+        const greeNitckHtml = '<img class="nc-claimed-reward-check" src="' + ConfigHelper.getHHScriptVars("baseImgPath") + '/clubs/ic_Tick.png">';
+        const girlDiv = $('<div class="HHGirlMilestone girl-img-' + girlIndex + '"><div>Girl ' + girlIndex + ':' + playerPoints + '/' + girlPointsTarget + '</div></div>');
+        if (playerPoints >= girlPointsTarget) {
+            girlDiv.addClass('green');
+            girlDiv.append($(greeNitckHtml));
+        }
+        return girlDiv;
+    }
+    static displayRewardsSeasonalDiv() {
+        const target = $('.girls-reward-container'); // $('.event-resource-location');
+        const hhRewardId = 'HHSeasonalRewards';
+        const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
+        try {
+            if ($('#' + hhRewardId).length <= 0) {
+                const rewardCountByType = isMegaSeasonalEvent ? SeasonalEvent.getMegaSeasonalNotClaimedRewards() : SeasonalEvent.getSeasonalNotClaimedRewards();
+                logHHAuto("Rewards seasonal event:", JSON.stringify(rewardCountByType));
+                if (rewardCountByType['all'] > 0) {
+                    for (var i = 0; i < 4; i++) {
+                        // move video down
+                        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .middle-container .lse-container-${i} { z-index:3;}`);
+                    }
+                    const rewardsHtml = RewardHelper.getRewardsAsHtml(rewardCountByType);
+                    target.append($('<div id=' + hhRewardId + ' class="HHRewardNotCollected"><h1 style="font-size: small;">' + getTextForUI('rewardsToCollectTitle', "elementText") + '</h1>' + rewardsHtml + '</div>'));
+                }
+                else {
+                    target.append($('<div id=' + hhRewardId + ' style="display:none;"></div>'));
+                }
+            }
+        }
+        catch (err) {
+            logHHAuto("ERROR:", err.message);
+            target.append($('<div id=' + hhRewardId + ' style="display:none;"></div>'));
+        }
+    }
+    static goAndCollectMegaEventRankRewards() {
+        return Seasonal_awaiter(this, void 0, void 0, function* () {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
+                const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
+                const topRank = $('#mega-event-tabs #top_ranking_tab');
+                const eventRank = $('#mega-event-tabs #event_ranking_tab');
+                if (!isMegaSeasonalEvent && topRank.length === 0 && eventRank.length === 0) {
+                    logHHAuto('Not Mega Event');
+                    setTimer('nextMegaEventRankCollectTime', 604800); // 1 week delay
+                    return Promise.resolve(false);
+                }
+                else if (topRank.length > 0 || eventRank.length > 0) {
+                    logHHAuto('Not Mega Event but rank tab exist');
+                }
+                logHHAuto('Collect Mega Event Rank Rewards');
+                // switch tabs
+                if (topRank.length > 0)
+                    topRank.trigger("click");
+                yield TimeHelper.sleep(randomInterval(400, 600));
+                RewardHelper.closeRewardPopupIfAny();
+                if (eventRank.length > 0)
+                    eventRank.trigger("click");
+                yield TimeHelper.sleep(randomInterval(400, 600));
+                RewardHelper.closeRewardPopupIfAny();
+                setTimer('nextMegaEventRankCollectTime', SeasonalEvent.getGlobalRankRemainingTime() + randomInterval(3600, 4000));
+            }
+            else if (SeasonalEvent.isActiveEvent()) {
+                logHHAuto("Switching to SeasonalEvent screen.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
+                return Promise.resolve(true);
+            }
+            else {
+                logHHAuto("No SeasonalEvent active.");
+                setTimer('nextMegaEventRankCollectTime', 604800); // 1 week delay
+            }
+            return Promise.resolve(false);
+        });
+    }
+    static goAndCollectFreeCard() {
+        return Seasonal_awaiter(this, void 0, void 0, function* () {
+            // mega_event_data only exists on the SeasonalEvent page itself (live
+            // verified: undefined on /home.html, defined on /seasonal.html), so
+            // the "already collected" shortcut can only be evaluated once we're
+            // actually there -- checking it before the page test made getHHVars
+            // log a spurious "not found" and silently disabled the shortcut for
+            // every call that started from another page.
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
+                const cardsOwned = getHHVars('mega_event_data.cards');
+                if (cardsOwned && cardsOwned.indexOf('1') >= 0) {
+                    logHHAuto(`Free cards already collected (${cardsOwned}), wait for next seasonal event`);
+                    setTimer('nextSeasonalCardCollectTime', getSecondsLeft("SeasonalEventRemainingTime") + randomInterval(3600, 4000));
+                    return false;
+                }
+                const cardTabs = $('#mega-event-tabs #cards_tab');
+                if (cardTabs.length > 0) {
+                    logHHAuto('Collect free cards from Seasonal Event');
+                    // switch tabs
+                    cardTabs.trigger("click");
+                    yield TimeHelper.sleep(randomInterval(400, 600));
+                    const freeCardClaimButton = $('#cards_tab_container .free-card:not([disabled])');
+                    if (freeCardClaimButton.length > 0)
+                        freeCardClaimButton.trigger("click");
+                    yield TimeHelper.sleep(randomInterval(400, 600));
+                    RewardHelper.closeRewardPopupIfAny(); // Close card popup
+                    yield TimeHelper.sleep(randomInterval(400, 600));
+                    RewardHelper.closeRewardPopupIfAny(); // Close card reward popup
+                    if (freeCardClaimButton.length > 1) {
+                        logHHAuto('There is still free cards to collect, try again');
+                        freeCardClaimButton.trigger("click");
+                        yield TimeHelper.sleep(randomInterval(400, 600));
+                        RewardHelper.closeRewardPopupIfAny();
+                    }
+                }
+                setTimer('nextSeasonalCardCollectTime', getSecondsLeft("SeasonalEventRemainingTime") + randomInterval(3600, 4000));
+            }
+            else if (SeasonalEvent.isActiveEvent()) {
+                logHHAuto("Switching to SeasonalEvent screen.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
+                return Promise.resolve(true);
+            }
+            else {
+                logHHAuto("No SeasonalEvent active.");
+                setTimer('nextSeasonalCardCollectTime', 604800); // 1 week delay
+            }
+            return Promise.resolve(false);
+        });
+    }
+}
+SeasonalEvent.SEASONAL_REWARD_PATH = '.mega-tier.unclaimed';
+SeasonalEvent.SEASONAL_REWARD_MEGA_PATH = '.mega-tier-container:has(.free-slot button.mega-claim-reward)';
+
 ;// ./src/Module/Labyrinth.pure.ts
 // Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline
 // and the "find better option" selector.
@@ -22914,6 +23325,7 @@ function reactivateBlock(blockId) {
 
 
 
+
 function createPInfo() {
     const pInfo = $('<div id="pInfo" ></div>');
     if (pInfo != null) {
@@ -22962,6 +23374,20 @@ function createPInfo() {
             + '}');
     }
     return pInfo;
+}
+// An event row belongs in the panel only while its event runs. Outside it the
+// row could only say "Time's up!" or n/a, and its switch stays on for the
+// next event.
+// Boss bang: an event parsed from the page, not yet beaten, not yet over.
+function isBossBangRunning() {
+    const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+    return Object.values(eventList).some(event => (event === null || event === void 0 ? void 0 : event.type) === 'bossBang' && !event.isCompleted
+        && !(Number(event.seconds_before_end) < Date.now()));
+}
+// PoV / PoG: their end is known once their page was read; an unknown end
+// counts as running.
+function isPathRunning(remainingTimer) {
+    return getTimer(remainingTimer) === -1 || getSecondsLeft(remainingTimer) > 0;
 }
 function updateData() {
     document.querySelectorAll("div#sMenu input[pattern]").forEach(currentInput => {
@@ -23076,16 +23502,16 @@ function updateData() {
         if (getTimer('eventSultryMysteryAutoOpen') !== -1) {
             Tegzd += pInfoRow(getTextForUI("sultryMysteriesAutoOpenNext", "elementText"), getTimeLeft('eventSultryMysteryAutoOpen'));
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledBossBangEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true" && getTimer('nextBossBangTime') !== -1) {
+        if (ConfigHelper.getHHScriptVars("isEnabledBossBangEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true" && getTimer('nextBossBangTime') !== -1 && isBossBangRunning()) {
             Tegzd += pInfoRow(getTextForUI("pinfoBossBang", "elementText"), getTimeLeft('nextBossBangTime'));
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true" && getTimer('nextSeasonalEventCollectAllTime') !== -1) {
+        if (ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true" && getTimer('nextSeasonalEventCollectAllTime') !== -1 && SeasonalEvent.isActiveEvent()) {
             Tegzd += pInfoRow(getTextForUI("pinfoSeasonalEvent", "elementText"), getTimeLeft('nextSeasonalEventCollectAllTime'));
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledPoV", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true" && getTimer('nextPoVCollectAllTime') !== -1) {
+        if (ConfigHelper.getHHScriptVars("isEnabledPoV", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true" && getTimer('nextPoVCollectAllTime') !== -1 && isPathRunning('PoVRemainingTime')) {
             Tegzd += pInfoRow(getTextForUI("pinfoPoVCollect", "elementText"), getTimeLeft('nextPoVCollectAllTime'));
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledPoG", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true" && getTimer('nextPoGCollectAllTime') !== -1) {
+        if (ConfigHelper.getHHScriptVars("isEnabledPoG", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true" && getTimer('nextPoGCollectAllTime') !== -1 && isPathRunning('PoGRemainingTime')) {
             Tegzd += pInfoRow(getTextForUI("pinfoPoGCollect", "elementText"), getTimeLeft('nextPoGCollectAllTime'));
         }
         if (getStoredValue(HHStoredVarPrefixKey + TK.haveAff)) {
@@ -27829,417 +28255,6 @@ class PathOfValue {
         EventModule.moduleSimPoVPogMaskReward('pov_tab_container');
     }
 }
-
-;// ./src/Module/Events/Seasonal.ts
-var Seasonal_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// Seasonal.ts -- Seasonal mega-events: collection and reward claiming.
-//
-// Seasonal events are large-scale, time-limited events that span multiple
-// days. This module tracks seasonal event progress, collects available
-// rewards at each milestone, and manages event timers and page navigation.
-//
-// Depends on: RewardHelper (reward parsing), PageNavigationService
-// Used by: AutoLoopPageHandlers.ts (the event page), Pipeline.config.ts
-//          (the collect blocks), RewardHelper
-//
-
-
-
-
-
-
-
-
-
-
-
-
-class SeasonalEvent {
-    static isMegaSeasonalEvent() {
-        return $('#get_mega_pass_kobans_btn').length > 0;
-    }
-    static isMegaPassPaid() {
-        return $('#get_mega_pass_kobans_btn:visible').length <= 0;
-    }
-    static isActiveEvent() {
-        return unsafeWindow.seasonal_event_active || unsafeWindow.seasonal_time_remaining > 0 || unsafeWindow.mega_event_active || unsafeWindow.mega_event_time_remaining > 0;
-    }
-    static getRemainingTime() {
-        const seasonalEventTimerRequest = `.mega-event-panel .mega-event-container .mega-timer span[rel=expires]`;
-        if ($(seasonalEventTimerRequest).length > 0 && (getSecondsLeft("SeasonalEventRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.SeasonalEventEndDate) === undefined)) {
-            const seasonalEventTimer = Number(convertTimeToInt($(seasonalEventTimerRequest).text()));
-            setTimer("SeasonalEventRemainingTime", seasonalEventTimer);
-            setStoredValue(HHStoredVarPrefixKey + TK.SeasonalEventEndDate, Math.ceil(new Date().getTime() / 1000) + seasonalEventTimer);
-        }
-    }
-    static getGlobalRankRemainingTime() {
-        const rankTimerRequest = `#top_ranking_tab_container .ranking-timer-reset .ranking-timer span[rel=expires]`;
-        if ($(rankTimerRequest).length > 0) {
-            const rankTimer = Number(convertTimeToInt($(rankTimerRequest).text()));
-            return rankTimer;
-        }
-        logHHAuto('ERROR: can\'t get seasonal rank timer, default to maxCollectionDelay');
-        return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
-    }
-    static displayRemainingTime() {
-        logHHAuto('Not implemented');
-    }
-    static getSeasonalNotClaimedRewards() {
-        const arrayz = $(SeasonalEvent.SEASONAL_REWARD_PATH);
-        const freeSlotSelectors = ".slot";
-        const paidSlotSelectors = ""; // Not available
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
-    }
-    static getMegaSeasonalNotClaimedRewards() {
-        const arrayz = $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH);
-        const freeSlotSelectors = ".free-slot .slot";
-        const paidSlotSelectors = SeasonalEvent.isMegaPassPaid() ? ".paid-unclaimed .slot" : "";
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
-    }
-    static goAndCollect(manualCollectAll = false) {
-        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList);
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
-            try {
-                SeasonalEvent.getRemainingTime();
-                const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-                const seasonalEventEnd = getSecondsLeft("SeasonalEventRemainingTime");
-                const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true");
-                const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true");
-                const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
-                const megaSeasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-section div.mega-tier-container:has(.free-slot button.mega-claim-reward)";
-                const seasonalFreeSlotQuery = ".mega-slot .slot,.mega-slot .slot_girl_shards";
-                const seasonalPaidSlotQuery = ""; // N/A
-                const megaSeasonalFreeSlotQuery = ".free-slot .slot";
-                const megaSeasonalPaidSlotQuery = ".pass-slot.paid-unclaimed .slot";
-                if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
-                    if (needToCollect)
-                        logHHAuto("Checking SeasonalEvent for collectable rewards.");
-                    if (needToCollectAllBeforeEnd)
-                        logHHAuto("Going to collect all SeasonalEvent rewards.");
-                    if (manualCollectAll)
-                        logHHAuto("Going to collect all SeasonalEvent rewards after collect all button usage.");
-                    logHHAuto("setting autoloop to false");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    const buttonsToCollect = [];
-                    const listSeasonalEventTiersToClaim = isMegaSeasonalEvent ? $(megaSeasonalTierQuery) : $(seasonalTierQuery);
-                    const freeSlotQuery = isMegaSeasonalEvent ? megaSeasonalFreeSlotQuery : seasonalFreeSlotQuery;
-                    const paidSlotQuery = isMegaSeasonalEvent ? megaSeasonalPaidSlotQuery : seasonalPaidSlotQuery;
-                    const isPassPaid = isMegaSeasonalEvent && SeasonalEvent.isMegaPassPaid();
-                    for (let currentTier = 0; currentTier < listSeasonalEventTiersToClaim.length; currentTier++) {
-                        const currentButton = $("button[rel='claim']", listSeasonalEventTiersToClaim[currentTier])[0];
-                        const currentTierNb = currentButton.getAttribute("tier");
-                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
-                        if (rewardsToCollect.includes(freeSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
-                            if (isPassPaid) {
-                                // One button for both
-                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(paidSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
-                                if (rewardsToCollect.includes(paidSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
-                                    buttonsToCollect.push(currentButton);
-                                    logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
-                                }
-                                else {
-                                    logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                                }
-                            }
-                            else {
-                                buttonsToCollect.push(currentButton);
-                                logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
-                            }
-                        }
-                    }
-                    if (buttonsToCollect.length > 0) {
-                        function closeRewardAndCollectagain() {
-                            RewardHelper.closeRewardPopupIfAny(false);
-                            setTimeout(collectSeasonalEventRewards, randomInterval(300, 500));
-                        }
-                        function collectSeasonalEventRewards() {
-                            if (buttonsToCollect.length > 0) {
-                                logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                                buttonsToCollect[0].click();
-                                buttonsToCollect.shift();
-                                setTimeout(closeRewardAndCollectagain, randomInterval(300, 500));
-                            }
-                            else {
-                                logHHAuto("SeasonalEvent collection finished.");
-                                setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                                if (!manualCollectAll) {
-                                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                                }
-                                SeasonalEvent.removeCollectAllButtonIfNeeded();
-                            }
-                        }
-                        collectSeasonalEventRewards();
-                        return true;
-                    }
-                    else {
-                        logHHAuto("No SeasonalEvent reward to collect.");
-                        setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                        setTimer('nextSeasonalEventCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                        if (!manualCollectAll) {
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        }
-                        SeasonalEvent.removeCollectAllButtonIfNeeded();
-                        return false;
-                    }
-                }
-            }
-            catch (err) {
-                const message = err instanceof Error ? err.message : String(err);
-                const errName = err instanceof Error ? err.name : 'Error';
-                logHHAuto(`ERROR: Can't collect rewards retry later: ${errName}, ${message}`);
-                setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-            }
-            return false;
-        }
-        else if (SeasonalEvent.isActiveEvent()) {
-            logHHAuto("Switching to SeasonalEvent screen.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
-            return true;
-        }
-        else {
-            // Only the game's globals are read here, no page is loaded, so an
-            // hourly look costs nothing and finds a new event on its first day.
-            logHHAuto("No SeasonalEvent active.");
-            setTimer('nextSeasonalEventCollectTime', randomInterval(3600, 4200));
-            setTimer('nextSeasonalEventCollectAllTime', randomInterval(3600, 4200));
-            return false;
-        }
-    }
-    static styles() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
-            SeasonalEvent.maskReward();
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
-            SeasonalEvent.displayRewardsSeasonalDiv();
-            // SeasonalEvent.displayGirlsMileStones(); // TODO fixme
-            SeasonalEvent.displayCollectAllButton();
-        }
-        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers.double-mega-event .mega-tier-container {
-                width: 77px;}`);
-        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers .double-tier .mega-tier {
-                margin: 1rem 0 0;}`);
-    }
-    static hasUnclaimedRewards() {
-        return $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH + ', ' + SeasonalEvent.SEASONAL_REWARD_PATH).length > 0;
-    }
-    static maskReward() {
-        var arrayz;
-        let modified = false;
-        // Both the mega and non-mega masking selectors were identical
-        // (.mega-progress-bar-tiers .mega-tier-container), so the
-        // isMegaSeasonalEvent ternary was a no-op and the flag was only
-        // computed to feed it. Collapsed to a single selector (no
-        // behaviour change). FYI: goAndCollect uses a DISTINCT mega
-        // selector here (.mega-progress-bar-section ...). Whether the
-        // mega masking selector should likewise differ is unverified --
-        // not changed on suspicion (would alter masking for mega events
-        // without evidence the current behaviour is wrong).
-        const tierQuery = ".mega-progress-bar-tiers .mega-tier-container";
-        arrayz = $(tierQuery + ':not([style*="display:none"]):not([style*="display: none"])');
-        var obj;
-        if (arrayz.length > 0) {
-            for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
-                obj = $(arrayz[i2]).find('.claimed:not([style*="display:none"]):not([style*="display: none"])'); // TODO ".paid-claimed .slot"
-                if (obj.length >= 1) {
-                    arrayz[i2].style.display = "none";
-                    modified = true;
-                }
-            }
-        }
-        if (modified) {
-            const divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
-            if (divToModify.length > 0) {
-                //(divToModify as any).getNiceScroll().resize();
-                const width_px = 152.1;
-                const start_px = 101;
-                const rewards_unclaimed = $('.mega-tier.unclaimed, .free-slot:not(.claimed)').length;
-                const scroll_width_hidden = Math.floor(start_px + (rewards_unclaimed - 1) * width_px);
-                $('.seasonal-progress-bar-current, .mega-progress-bar').css('width', scroll_width_hidden + 'px');
-                // try {
-                //     (divToModify as any).getNiceScroll(0).doScrollLeft(0, 200);
-            }
-        }
-    }
-    static displayCollectAllButton() {
-        if (SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length === 0) {
-            const button = $(`<button class="purple_button_L" id="SeasonalCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
-            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 260px;width: 110px;font-size: small;"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
-            divTooltip.append(button);
-            $('#home_tab_container .bottom-container').append(divTooltip);
-            button.one('click', () => {
-                SeasonalEvent.goAndCollect(true);
-            });
-            $('button[rel="claim"]').on('click', () => {
-                // Wait 1s to let the reward popup open and then check if there is still unclaimed rewards, if not remove the collect all button and tooltip
-                setTimeout(() => {
-                    if (!SeasonalEvent.hasUnclaimedRewards()) {
-                        $('#SeasonalCollectAll').remove();
-                        divTooltip.remove();
-                    }
-                }, 1000);
-            });
-        }
-    }
-    static removeCollectAllButtonIfNeeded() {
-        // Remove the collect-all button when there is nothing left to claim
-        // AND the button is still in the DOM. The previous condition required
-        // length == 0 before calling .remove(), so it could never remove an
-        // existing button -- the button lingered after a bot collect-all run.
-        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length > 0) {
-            $('#SeasonalCollectAll').parent('.tooltipHH').remove();
-            $('#SeasonalCollectAll').remove();
-        }
-    }
-    static displayGirlsMileStones() {
-        if ($('.HHGirlMilestone').length > 0)
-            return;
-        const $playerPoints = $('.player-shards .mega-event-currency');
-        if ($playerPoints.length === 0) {
-            logHHAuto("ERROR: Can't find player points");
-        }
-        const playerPoints = $playerPoints.length ? Number($playerPoints.text()) : 0;
-        const girlContainer = $('.girls-reward-container');
-        const girlSlotRewards = $('#home_tab_container .bottom-container .slot.slot_girl_shards');
-        girlSlotRewards.each(function (index, girlSlot) {
-            const milestone = Number($('.tier-level p', $(girlSlot).parents('.mega-tier-container')).text());
-            if (milestone > 0) {
-                girlContainer.append(SeasonalEvent.getGirlMileStonesDiv(playerPoints, milestone, index + 1));
-            }
-        });
-    }
-    static getGirlMileStonesDiv(playerPoints, girlPointsTarget, girlIndex) {
-        const greeNitckHtml = '<img class="nc-claimed-reward-check" src="' + ConfigHelper.getHHScriptVars("baseImgPath") + '/clubs/ic_Tick.png">';
-        const girlDiv = $('<div class="HHGirlMilestone girl-img-' + girlIndex + '"><div>Girl ' + girlIndex + ':' + playerPoints + '/' + girlPointsTarget + '</div></div>');
-        if (playerPoints >= girlPointsTarget) {
-            girlDiv.addClass('green');
-            girlDiv.append($(greeNitckHtml));
-        }
-        return girlDiv;
-    }
-    static displayRewardsSeasonalDiv() {
-        const target = $('.girls-reward-container'); // $('.event-resource-location');
-        const hhRewardId = 'HHSeasonalRewards';
-        const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-        try {
-            if ($('#' + hhRewardId).length <= 0) {
-                const rewardCountByType = isMegaSeasonalEvent ? SeasonalEvent.getMegaSeasonalNotClaimedRewards() : SeasonalEvent.getSeasonalNotClaimedRewards();
-                logHHAuto("Rewards seasonal event:", JSON.stringify(rewardCountByType));
-                if (rewardCountByType['all'] > 0) {
-                    for (var i = 0; i < 4; i++) {
-                        // move video down
-                        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .middle-container .lse-container-${i} { z-index:3;}`);
-                    }
-                    const rewardsHtml = RewardHelper.getRewardsAsHtml(rewardCountByType);
-                    target.append($('<div id=' + hhRewardId + ' class="HHRewardNotCollected"><h1 style="font-size: small;">' + getTextForUI('rewardsToCollectTitle', "elementText") + '</h1>' + rewardsHtml + '</div>'));
-                }
-                else {
-                    target.append($('<div id=' + hhRewardId + ' style="display:none;"></div>'));
-                }
-            }
-        }
-        catch (err) {
-            logHHAuto("ERROR:", err.message);
-            target.append($('<div id=' + hhRewardId + ' style="display:none;"></div>'));
-        }
-    }
-    static goAndCollectMegaEventRankRewards() {
-        return Seasonal_awaiter(this, void 0, void 0, function* () {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
-                const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-                const topRank = $('#mega-event-tabs #top_ranking_tab');
-                const eventRank = $('#mega-event-tabs #event_ranking_tab');
-                if (!isMegaSeasonalEvent && topRank.length === 0 && eventRank.length === 0) {
-                    logHHAuto('Not Mega Event');
-                    setTimer('nextMegaEventRankCollectTime', 604800); // 1 week delay
-                    return Promise.resolve(false);
-                }
-                else if (topRank.length > 0 || eventRank.length > 0) {
-                    logHHAuto('Not Mega Event but rank tab exist');
-                }
-                logHHAuto('Collect Mega Event Rank Rewards');
-                // switch tabs
-                if (topRank.length > 0)
-                    topRank.trigger("click");
-                yield TimeHelper.sleep(randomInterval(400, 600));
-                RewardHelper.closeRewardPopupIfAny();
-                if (eventRank.length > 0)
-                    eventRank.trigger("click");
-                yield TimeHelper.sleep(randomInterval(400, 600));
-                RewardHelper.closeRewardPopupIfAny();
-                setTimer('nextMegaEventRankCollectTime', SeasonalEvent.getGlobalRankRemainingTime() + randomInterval(3600, 4000));
-            }
-            else if (SeasonalEvent.isActiveEvent()) {
-                logHHAuto("Switching to SeasonalEvent screen.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
-                return Promise.resolve(true);
-            }
-            else {
-                logHHAuto("No SeasonalEvent active.");
-                setTimer('nextMegaEventRankCollectTime', 604800); // 1 week delay
-            }
-            return Promise.resolve(false);
-        });
-    }
-    static goAndCollectFreeCard() {
-        return Seasonal_awaiter(this, void 0, void 0, function* () {
-            // mega_event_data only exists on the SeasonalEvent page itself (live
-            // verified: undefined on /home.html, defined on /seasonal.html), so
-            // the "already collected" shortcut can only be evaluated once we're
-            // actually there -- checking it before the page test made getHHVars
-            // log a spurious "not found" and silently disabled the shortcut for
-            // every call that started from another page.
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
-                const cardsOwned = getHHVars('mega_event_data.cards');
-                if (cardsOwned && cardsOwned.indexOf('1') >= 0) {
-                    logHHAuto(`Free cards already collected (${cardsOwned}), wait for next seasonal event`);
-                    setTimer('nextSeasonalCardCollectTime', getSecondsLeft("SeasonalEventRemainingTime") + randomInterval(3600, 4000));
-                    return false;
-                }
-                const cardTabs = $('#mega-event-tabs #cards_tab');
-                if (cardTabs.length > 0) {
-                    logHHAuto('Collect free cards from Seasonal Event');
-                    // switch tabs
-                    cardTabs.trigger("click");
-                    yield TimeHelper.sleep(randomInterval(400, 600));
-                    const freeCardClaimButton = $('#cards_tab_container .free-card:not([disabled])');
-                    if (freeCardClaimButton.length > 0)
-                        freeCardClaimButton.trigger("click");
-                    yield TimeHelper.sleep(randomInterval(400, 600));
-                    RewardHelper.closeRewardPopupIfAny(); // Close card popup
-                    yield TimeHelper.sleep(randomInterval(400, 600));
-                    RewardHelper.closeRewardPopupIfAny(); // Close card reward popup
-                    if (freeCardClaimButton.length > 1) {
-                        logHHAuto('There is still free cards to collect, try again');
-                        freeCardClaimButton.trigger("click");
-                        yield TimeHelper.sleep(randomInterval(400, 600));
-                        RewardHelper.closeRewardPopupIfAny();
-                    }
-                }
-                setTimer('nextSeasonalCardCollectTime', getSecondsLeft("SeasonalEventRemainingTime") + randomInterval(3600, 4000));
-            }
-            else if (SeasonalEvent.isActiveEvent()) {
-                logHHAuto("Switching to SeasonalEvent screen.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
-                return Promise.resolve(true);
-            }
-            else {
-                logHHAuto("No SeasonalEvent active.");
-                setTimer('nextSeasonalCardCollectTime', 604800); // 1 week delay
-            }
-            return Promise.resolve(false);
-        });
-    }
-}
-SeasonalEvent.SEASONAL_REWARD_PATH = '.mega-tier.unclaimed';
-SeasonalEvent.SEASONAL_REWARD_MEGA_PATH = '.mega-tier-container:has(.free-slot button.mega-claim-reward)';
 
 ;// ./src/Module/Pachinko.ts
 var Pachinko_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
