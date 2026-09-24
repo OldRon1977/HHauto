@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.14.1
+// @version      8.15.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -58,12 +58,12 @@ GM_addStyle('@font-face {font-family:"IBM Plex Sans"; font-style:normal; font-we
 // panel, the popup (its h2 title included -- the game gives h2 a font of its
 // own, which beats inheritance), every script button, the tooltips, the info
 // overlay, the gear controls on the market page, the league score labels and
-// the small marks and panels on the team and harem pages. The game's own
-// elements are left alone.
+// the small marks and panels on the team and harem pages, and the rewards
+// recap on the reward paths. The game's own elements are left alone.
 GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoPopupGlobal h2, #HHAutoTooltip,'
             + ' .myButton, .tooltipHHtext, .HHAutoOverlay, .HHpopup_message, .hhScrollTooltip, .hhTeamSynergyInfo,'
             + ' .topNumber, .HHKeepMark, #hhTeamWorkflow, #HHGearButtons, #HHGearMenuList, #HHGearPreview, #HHGearStatus,'
-            + ' #HHPowerCalcScore, #HHPowerCalcPoints'
+            + ' #HHPowerCalcScore, #HHPowerCalcPoints, .HHRewardNotCollected, .HHRewardNotCollected h1'
             + ' {font-family:"IBM Plex Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;}');
 // Form controls do not inherit font-family -- they take the browser's own
 // control font (Arial here). Left alone, the number fields would have kept
@@ -246,6 +246,14 @@ GM_addStyle(".HHpopup_message .close {   position: absolute;   top: 20px;   righ
 GM_addStyle('#HHPovPogRewards { position: absolute; bottom: 0.2rem; left: -0.75rem; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}');
 GM_addStyle('.HHRewardNotCollected { max-width: 17.9rem; transform: scale(0.8); }');
 GM_addStyle('.HHRewardNotCollected .slot { margin: 1px 1px 0}'); 
+GM_addStyle('.HHRewardNotCollected .slot img { width: 100%; height: 100%; object-fit: contain; }');
+GM_addStyle('.HHRewardNotCollected .HHRewardName { font-size: 0.55rem; line-height: 1.1; display: block; padding-top: 2px; }');
+// The collect popup: plain checkboxes in four columns, the whole label clickable.
+GM_addStyle('.HHCollectables { padding: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }'
+            + '.HHCollectablesGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 12px; }'
+            + '.HHCollectablesItem { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 2px 0; user-select: none; }'
+            + '.HHCollectablesItem input { margin: 0; width: 16px; height: 16px; accent-color: #2196F3; cursor: pointer; flex: none; }'
+            + '#toggleCollectables { font-size: 12px; padding: 4px 12px; }');
 GM_addStyle('.HHGirlMilestone { position: absolute; bottom: 0;  z-index: 1; font-size:smaller; width: 200px; text-align: center;}'); 
 GM_addStyle('.HHGirlMilestone > div { background: rgba(0,0,0,.5); border-radius: 10px; margin:auto;  width: 140px; }'); 
 // GM_addStyle('.HHGirlMilestone.green { border: solid 1px green }');
@@ -523,8 +531,8 @@ HHAuto_ToolTips.en['pogTitle'] = { version: "5.20.3", elementText: "Path of Glor
 HHAuto_ToolTips.en['poaTitle'] = { version: "6.15.8", elementText: "Path of Attraction" };
 HHAuto_ToolTips.en['seasonalEventTitle'] = { version: "5.6.133", elementText: "Seasonal Event" };
 HHAuto_ToolTips.en['AllMaskRewards'] = { version: "7.26.0", elementText: "Mask claimed", tooltip: "Masked claimed rewards for Path of Attraction, Valor, Glory, season, etc.." };
-HHAuto_ToolTips.en['rewardsToCollectTitle'] = { version: "5.37.0", elementText: "Energies, XP, currencies available to collect" };
-HHAuto_ToolTips.en['showRewardsRecap'] = { version: "5.37.0", elementText: "Show rewards recap", tooltip: "Show cumulated information for energies, XP and currencies" };
+HHAuto_ToolTips.en['rewardsToCollectTitle'] = { version: "8.15.0", elementText: "Unclaimed rewards" };
+HHAuto_ToolTips.en['showRewardsRecap'] = { version: "8.15.0", elementText: "Show rewards recap", tooltip: "Show the total of every reward not yet claimed on the page" };
 HHAuto_ToolTips.en['hideOwnedGirls'] = { version: "8.10.42", elementText: "Hide owned girls", tooltip: "Hide owned girls in event page, when event have more than 30 girls to win and players have already more than 10 girls" };
 HHAuto_ToolTips.en['bossBangEvent'] = { version: "8.10.42", elementText: "Enabled", tooltip: "Perform boss bang fight script will start with the team configured after." };
 HHAuto_ToolTips.en['bossBangEventTitle'] = { version: "5.20.3", elementText: "Boss Bang" };
@@ -931,8 +939,8 @@ HHAuto_ToolTips.fr['pogTitle'] = { version: "5.20.3", elementText: "Voie de la G
 HHAuto_ToolTips.fr['poaTitle'] = { version: "6.15.8", elementText: "Chemin d'affection" };
 HHAuto_ToolTips.fr['seasonalEventTitle'] = { version: "5.6.133", elementText: "Evènements saisoniers" };
 HHAuto_ToolTips.fr['mousePause'] = { version: "5.6.135", elementText: "Pause souris", tooltip: "Pause le script pour 5 secondes quand des mouvements de la souris sont detecté. Evite le sript d'interrompre les actions manuelles. (en ms, 5000ms=5s)" };
-HHAuto_ToolTips.fr['rewardsToCollectTitle'] = { version: "6.15.8", elementText: "Energies, XP, monnaies à collecter" };
-HHAuto_ToolTips.fr['showRewardsRecap'] = { version: "6.15.8", elementText: "Affiche recap de récompenses", tooltip: "Affiche les récompenses cumulés des energies, l'XP et les monnaies" };
+HHAuto_ToolTips.fr['rewardsToCollectTitle'] = { version: "8.15.0", elementText: "Récompenses non récupérées" };
+HHAuto_ToolTips.fr['showRewardsRecap'] = { version: "8.15.0", elementText: "Affiche recap de récompenses", tooltip: "Affiche le total de toutes les récompenses pas encore récupérées sur la page" };
 HHAuto_ToolTips.fr['bossBangEvent'] = { version: "8.10.42", elementText: "Activé", tooltip: "Si activé : Effectue les combats boss bang en commençant par l'équipe configuré si après." };
 HHAuto_ToolTips.fr['bossBangEventTitle'] = { version: "6.15.8", elementText: "Boss Bang" };
 HHAuto_ToolTips.fr['bossBangMinTeam'] = { version: "5.6.137", elementText: "Première équipe", tooltip: "Première équipe à utiliser<br>Si 5, le script commencera par la dernière pour finir par la premiere." };
@@ -1584,8 +1592,8 @@ HHAuto_ToolTips.de['girlMenu'] = { version: "6.2.0", elementText: "Mädel-Menü"
 HHAuto_ToolTips.de['poaTitle'] = { version: "8.10.0", elementText: "Pfad der Anziehung" };
 HHAuto_ToolTips.de['seasonalEventTitle'] = { version: "8.10.0", elementText: "Saison-Event" };
 HHAuto_ToolTips.de['AllMaskRewards'] = { version: "8.10.0", elementText: "Abgeholte ausblenden", tooltip: "Blendet bereits abgeholte Belohnungen aus, bei Path of Attraction, Valor, Glory, Saison usw." };
-HHAuto_ToolTips.de['rewardsToCollectTitle'] = { version: "5.37.0", elementText: "Abholbare Energien, XP und Währungen" };
-HHAuto_ToolTips.de['showRewardsRecap'] = { version: "5.37.0", elementText: "Belohnungsübersicht zeigen", tooltip: "Zeigt die Summen für Energien, XP und Währungen." };
+HHAuto_ToolTips.de['rewardsToCollectTitle'] = { version: "8.15.0", elementText: "Offene Belohnungen" };
+HHAuto_ToolTips.de['showRewardsRecap'] = { version: "8.15.0", elementText: "Belohnungsübersicht zeigen", tooltip: "Zeigt die Summe aller noch nicht abgeholten Belohnungen der Seite." };
 HHAuto_ToolTips.de['hideOwnedGirls'] = { version: "8.10.42", elementText: "Bereits erhaltene ausblenden", tooltip: "Blendet auf der Event-Seite die Mädels aus, die du schon hast, wenn das Event mehr als 30 zu gewinnende Mädels bietet." };
 HHAuto_ToolTips.de['bossBangEvent'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Führt Boss-Bang-Kämpfe aus; das Skript startet mit dem unten eingestellten Team." };
 HHAuto_ToolTips.de['bossBangEventTitle'] = { version: "8.10.0", elementText: "Boss-Bang" };
@@ -2279,8 +2287,8 @@ HHAuto_ToolTips.es['girlListMenu'] = { version: "6.2.0", elementText: "Menú de 
 HHAuto_ToolTips.es['girlMenu'] = { version: "6.2.0", elementText: "Menú de la chica", tooltip: "Abre el menú de la chica." };
 HHAuto_ToolTips.es['poaTitle'] = { version: "6.15.8", elementText: "Camino de la Atracción", tooltip: "" };
 HHAuto_ToolTips.es['seasonalEventTitle'] = { version: "5.6.133", elementText: "Evento de temporada", tooltip: "" };
-HHAuto_ToolTips.es['rewardsToCollectTitle'] = { version: "5.37.0", elementText: "Energías, XP y monedas disponibles para recoger", tooltip: "" };
-HHAuto_ToolTips.es['showRewardsRecap'] = { version: "5.37.0", elementText: "Mostrar resumen de recompensas", tooltip: "Muestra la información acumulada de energías, XP y monedas." };
+HHAuto_ToolTips.es['rewardsToCollectTitle'] = { version: "8.15.0", elementText: "Recompensas sin reclamar" };
+HHAuto_ToolTips.es['showRewardsRecap'] = { version: "8.15.0", elementText: "Mostrar resumen de recompensas", tooltip: "Muestra el total de todas las recompensas aún no reclamadas en la página." };
 HHAuto_ToolTips.es['hideOwnedGirls'] = { version: "8.10.42", elementText: "Ocultar chicas conseguidas", tooltip: "Oculta las chicas que ya tienes en la página del evento, cuando el evento tiene más de 30 chicas por conseguir y ya tienes más de 10." };
 HHAuto_ToolTips.es['bossBangEvent'] = { version: "8.10.42", elementText: "Activado", tooltip: "Ejecuta el combate de Boss Bang; el script empezará con el equipo configurado a continuación." };
 HHAuto_ToolTips.es['bossBangEventTitle'] = { version: "5.20.3", elementText: "Boss Bang", tooltip: "" };
@@ -7119,41 +7127,31 @@ function debugDeleteTempVars() {
 }
 function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("menuCollectableText", "elementText"), inRewardsListName = "possibleRewardsList") {
     createPopUpCollectables();
+    // Plain checkboxes, the whole label clickable: the animated switches of
+    // the settings panel were slow to work through twenty-odd entries.
+    // "Toggle All" inverts every box.
     function createPopUpCollectables() {
-        let menuCollectables = '<div class="HHAutoScriptMenu" style="padding:10px; display:flex;flex-direction:column">'
-            + '<p>' + inPopUpText + '</p>'
-            + '<div style="display:flex;">';
-        let count = 0;
+        var _a;
         // Features with their own reward pool (Sultry Mysteries) pass their
         // own list name instead of the generic one.
         const possibleRewards = ConfigHelper.getHHScriptVars(inRewardsListName);
         const rewardsToCollect = getStoredArray(inVarName);
+        let menuCollectables = '<div class="HHAutoScriptMenu HHCollectables">'
+            + '<p>' + inPopUpText + '</p>'
+            + '<div class="HHCollectablesGrid">';
         for (const currentItem of Object.keys(possibleRewards)) {
-            if (count === 4) {
-                count = 0;
-                menuCollectables += '</div>';
-                menuCollectables += '<div style="display:flex;">';
-            }
             const checkedBox = rewardsToCollect.includes(currentItem) ? "checked" : "";
-            menuCollectables += '<div style="display:flex; width:25%">';
-            menuCollectables += '<div class="labelAndButton" style=""><label class="switch"><input id="' + currentItem + '" class="menuCollectablesItem" type="checkbox" ' + checkedBox + '><span class="slider round"></span></label><span class="HHMenuItemName">' + possibleRewards[currentItem] + '</span></div>';
-            menuCollectables += '</div>';
-            count++;
+            menuCollectables += '<label class="HHCollectablesItem"><input id="' + currentItem + '" class="menuCollectablesItem" type="checkbox" ' + checkedBox + '><span>' + possibleRewards[currentItem] + '</span></label>';
         }
-        menuCollectables += '</div>';
-        menuCollectables += '<div style="display:flex;">';
-        menuCollectables += '<div style="display:flex;width:25%">';
-        menuCollectables += '<div class="labelAndButton" style=""><span class="HHMenuItemName">Toggle All</span><label class="button">';
-        menuCollectables += '<input id="toggleCollectables" class="menuCollectablesItem" type="button" value="Click!"';
-        menuCollectables += 'onclick="let allInputs = window.document.querySelectorAll(\'#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem\'); ';
-        menuCollectables += 'allInputs.forEach((currentInput) \=\> {currentInput.checked = !currentInput.checked;}); ';
-        menuCollectables += 'evt = document.createEvent(\'HTMLevents\'); evt.initEvent(\'change\',true,true); ';
-        menuCollectables += 'allInputs[0].dispatchEvent(evt);"><span class="button"></span></label></div>';
         menuCollectables += '</div>'
+            + '<div><button id="toggleCollectables" class="myButton" type="button">Toggle All</button></div>'
             + '</div>';
         fillHHPopUp("menuCollectable", getTextForUI("menuCollectable", "elementText"), menuCollectables);
-        document.querySelectorAll("#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem").forEach(currentInput => {
-            currentInput.addEventListener("change", getSelectedCollectables);
+        const allInputs = document.querySelectorAll("#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem");
+        allInputs.forEach(currentInput => currentInput.addEventListener("change", getSelectedCollectables));
+        (_a = document.getElementById("toggleCollectables")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
+            allInputs.forEach(currentInput => { currentInput.checked = !currentInput.checked; });
+            getSelectedCollectables();
         });
     }
     function getSelectedCollectables() {
@@ -11357,11 +11355,14 @@ HHEnvVariables["global"].possibleRewardsList = { 'energy_kiss': "Kisses",
     'orbs': "Orbs",
     'gems': "Gems",
     'scrolls': "Light Bulbs",
-    'mythic': "Mythic Rquipment",
+    'mythic': "Mythic Equipment",
+    'equipment': "Equipment",
     'avatar': "Avatar",
     'ticket': "Champions' tickets",
     'event_cash': "Event cash",
-    'rejuvenation_stone': "Rejuvenation Stones" };
+    'rejuvenation_stone': "Rejuvenation Stones",
+    'progressions': "Event resource",
+    'lively_scene': "Lively scene" };
 // Reward types a Sultry Mysteries grid square can hide. The keys are the
 // literal `type` values of sm_event_data.event_data.rewards_list entries,
 // so the auto-open goal check can compare against them directly. This is a
@@ -15232,14 +15233,25 @@ class RewardHelper {
             else if (inSlot.className.indexOf('slot_random_girl') >= 0) {
                 reward = 'random_girl_shards'; // Random girl shards
             }
-            else if (inSlot.className.indexOf('mythic') >= 0) {
-                reward = 'mythic';
-            }
+            // Rarity is a bare class next to the type ("mythic slot_item" is a
+            // mythic booster, "slot_scrolls_mythic" mythic bulbs), so the
+            // type checks must not read it. Random equipment is the one reward
+            // whose type is only its class: mythic counts as "mythic", every
+            // other rarity as "equipment".
             else if (inSlot.className.indexOf('slot_scrolls_') >= 0) {
                 reward = 'scrolls';
             }
+            else if (inSlot.className.indexOf('random_equipment') >= 0 || inSlot.className.indexOf('slot_mythic_equipment') >= 0) {
+                reward = /(^| )mythic( |$)|slot_mythic_equipment/.test(inSlot.className) ? 'mythic' : 'equipment';
+            }
             else if (inSlot.className.indexOf('slot_seasonal_event_cash') >= 0) {
                 reward = 'event_cash';
+            }
+            else if (inSlot.className.indexOf('slot_progressions') >= 0) {
+                reward = 'progressions';
+            }
+            else if (inSlot.className.indexOf('slot_lively_scene') >= 0) {
+                reward = 'lively_scene';
             }
             else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d")) {
                 const objectData = $(inSlot).data("d");
@@ -15276,9 +15288,10 @@ class RewardHelper {
         return reward;
     }
     static getRewardQuantityByType(rewardType, inSlot) {
-        // TODO update logic for potion / gift to be more accurate
         switch (rewardType) {
-            case 'girl_shards': return Number($('.shards', inSlot).attr('shards'));
+            // The "shards" attribute holds the girl's shard count before the
+            // reward; what the tier adds stands in "x<span>N</span>".
+            case 'girl_shards': return parsePrice($('.shards p span', inSlot).first().text().trim()) || 0;
             case 'random_girl_shards':
             case 'energy_kiss':
             case 'energy_quest':
@@ -15294,9 +15307,13 @@ class RewardHelper {
             case 'orbs':
             case 'gems':
             case 'scrolls':
-            case 'ticket': return parsePrice($('.amount', inSlot).text());
-            case 'mythic': return 1;
-            case 'avatar': return 1;
+            case 'ticket':
+            case 'rejuvenation_stone':
+            case 'progressions':
+            case 'mythic':
+            case 'equipment': return parsePrice($('.amount', inSlot).first().text().trim()) || 1;
+            case 'avatar':
+            case 'lively_scene': return 1;
             default:
                 logHHAuto('Error: reward type unknown ' + rewardType);
                 return 0;
@@ -15332,49 +15349,65 @@ class RewardHelper {
         }
         return rewardCountByType;
     }
+    // The icon of each type, as the game draws it in its own reward slots
+    // (shared.js, function cp). Types that mix several items -- gifts, books,
+    // boosters -- show one representative picture; the amount is the sum.
+    // A type missing here still shows, with its name from possibleRewardsList.
+    static getRewardSlotIcon(rewardType) {
+        var _a, _b;
+        const img = (path) => `<img src="${ConfigHelper.getHHScriptVars('baseImgPath')}/${path}">`;
+        switch (rewardType) {
+            case 'random_girl_shards': return '<span class="random_girl_icn"></span>';
+            case 'girl_shards': return '<span class="shard_icn"></span>';
+            case 'energy_kiss': return '<span class="energy_kiss_icn"></span>';
+            case 'energy_quest': return '<span class="energy_quest_icn"></span>';
+            case 'energy_fight': return '<span class="energy_fight_icn"></span>';
+            case 'energy_drill': return '<span class="energy_drill_icn"></span>';
+            case 'xp': return '<span class="xp_icn"></span>';
+            case 'soft_currency': return '<span class="soft_currency_icn"></span>';
+            case 'hard_currency': return '<span class="hard_currency_icn"></span>';
+            case 'event_cash': return '<span class="mega_event_cash_icn"></span>';
+            case 'ticket': return '<span class="ticket_icn"></span>';
+            case 'gems': return '<span class="gem_all_icn"></span>';
+            case 'orbs': return '<span class="orb_icon o_m1"></span>';
+            case 'scrolls': return '<span class="scrolls_legendary_icn"></span>';
+            case 'mythic':
+            case 'equipment': return '<span class="mythic_equipment_icn"></span>';
+            case 'rejuvenation_stone': return '<span class="rejuvenation_stone_icn"></span>';
+            case 'progressions': return `<span class="progressions_icn ${(_a = unsafeWindow.mega_event_theme) !== null && _a !== void 0 ? _a : ''}"></span>`;
+            case 'lively_scene': return '<span class="play_button_icn"></span>';
+            case 'gift': return img('design/ic_gift.png');
+            case 'potion': return img('pictures/items/XP1.png');
+            case 'booster': return img('pictures/items/B1.png');
+            default: {
+                const names = ConfigHelper.getHHScriptVars('possibleRewardsList', false) || {};
+                return `<span class="HHRewardName">${(_b = names[rewardType]) !== null && _b !== void 0 ? _b : rewardType}</span>`;
+            }
+        }
+    }
     static getRewardsAsHtml(rewardCountByType) {
+        var _a;
+        // Classes the game gives the slot itself: its background, and for the
+        // two equipment kinds the rarity frame.
+        const slotClass = {
+            random_girl_shards: 'slot_random_girl', girl_shards: 'slot_girl_shards',
+            event_cash: 'slot_seasonal_event_cash', scrolls: 'slot_scrolls_legendary',
+            mythic: 'mythic random_equipment', equipment: 'legendary random_equipment',
+            gift: 'legendary', potion: 'legendary', booster: 'legendary',
+        };
+        // XP and ymens run into the millions; one decimal keeps "2.2M" apart from "2M".
+        const decimals = (rewardType) => rewardType === 'xp' || rewardType === 'soft_currency' ? 1 : 0;
         let html = '';
         if (rewardCountByType)
             for (const rewardType in rewardCountByType) {
+                if (rewardType === 'all' || rewardType === 'undetected')
+                    continue;
                 const rewardCount = rewardCountByType[rewardType];
-                // Ten of the twenty types in possibleRewardsList have no branch here
-                // -- girl_shards, gems, orbs, gift, potion, booster, scrolls,
-                // mythic, avatar, rejuvenation_stone. They fall into the empty
-                // default, so a tier paying only those renders nothing and
-                // displayRewardsDiv appends an invisible div instead of the recap.
-                switch (rewardType) {
-                    case 'random_girl_shards':
-                        html += '<div class="slot slot_random_girl  size_xs"><span class="random_girl_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'energy_kiss':
-                        html += '<div class="slot slot_energy_kiss  size_xs"><span class="energy_kiss_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'energy_quest':
-                        html += '<div class="slot slot_energy_quest size_xs"><span class="energy_quest_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'energy_fight':
-                        html += '<div class="slot slot_energy_fight  size_xs"><span class="energy_fight_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'energy_drill':
-                        html += '<div class="slot slot_energy_drill  size_xs"><span class="energy_drill_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'xp':
-                        html += '<div class="slot slot_xp size_xs"><span class="xp_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 1, -1) + '</div></div>';
-                        break;
-                    case 'soft_currency':
-                        html += '<div class="slot slot_soft_currency size_xs"><span class="soft_currency_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 1, -1) + '</div></div>';
-                        break;
-                    case 'hard_currency':
-                        html += '<div class="slot slot_hard_currency size_xs"><span class="hard_currency_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'event_cash':
-                        html += '<div class="slot slot_seasonal_event_cash size_xs"><span class="mega_event_cash_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'ticket':
-                        html += '<div class="slot slot_ticket size_xs"><span class="ticket_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    default:
-                }
+                if (!(rewardCount > 0))
+                    continue;
+                html += `<div class="slot ${(_a = slotClass[rewardType]) !== null && _a !== void 0 ? _a : 'slot_' + rewardType} size_xs">`
+                    + RewardHelper.getRewardSlotIcon(rewardType)
+                    + `<div class="amount">${NumberHelper.nRounding(rewardCount, decimals(rewardType), -1)}</div></div>`;
             }
         return html;
     }

@@ -99,11 +99,14 @@ HHEnvVariables["global"].possibleRewardsList = {'energy_kiss' : "Kisses",
                                                 'orbs': "Orbs",
                                                 'gems' : "Gems",
                                                 'scrolls' : "Light Bulbs",
-                                                'mythic' : "Mythic Rquipment",
+                                                'mythic' : "Mythic Equipment",
+                                                'equipment' : "Equipment",
                                                 'avatar': "Avatar",
                                                 'ticket' : "Champions' tickets",
                                                 'event_cash' : "Event cash",
-                                                'rejuvenation_stone': "Rejuvenation Stones"};
+                                                'rejuvenation_stone': "Rejuvenation Stones",
+                                                'progressions' : "Event resource",
+                                                'lively_scene' : "Lively scene"};
 
 // Reward types a Sultry Mysteries grid square can hide. The keys are the
 // literal `type` values of sm_event_data.event_data.rewards_list entries,

@@ -101,6 +101,7 @@ declare global {
         seasonal_event_active: boolean;
         seasonal_time_remaining: number;
         mega_event_data: unknown;
+        mega_event_theme?: string;
         penta_drill_data?: {
             cycle_data?: { seconds_until_event_end?: number; [key: string]: unknown };
             [key: string]: unknown;

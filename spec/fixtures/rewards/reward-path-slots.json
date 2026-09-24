@@ -1,0 +1,170 @@
+[
+ {
+  "page": "/path-of-valor.html",
+  "type": "soft_currency",
+  "amountText": "550K",
+  "html": "<div class=\"slot slot_soft_currency size_xs\"> <span class=\"soft_currency_icn\"></span> <div class=\"amount\">550K</div> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "potion",
+  "amountText": "1",
+  "html": "<div class=\"slot size_xs paid-slot legendary slot_item\" id_item=\"323\" data-d=\"{&quot;item&quot;:{&quot;id_item&quot;:323,&quot;type&quot;:&quot;potion&quot;,&quot;identifier&quot;:&quot;XP4&quot;,&quot;rarity&quot;:&quot;legendary&quot;,&quot;price&quot;:500000,&quot;currency&quot;:&quot;sc&quot;,&quot;value&quot;:2500,&quot;carac1&quot;:0,&quot;carac2&quot;:0,&quot;carac3&quot;:0,&quot;endurance&quot;:0,&quot;chance&quot;:&quot;0.00&quot;,&quot;ego&quot;:0,&quot;damage&quot;:0,&quot;duration&quot;:0,&quot;skin&quot;:&quot;hentai,gay,sexy&quot;,&quot;name&quot;:&quot;Spell book&quot;,&quot;ico&quot;:&quot;https://hh2.hh-content.com/pictures/gallery/68/200x/323-aeb6cada594c07e4cd978d3d02ea05cf.png&quot;,&quot;display_price&quot;:500000,&quot;default_market_price&quot;:50000},&quot;quantity&quot;:&quot;1&quot;}\"> <img> <div class=\"amount\">1</div><i>i</i> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "orbs",
+  "amountText": "2",
+  "html": "<div class=\"slot slot_orbs size_xs paid-slot pass-plus\"> <span class=\"orb_icon o_m1\"></span> <div class=\"amount\">2</div> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "energy_kiss",
+  "amountText": "2",
+  "html": "<div class=\"slot slot_energy_kiss size_xs paid-slot\"> <span class=\"energy_kiss_icn\"></span> <div class=\"amount\">2</div> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "gems",
+  "amountText": "25",
+  "html": "<div class=\"slot slot_gems size_xs paid-slot\"> <span class=\"gem_all_icn\"></span> <div class=\"amount\">25</div> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "energy_fight",
+  "amountText": "6",
+  "html": "<div class=\"slot slot_energy_fight size_xs paid-slot pass-plus\"> <span class=\"energy_fight_icn\"></span> <div class=\"amount\">6</div> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "xp",
+  "amountText": "11.1K",
+  "html": "<div class=\"slot slot_xp size_xs\"> <span class=\"xp_icn\"></span> <div class=\"amount\">11.1K</div> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "girl_shards",
+  "amountText": null,
+  "html": "<div class=\"slot slot_girl_shards size_xs legendary\"> <img draggable=\"false\"> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "booster",
+  "amountText": "1",
+  "html": "<div class=\"slot size_xs legendary slot_item\" id_item=\"316\" data-d=\"{&quot;item&quot;:{&quot;id_item&quot;:316,&quot;type&quot;:&quot;booster&quot;,&quot;identifier&quot;:&quot;B1&quot;,&quot;rarity&quot;:&quot;legendary&quot;,&quot;price&quot;:15,&quot;currency&quot;:&quot;hc&quot;,&quot;value&quot;:0,&quot;carac1&quot;:6,&quot;carac2&quot;:6,&quot;carac3&quot;:6,&quot;endurance&quot;:0,&quot;chance&quot;:&quot;0.00&quot;,&quot;ego&quot;:0,&quot;damage&quot;:0,&quot;duration&quot;:1440,&quot;skin&quot;:&quot;hentai,gay,sexy&quot;,&quot;name&quot;:&quot;Ginseng root&quot;,&quot;ico&quot;:&quot;https://hh2.hh-content.com/pictures/gallery/68/200x/316-822f2c7607ac3beb2714bbbedca03a93.png&quot;,&quot;display_price&quot;:90,&quot;default_market_price&quot;:15000},&quot;quantity&quot;:&quot;1&quot;}\"> <img> <div class=\"amount\">1</div><i>i</i> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "booster",
+  "amountText": "1",
+  "html": "<div class=\"slot size_xs paid-slot mythic slot_item\" id_item=\"632\" data-d=\"{&quot;item&quot;:{&quot;id_item&quot;:632,&quot;type&quot;:&quot;booster&quot;,&quot;identifier&quot;:&quot;MB1&quot;,&quot;rarity&quot;:&quot;mythic&quot;,&quot;price&quot;:90,&quot;currency&quot;:&quot;hc&quot;,&quot;value&quot;:0,&quot;carac1&quot;:0,&quot;carac2&quot;:0,&quot;carac3&quot;:0,&quot;endurance&quot;:0,&quot;chance&quot;:&quot;0.00&quot;,&quot;ego&quot;:0,&quot;damage&quot;:0,&quot;duration&quot;:0,&quot;skin&quot;:&quot;hentai,gay,sexy&quot;,&quot;name&quot;:&quot;Sandalwood perfume&quot;,&quot;ico&quot;:&quot;https://hh2.hh-content.com/pictures/gallery/68/200x/632-b7c59c32e5ca9500fbff29a454757620.png&quot;,&quot;display_price&quot;:540,&quot;default_market_price&quot;:90000},&quot;quantity&quot;:&quot;1&quot;}\"> <img> <div class=\"amount\">1</div><i>i</i> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "potion",
+  "amountText": "1",
+  "html": "<div class=\"slot size_xs mythic slot_item\" id_item=\"628\" data-d=\"{&quot;item&quot;:{&quot;id_item&quot;:628,&quot;type&quot;:&quot;potion&quot;,&quot;identifier&quot;:&quot;XP1&quot;,&quot;rarity&quot;:&quot;mythic&quot;,&quot;price&quot;:30,&quot;currency&quot;:&quot;hc&quot;,&quot;value&quot;:20000,&quot;carac1&quot;:0,&quot;carac2&quot;:0,&quot;carac3&quot;:0,&quot;endurance&quot;:0,&quot;chance&quot;:&quot;0.00&quot;,&quot;ego&quot;:0,&quot;damage&quot;:0,&quot;duration&quot;:0,&quot;skin&quot;:&quot;hentai,gay,sexy&quot;,&quot;name&quot;:&quot;Magazine&quot;,&quot;ico&quot;:&quot;https://hh2.hh-content.com/pictures/gallery/68/200x/628-200e4a4fda58622a2e35feb1f521d841.png&quot;,&quot;display_price&quot;:180,&quot;default_market_price&quot;:30000},&quot;quantity&quot;:&quot;1&quot;}\"> <img> <div class=\"amount\">1</div><i>i</i> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "gift",
+  "amountText": "1",
+  "html": "<div class=\"slot size_xs mythic slot_item\" id_item=\"626\" data-d=\"{&quot;item&quot;:{&quot;id_item&quot;:626,&quot;type&quot;:&quot;gift&quot;,&quot;identifier&quot;:&quot;K3&quot;,&quot;rarity&quot;:&quot;mythic&quot;,&quot;price&quot;:70,&quot;currency&quot;:&quot;hc&quot;,&quot;value&quot;:15000,&quot;carac1&quot;:0,&quot;carac2&quot;:0,&quot;carac3&quot;:0,&quot;endurance&quot;:0,&quot;chance&quot;:&quot;0.00&quot;,&quot;ego&quot;:0,&quot;damage&quot;:0,&quot;duration&quot;:0,&quot;skin&quot;:&quot;hentai,gay,sexy&quot;,&quot;name&quot;:&quot;Bracelet&quot;,&quot;ico&quot;:&quot;https://hh2.hh-content.com/pictures/gallery/68/200x/626-570acf75fc16c2d8601859026d1b8bd8.png&quot;,&quot;display_price&quot;:420,&quot;default_market_price&quot;:70000},&quot;quantity&quot;:&quot;1&quot;}\"> <img> <div class=\"amount\">1</div><i>i</i> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "equipment",
+  "amountText": "1",
+  "html": "<div class=\"slot size_xs legendary random_equipment legendary\" rarity=\"legendary\"> <div class=\"stack_num amount\"> <span>1</span> </div> <span class=\"mythic_equipment_icn\"></span> <i>i</i> </div>"
+ },
+ {
+  "page": "/path-of-glory.html",
+  "type": "ticket",
+  "amountText": "2",
+  "html": "<div class=\"slot slot_ticket size_xs paid-slot pass-plus\"> <span class=\"ticket_icn\"></span> <div class=\"amount\">2</div> </div>"
+ },
+ {
+  "page": "/path-of-glory.html",
+  "type": "energy_quest",
+  "amountText": "10",
+  "html": "<div class=\"slot slot_energy_quest size_xs paid-slot pass-plus\"> <span class=\"energy_quest_icn\"></span> <div class=\"amount\">10</div> </div>"
+ },
+ {
+  "page": "/path-of-glory.html",
+  "type": "gift",
+  "amountText": "1",
+  "html": "<div class=\"slot size_xs legendary slot_item\" id_item=\"183\" data-d=\"{&quot;item&quot;:{&quot;id_item&quot;:183,&quot;type&quot;:&quot;gift&quot;,&quot;identifier&quot;:&quot;K3&quot;,&quot;rarity&quot;:&quot;legendary&quot;,&quot;price&quot;:500400,&quot;currency&quot;:&quot;sc&quot;,&quot;value&quot;:1200,&quot;carac1&quot;:0,&quot;carac2&quot;:0,&quot;carac3&quot;:0,&quot;endurance&quot;:0,&quot;chance&quot;:&quot;0.00&quot;,&quot;ego&quot;:0,&quot;damage&quot;:0,&quot;duration&quot;:0,&quot;skin&quot;:&quot;hentai,gay,sexy&quot;,&quot;name&quot;:&quot;Bracelet&quot;,&quot;ico&quot;:&quot;https://hh2.hh-content.com/pictures/gallery/68/200x/183-110a28b7aa5d95787a2d416789bff430.png&quot;,&quot;display_price&quot;:500400,&quot;default_market_price&quot;:50040},&quot;quantity&quot;:&quot;1&quot;}\"> <img> <div class=\"amount\">1</div><i>i</i> </div>"
+ },
+ {
+  "page": "/season.html",
+  "type": "scrolls",
+  "amountText": "5",
+  "html": "<div class=\"slot slot_scrolls_common size_small\"> <span class=\"scrolls_common_icn\"></span> <div class=\"amount\">5</div> </div>"
+ },
+ {
+  "page": "/season.html",
+  "type": "booster",
+  "amountText": "1",
+  "html": "<div class=\"slot size_small epic slot_item\" id_item=\"30\" data-d=\"{&quot;item&quot;:{&quot;id_item&quot;:30,&quot;type&quot;:&quot;booster&quot;,&quot;identifier&quot;:&quot;B3&quot;,&quot;rarity&quot;:&quot;epic&quot;,&quot;price&quot;:10,&quot;currency&quot;:&quot;hc&quot;,&quot;value&quot;:0,&quot;carac1&quot;:0,&quot;carac2&quot;:0,&quot;carac3&quot;:0,&quot;endurance&quot;:0,&quot;chance&quot;:&quot;0.00&quot;,&quot;ego&quot;:14700,&quot;damage&quot;:0,&quot;duration&quot;:1440,&quot;skin&quot;:&quot;hentai,gay,sexy&quot;,&quot;name&quot;:&quot;Chlorella&quot;,&quot;ico&quot;:&quot;https://hh2.hh-content.com/pictures/gallery/68/200x/30-51c5ed6d3c64f9512835e4154777f792.png&quot;,&quot;display_price&quot;:60,&quot;default_market_price&quot;:10000},&quot;quantity&quot;:&quot;1&quot;}\"> <img> <div class=\"amount\">1</div><i>i</i> </div>"
+ },
+ {
+  "page": "/season.html",
+  "type": "scrolls",
+  "amountText": "3",
+  "html": "<div class=\"slot slot_scrolls_rare size_small\"> <span class=\"scrolls_rare_icn\"></span> <div class=\"amount\">3</div> </div>"
+ },
+ {
+  "page": "/season.html",
+  "type": "hard_currency",
+  "amountText": "120",
+  "html": "<div class=\"slot slot_hard_currency size_small\"> <span class=\"hard_currency_icn\"></span> <div class=\"amount\">120</div> </div>"
+ },
+ {
+  "page": "/season.html",
+  "type": "scrolls",
+  "amountText": "3",
+  "html": "<div class=\"slot slot_scrolls_epic size_small\"> <span class=\"scrolls_epic_icn\"></span> <div class=\"amount\">3</div> </div>"
+ },
+ {
+  "page": "/season.html",
+  "type": "scrolls",
+  "amountText": "6",
+  "html": "<div class=\"slot slot_scrolls_legendary size_small\"> <span class=\"scrolls_legendary_icn\"></span> <div class=\"amount\">6</div> </div>"
+ },
+ {
+  "page": "/season.html",
+  "type": "scrolls",
+  "amountText": "3",
+  "html": "<div class=\"slot slot_scrolls_mythic size_small\"> <span class=\"scrolls_mythic_icn\"></span> <div class=\"amount\">3</div> </div>"
+ },
+ {
+  "page": "/penta-drill.html",
+  "type": "energy_drill",
+  "amountText": "3",
+  "html": "<div class=\"slot slot_energy_drill size_small\"> <span class=\"energy_drill_icn\"></span> <div class=\"amount\">3</div> </div>"
+ },
+ {
+  "page": "/seasonal.html",
+  "type": "event_cash",
+  "amountText": "15",
+  "html": "<div class=\"slot slot_seasonal_event_cash size_small\"> <span class=\"mega_event_cash_icn\"></span> <div class=\"amount\">15</div> </div>"
+ },
+ {
+  "page": "/seasonal.html",
+  "type": "progressions",
+  "amountText": "1,000",
+  "html": "<div class=\"slot slot_progressions size_small paid-slot anniversary\"> <span class=\"progressions_icn anniversary\"></span> <div class=\"amount\">1,000</div> </div>"
+ },
+ {
+  "page": "/seasonal.html",
+  "type": "lively_scene",
+  "amountText": "1",
+  "html": "<div class=\"slot slot_lively_scene size_small\"> <div> <img> <span class=\"play_button_icn\"></span> </div> </div>"
+ },
+ {
+  "page": "/path-of-valor.html",
+  "type": "girl_shards",
+  "amountText": "20",
+  "html": "<div class=\"slot slot_girl_shards size_xs paid-slot legendary\"> <img draggable=\"false\"> <div class=\"shards\" shards=\"0\"> <span class=\"shard_icn\"></span> <p>x<span>20</span></p> </div> </div>"
+ }
+]

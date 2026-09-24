@@ -390,45 +390,32 @@ export function debugDeleteTempVars()
 export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = getTextForUI("menuCollectableText","elementText"), inRewardsListName = "possibleRewardsList")
 {
     createPopUpCollectables();
+    // Plain checkboxes, the whole label clickable: the animated switches of
+    // the settings panel were slow to work through twenty-odd entries.
+    // "Toggle All" inverts every box.
     function createPopUpCollectables()
     {
-        let menuCollectables = '<div class="HHAutoScriptMenu" style="padding:10px; display:flex;flex-direction:column">'
-        +    '<p>'+inPopUpText+'</p>'
-        +    '<div style="display:flex;">'
-        let count = 0;
         // Features with their own reward pool (Sultry Mysteries) pass their
         // own list name instead of the generic one.
         const possibleRewards = ConfigHelper.getHHScriptVars(inRewardsListName);
         const rewardsToCollect = getStoredArray<string>(inVarName);
+        let menuCollectables = '<div class="HHAutoScriptMenu HHCollectables">'
+        +    '<p>'+inPopUpText+'</p>'
+        +    '<div class="HHCollectablesGrid">';
         for (const currentItem of Object.keys(possibleRewards))
         {
-            if (count === 4)
-            {
-                count = 0;
-                menuCollectables+='</div>';
-                menuCollectables+='<div style="display:flex;">';
-            }
             const checkedBox = rewardsToCollect.includes(currentItem)?"checked":"";
-            menuCollectables+='<div style="display:flex; width:25%">';
-            menuCollectables+='<div class="labelAndButton" style=""><label class="switch"><input id="'+currentItem+'" class="menuCollectablesItem" type="checkbox" '+checkedBox+'><span class="slider round"></span></label><span class="HHMenuItemName">'+possibleRewards[currentItem]+'</span></div>'
-            menuCollectables+='</div>';
-            count++;
+            menuCollectables+='<label class="HHCollectablesItem"><input id="'+currentItem+'" class="menuCollectablesItem" type="checkbox" '+checkedBox+'><span>'+possibleRewards[currentItem]+'</span></label>';
         }
-        menuCollectables+='</div>';
-        menuCollectables+='<div style="display:flex;">';
-        menuCollectables+='<div style="display:flex;width:25%">';
-        menuCollectables+='<div class="labelAndButton" style=""><span class="HHMenuItemName">Toggle All</span><label class="button">';
-        menuCollectables+='<input id="toggleCollectables" class="menuCollectablesItem" type="button" value="Click!"';
-        menuCollectables+='onclick="let allInputs = window.document.querySelectorAll(\'#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem\'); ';
-        menuCollectables+='allInputs.forEach((currentInput) \=\> {currentInput.checked = !currentInput.checked;}); ';
-        menuCollectables+='evt = document.createEvent(\'HTMLevents\'); evt.initEvent(\'change\',true,true); ';
-        menuCollectables+='allInputs[0].dispatchEvent(evt);"><span class="button"></span></label></div>';
-        menuCollectables +=    '</div>'
-            +  '</div>';
+        menuCollectables+='</div>'
+        +    '<div><button id="toggleCollectables" class="myButton" type="button">Toggle All</button></div>'
+        +  '</div>';
         fillHHPopUp("menuCollectable",getTextForUI("menuCollectable","elementText"),menuCollectables);
-        document.querySelectorAll("#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem").forEach(currentInput =>
-                                                                                                           {
-            currentInput.addEventListener("change",getSelectedCollectables);
+        const allInputs = document.querySelectorAll<HTMLInputElement>("#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem");
+        allInputs.forEach(currentInput => currentInput.addEventListener("change",getSelectedCollectables));
+        document.getElementById("toggleCollectables")?.addEventListener("click", () => {
+            allInputs.forEach(currentInput => { currentInput.checked = !currentInput.checked; });
+            getSelectedCollectables();
         });
     }
 

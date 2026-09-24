@@ -61,17 +61,30 @@ export class RewardHelper {
             {
                 reward = 'random_girl_shards'; // Random girl shards
             }
-            else if (inSlot.className.indexOf('mythic') >= 0)
-            {
-                reward = 'mythic';
-            }
+            // Rarity is a bare class next to the type ("mythic slot_item" is a
+            // mythic booster, "slot_scrolls_mythic" mythic bulbs), so the
+            // type checks must not read it. Random equipment is the one reward
+            // whose type is only its class: mythic counts as "mythic", every
+            // other rarity as "equipment".
             else if (inSlot.className.indexOf('slot_scrolls_') >= 0)
             {
                 reward = 'scrolls';
             }
+            else if (inSlot.className.indexOf('random_equipment') >= 0 || inSlot.className.indexOf('slot_mythic_equipment') >= 0)
+            {
+                reward = /(^| )mythic( |$)|slot_mythic_equipment/.test(inSlot.className) ? 'mythic' : 'equipment';
+            }
             else if (inSlot.className.indexOf('slot_seasonal_event_cash') >= 0)
             {
                 reward = 'event_cash';
+            }
+            else if (inSlot.className.indexOf('slot_progressions') >= 0)
+            {
+                reward = 'progressions';
+            }
+            else if (inSlot.className.indexOf('slot_lively_scene') >= 0)
+            {
+                reward = 'lively_scene';
             }
             else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d"))
             {
@@ -117,10 +130,11 @@ export class RewardHelper {
     }
 
     static getRewardQuantityByType(rewardType:string, inSlot: any):number {
-        // TODO update logic for potion / gift to be more accurate
         switch(rewardType)
         {
-            case 'girl_shards' :    return Number($('.shards', inSlot).attr('shards'));
+            // The "shards" attribute holds the girl's shard count before the
+            // reward; what the tier adds stands in "x<span>N</span>".
+            case 'girl_shards' :    return parsePrice($('.shards p span', inSlot).first().text().trim()) || 0;
             case 'random_girl_shards' :
             case 'energy_kiss':
             case 'energy_quest':
@@ -136,9 +150,13 @@ export class RewardHelper {
             case 'orbs':
             case 'gems' :
             case 'scrolls' :
-            case 'ticket' :         return parsePrice($('.amount', inSlot).text());
-            case 'mythic' :         return 1;
-            case 'avatar':          return 1;
+            case 'ticket' :
+            case 'rejuvenation_stone' :
+            case 'progressions' :
+            case 'mythic' :
+            case 'equipment' :      return parsePrice($('.amount', inSlot).first().text().trim()) || 1;
+            case 'avatar':
+            case 'lively_scene':    return 1;
             default: logHHAuto('Error: reward type unknown ' + rewardType);
             return 0;
         }
@@ -177,30 +195,61 @@ export class RewardHelper {
         }
         return rewardCountByType;
     }
+    // The icon of each type, as the game draws it in its own reward slots
+    // (shared.js, function cp). Types that mix several items -- gifts, books,
+    // boosters -- show one representative picture; the amount is the sum.
+    // A type missing here still shows, with its name from possibleRewardsList.
+    static getRewardSlotIcon(rewardType: string): string {
+        const img = (path: string) => `<img src="${ConfigHelper.getHHScriptVars('baseImgPath')}/${path}">`;
+        switch (rewardType) {
+            case 'random_girl_shards': return '<span class="random_girl_icn"></span>';
+            case 'girl_shards':        return '<span class="shard_icn"></span>';
+            case 'energy_kiss':        return '<span class="energy_kiss_icn"></span>';
+            case 'energy_quest':       return '<span class="energy_quest_icn"></span>';
+            case 'energy_fight':       return '<span class="energy_fight_icn"></span>';
+            case 'energy_drill':       return '<span class="energy_drill_icn"></span>';
+            case 'xp':                 return '<span class="xp_icn"></span>';
+            case 'soft_currency':      return '<span class="soft_currency_icn"></span>';
+            case 'hard_currency':      return '<span class="hard_currency_icn"></span>';
+            case 'event_cash':         return '<span class="mega_event_cash_icn"></span>';
+            case 'ticket':             return '<span class="ticket_icn"></span>';
+            case 'gems':               return '<span class="gem_all_icn"></span>';
+            case 'orbs':               return '<span class="orb_icon o_m1"></span>';
+            case 'scrolls':            return '<span class="scrolls_legendary_icn"></span>';
+            case 'mythic':
+            case 'equipment':          return '<span class="mythic_equipment_icn"></span>';
+            case 'rejuvenation_stone': return '<span class="rejuvenation_stone_icn"></span>';
+            case 'progressions':       return `<span class="progressions_icn ${unsafeWindow.mega_event_theme ?? ''}"></span>`;
+            case 'lively_scene':       return '<span class="play_button_icn"></span>';
+            case 'gift':               return img('design/ic_gift.png');
+            case 'potion':             return img('pictures/items/XP1.png');
+            case 'booster':            return img('pictures/items/B1.png');
+            default: {
+                const names = ConfigHelper.getHHScriptVars('possibleRewardsList', false) || {};
+                return `<span class="HHRewardName">${names[rewardType] ?? rewardType}</span>`;
+            }
+        }
+    }
     static getRewardsAsHtml(rewardCountByType:Map<string,number>) {
+        // Classes the game gives the slot itself: its background, and for the
+        // two equipment kinds the rarity frame.
+        const slotClass: Record<string, string> = {
+            random_girl_shards: 'slot_random_girl', girl_shards: 'slot_girl_shards',
+            event_cash: 'slot_seasonal_event_cash', scrolls: 'slot_scrolls_legendary',
+            mythic: 'mythic random_equipment', equipment: 'legendary random_equipment',
+            gift: 'legendary', potion: 'legendary', booster: 'legendary',
+        };
+        // XP and ymens run into the millions; one decimal keeps "2.2M" apart from "2M".
+        const decimals = (rewardType: string) => rewardType === 'xp' || rewardType === 'soft_currency' ? 1 : 0;
         let html = '';
         if(rewardCountByType)
         for (const rewardType in rewardCountByType) {
+            if (rewardType === 'all' || rewardType === 'undetected') continue;
             const rewardCount = (rewardCountByType as any)[rewardType];
-            // Ten of the twenty types in possibleRewardsList have no branch here
-            // -- girl_shards, gems, orbs, gift, potion, booster, scrolls,
-            // mythic, avatar, rejuvenation_stone. They fall into the empty
-            // default, so a tier paying only those renders nothing and
-            // displayRewardsDiv appends an invisible div instead of the recap.
-            switch(rewardType)
-            {
-                case 'random_girl_shards' : html += '<div class="slot slot_random_girl  size_xs"><span class="random_girl_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                case 'energy_kiss':     html += '<div class="slot slot_energy_kiss  size_xs"><span class="energy_kiss_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                case 'energy_quest':    html += '<div class="slot slot_energy_quest size_xs"><span class="energy_quest_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                case 'energy_fight' :   html += '<div class="slot slot_energy_fight  size_xs"><span class="energy_fight_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                case 'energy_drill' :   html += '<div class="slot slot_energy_drill  size_xs"><span class="energy_drill_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                case 'xp' :             html += '<div class="slot slot_xp size_xs"><span class="xp_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,1,-1)+'</div></div>'; break;
-                case 'soft_currency' :  html += '<div class="slot slot_soft_currency size_xs"><span class="soft_currency_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,1,-1)+'</div></div>'; break;
-                case 'hard_currency' :  html += '<div class="slot slot_hard_currency size_xs"><span class="hard_currency_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                case 'event_cash' :     html += '<div class="slot slot_seasonal_event_cash size_xs"><span class="mega_event_cash_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                case 'ticket' :         html += '<div class="slot slot_ticket size_xs"><span class="ticket_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                default: 
-            }
+            if (!(rewardCount > 0)) continue;
+            html += `<div class="slot ${slotClass[rewardType] ?? 'slot_' + rewardType} size_xs">`
+                + RewardHelper.getRewardSlotIcon(rewardType)
+                + `<div class="amount">${NumberHelper.nRounding(rewardCount, decimals(rewardType), -1)}</div></div>`;
         }
         return html;
     }
