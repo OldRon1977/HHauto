@@ -71,7 +71,8 @@ describe("RewardHelper", function() {
 
     describe("getRewardsAsHtml", function() {
         it("renders every type with a count, and skips the tier total and undetected slots", function() {
-            const counts: any = { all: 12, undetected: 3, girl_shards: 120, gems: 85, booster: 2, equipment: 1, lively_scene: 1, avatar: 1 };
+            // The counts travel as a plain object typed as a Map (computeRewardsCount).
+            const counts = { all: 12, undetected: 3, girl_shards: 120, gems: 85, booster: 2, equipment: 1, lively_scene: 1, avatar: 1 } as unknown as Map<string, number>;
             const holder = document.createElement('div');
             holder.innerHTML = RewardHelper.getRewardsAsHtml(counts);
             const slots = [...holder.querySelectorAll('.slot')];
@@ -82,7 +83,7 @@ describe("RewardHelper", function() {
         });
 
         it("renders nothing for a tier total alone", function() {
-            expect(RewardHelper.getRewardsAsHtml({ all: 4 } as any)).toBe('');
+            expect(RewardHelper.getRewardsAsHtml({ all: 4 } as unknown as Map<string, number>)).toBe('');
         });
     });
 
