@@ -1715,10 +1715,10 @@ const handleBossBangFight: HandlerConfig = {
     const onBattlePage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang');
     // Reward phase (issue #1455): boss bang is build -> fight -> rewards. The
     // tiered milestone rewards become claimable on the event page once the boss
-    // is defeated -- which is AFTER BossBang.parse auto-disables the fight
-    // setting. So claiming is gated on the FEATURE, not on the fight setting,
-    // and NOT on the fight back-off timer (goToFightPage arms nextBossBangTime
-    // on a finished event); otherwise the rewards are never collected.
+    // is defeated. Claiming is gated on the FEATURE, not on the fight setting --
+    // a user may have switched fighting off by then -- and NOT on the fight
+    // back-off timer (goToFightPage arms nextBossBangTime on a finished event);
+    // otherwise the rewards are never collected.
     if (onEvent && $(BossBang.PROGRESS_REWARD_SELECTOR).length > 0) return true;
     // Fight phase: needs the user setting on and the fight back-off timer elapsed.
     if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true') return false;

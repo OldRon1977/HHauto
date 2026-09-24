@@ -29,6 +29,12 @@ Older entries below were migrated 1:1 from `README.md`.
   copies the selection to the collect lists of every other reward path and
   event, the daily goals and the free bundles. Sultry Mysteries picks from
   rewards of its own and keeps its list.
+- **Event switches stay on:** the collect switches of Double Penetration,
+  Lively Scene and the seasonal event no longer turn themselves off when the
+  home page shows no banner for the event, and the Boss Bang switch no
+  longer turns off once a boss is beaten. They wait for the next event.
+  Without a seasonal event the script looks again after an hour instead of
+  a week; it reads the game's own event data for that and loads no page.
 
 ### v8.14.1 - Sandalwood for skins
 

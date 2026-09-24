@@ -190,9 +190,11 @@ export class SeasonalEvent {
         }
         else
         {
+            // Only the game's globals are read here, no page is loaded, so an
+            // hourly look costs nothing and finds a new event on its first day.
             logHHAuto("No SeasonalEvent active.");
-            setTimer('nextSeasonalEventCollectTime', 604800); // 1 week delay
-            setTimer('nextSeasonalEventCollectAllTime', 604800); // 1 week delay
+            setTimer('nextSeasonalEventCollectTime', randomInterval(3600, 4200));
+            setTimer('nextSeasonalEventCollectAllTime', randomInterval(3600, 4200));
             return false;
         }
     }

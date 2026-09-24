@@ -4,6 +4,7 @@ import { TimeHelper } from '../../../src/Helper/TimeHelper';
 import { logHHAuto } from '../../../src/Utils/LogUtils';
 import { gotoPage } from '../../../src/Service/PageNavigationService';
 import { MockHelper } from '../../testHelpers/MockHelpers';
+import { getSecondsLeft } from '../../../src/Helper/TimerHelper';
 
 // PageNavigationService is mocked so the navigation branch does not touch
 // window.location (see Shop.spec.ts for the same pattern).
@@ -21,6 +22,27 @@ jest.mock("../../../src/Utils/LogUtils", () => ({
 const gotoPageMock = gotoPage as jest.Mock;
 
 describe("SeasonalEvent", function () {
+    describe("goAndCollect without a running event", function () {
+        beforeEach(() => {
+            MockHelper.mockDomain("www.hentaiheroes.com");
+            gotoPageMock.mockClear();
+            document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="${ConfigHelper.getHHScriptVars("pagesIDHome")}"></div>`;
+            unsafeWindow.seasonal_event_active = false;
+            unsafeWindow.seasonal_time_remaining = 0;
+            unsafeWindow.mega_event_active = false;
+            unsafeWindow.mega_event_time_remaining = 0;
+        });
+
+        it("stays on the page and looks again within about an hour, not a week", function () {
+            expect(SeasonalEvent.goAndCollect()).toBe(false);
+            expect(gotoPageMock).not.toHaveBeenCalled();
+            for (const timer of ['nextSeasonalEventCollectTime', 'nextSeasonalEventCollectAllTime']) {
+                expect(getSecondsLeft(timer)).toBeGreaterThanOrEqual(3500);
+                expect(getSecondsLeft(timer)).toBeLessThanOrEqual(4200);
+            }
+        });
+    });
+
     describe("goAndCollectFreeCard", function () {
         const SEASONAL_PAGE = ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent");
         const HOME_PAGE = ConfigHelper.getHHScriptVars("pagesIDHome");

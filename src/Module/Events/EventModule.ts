@@ -816,26 +816,14 @@ export class EventModule {
                 clearTimer('eventBossBangGoing');
             }
             parseForEventId(dpEventQuery,eventIDs);
-
-            if(getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect) === "true" && $(dpEventQuery).length === 0)
-            {
-                logHHAuto("No double penetration event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect, "false");
-            }
             parseForEventId(livelySceneEventQuery,eventIDs);
-
-            if (getStoredValue(HHStoredVarPrefixKey +SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length === 0)
-            {
-                logHHAuto("No Lively Scene event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey +SK.autoLivelySceneEventCollect, "false");
-            }
-            const queryResults=$(seasonalEventQuery);
-            if((getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true") && queryResults.length === 0)
-            {
-                logHHAuto("No seasonal event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect, "false");
-                setStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll, "false");
-            }
+            // No event switch is turned off here when its banner is missing.
+            // The switches stay as the user set them: Double Penetration and
+            // Lively Scene are only visited for an event ID parsed above, and
+            // the seasonal block asks the game's own event globals
+            // (SeasonalEvent.isActiveEvent), which every page carries. A
+            // switch that went off with one event had to be turned on again
+            // by hand for the next one.
             // Path of Valor / Path of Glory: the home-page selectors for these events
             // are unreliable (the banner only appears briefly between waves), so a
             // false-negative here would silently flip the user setting back to off.
