@@ -29,8 +29,9 @@
 // External callers MUST use getStoredValue / setStoredValue /
 // deleteStoredValue / getStoredJSON / getStoredArray. Direct access to
 // localStorage or sessionStorage is reserved for the storage adapter
-// itself, the ForbiddenBackoff backoff path (it must not import HHStoredVars:
-// that would pull it into an import cycle, in which a cycle can hand a module an uninitialised binding at load), and game-side state that the script does not own
+// itself, the ForbiddenBackoff backoff path (it must not import HHStoredVars,
+// which would pull it into an import cycle where a binding can still be
+// uninitialised at load), and game-side state that the script does not own
 // (e.g. localStorage.sort_by, set by the game's harem UI). Anything
 // else is a bypass that defeats the registry, kobanUsing master-switch,
 // and quota-retry contracts.
@@ -50,8 +51,9 @@ import { getTextForUI } from "./LanguageHelper";
 
 // setDefaults reference, injected from the boot path (src/index.ts) instead
 // of a static Helper -> Service/StartService import: that edge sat in 127 of
-// the baseline import cycles (ARCH-001; pattern: setPachinkoAutoLoopKick). Loud guard instead of a silent noop:
-// a missed wiring must fail visibly, not skip the defaults reset.
+// the baseline import cycles (ARCH-001; pattern: setPachinkoAutoLoopKick).
+// Loud guard instead of a silent noop: a missed wiring must fail visibly, not
+// skip the defaults reset.
 let setDefaultsRef: ((forceDefault?: boolean) => void) | null = null;
 export function setSetDefaultsRef(fn: (forceDefault?: boolean) => void) {
     setDefaultsRef = fn;
@@ -471,8 +473,8 @@ export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = g
  * remaining ~4.5 MB belonged to the game and appears nowhere in the export,
  * because extractHHVars only walks registered keys.
  *
- * Sizes are approximate in the same way getLocalStorageSize is: two bytes per
- * UTF-16 code unit, keys counted with their values.
+ * Sizes are approximate: two bytes per UTF-16 code unit, keys counted with
+ * their values (getLocalStorageSize counts the values only).
  */
 export function getStorageBreakdown(): Record<string, string> {
     const kb = (chars: number) => (chars * 2 / 1024).toFixed(1) + ' KB';

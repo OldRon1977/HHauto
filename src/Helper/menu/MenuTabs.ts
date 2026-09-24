@@ -2,8 +2,8 @@
 //
 // DOM construction (layout): the tabbed body of the #sMenu panel — a rail of
 // area buttons on the left and one pane per area on the right. Replaces the
-// three fixed-width columns,
-// which sized their labels for English and let longer translations overlap.
+// three fixed-width columns, which sized their labels for English and let
+// longer translations overlap.
 //
 // Two rules keep that from coming back:
 //   - a row is a two-column grid (label | control, see the #sMenu CSS in
@@ -510,12 +510,6 @@ export function initMenuTabs(): void {
     selectTab(available.includes(remembered) ? remembered : available[0]);
 }
 
-/**
- * Switch between the tab rail and the stacked list. CSS-only, so no rebuild and
- * no reload: the panes keep their DOM, their bound inputs and their values. The
- * remembered area stays selected underneath, which is what makes switching back
- * land where the user left off.
- */
 /** Denser rows and smaller type. CSS-only, like applyMenuLayout. */
 export function applyMenuDensity(compact: boolean): void {
     const menu = document.getElementById('sMenu');
@@ -523,6 +517,12 @@ export function applyMenuDensity(compact: boolean): void {
     menu.classList.toggle('menuCompact', compact);
 }
 
+/**
+ * Switch between the tab rail and the stacked list. CSS-only, so no rebuild and
+ * no reload: the panes keep their DOM, their bound inputs and their values. The
+ * remembered area stays selected underneath, which is what makes switching back
+ * land where the user left off.
+ */
 export function applyMenuLayout(stacked: boolean): void {
     const menu = document.getElementById('sMenu');
     if (menu === null) return;

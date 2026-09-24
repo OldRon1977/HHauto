@@ -8,6 +8,9 @@
 //   - menu/MenuTemplate — DOM construction (layout): the full #sMenu HTML
 //   - menu/MenuSettings — settings binding: reading/writing stored settings
 //                         from the menu inputs and wiring input events
+//   - menu/MenuTabs     — the tab rail and panes, block marks and area badges
+//   - menu/MenuBadge    — the run-state of a block and an area (pure)
+//   - menu/MenuOrder    — the user's order of the areas (pure)
 //   - menu/MenuPorts    — dependency-injection ports that let the leaf menu
 //                         files reach cycle-bound helpers without importing them
 //

@@ -2483,9 +2483,9 @@ function getLanguageCode() {
     return HHAuto_Lang;
 }
 /**
- * Vergleicht zwei Versionsstrings.
+ * Compares two version strings numerically.
  *
- * @returns `0` gleich, `1` a groesser als b, `-1` b groesser als a
+ * @returns `0` equal, `1` a is greater than b, `-1` b is greater than a
  */
 function cmpVersions(a, b) {
     return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
@@ -6626,7 +6626,7 @@ class NumberHelper {
 // MenuPorts.ts
 //
 // Dependency-injection "ports" for the extracted menu leaf modules
-// (MenuWidgets, MenuTemplate, MenuSettings). Those files need a handful of
+// (MenuWidgets, MenuTemplate, MenuSettings, MenuTabs). Those files need a handful of
 // helpers (translations, config lookups, storage access, popup/default
 // helpers) that all live inside the project's large import cycle ("SCC").
 // Importing them statically would drag every menu/* file back into that cycle
@@ -6818,8 +6818,9 @@ function addEventsOnMenuItems() {
 // External callers MUST use getStoredValue / setStoredValue /
 // deleteStoredValue / getStoredJSON / getStoredArray. Direct access to
 // localStorage or sessionStorage is reserved for the storage adapter
-// itself, the ForbiddenBackoff backoff path (it must not import HHStoredVars:
-// that would pull it into an import cycle, in which a cycle can hand a module an uninitialised binding at load), and game-side state that the script does not own
+// itself, the ForbiddenBackoff backoff path (it must not import HHStoredVars,
+// which would pull it into an import cycle where a binding can still be
+// uninitialised at load), and game-side state that the script does not own
 // (e.g. localStorage.sort_by, set by the game's harem UI). Anything
 // else is a bypass that defeats the registry, kobanUsing master-switch,
 // and quota-retry contracts.
@@ -6838,8 +6839,9 @@ function addEventsOnMenuItems() {
 
 // setDefaults reference, injected from the boot path (src/index.ts) instead
 // of a static Helper -> Service/StartService import: that edge sat in 127 of
-// the baseline import cycles (ARCH-001; pattern: setPachinkoAutoLoopKick). Loud guard instead of a silent noop:
-// a missed wiring must fail visibly, not skip the defaults reset.
+// the baseline import cycles (ARCH-001; pattern: setPachinkoAutoLoopKick).
+// Loud guard instead of a silent noop: a missed wiring must fail visibly, not
+// skip the defaults reset.
 let setDefaultsRef = null;
 function setSetDefaultsRef(fn) {
     setDefaultsRef = fn;
@@ -7205,8 +7207,8 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
  * remaining ~4.5 MB belonged to the game and appears nowhere in the export,
  * because extractHHVars only walks registered keys.
  *
- * Sizes are approximate in the same way getLocalStorageSize is: two bytes per
- * UTF-16 code unit, keys counted with their values.
+ * Sizes are approximate: two bytes per UTF-16 code unit, keys counted with
+ * their values (getLocalStorageSize counts the values only).
  */
 function getStorageBreakdown() {
     const kb = (chars) => (chars * 2 / 1024).toFixed(1) + ' KB';
@@ -7303,8 +7305,7 @@ function url_add_param(url, param, value) {
  *
  * The kill switch is explicit and separate from getPage(): a read that also
  * hard-stops the script lets any caller hitting a transient DOM state disable
- * everything without realising it. It lives here
- * now so callers opt into halting explicitly.
+ * everything without realising it, so callers opt into halting explicitly.
  *
  * Used by StartService when it bootstraps and finds no game root.
  */
@@ -7338,9 +7339,8 @@ function resolvePopState() {
     }
     // Fallback for game variants that still expose the globals.
     const popThumb = $(".pop_thumb_selected[pop_id]");
-    // `??` instead of `||`: pop_index = 0 would be a valid index in a
-    // 0-based numbering scheme, the previous `||` would have routed it
-    // to the popThumb fallback. Nullish-coalescing keeps 0 in place.
+    // `??`, not `||`: pop_index 0 is a valid index and must not fall
+    // through to the popThumb fallback.
     const resolved = (_a = unsafeWindow.pop_index) !== null && _a !== void 0 ? _a : (popThumb.length > 0 ? popThumb.attr('pop_id') : undefined);
     if (resolved !== undefined) {
         return { kind: 'specific', popId: resolved };
@@ -7362,8 +7362,7 @@ function getPopFallbackIndex() {
     if (tab !== 'pop')
         return null;
     // The POP query param is `pop_id` (#1782). A locked POP cannot render as
-    // a single-POP page; the
-    // game bounces us back to the main list instead. Because the real
+    // a single-POP page; the game bounces us back to the main list instead. Because the real
     // single-POP page has no visible pop_list (measured: pop_list_vis = 0)
     // it never resolves to 'main', so "URL targets a pop_id but the state
     // is 'main'" is an unambiguous lock signal. (The PopTargeted self-heal
@@ -7420,8 +7419,8 @@ function resolveActivitiesSubTab(tab) {
     if (tab === 'pop') {
         return resolvePopPageId();
     }
-    // 2. DOM fallback only when the URL has no tab param. Same lookup
-    //    pattern as before, just driven by the table.
+    // 2. DOM fallback only when the URL has no tab param, driven by the
+    //    same table.
     if (tab == null) {
         for (const entry of ACTIVITIES_SUB_TABS) {
             if ($(activitiesSubTabSelector(entry.tabId)).length > 0) {
@@ -8437,8 +8436,8 @@ var HeroHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 //
 // Provides read access to the player's hero data (class, level, money,
 // kobans) and actions that modify the hero: stat upgrades and booster
-// equipping. Hero data lives on the game's global `window.Hero` (or
-// `window.shared.Hero` on newer builds), accessed via unsafeWindow.
+// equipping. Hero data lives on the game's global `window.shared.Hero`,
+// accessed via unsafeWindow.
 //
 // Why stat upgrade logic lives here: Upgrading stats is a sequential,
 // recursive process (buy one increment, wait, repeat) that only touches
@@ -8659,7 +8658,7 @@ class HeroHelper {
                     setTimeout(autoLoopKick, randomInterval(500, 800));
                     resolve(value);
                 };
-                // Option C: Safety timeout in case the AJAX call never invokes either callback
+                // Safety timeout in case the AJAX call never invokes either callback
                 // (seen in the wild when the referer swap collides with navigation). Without
                 // this, the promise would hang forever and the autoLoop stays paused.
                 timeoutId = setTimeout(() => {
@@ -8680,7 +8679,7 @@ class HeroHelper {
                     }
                     else {
                         logHHAuto('equipBooster: Server returned success:false (may already be equipped)');
-                        // Option D: a success:false response means our local boosterStatus is
+                        // A success:false response means our local boosterStatus is
                         // out of sync with the server (another browser/tab probably equipped
                         // boosters while we were paused). Invalidate the freshness timestamp
                         // so autoEquipBoosters refreshes from the market before retrying.
@@ -18119,9 +18118,9 @@ function formatBadge(count) {
 // (see MenuPorts.ts).
 
 /**
- * `labelPrefix` is prepended to the translated label, e.g. "1 " to number a
- * button inside a step-by-step workflow. Kept out of the translations on
- * purpose: a step number reads the same in every language.
+ * `labelPrefix` is prepended to the translated label -- meant for a step
+ * number, which reads the same in every language and so stays out of the
+ * translations. No caller passes one at present.
  */
 function hhButton(textKeyId, buttonId, mainStyle = '', labelSyle = '', labelPrefix = '') {
     const { getTextForUI } = MenuPorts;
@@ -18210,8 +18209,8 @@ function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath
 //
 // DOM construction (layout): the tabbed body of the #sMenu panel — a rail of
 // area buttons on the left and one pane per area on the right. Replaces the
-// three fixed-width columns,
-// which sized their labels for English and let longer translations overlap.
+// three fixed-width columns, which sized their labels for English and let
+// longer translations overlap.
 //
 // Two rules keep that from coming back:
 //   - a row is a two-column grid (label | control, see the #sMenu CSS in
@@ -18602,12 +18601,6 @@ function initMenuTabs() {
     const remembered = String((_a = MenuPorts.getStoredValue(tabStorageKey())) !== null && _a !== void 0 ? _a : '');
     selectTab(available.includes(remembered) ? remembered : available[0]);
 }
-/**
- * Switch between the tab rail and the stacked list. CSS-only, so no rebuild and
- * no reload: the panes keep their DOM, their bound inputs and their values. The
- * remembered area stays selected underneath, which is what makes switching back
- * land where the user left off.
- */
 /** Denser rows and smaller type. CSS-only, like applyMenuLayout. */
 function applyMenuDensity(compact) {
     const menu = document.getElementById('sMenu');
@@ -18615,6 +18608,12 @@ function applyMenuDensity(compact) {
         return;
     menu.classList.toggle('menuCompact', compact);
 }
+/**
+ * Switch between the tab rail and the stacked list. CSS-only, so no rebuild and
+ * no reload: the panes keep their DOM, their bound inputs and their values. The
+ * remembered area stays selected underneath, which is what makes switching back
+ * land where the user left off.
+ */
 function applyMenuLayout(stacked) {
     const menu = document.getElementById('sMenu');
     if (menu === null)
@@ -18855,6 +18854,9 @@ function getMenu() {
 //   - menu/MenuTemplate — DOM construction (layout): the full #sMenu HTML
 //   - menu/MenuSettings — settings binding: reading/writing stored settings
 //                         from the menu inputs and wiring input events
+//   - menu/MenuTabs     — the tab rail and panes, block marks and area badges
+//   - menu/MenuBadge    — the run-state of a block and an area (pure)
+//   - menu/MenuOrder    — the user's order of the areas (pure)
 //   - menu/MenuPorts    — dependency-injection ports that let the leaf menu
 //                         files reach cycle-bound helpers without importing them
 //
