@@ -387,6 +387,15 @@ export function debugDeleteTempVars()
 }
 
 
+// The collect lists that pick from the generic reward pool. Sultry Mysteries
+// picks from a pool of its own -- "progressions" means keys there -- so its
+// list takes no part in "copy to all".
+const GENERIC_COLLECT_LISTS = [
+    SK.autoSeasonCollectablesList, SK.autoPentaDrillCollectablesList, SK.autoFreeBundlesCollectablesList,
+    SK.autodpEventCollectablesList, SK.autoLivelySceneEventCollectablesList, SK.autoSeasonalEventCollectablesList,
+    SK.autoPoVCollectablesList, SK.autoPoGCollectablesList, SK.autoPoACollectablesList, SK.autoDailyGoalsCollectablesList,
+].map(key => HHStoredVarPrefixKey + key);
+
 export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = getTextForUI("menuCollectableText","elementText"), inRewardsListName = "possibleRewardsList")
 {
     createPopUpCollectables();
@@ -407,8 +416,14 @@ export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = g
             const checkedBox = rewardsToCollect.includes(currentItem)?"checked":"";
             menuCollectables+='<label class="HHCollectablesItem"><input id="'+currentItem+'" class="menuCollectablesItem" type="checkbox" '+checkedBox+'><span>'+possibleRewards[currentItem]+'</span></label>';
         }
+        const canApplyToAll = GENERIC_COLLECT_LISTS.includes(inVarName);
         menuCollectables+='</div>'
-        +    '<div><button id="toggleCollectables" class="myButton" type="button">Toggle All</button></div>'
+        +    '<div class="HHCollectablesButtons">'
+        +       '<button id="toggleCollectables" class="myButton" type="button">Toggle All</button>'
+        +       (possibleRewards.xp ? '<button id="collectAllButXp" class="myButton" type="button">'+getTextForUI("collectAllButXp","elementText")+'</button>' : '')
+        +       (canApplyToAll ? '<button id="collectApplyToAll" class="myButton" type="button" title="'+getTextForUI("collectApplyToAll","tooltip")+'">'+getTextForUI("collectApplyToAll","elementText")+'</button>' : '')
+        +       '<span id="collectApplyToAllDone"></span>'
+        +    '</div>'
         +  '</div>';
         fillHHPopUp("menuCollectable",getTextForUI("menuCollectable","elementText"),menuCollectables);
         const allInputs = document.querySelectorAll<HTMLInputElement>("#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem");
@@ -416,6 +431,17 @@ export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = g
         document.getElementById("toggleCollectables")?.addEventListener("click", () => {
             allInputs.forEach(currentInput => { currentInput.checked = !currentInput.checked; });
             getSelectedCollectables();
+        });
+        document.getElementById("collectAllButXp")?.addEventListener("click", () => {
+            allInputs.forEach(currentInput => { currentInput.checked = currentInput.id !== 'xp'; });
+            getSelectedCollectables();
+        });
+        document.getElementById("collectApplyToAll")?.addEventListener("click", () => {
+            const selection = getSelectedCollectables();
+            const others = GENERIC_COLLECT_LISTS.filter(key => key !== inVarName);
+            others.forEach(key => setStoredValue(key, JSON.stringify(selection)));
+            const done = document.getElementById("collectApplyToAllDone");
+            if (done) done.textContent = getTextForUI("collectAppliedToAll","elementText").replace('{n}', String(others.length));
         });
     }
 
@@ -431,6 +457,7 @@ export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = g
             }
         });
         setStoredValue(inVarName, JSON.stringify(collectablesList));
+        return collectablesList;
     }
 }
 

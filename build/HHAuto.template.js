@@ -253,7 +253,8 @@ GM_addStyle('.HHCollectables { padding: 10px; display: flex; flex-direction: col
             + '.HHCollectablesGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 12px; }'
             + '.HHCollectablesItem { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 2px 0; user-select: none; }'
             + '.HHCollectablesItem input { margin: 0; width: 16px; height: 16px; accent-color: #2196F3; cursor: pointer; flex: none; }'
-            + '#toggleCollectables { font-size: 12px; padding: 4px 12px; }');
+            + '.HHCollectablesButtons { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }'
+            + '.HHCollectablesButtons .myButton { font-size: 12px; padding: 4px 12px; }');
 GM_addStyle('.HHGirlMilestone { position: absolute; bottom: 0;  z-index: 1; font-size:smaller; width: 200px; text-align: center;}'); 
 GM_addStyle('.HHGirlMilestone > div { background: rgba(0,0,0,.5); border-radius: 10px; margin:auto;  width: 140px; }'); 
 // GM_addStyle('.HHGirlMilestone.green { border: solid 1px green }');
