@@ -1,9 +1,8 @@
 // MythicEvent.ts -- Mythic event: wave tracking and troll fight coordination.
 //
-// Mythic events feature special troll bosses with wave-based progression and
-// unique girl shard rewards. This module tracks wave progress, coordinates
-// with Troll.ts for fight prioritization, and manages event-specific timers
-// and girl shard tracking.
+// Mythic events hand out one girl on a troll in waves of shards. This module
+// reads the event page: the event end, the next wave, whether the girl (or a
+// skin the user wants) is still to win, and lists her for the troll fights.
 //
 // Depends on: EventGirl and GirlSkins.pure.ts (girl and skin data)
 // Used by: EventModule.ts (called when a Mythic event is active)

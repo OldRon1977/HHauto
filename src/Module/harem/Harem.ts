@@ -7,7 +7,7 @@
 //
 // Depends on: HaremGirl.ts (individual girl data)
 // Used by: Service/FeatureGate.ts (the girl count behind every ten-girl
-//   gate), Module/TeamModule.ts, Module/Troll.ts, Service/Pipeline.config.ts u. a.
+//   gate), Module/TeamModule.ts, Module/Troll.ts, Service/Pipeline.config.ts and others
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { HeroHelper } from "../../Helper/HeroHelper";

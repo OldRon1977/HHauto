@@ -7,7 +7,7 @@
 // in the UI. Supports both regular and boosted fights.
 //
 // Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (parsing)
-// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts and others
 //
 import { BDSMHelper, calculateBattleProbabilities } from "../Helper/BDSMHelper";
 import { getGoToChangeTeamButton } from "../Helper/ButtonHelper";

@@ -96,7 +96,6 @@ export class PathOfAttraction {
         }
     }
     static runOld(){
-        //https://nutaku.haremheroes.com/path-of-attraction.html"
         const array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
         if (array.length == 0) {
             return
@@ -229,7 +228,7 @@ export class PathOfAttraction {
         const freeSlotSelectors = ".nc-poa-free-reward.claimable .slot";
         let paidSlotSelectors = "";
         if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Season pass paid
+            // Pass bought: the paid slots count too
             paidSlotSelectors = ".nc-poa-locked-reward.claimable .slot";
         }
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);

@@ -4,7 +4,7 @@
 // monitors goal completion status, claims available rewards, and manages
 // the refresh timer so goals are checked at appropriate intervals.
 //
-// Used by: Module/GenericBattle.ts, Module/Pantheon.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+// Used by: Module/GenericBattle.ts, Module/Pantheon.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts and others
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";

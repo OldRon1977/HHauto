@@ -1,9 +1,9 @@
 // PathOfValue.ts -- Path of Value (PoV) event: tier collection and reward tracking.
 //
-// Path of Value is a tiered event similar to Path of Glory and Path of
-// Attraction, with its own point-based tier progression. This module tracks
-// progress through reward tiers, collects available rewards, and manages
-// event-specific timers and energy.
+// Path of Valor is a tiered event like Path of Glory: points the game counts
+// elsewhere unlock reward tiers. This module reads the remaining time,
+// collects the claimable tiers the collect list allows, and sweeps everything
+// in the final window when "Collect all" is on.
 //
 // Depends on: RewardHelper (reward parsing)
 // Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts

@@ -1,8 +1,8 @@
 // CumbackContests.ts -- Cumback Contest event handling and auto-collection.
 //
 // Cumback Contests are periodic events that reward returning players. This
-// module parses event page data, tracks timer countdowns, and collects
-// available rewards automatically.
+// module reads the event page: the event end, and whether every girl of the
+// event is won (isCompleted). It collects nothing.
 //
 // Depends on: the HHEvent model only -- this module parses, it does not navigate.
 // Used by: EventModule.ts (called when Cumback Contest event is active)

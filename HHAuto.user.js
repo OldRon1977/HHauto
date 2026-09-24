@@ -10177,7 +10177,7 @@ var Harem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 //
 // Depends on: HaremGirl.ts (individual girl data)
 // Used by: Service/FeatureGate.ts (the girl count behind every ten-girl
-//   gate), Module/TeamModule.ts, Module/Troll.ts, Service/Pipeline.config.ts u. a.
+//   gate), Module/TeamModule.ts, Module/Troll.ts, Service/Pipeline.config.ts and others
 //
 
 
@@ -11898,7 +11898,6 @@ class BossBang {
                     logHHAuto("Team " + teamIndex + " not eligible");
                 }
             }
-            // setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
         }
         else if (eventList[eventID]["isCompleted"]) {
             // The setting stays on for the next boss bang. This one is stored
@@ -12042,8 +12041,8 @@ BossBang.PROGRESS_REWARD_SELECTOR = 'button[rel="claim"].progress-bar-claim-rewa
 // CumbackContests.ts -- Cumback Contest event handling and auto-collection.
 //
 // Cumback Contests are periodic events that reward returning players. This
-// module parses event page data, tracks timer countdowns, and collects
-// available rewards automatically.
+// module reads the event page: the event end, and whether every girl of the
+// event is won (isCompleted). It collects nothing.
 //
 // Depends on: the HHEvent model only -- this module parses, it does not navigate.
 // Used by: EventModule.ts (called when Cumback Contest event is active)
@@ -12341,9 +12340,10 @@ class FeatureGate {
 ;// ./src/Module/Events/DoublePenetration.ts
 // DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
 //
-// Double Penetration is a time-limited competitive event with its own fight
-// mechanics. This module tracks event progress, manages fight energy, collects
-// milestone rewards, and handles the event-specific UI interactions.
+// Double Penetration is a time-limited event with reward tiers and nothing to
+// fight. This module reads the event page, collects the claimable tiers the
+// collect list allows, and draws the rewards recap, the collect-all button and
+// the club-champion shortcuts on the event page.
 //
 // Depends on: RewardHelper (reward parsing), PageNavigationService, ButtonHelper
 // Used by: EventModule.ts (called when Double Penetration event is active)
@@ -12363,10 +12363,9 @@ class FeatureGate {
 
 class DoublePenetration {
     static isEnabled() {
-        // The ten-girl condition the old comment here claimed is not
-        // measured; it is written down as an open question in
-        // docs/reference/adventure-quest-flow.md instead of sitting beside a
-        // check that never implemented it. FeatureGate.GATES says the same.
+        // No ten-girl condition: whether the event needs ten girls is not
+        // measured (an open question in docs/reference/adventure-quest-flow.md),
+        // and FeatureGate.GATES says the same.
         return FeatureGate.isUnlocked('doublePenetration');
     }
     static parse(hhEvent, eventList, _hhEventData) {
@@ -12512,7 +12511,7 @@ class DoublePenetration {
         const freeSlotSelectors = ".free-slot .slot";
         let paidSlotSelectors = "";
         if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Season pass paid
+            // Pass bought: the paid slots count too
             paidSlotSelectors = ".paid-slot  .slot";
         }
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
@@ -12569,9 +12568,9 @@ function markEventStale(eventId) {
 ;// ./src/Module/Events/KinkyCumpetition.ts
 // KinkyCumpetition.ts -- Kinky Cumpetition event handling.
 //
-// Kinky Cumpetition is a periodic competitive event. This module parses event
-// page data, tracks timer countdowns and girl reward progress, and manages
-// the event refresh schedule.
+// Kinky Cumpetition is a periodic competitive event. This module reads the
+// event page: the event end, the next re-read, and whether every girl of the
+// event is won (isCompleted). It collects nothing.
 //
 // Depends on: the HHEvent model only -- this module parses, it does not navigate.
 // Used by: EventModule.ts (called when Kinky Cumpetition event is active)
@@ -12682,9 +12681,9 @@ var LivelyScene_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 };
 // LivelyScene.ts -- Lively Scene event: scene progress and rewards.
 //
-// Lively Scene is a time-limited event where the player progresses through
-// scenes to earn rewards. This module tracks scene progression, manages
-// event energy, and collects available rewards automatically.
+// Lively Scene is a time-limited event whose rewards sit on puzzle pieces that
+// unlock over time. This module reads the event page and claims the unlocked
+// pieces the collect list allows, resuming the sweep after every reload.
 //
 // Depends on: LivelyScene.pure.ts (piece selection), RewardHelper, EventRegistry.ts
 // Used by: EventModule.ts (parse), AutoLoopPageHandlers.ts (run, on every
@@ -12837,7 +12836,7 @@ class LivelyScene {
                                 // pieces and cannot become a reload loop (#1738).
                                 markEventStale(queryStringGetParam(window.location.search, 'tab') || '');
                                 claimed = true;
-                                RewardHelper.closeRewardPopupIfAny(); // refresh;
+                                RewardHelper.closeRewardPopupIfAny(); // reloads the page;
                                 yield TimeHelper.sleep(randomInterval(400, 700));
                                 return true;
                             }
@@ -13114,10 +13113,9 @@ class EventGirl {
 ;// ./src/Module/Events/MythicEvent.ts
 // MythicEvent.ts -- Mythic event: wave tracking and troll fight coordination.
 //
-// Mythic events feature special troll bosses with wave-based progression and
-// unique girl shard rewards. This module tracks wave progress, coordinates
-// with Troll.ts for fight prioritization, and manages event-specific timers
-// and girl shard tracking.
+// Mythic events hand out one girl on a troll in waves of shards. This module
+// reads the event page: the event end, the next wave, whether the girl (or a
+// skin the user wants) is still to win, and lists her for the troll fights.
 //
 // Depends on: EventGirl and GirlSkins.pure.ts (girl and skin data)
 // Used by: EventModule.ts (called when a Mythic event is active)
@@ -13276,7 +13274,6 @@ class PathOfAttraction {
         }
     }
     static runOld() {
-        //https://nutaku.haremheroes.com/path-of-attraction.html"
         const array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
         if (array.length == 0) {
             return;
@@ -13398,7 +13395,7 @@ class PathOfAttraction {
         const freeSlotSelectors = ".nc-poa-free-reward.claimable .slot";
         let paidSlotSelectors = "";
         if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Season pass paid
+            // Pass bought: the paid slots count too
             paidSlotSelectors = ".nc-poa-locked-reward.claimable .slot";
         }
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
@@ -13546,10 +13543,10 @@ PathOfAttraction.unknownRemainingTimeSecs = 3600;
 ;// ./src/Module/Events/PlusEvents.ts
 // PlusEvents.ts -- Plus Events: parsing and display for event overlay info.
 //
-// Plus Events are a category of events that overlay additional information
-// and rewards on top of normal gameplay. This module parses event data,
-// extracts girl shard progress and troll fight priorities, and displays
-// event overlay information in the UI.
+// Plus Events are the regular events with girls on trolls and champions. This
+// module reads the event page: the event end, and the girls still worth
+// fighting for, which it lists for the troll and champion fights. Once every
+// girl is won it collects the event chest.
 //
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Plus Events are active)
@@ -13761,7 +13758,7 @@ function smNextAction(state) {
 // regenerated. This module monitors the event shop for refresh timers and
 // automates opening grid squares ("Auto-Mystery").
 //
-// Depends on: SultryMysteries.pure.ts (shop logic), PageNavigationService
+// Depends on: SultryMysteries.pure.ts (remaining time, grid order), PageNavigationService
 // Used by: EventModule.ts (called when Sultry Mysteries event is active)
 //
 
@@ -13902,11 +13899,11 @@ class SultryMysteries {
      * square simply extends the current run.
      */
     static autoOpenGrid(eventID) {
-        // parseEventPage is re-entered on every pipeline tick for as long as
-        // the auto-open timer sits expired. Without this guard every entry
-        // starts its own click chain: squares open in parallel with requests
-        // still in flight, "Generate new grid" fires repeatedly, and the retry
-        // timer is written several times. One run at a time.
+        // The pipeline block calls this on every tick while a run is still
+        // clicking through the board. Without this guard every call starts
+        // its own click chain: squares open in parallel with requests still in
+        // flight, "Generate new grid" fires repeatedly, and the retry timer is
+        // written several times. One run at a time.
         if (SultryMysteries.autoOpenRunning)
             return true;
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent")) {
@@ -14801,9 +14798,10 @@ class LoveRaid {
 ;// ./src/Module/Events/LoveRaidManager.ts
 // LoveRaidManager.ts -- Love Raid event: manages raids and tracks girl shards.
 //
-// Love Raids are cooperative events where players raid together for girl shard
-// rewards. This module manages raid participation, tracks collected shards,
-// monitors raid timers, and handles the event page interactions.
+// Love Raids are time-limited raids on a troll, a champion or a season
+// opponent, each dropping one girl's shards. This module reads the raid list,
+// keeps the stored raids and their shard counts, and picks the raid to fight
+// for the troll, champion and season fights.
 //
 // Depends on: LoveRaid and EventGirl models, PageNavigationService
 // Used by: Pipeline.config.ts and AutoLoopPageHandlers.ts (raid handling),
@@ -15107,8 +15105,6 @@ class LoveRaidManager {
                 logHHAuto('Error parsing raid', kkRaid, error);
             }
         }
-        // Sort by troll Id
-        // raids.sort((a, b) => {
         return raids;
     }
     static getFirstRaidToStart() {
@@ -17015,7 +17011,7 @@ var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 // fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
 //
 // Depends on: EventModule.ts and LoveRaidManager.ts (event routing), Harem, Booster
-// Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
+// Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts and others
 //
 
 
@@ -19269,7 +19265,7 @@ class Contest {
 // monitors goal completion status, claims available rewards, and manages
 // the refresh timer so goals are checked at appropriate intervals.
 //
-// Used by: Module/GenericBattle.ts, Module/Pantheon.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+// Used by: Module/GenericBattle.ts, Module/Pantheon.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts and others
 //
 
 
@@ -20067,7 +20063,7 @@ var Season_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 //
 // Depends on: BDSMHelper (win probability), Season.pure.ts (parsing),
 //             EventModule.ts (event detection)
-// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts and others
 //
 
 
@@ -20256,7 +20252,6 @@ class Season {
             }
         });
     }
-    //    static getBestOppo(scoreOppo: BDSMSimu[], mojoOppo: number[], expOppo: number[], affOppo: number[], nameOppo: string[]) {
     static getBestOppo(seasonOpponents, current_kisses = 1, max_kisses = 10) {
         var chosenIndex = -1;
         var chosenRating = -1;
@@ -20699,8 +20694,6 @@ class Season {
         }
         if (modified) {
             $('.rewards_seasons_row').css('width', 'max-content');
-            //     ($rowScroll as any).getNiceScroll().resize();
-            //     ($rowScroll as any).getNiceScroll(0).doScrollLeft(0,200);
         }
     }
 }
@@ -20761,7 +20754,7 @@ function Pantheon_pure_decideShouldFight(state) {
 // timers. Similar to League but uses a separate energy pool and ranking system.
 //
 // Depends on: Pantheon.pure.ts (parsing), ParanoiaService, Booster
-// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts u. a.
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts and others
 //
 
 
@@ -21475,7 +21468,7 @@ class PlaceOfPower {
 // quest energy when configured to do so. Tracks quest completion and manages
 // the quest page navigation.
 //
-// Used by: Module/Champion.ts, Module/ClubChampion.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
+// Used by: Module/Champion.ts, Module/ClubChampion.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts and others
 //
 
 
@@ -21762,7 +21755,7 @@ var PentaDrill_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 // and collects milestone rewards. Handles the time-limited nature of Penta
 // Drill events.
 //
-// Used by: Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts u. a.
+// Used by: Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts and others
 //
 
 
@@ -27962,10 +27955,10 @@ function fmtSignedPct(value) {
 ;// ./src/Module/Events/PathOfGlory.ts
 // PathOfGlory.ts -- Path of Glory (PoG) event: tier collection and reward tracking.
 //
-// Path of Glory is a tiered event where the player earns points through
-// battles to unlock progressive reward tiers. This module tracks tier
-// progress, checks for claimable rewards, and manages fight energy and
-// timer scheduling for the event.
+// Path of Glory is a tiered event: points the game counts elsewhere unlock
+// reward tiers. This module reads the remaining time, collects the claimable
+// tiers the collect list allows, and sweeps everything in the final window
+// when "Collect all" is on.
 //
 // Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
 //          (the collect block)
@@ -28032,8 +28025,7 @@ class PathOfGlory {
             // both for "no such timer" and for "already expired", so without
             // it an unknown remaining time opened the collect-all gate at any
             // distance from the event end -- and collect-all bypasses the
-            // player's own tier filter. PathOfAttraction failed closed on this
-            // in 8.11; PathOfGlory and PathOfValue did not.
+            // player's own tier filter.
             if (checkTimer('nextPoGCollectAllTime') && pogEnd > 0 && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true") {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0) {
                     logHHAuto("Going to collect all POG item at once.");
@@ -28103,10 +28095,10 @@ class PathOfGlory {
 ;// ./src/Module/Events/PathOfValue.ts
 // PathOfValue.ts -- Path of Value (PoV) event: tier collection and reward tracking.
 //
-// Path of Value is a tiered event similar to Path of Glory and Path of
-// Attraction, with its own point-based tier progression. This module tracks
-// progress through reward tiers, collects available rewards, and manages
-// event-specific timers and energy.
+// Path of Valor is a tiered event like Path of Glory: points the game counts
+// elsewhere unlock reward tiers. This module reads the remaining time,
+// collects the claimable tiers the collect list allows, and sweeps everything
+// in the final window when "Collect all" is on.
 //
 // Depends on: RewardHelper (reward parsing)
 // Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
@@ -33601,7 +33593,7 @@ var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 // in the UI. Supports both regular and boosted fights.
 //
 // Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (parsing)
-// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts and others
 //
 
 

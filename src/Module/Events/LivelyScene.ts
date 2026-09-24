@@ -1,8 +1,8 @@
 // LivelyScene.ts -- Lively Scene event: scene progress and rewards.
 //
-// Lively Scene is a time-limited event where the player progresses through
-// scenes to earn rewards. This module tracks scene progression, manages
-// event energy, and collects available rewards automatically.
+// Lively Scene is a time-limited event whose rewards sit on puzzle pieces that
+// unlock over time. This module reads the event page and claims the unlocked
+// pieces the collect list allows, resuming the sweep after every reload.
 //
 // Depends on: LivelyScene.pure.ts (piece selection), RewardHelper, EventRegistry.ts
 // Used by: EventModule.ts (parse), AutoLoopPageHandlers.ts (run, on every
@@ -175,7 +175,7 @@ export class LivelyScene {
                             // pieces and cannot become a reload loop (#1738).
                             markEventStale(queryStringGetParam(window.location.search, 'tab') || '');
                             claimed = true;
-                            RewardHelper.closeRewardPopupIfAny() // refresh;
+                            RewardHelper.closeRewardPopupIfAny() // reloads the page;
                             await TimeHelper.sleep(randomInterval(400, 700));
                             return true;
                         }

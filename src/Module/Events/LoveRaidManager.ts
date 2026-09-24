@@ -1,8 +1,9 @@
 // LoveRaidManager.ts -- Love Raid event: manages raids and tracks girl shards.
 //
-// Love Raids are cooperative events where players raid together for girl shard
-// rewards. This module manages raid participation, tracks collected shards,
-// monitors raid timers, and handles the event page interactions.
+// Love Raids are time-limited raids on a troll, a champion or a season
+// opponent, each dropping one girl's shards. This module reads the raid list,
+// keeps the stored raids and their shard counts, and picks the raid to fight
+// for the troll, champion and season fights.
 //
 // Depends on: LoveRaid and EventGirl models, PageNavigationService
 // Used by: Pipeline.config.ts and AutoLoopPageHandlers.ts (raid handling),
@@ -294,8 +295,6 @@ export class LoveRaidManager {
                 logHHAuto('Error parsing raid', kkRaid, error);
             }
         }
-        // Sort by troll Id
-        // raids.sort((a, b) => {
 
         return raids;
     }
