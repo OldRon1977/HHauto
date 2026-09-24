@@ -211,11 +211,12 @@ GM_addStyle('#sMenu .labelAndButton.menuRowDisabled {opacity:.45;}');
 GM_addStyle('#sMenu select {max-width:100%;}');
 // Number fields run to twelve digits plus thousands separators ("999.999.999.999",
 // 15 characters). Smaller type in the fields buys the room; the width is given in
-// ch so it keeps fitting that many characters whatever font the game applies.
+// ch so it fits that many characters in the menu's own font.
 GM_addStyle('#sMenu input[type=text] {font-size:8px; box-sizing:content-box; padding:0 2px;}');
 GM_addStyle('#sMenu input.maxMoneyInputField {width:17ch; text-align:right;}');
-// Booster lists hold up to five codes ("MB1;MB2;MB5;MB8;MB12", 20 characters) —
-// the example the tooltip itself gives.
+// A booster list may be as long as the player writes it; the field is sized for
+// five codes ("MB1;MB2;MB5;MB8;MB12", 20 characters), the example the tooltip
+// itself gives.
 GM_addStyle('#sMenu input.menuListInput {width:21ch; text-align:center;}');
 // The Places of Power filter holds one entry per place, so it needs roughly
 // twice the room of a booster list.
@@ -257,7 +258,6 @@ GM_addStyle('.HHCollectables { padding: 10px; display: flex; flex-direction: col
             + '.HHCollectablesButtons .myButton { font-size: 12px; padding: 4px 12px; }');
 GM_addStyle('.HHGirlMilestone { position: absolute; bottom: 0;  z-index: 1; font-size:smaller; width: 200px; text-align: center;}'); 
 GM_addStyle('.HHGirlMilestone > div { background: rgba(0,0,0,.5); border-radius: 10px; margin:auto;  width: 140px; }'); 
-// GM_addStyle('.HHGirlMilestone.green { border: solid 1px green }');
 GM_addStyle('.HHGirlMilestone .nc-claimed-reward-check { width:20px; position:absolute; }'); 
 GM_addStyle('#HHPentaDrillRewards { position: absolute; right: 7rem; top: 14.75rem; padding: 0.2rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
 GM_addStyle('#HHSeasonRewards { position: absolute; right: 33.5rem; bottom: 13rem; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
