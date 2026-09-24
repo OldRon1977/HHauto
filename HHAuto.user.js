@@ -6819,8 +6819,8 @@ function addEventsOnMenuItems() {
 //   - All keys are prefixed (HHStoredVarPrefixKey) to avoid collisions
 //     with game data in the same storage.
 //   - Write errors (storage full) trigger a log cleanup and one retry.
-//   - Migration logic (migrateHHVars) handles key prefix changes
-//     between script versions.
+//   - migrateHHVars copies settings over to a custom key prefix; dormant
+//     while the prefix is hardcoded, see its comment.
 //
 // Also provides export/import of settings as JSON files and a popup
 // for selecting which reward types to auto-collect.
@@ -7150,7 +7150,8 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
     createPopUpCollectables();
     // Plain checkboxes, the whole label clickable: the animated switches of
     // the settings panel were slow to work through twenty-odd entries.
-    // "Toggle All" inverts every box.
+    // "Toggle All" inverts every box. "All but XP" only shows for a pool that
+    // has XP, "Copy to all" only in a list of GENERIC_COLLECT_LISTS.
     function createPopUpCollectables() {
         var _a, _b, _c;
         // Features with their own reward pool (Sultry Mysteries) pass their
@@ -11856,11 +11857,15 @@ var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 // BossBang.ts -- Boss Bang event: cooperative boss fights with club members.
 //
 // Boss Bang is a club-wide cooperative event where members contribute damage
-// to shared bosses. This module parses event page data, tracks boss HP and
-// timers, and automates participation in boss fights when energy is available.
+// to shared bosses. This module parses the event page (event end, whether the
+// boss is beaten, which team still has ego to fight with), steps through the
+// fight sequence and claims the milestone rewards. The bossBangEvent setting
+// stays on between events; a beaten boss bang is stored as completed and
+// skipped from then on.
 //
 // Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Boss Bang event is active)
+// Used by: EventModule.ts (called when Boss Bang event is active),
+//          Pipeline.config.ts (the parse and fight blocks)
 //
 
 
@@ -14414,9 +14419,6 @@ class EventModule {
             return "cumback";
         if (inEventID.startsWith('kinky_event_'))
             return "kinky";
-        //    if(inEventID.startsWith('lively_scene_event_')) return "";
-        //    if(inEventID.startsWith('legendary_contest_')) return "";
-        //    if(inEventID.startsWith('dpg_event_')) return ""; // Double date
         return "";
     }
     static getEvent(inEventID) {
@@ -14452,9 +14454,9 @@ class EventModule {
             isPlusEventMythic: isPlusEventMythic, // and activated
             isBossBangEvent: isBossBangEvent, // and activated
             isSultryMysteriesEvent: isSultryMysteriesEvent, // and activated
-            isDPEvent: isDPEvent, // and activated
-            isLivelyScene: isLivelyScene, // and activated
-            isPoa: isPoa, // and activated
+            isDPEvent: isDPEvent, // type only, the switches count in isEnabled
+            isLivelyScene: isLivelyScene, // type only, the switches count in isEnabled
+            isPoa: isPoa, // type and account access, the switches count in isEnabled
             isCumback: isCumback,
             isKinky: isKinky,
             isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent
@@ -14632,7 +14634,9 @@ class EventModule {
         var nbReward;
         let modified = false;
         arrayz = $('.potions-paths-tier:not([style*="display:none"]):not([style*="display: none"])');
-        //doesn sure about  " .purchase-pov-pass"-button visibility
+        // A visible pass-purchase button means the pass is not bought: one
+        // reward per tier then, two with the pass. Whether that button is
+        // shown reliably on every account is unverified.
         if ($('#' + containerId + ' .potions-paths-second-row .purchase-pass:not([style*="display:none"]):not([style*="display: none"])').length) {
             nbReward = 1;
         }
@@ -14750,18 +14754,15 @@ class EventModule {
             }
             parseForEventId(dpEventQuery, eventIDs);
             parseForEventId(livelySceneEventQuery, eventIDs);
-            // No event switch is turned off here when its banner is missing.
-            // The switches stay as the user set them: Double Penetration and
-            // Lively Scene are only visited for an event ID parsed above, and
-            // the seasonal block asks the game's own event globals
-            // (SeasonalEvent.isActiveEvent), which every page carries. A
-            // switch that went off with one event had to be turned on again
-            // by hand for the next one.
-            // Path of Valor / Path of Glory: the home-page selectors for these events
-            // are unreliable (the banner only appears briefly between waves), so a
-            // false-negative here would silently flip the user setting back to off.
-            // The collect logic on the actual event page checks availability before
-            // acting; the toggle does not need to be in sync with the home banner.
+            // No event switch is turned off here when its banner is missing;
+            // the switches stay as the user set them. Double Penetration and
+            // Lively Scene are only visited for an event ID parsed above, the
+            // seasonal block asks the game's own event globals
+            // (SeasonalEvent.isActiveEvent), which every page carries, and
+            // Path of Valor / Glory check availability on their own page --
+            // their home banner shows only briefly between waves. A switch
+            // turned off with one event had to be turned on again by hand for
+            // the next one.
         }
         return { eventIDs: eventIDs, bossBangEventIDs: bossBangEventIDs };
     }
@@ -15211,7 +15212,9 @@ class LoveRaidManager {
 // displays rewards in DOM elements with CSS classes like "slot_soft_currency"
 // or data attributes. This helper inspects those elements to determine
 // the reward type (girl shards, currency, energy, equipment, etc.) and
-// quantity, then can render summary HTML for the HHAuto overlay.
+// quantity, then can render summary HTML for the HHAuto overlay. The type
+// is also what the collect lists are matched against: a tier is collected
+// only when the type of each of its slots is ticked.
 //
 // Also handles the post-battle reward popup: after a troll fight that
 // drops girl shards, ObserveAndGetGirlRewards() uses a MutationObserver
@@ -15257,13 +15260,13 @@ class RewardHelper {
                 reward = 'girl_shards';
             }
             else if (inSlot.className.indexOf('slot_random_girl') >= 0) {
-                reward = 'random_girl_shards'; // Random girl shards
+                reward = 'random_girl_shards';
             }
             // Rarity is a bare class next to the type ("mythic slot_item" is a
             // mythic booster, "slot_scrolls_mythic" mythic bulbs), so the
-            // type checks must not read it. Random equipment is the one reward
-            // whose type is only its class: mythic counts as "mythic", every
-            // other rarity as "equipment".
+            // type checks must not read it. Random equipment is the exception:
+            // there the rarity decides, mythic counts as "mythic", every other
+            // rarity as "equipment".
             else if (inSlot.className.indexOf('slot_scrolls_') >= 0) {
                 reward = 'scrolls';
             }
@@ -15279,6 +15282,8 @@ class RewardHelper {
             else if (inSlot.className.indexOf('slot_lively_scene') >= 0) {
                 reward = 'lively_scene';
             }
+            // Items carry their type in data-d, e.g.
+            // {"item":{"id_item":"323","type":"potion","identifier":"XP4","rarity":"legendary",...},"quantity":"1"}
             else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d")) {
                 const objectData = $(inSlot).data("d");
                 reward = objectData.item.type;
@@ -15354,7 +15359,6 @@ class RewardHelper {
     static computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors) {
         const rewardCountByType = new Map();
         var rewardType, rewardSlot, rewardAmount;
-        // data-d='{"item":{"id_item":"323","type":"potion","identifier":"XP4","rarity":"legendary","price":"500000","currency":"sc","value":"2500","carac1":"0","carac2":"0","carac3":"0","endurance":"0","chance":"0.00","ego":"0","damage":"0","duration":"0","skin":"hentai,gay,sexy","name":"Spell book","ico":"https://hh.hh-content.com/pictures/items/XP4.png","display_price":500000},"quantity":"1"}'
         rewardCountByType['all'] = arrayz.length;
         if (arrayz.length > 0) {
             for (var slotIndex = arrayz.length - 1; slotIndex >= 0; slotIndex--) {
@@ -15376,9 +15380,10 @@ class RewardHelper {
         return rewardCountByType;
     }
     // The icon of each type, as the game draws it in its own reward slots
-    // (shared.js, function cp). Types that mix several items -- gifts, books,
-    // boosters -- show one representative picture; the amount is the sum.
-    // A type missing here still shows, with its name from possibleRewardsList.
+    // (the slot renderer in shared.js). Types that group several kinds --
+    // gifts, books, boosters, orbs, bulbs, equipment -- show one of them; the
+    // amount is the sum. A type missing here still shows, with its name from
+    // possibleRewardsList.
     static getRewardSlotIcon(rewardType) {
         var _a, _b;
         const img = (path) => `<img src="${ConfigHelper.getHHScriptVars('baseImgPath')}/${path}">`;
@@ -15413,8 +15418,8 @@ class RewardHelper {
     }
     static getRewardsAsHtml(rewardCountByType) {
         var _a;
-        // Classes the game gives the slot itself: its background, and for the
-        // two equipment kinds the rarity frame.
+        // Classes the game gives the slot itself: its background, and for
+        // items and equipment a rarity frame.
         const slotClass = {
             random_girl_shards: 'slot_random_girl', girl_shards: 'slot_girl_shards',
             event_cash: 'slot_seasonal_event_cash', scrolls: 'slot_scrolls_legendary',
@@ -15611,7 +15616,6 @@ class RewardHelper {
             if (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id)
                 EventModule.saveEventGirl(eventMythicGirl);
             if (renewEvent !== ""
-                //|| Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) < 1
                 || (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && EventModule.checkEvent(eventGirl.event_id)
                 || (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && EventModule.checkEvent(eventMythicGirl.event_id)) {
                 clearTimeout(inCaseTimer);
@@ -22104,7 +22108,8 @@ var Seasonal_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 //
 // Depends on: RewardHelper (reward parsing), PageNavigationService
 // Used by: AutoLoopPageHandlers.ts (the event page), Pipeline.config.ts
-//          (the collect blocks), RewardHelper
+//          (the collect blocks), InfoService.ts (isActiveEvent for the timer
+//          row)
 //
 
 
@@ -22275,7 +22280,8 @@ class SeasonalEvent {
         }
         if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
             SeasonalEvent.displayRewardsSeasonalDiv();
-            // SeasonalEvent.displayGirlsMileStones(); // TODO fixme
+            // displayGirlsMileStones() stays off until its markup is fixed for
+            // the current event page.
             SeasonalEvent.displayCollectAllButton();
         }
         GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers.double-mega-event .mega-tier-container {
@@ -22289,15 +22295,10 @@ class SeasonalEvent {
     static maskReward() {
         var arrayz;
         let modified = false;
-        // Both the mega and non-mega masking selectors were identical
-        // (.mega-progress-bar-tiers .mega-tier-container), so the
-        // isMegaSeasonalEvent ternary was a no-op and the flag was only
-        // computed to feed it. Collapsed to a single selector (no
-        // behaviour change). FYI: goAndCollect uses a DISTINCT mega
-        // selector here (.mega-progress-bar-section ...). Whether the
-        // mega masking selector should likewise differ is unverified --
-        // not changed on suspicion (would alter masking for mega events
-        // without evidence the current behaviour is wrong).
+        // One selector masks mega and non-mega events alike. goAndCollect
+        // reads mega tiers through a different one (.mega-progress-bar-section
+        // ...); whether masking should follow it is unverified, and without
+        // evidence the masking is left as it is.
         const tierQuery = ".mega-progress-bar-tiers .mega-tier-container";
         arrayz = $(tierQuery + ':not([style*="display:none"]):not([style*="display: none"])');
         var obj;
@@ -22313,14 +22314,11 @@ class SeasonalEvent {
         if (modified) {
             const divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
             if (divToModify.length > 0) {
-                //(divToModify as any).getNiceScroll().resize();
                 const width_px = 152.1;
                 const start_px = 101;
                 const rewards_unclaimed = $('.mega-tier.unclaimed, .free-slot:not(.claimed)').length;
                 const scroll_width_hidden = Math.floor(start_px + (rewards_unclaimed - 1) * width_px);
                 $('.seasonal-progress-bar-current, .mega-progress-bar').css('width', scroll_width_hidden + 'px');
-                // try {
-                //     (divToModify as any).getNiceScroll(0).doScrollLeft(0, 200);
             }
         }
     }
@@ -22345,10 +22343,9 @@ class SeasonalEvent {
         }
     }
     static removeCollectAllButtonIfNeeded() {
-        // Remove the collect-all button when there is nothing left to claim
-        // AND the button is still in the DOM. The previous condition required
-        // length == 0 before calling .remove(), so it could never remove an
-        // existing button -- the button lingered after a bot collect-all run.
+        // Removes the collect-all button once nothing is left to claim -- after
+        // a collect-all run of the script as well, where no claim click of the
+        // user fires displayCollectAllButton's own check.
         if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length > 0) {
             $('#SeasonalCollectAll').parent('.tooltipHH').remove();
             $('#SeasonalCollectAll').remove();
@@ -22381,7 +22378,7 @@ class SeasonalEvent {
         return girlDiv;
     }
     static displayRewardsSeasonalDiv() {
-        const target = $('.girls-reward-container'); // $('.event-resource-location');
+        const target = $('.girls-reward-container');
         const hhRewardId = 'HHSeasonalRewards';
         const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
         try {
@@ -23301,7 +23298,8 @@ function reactivateBlock(blockId) {
 // shortcut.
 //
 // updateData() is called every loop iteration to refresh the display
-// with current timer values and module states.
+// with current timer values and module states. A row for an event shows
+// only while that event runs.
 //
 // Used by: StartService (creates the panel), AutoLoop (refreshes it)
 
@@ -35189,7 +35187,7 @@ class MonthlyCards {
  */
 const FEATURE_POPUP_MAX_REMINDERS = 3;
 /**
- * Label of the close button. Default: "Close" for normal "What's New" popups.
+ * Label of the close button.
  */
 const FEATURE_POPUP_CLOSE_LABEL = "OK";
 /**
@@ -35200,11 +35198,11 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
 // ===, so a mismatch means the popup silently never appears, and adding a
 // paragraph without moving this number changes nothing on screen. If the
 // release number changes, change it here and in the title too.
-const FEATURE_POPUP_VERSION = "8.13.0";
+const FEATURE_POPUP_VERSION = "8.15.0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.13.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.15.0";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -35212,14 +35210,16 @@ const FEATURE_POPUP_TITLE = "HHAuto v8.13.0";
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
 
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">Please check your collect settings</p>
+    <p style="margin:0 0 10px 0;">Mythic boosters, books and light bulbs used to be collected under <i>Mythic Equipment</i>. They now count as what they are. If you collect those, tick <b>Boosters</b>, <b>Potions</b> and <b>Light Bulbs</b>.</p>
+
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">What changed</p>
     <ul style="margin:0 0 10px 18px; padding:0;">
-      <li style="margin-bottom:6px;"><b>Young accounts:</b> features the account has not unlocked yet are skipped instead of visited on every tick, so a new account runs cleanly while it grows.</li>
-      <li style="margin-bottom:6px;"><b>League power calc</b> no longer freezes the page. A fight it cannot decide now shows <b>50%</b>.</li>
-      <li style="margin-bottom:6px;"><b>Menu button and opponent markers</b> show again &mdash; the icons now ship inside the script.</li>
-      <li style="margin-bottom:6px;">A <b>quest step the game refuses for money</b> no longer stalls the run: the script closes the message, waits 20 minutes and goes home.</li>
-      <li style="margin-bottom:6px;"><b>Path of Glory:</b> with only <i>Collect all</i> on, it now collects in the final window before the event ends, like Path of Valor.</li>
-      <li>Under the hood: internal clean-up and a number of further bug fixes.</li>
+      <li style="margin-bottom:6px;"><b>Unclaimed rewards:</b> the box under <i>Claim All</i> now lists every reward still to claim &mdash; shards, gems, orbs, items, bulbs, equipment and more &mdash; not only energies, XP and currencies.</li>
+      <li style="margin-bottom:6px;"><b>Collect popup:</b> plain checkboxes, one click each. New buttons: <b>All but XP</b>, and <b>Copy to all</b>, which copies your selection to every other collect list.</li>
+      <li style="margin-bottom:6px;"><b>Three new collect types:</b> Equipment, Event resource and Lively scene. Tiers with them were never collected before. They start unticked.</li>
+      <li style="margin-bottom:6px;"><b>Event switches stay on:</b> Double Penetration, Lively Scene, Seasonal event and Boss Bang no longer switch themselves off between events.</li>
+      <li><b>Timer list:</b> events that are not running no longer show &quot;Time's up!&quot;.</li>
     </ul>
 
     <p style="margin-bottom:0; font-size:11px; color:#888;">Full details in the <a href="https://github.com/OldRon1977/HHauto/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG</a>.</p>

@@ -1,11 +1,15 @@
 // BossBang.ts -- Boss Bang event: cooperative boss fights with club members.
 //
 // Boss Bang is a club-wide cooperative event where members contribute damage
-// to shared bosses. This module parses event page data, tracks boss HP and
-// timers, and automates participation in boss fights when energy is available.
+// to shared bosses. This module parses the event page (event end, whether the
+// boss is beaten, which team still has ego to fight with), steps through the
+// fight sequence and claims the milestone rewards. The bossBangEvent setting
+// stays on between events; a beaten boss bang is stored as completed and
+// skipped from then on.
 //
 // Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Boss Bang event is active)
+// Used by: EventModule.ts (called when Boss Bang event is active),
+//          Pipeline.config.ts (the parse and fight blocks)
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getPage } from "../../Helper/PageHelper";

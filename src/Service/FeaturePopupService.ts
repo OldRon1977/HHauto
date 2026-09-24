@@ -29,7 +29,7 @@ import { TK } from "../config/StorageKeys";
 const FEATURE_POPUP_MAX_REMINDERS: number = 3;
 
 /**
- * Label of the close button. Default: "Close" for normal "What's New" popups.
+ * Label of the close button.
  */
 const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
 
@@ -41,12 +41,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
 // ===, so a mismatch means the popup silently never appears, and adding a
 // paragraph without moving this number changes nothing on screen. If the
 // release number changes, change it here and in the title too.
-const FEATURE_POPUP_VERSION: string = "8.13.0";
+const FEATURE_POPUP_VERSION: string = "8.15.0";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.13.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.15.0";
 
 /**
  * HTML content for the feature popup.
@@ -55,14 +55,16 @@ const FEATURE_POPUP_TITLE = "HHAuto v8.13.0";
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
 
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">Please check your collect settings</p>
+    <p style="margin:0 0 10px 0;">Mythic boosters, books and light bulbs used to be collected under <i>Mythic Equipment</i>. They now count as what they are. If you collect those, tick <b>Boosters</b>, <b>Potions</b> and <b>Light Bulbs</b>.</p>
+
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">What changed</p>
     <ul style="margin:0 0 10px 18px; padding:0;">
-      <li style="margin-bottom:6px;"><b>Young accounts:</b> features the account has not unlocked yet are skipped instead of visited on every tick, so a new account runs cleanly while it grows.</li>
-      <li style="margin-bottom:6px;"><b>League power calc</b> no longer freezes the page. A fight it cannot decide now shows <b>50%</b>.</li>
-      <li style="margin-bottom:6px;"><b>Menu button and opponent markers</b> show again &mdash; the icons now ship inside the script.</li>
-      <li style="margin-bottom:6px;">A <b>quest step the game refuses for money</b> no longer stalls the run: the script closes the message, waits 20 minutes and goes home.</li>
-      <li style="margin-bottom:6px;"><b>Path of Glory:</b> with only <i>Collect all</i> on, it now collects in the final window before the event ends, like Path of Valor.</li>
-      <li>Under the hood: internal clean-up and a number of further bug fixes.</li>
+      <li style="margin-bottom:6px;"><b>Unclaimed rewards:</b> the box under <i>Claim All</i> now lists every reward still to claim &mdash; shards, gems, orbs, items, bulbs, equipment and more &mdash; not only energies, XP and currencies.</li>
+      <li style="margin-bottom:6px;"><b>Collect popup:</b> plain checkboxes, one click each. New buttons: <b>All but XP</b>, and <b>Copy to all</b>, which copies your selection to every other collect list.</li>
+      <li style="margin-bottom:6px;"><b>Three new collect types:</b> Equipment, Event resource and Lively scene. Tiers with them were never collected before. They start unticked.</li>
+      <li style="margin-bottom:6px;"><b>Event switches stay on:</b> Double Penetration, Lively Scene, Seasonal event and Boss Bang no longer switch themselves off between events.</li>
+      <li><b>Timer list:</b> events that are not running no longer show &quot;Time's up!&quot;.</li>
     </ul>
 
     <p style="margin-bottom:0; font-size:11px; color:#888;">Full details in the <a href="https://github.com/OldRon1977/HHauto/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG</a>.</p>

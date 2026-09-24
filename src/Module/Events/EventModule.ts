@@ -422,9 +422,6 @@ export class EventModule {
         if(inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'))) return "livelyscene";
         if(inEventID.startsWith('cumback_contest_')) return "cumback";
         if(inEventID.startsWith('kinky_event_')) return "kinky";
-    //    if(inEventID.startsWith('lively_scene_event_')) return "";
-    //    if(inEventID.startsWith('legendary_contest_')) return "";
-    //    if(inEventID.startsWith('dpg_event_')) return ""; // Double date
         return "";
     }
 
@@ -461,9 +458,9 @@ export class EventModule {
             isPlusEventMythic: isPlusEventMythic, // and activated
             isBossBangEvent: isBossBangEvent, // and activated
             isSultryMysteriesEvent: isSultryMysteriesEvent, // and activated
-            isDPEvent: isDPEvent, // and activated
-            isLivelyScene: isLivelyScene, // and activated
-            isPoa: isPoa, // and activated
+            isDPEvent: isDPEvent, // type only, the switches count in isEnabled
+            isLivelyScene: isLivelyScene, // type only, the switches count in isEnabled
+            isPoa: isPoa, // type and account access, the switches count in isEnabled
             isCumback: isCumback,
             isKinky: isKinky,
             isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent
@@ -677,7 +674,9 @@ export class EventModule {
         var nbReward;
         let modified = false;
         arrayz = $('.potions-paths-tier:not([style*="display:none"]):not([style*="display: none"])');
-        //doesn sure about  " .purchase-pov-pass"-button visibility
+        // A visible pass-purchase button means the pass is not bought: one
+        // reward per tier then, two with the pass. Whether that button is
+        // shown reliably on every account is unverified.
         if ($('#'+containerId+' .potions-paths-second-row .purchase-pass:not([style*="display:none"]):not([style*="display: none"])').length)
         {
             nbReward = 1;
@@ -817,18 +816,15 @@ export class EventModule {
             }
             parseForEventId(dpEventQuery,eventIDs);
             parseForEventId(livelySceneEventQuery,eventIDs);
-            // No event switch is turned off here when its banner is missing.
-            // The switches stay as the user set them: Double Penetration and
-            // Lively Scene are only visited for an event ID parsed above, and
-            // the seasonal block asks the game's own event globals
-            // (SeasonalEvent.isActiveEvent), which every page carries. A
-            // switch that went off with one event had to be turned on again
-            // by hand for the next one.
-            // Path of Valor / Path of Glory: the home-page selectors for these events
-            // are unreliable (the banner only appears briefly between waves), so a
-            // false-negative here would silently flip the user setting back to off.
-            // The collect logic on the actual event page checks availability before
-            // acting; the toggle does not need to be in sync with the home banner.
+            // No event switch is turned off here when its banner is missing;
+            // the switches stay as the user set them. Double Penetration and
+            // Lively Scene are only visited for an event ID parsed above, the
+            // seasonal block asks the game's own event globals
+            // (SeasonalEvent.isActiveEvent), which every page carries, and
+            // Path of Valor / Glory check availability on their own page --
+            // their home banner shows only briefly between waves. A switch
+            // turned off with one event had to be turned on again by hand for
+            // the next one.
         }
         return {eventIDs:eventIDs,bossBangEventIDs:bossBangEventIDs};
     }

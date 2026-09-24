@@ -4,7 +4,9 @@
 // displays rewards in DOM elements with CSS classes like "slot_soft_currency"
 // or data attributes. This helper inspects those elements to determine
 // the reward type (girl shards, currency, energy, equipment, etc.) and
-// quantity, then can render summary HTML for the HHAuto overlay.
+// quantity, then can render summary HTML for the HHAuto overlay. The type
+// is also what the collect lists are matched against: a tier is collected
+// only when the type of each of its slots is ticked.
 //
 // Also handles the post-battle reward popup: after a troll fight that
 // drops girl shards, ObserveAndGetGirlRewards() uses a MutationObserver
@@ -59,13 +61,13 @@ export class RewardHelper {
             }
             else if (inSlot.className.indexOf('slot_random_girl') >= 0)
             {
-                reward = 'random_girl_shards'; // Random girl shards
+                reward = 'random_girl_shards';
             }
             // Rarity is a bare class next to the type ("mythic slot_item" is a
             // mythic booster, "slot_scrolls_mythic" mythic bulbs), so the
-            // type checks must not read it. Random equipment is the one reward
-            // whose type is only its class: mythic counts as "mythic", every
-            // other rarity as "equipment".
+            // type checks must not read it. Random equipment is the exception:
+            // there the rarity decides, mythic counts as "mythic", every other
+            // rarity as "equipment".
             else if (inSlot.className.indexOf('slot_scrolls_') >= 0)
             {
                 reward = 'scrolls';
@@ -86,6 +88,8 @@ export class RewardHelper {
             {
                 reward = 'lively_scene';
             }
+            // Items carry their type in data-d, e.g.
+            // {"item":{"id_item":"323","type":"potion","identifier":"XP4","rarity":"legendary",...},"quantity":"1"}
             else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d"))
             {
                 const objectData = $(inSlot).data("d");
@@ -172,8 +176,6 @@ export class RewardHelper {
         const rewardCountByType:Map<string,number> = new Map();
         var rewardType:string, rewardSlot:any, rewardAmount:number;
 
-// data-d='{"item":{"id_item":"323","type":"potion","identifier":"XP4","rarity":"legendary","price":"500000","currency":"sc","value":"2500","carac1":"0","carac2":"0","carac3":"0","endurance":"0","chance":"0.00","ego":"0","damage":"0","duration":"0","skin":"hentai,gay,sexy","name":"Spell book","ico":"https://hh.hh-content.com/pictures/items/XP4.png","display_price":500000},"quantity":"1"}'
-
         (rewardCountByType as any)['all'] = arrayz.length; 
         if (arrayz.length > 0)
         {
@@ -196,9 +198,10 @@ export class RewardHelper {
         return rewardCountByType;
     }
     // The icon of each type, as the game draws it in its own reward slots
-    // (shared.js, function cp). Types that mix several items -- gifts, books,
-    // boosters -- show one representative picture; the amount is the sum.
-    // A type missing here still shows, with its name from possibleRewardsList.
+    // (the slot renderer in shared.js). Types that group several kinds --
+    // gifts, books, boosters, orbs, bulbs, equipment -- show one of them; the
+    // amount is the sum. A type missing here still shows, with its name from
+    // possibleRewardsList.
     static getRewardSlotIcon(rewardType: string): string {
         const img = (path: string) => `<img src="${ConfigHelper.getHHScriptVars('baseImgPath')}/${path}">`;
         switch (rewardType) {
@@ -231,8 +234,8 @@ export class RewardHelper {
         }
     }
     static getRewardsAsHtml(rewardCountByType:Map<string,number>) {
-        // Classes the game gives the slot itself: its background, and for the
-        // two equipment kinds the rarity frame.
+        // Classes the game gives the slot itself: its background, and for
+        // items and equipment a rarity frame.
         const slotClass: Record<string, string> = {
             random_girl_shards: 'slot_random_girl', girl_shards: 'slot_girl_shards',
             event_cash: 'slot_seasonal_event_cash', scrolls: 'slot_scrolls_legendary',
@@ -417,7 +420,6 @@ export class RewardHelper {
             if (eventGirl?.girl_id) EventModule.saveEventGirl(eventGirl);
             if (eventMythicGirl?.girl_id) EventModule.saveEventGirl(eventMythicGirl);
             if (renewEvent !== ""
-                //|| Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) < 1
                 || eventGirl?.girl_id && EventModule.checkEvent(eventGirl.event_id)
                 || eventMythicGirl?.girl_id && EventModule.checkEvent(eventMythicGirl.event_id)
             )
