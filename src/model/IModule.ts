@@ -9,7 +9,7 @@
  * against them.
  */
 
-/** Describes a standard AutoLoop handler that can be executed by runStandardHandler */
+/** A simple module's handler, turned into a pipeline block by fromDescriptor */
 export interface ModuleHandlerDescriptor {
     /** Display name for log output */
     name: string;

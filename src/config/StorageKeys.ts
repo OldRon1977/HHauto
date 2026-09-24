@@ -2,7 +2,8 @@
  * Prefix every HHauto key carries. It lives here, in the leaf module, and not
  * in HHStoredVars: that file pulls in LanguageHelper, StorageHelper and
  * TimerHelper, so importing it just to read a string drags a module into
- * their import cycles (see the lesson zirkulaerer-import-tdz-crash).
+ * their import cycles -- and a cycle can hand a module a binding that is not
+ * initialised yet, which crashes at load time.
  * HHStoredVars re-exports it, so existing imports keep working.
  */
 export const HHStoredVarPrefixKey: string = "HHAuto_"; // default HHAuto_

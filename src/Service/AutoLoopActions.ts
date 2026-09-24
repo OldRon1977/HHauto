@@ -55,10 +55,7 @@ import { LoveRaid } from '../model/LoveRaid';
  * The activation paths are guarded by a Pure-spec
  * (spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts, 9 cases) and
  * a wait-marker spec (spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts,
- * 3 cases). New paths must be added to both specs. The lessons file
- * c:\Users\StephanMesser\.kiro\Arbeitsplatz\.kiro\steering\_lessons\
- * mapping-fix-vollstaendig-pruefen.md captures the cost of skipping this
- * pruning step.
+ * 3 cases). New paths must be added to both specs.
  */
 export function wouldFightWithPower(
     eventGirl: EventGirl,

@@ -2331,8 +2331,8 @@ HHStoredVars[HHStoredVarPrefixKey + TK.charLevel] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
-// localStorage, nicht sessionStorage: der Hoechststand soll einen neuen Tab
-// ueberleben. Er waechst nur und wird nie zurueckgesetzt.
+// localStorage, not sessionStorage: the highest level seen has to survive a
+// new tab. It only grows and is never reset.
 HHStoredVars[HHStoredVarPrefixKey + TK.heroMaxLevel] =
     {
     storage:"localStorage",
@@ -2396,7 +2396,7 @@ HHStoredVars[HHStoredVarPrefixKey + TK.blessingsCache] =
     HHType:"Temp"
 };
 // Collapsed state of the team-selection summary on the edit-team page.
-// localStorage: "1 Unequip All" reloads the page, and the player should not
+// localStorage: "Unequip All" reloads the page, and the player should not
 // have to fold the panel away again on every pass through the workflow.
 HHStoredVars[HHStoredVarPrefixKey + TK.teamInfoCollapsed] =
     {

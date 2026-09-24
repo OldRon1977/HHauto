@@ -114,20 +114,6 @@ export interface HandlerConfig {
 }
 
 /**
- * Build a HandlerConfig from a ModuleHandlerDescriptor -- the uniform
- * `name + action + isReady + execute` shape that `runStandardHandler` in
- * AutoLoopActions.ts uses.
- *
- * The returned config is single-step, non-atomic, always-interruptible, and
- * mirrors the cascade in `runStandardHandler`:
- *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
- *   guard -> isReady guard -> execute -> set ctx.busy / ctx.lastActionPerformed.
- *
- * The `lastActionPerformed` gate stays as the descriptor-level continuation:
- * the slot-hold rule does the same job with less machinery
- * (docs/decisions/ADR-006-nothing-bundled-nothing-split.md).
- */
-/**
  * True when the bot is currently on a quest or side-quest page. Used to let
  * navigating handlers (e.g. handleMissions) yield so they do not pull the bot
  * away from a quest mid-completion -- handleQuest needs several reload cycles
@@ -139,14 +125,29 @@ function isOnQuestPage(ctx: AutoLoopContext): boolean {
     || ctx.currentPage === 'side-quests';
 }
 
+/**
+ * Build a HandlerConfig from a ModuleHandlerDescriptor -- the uniform
+ * `name + action + isReady + execute` shape of the simple modules.
+ *
+ * The returned config is single-step and, unless opts.atomic, non-atomic and
+ * always interruptible. Its precondition is shouldRunStandardHandler
+ * (AutoLoop.pure.ts):
+ *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
+ *   guard -> isReady guard; the step then executes and sets ctx.busy /
+ *   ctx.lastActionPerformed.
+ *
+ * The `lastActionPerformed` gate stays as the descriptor-level continuation:
+ * the slot-hold rule does the same job with less machinery
+ * (docs/decisions/ADR-006-nothing-bundled-nothing-split.md).
+ */
 function fromDescriptor(
   descriptor: ModuleHandlerDescriptor,
   opts: { minIntervalMs: number; atomic?: boolean; handlerName?: string; extraPrecondition?: (ctx: AutoLoopContext) => boolean },
 ): HandlerConfig {
   const atomic = opts.atomic ?? false;
-  // The HandlerConfig.name is the technical identifier used as map key in
-  // Scheduler.lastRunAt, Scheduler.states, sessionStorage TK.pipelineLastRunAt
-  // and the [Scheduler] Starting chain '...' log line. Keep it short and
+  // The HandlerConfig.name becomes the block id: the key in
+  // TK.pipelineLastRunAt, the cooldown and focus maps and the Block Order
+  // list, and the name in the scheduler's log lines. Keep it short and
   // identifier-like (e.g. 'handleMissions'). It must NOT collide with the
   // descriptor.name, which is a user-facing log message ('Time to do
   // missions.'). The user message is logged inside step.fn via descriptor.name.
@@ -367,7 +368,7 @@ const handleLeague: HandlerConfig = {
   atomic: true,
   interruptible: 'never',
   precondition: (ctx) => {
-    // Trigger logic in full (lesson pipeline-inner-trigger-in-precondition):
+    // Trigger logic in full -- every gate here, none left inside step.fn:
     //
     //   1. League auto-mode active and feature enabled at all?
     //   2. Bot not currently mid-action on a different module (the
@@ -544,9 +545,8 @@ const handleAutoEquipBoosters: HandlerConfig = {
 // ---------------------------------------------------------------------------
 //  Handlers built with fromDescriptor.
 //  Each one is a one-step wrapper around a ModuleHandlerDescriptor. isReady
-//  captures both the outer and the inner trigger -- the lesson
-//  pipeline-inner-trigger-in-precondition warns against splitting them between
-//  precondition and step.fn. All of them are non-atomic, always interruptible,
+//  captures both the outer and the inner trigger: split between precondition
+//  and step.fn, the block would start a run whose step then does nothing. All of them are non-atomic, always interruptible,
 //  and carry a minIntervalMs sized to the module's tick frequency.
 // ---------------------------------------------------------------------------
 
@@ -695,9 +695,8 @@ const handleLabyrinth = fromDescriptor({
 }, { minIntervalMs: 5_000, handlerName: "handleLabyrinth" });
 
 // ---------------------------------------------------------------------------
-//  Handlers that do not fit the runStandardHandler descriptor shape. Each one
-//  keeps its full logic in step.fn, with all gates in the precondition (lesson
-//  pipeline-inner-trigger-in-precondition).
+//  Handlers that do not fit the fromDescriptor shape. Each one
+//  keeps its full logic in step.fn, with all gates in the precondition.
 //
 //  handleMythicWave is deliberately absent. Its only effect was setting
 //  ctx.lastActionPerformed = "troll" in the same tick to grant
@@ -1396,7 +1395,7 @@ const handleChampionTicket: HandlerConfig = {
     fn: async (ctx) => {
       try {
         // Avoid getHero() import: it lives in HeroHelper.ts which imports autoLoop,
-        // closing a Module->Service->Module cycle (lesson zirkulaerer-import-tdz-crash).
+        // closing a Module->Service->Module cycle.
         // unsafeWindow.shared?.Hero is the same object getHero() returns.
         const Hero = (unsafeWindow as { shared?: { Hero?: { updates: (data: Record<string, unknown>) => void } } }).shared?.Hero;
         if (!Hero) return { ok: false, reason: 'Hero unavailable', retryable: true };

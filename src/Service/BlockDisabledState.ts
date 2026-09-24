@@ -15,8 +15,8 @@ export interface DisabledEntry { reason: string; sinceVersion: string; }
 // top level. A top-level `const X = HHStoredVarPrefixKey + ...` is evaluated at
 // module load and throws a TDZ ReferenceError ("Cannot access
 // 'HHStoredVarPrefixKey' before initialization") if this module is evaluated
-// inside the import cycle before config/HHStoredVars finished initializing
-// (lesson zirkulaerer-import-tdz-crash). This module is reachable early via
+// inside the import cycle before config/HHStoredVars finished initializing.
+// This module is reachable early via
 // InfoService, so it must stay TDZ-safe.
 
 /** All blocks the watchdog has auto-disabled, keyed by block id. */

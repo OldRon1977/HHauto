@@ -143,7 +143,7 @@ function isAutoLoopActive(): boolean{
 
 // Block-scheduler tick is injected from the boot path (index.ts) instead of a
 // static import, to avoid an AutoLoop->BlockPipeline->Pipeline.config->...->
-// AutoLoop import cycle (lesson zirkulaerer-import-tdz-crash). Same pattern as
+// AutoLoop import cycle. Same pattern as
 // setPachinkoAutoLoopKick.
 let blockTick: ((ctx: AutoLoopContext) => Promise<void>) | null = null;
 export function setBlockTick(fn: (ctx: AutoLoopContext) => Promise<void>): void {

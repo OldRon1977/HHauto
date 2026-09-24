@@ -1,6 +1,6 @@
-// Interface describing an active in-game event as returned by EventModule.getEvent().
-// Contains the event type, boolean flags for every supported event kind
-// (plus event, boss bang, DP, etc.), timing, and associated girl data.
+// Types around the in-game events: HHEvent as returned by EventModule.getEvent()
+// (the event type, a flag per supported event kind, and isEnabled), the stored
+// event list, and the event data the event page carries.
 
 import { KKEventGirl } from "./KK/KKEventGirl";
 

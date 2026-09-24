@@ -359,7 +359,7 @@ export class BlessingService {
      * and GirlData (camelCase: eyeColor, hairColor, position). Single
      * source of truth shared by detectActiveBlessings and the team
      * builder's blessing matcher, so a future game field rename is a
-     * one-place change (see lesson mapping-fix-vollstaendig-pruefen).
+     * one-place change.
      * position is normalised (the '.png' suffix is stripped).
      */
     static resolveTraitField(

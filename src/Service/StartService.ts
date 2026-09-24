@@ -212,9 +212,9 @@ export function hardened_start()
         installAjaxTracker();
         // Wire AjaxTracker's 403 hook to the persistent backoff counter.
         // Done here (not via a direct import inside AjaxTracker) to keep
-        // AjaxTracker free of any HHStoredVars dependency: HHStoredVars
-        // imports PlaceOfPower, which imports AjaxTracker, so a direct
-        // import would form a TDZ cycle (issue #1598 follow-up).
+        // AjaxTracker free of any HHStoredVars dependency: several modules import
+        // AjaxTracker, and a storage import there would pull it into their
+        // import cycles (issue #1598 follow-up).
         setOnAjaxForbidden(() => { try { recordForbidden(); } catch {} });
     } catch { /* tracker is best-effort */ }
 

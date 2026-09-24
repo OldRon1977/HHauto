@@ -19,23 +19,6 @@ import { getBrowserData } from "./BrowserUtils";
 import { appendLog, clearLog, dropOldestChunks } from './LogStore';
 
 /**
- * Wipe all existing log entries from storage and free up large temp
- * caches. Called from setStoredValue's quota-error catch path, so this
- * function MUST NOT itself perform any storage write -- otherwise a
- * non-log-driven quota fault (e.g. an oversized TK.HaremSize) can be
- * amplified, since the very recovery path would try to add a "cleaned"
- * marker to an already-full storage, throw again, and recurse through
- * setStoredValue's catch.
- *
- * Strategy:
- *   - Drop the whole log ring (LogStore.clearLog removes every chunk and
- *     the index -- deletes, never overwrites, so no new write is needed).
- *   - Drop the league opponent cache, which is the second-largest temp
- *     value typically present.
- * Console.log still receives a one-line breadcrumb so the cleanup is
- * visible during debugging without touching storage.
- */
-/**
  * Make room after a storage write was refused.
  *
  * `full` is the caller's second attempt. The first one only sacrifices the
@@ -44,7 +27,13 @@ import { appendLog, clearLog, dropOldestChunks } from './LogStore';
  * Measured on a real session -- one quota error on an unrelated key at 09:34
  * left a log that began at 09:34, five hours short of the run it documented.
  * Only when that frees nothing, or when the retry fails as well, does the
- * whole ring go.
+ * whole ring go. The league opponent cache, usually the largest temp value
+ * after the log, goes every time.
+ *
+ * Called from setStoredValue's quota-error path, so this function MUST NOT
+ * write to storage itself -- only delete. A write here would hit the same
+ * full storage, throw again and recurse through setStoredValue's catch. The
+ * console gets a one-line breadcrumb instead.
  */
 export function cleanLogsInStorage(full = false) {
     const sizeBefore = getLocalStorageSize();

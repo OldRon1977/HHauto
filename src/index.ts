@@ -2,16 +2,14 @@
 //
 // This is the Tampermonkey userscript entry point. It augments the
 // global Window interface with game-specific properties that the script
-// reads from the page context (via unsafeWindow), then kicks off
-// initialization in two ways:
+// reads from the page context (via unsafeWindow), wires the injected
+// dependencies that keep the modules out of import cycles, and calls
+// hardened_start() once.
 //
-//   1. An IIFE that calls hardened_start() immediately on script load
-//   2. A setTimeout fallback that retries after 5 seconds in case the
-//      game's JS hasn't finished loading yet
-//
-// hardened_start() verifies jQuery is available, checks for "Forbidden"
-// error pages, and delegates to start() which sets up the full menu,
-// timers, and auto-loop.
+// hardened_start() installs the AJAX tracker, answers a "Forbidden" page
+// (no jQuery) with a backed-off reload, and otherwise hands over to start(),
+// which waits for the game's hero data with a bounded retry and reload and
+// then sets up the menu, timers and auto-loop.
 
 import { hardened_start, setDefaults } from "./Service/StartService";
 import { autoLoop, setBlockTick } from "./Service/AutoLoop";
@@ -125,7 +123,7 @@ declare global {
 }
 
 // Inject the autoLoop kick into Pachinko so it can restart the loop after a
-// run without a static Module->Service import (lesson zirkulaerer-import-tdz-crash).
+// run without a static Module->Service import, which would close an import cycle.
 setPachinkoAutoLoopKick(autoLoop);
 // Same pattern for HeroHelper's page-not-ready retry (ARCH-001: the static
 // HeroHelper -> AutoLoop import sat in 154 baseline cycles).
@@ -141,8 +139,8 @@ setAutoLoopKick(autoLoop);
 setSetDefaultsRef(setDefaults);
 
 // Inject the block-scheduler tick into AutoLoop from the boot path (instead of
-// a static AutoLoop->BlockPipeline import) to avoid an import cycle / TDZ
-// (lesson zirkulaerer-import-tdz-crash).
+// a static AutoLoop->BlockPipeline import) to avoid an import cycle, in which
+// a cycle can hand a module an uninitialised binding at load.
 setBlockTick((ctx) => getBlockScheduler().tick(ctx));
 // Wire the Block-Order popup's registry provider (avoids a static
 // PipelineOrderService->BlockPipeline import cycle).
@@ -150,8 +148,8 @@ setPipelineRegistryProvider(buildRegistryAndOrder);
 
 // Inject the SCC-bound helpers the menu modules need. The menu/* files read
 // these from MenuPorts instead of importing them statically, which keeps them
-// as graph leaves and out of the circular-dependency baseline (WART-002,
-// lesson zirkulaerer-import-tdz-crash). Wrapped in a function so the
+// as graph leaves and out of the circular-dependency baseline (WART-002).
+// Wrapped in a function so the
 // HHStoredVarPrefixKey reference is not evaluated at module top level.
 function wireMenuPorts() {
     setMenuPorts({

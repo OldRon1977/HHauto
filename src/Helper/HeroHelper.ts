@@ -26,7 +26,7 @@ import { randomInterval } from "./TimeHelper";
 // AutoLoop retry kick, injected from the boot path (src/index.ts) instead of
 // a static Helper -> Service/AutoLoop import: that edge routed HeroHelper
 // through 154 of the baseline import cycles (ARCH-001; same pattern as
-// setPachinkoAutoLoopKick, lesson zirkulaerer-import-tdz-crash).
+// setPachinkoAutoLoopKick).
 let autoLoopKick: () => void = () => {};
 export function setHeroAutoLoopKick(kick: () => void) {
     autoLoopKick = kick;

@@ -2665,7 +2665,8 @@ const MYTHIC_CODE_RE = new RegExp("^" + MYTHIC_CODE + "$");
  * Prefix every HHauto key carries. It lives here, in the leaf module, and not
  * in HHStoredVars: that file pulls in LanguageHelper, StorageHelper and
  * TimerHelper, so importing it just to read a string drags a module into
- * their import cycles (see the lesson zirkulaerer-import-tdz-crash).
+ * their import cycles -- and a cycle can hand a module a binding that is not
+ * initialised yet, which crashes at load time.
  * HHStoredVars re-exports it, so existing imports keep working.
  */
 const HHStoredVarPrefixKey = "HHAuto_"; // default HHAuto_
@@ -5557,8 +5558,8 @@ HHStoredVars[HHStoredVarPrefixKey + TK.charLevel] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
-// localStorage, nicht sessionStorage: der Hoechststand soll einen neuen Tab
-// ueberleben. Er waechst nur und wird nie zurueckgesetzt.
+// localStorage, not sessionStorage: the highest level seen has to survive a
+// new tab. It only grows and is never reset.
 HHStoredVars[HHStoredVarPrefixKey + TK.heroMaxLevel] =
     {
         storage: "localStorage",
@@ -5622,7 +5623,7 @@ HHStoredVars[HHStoredVarPrefixKey + TK.blessingsCache] =
         HHType: "Temp"
     };
 // Collapsed state of the team-selection summary on the edit-team page.
-// localStorage: "1 Unequip All" reloads the page, and the player should not
+// localStorage: "Unequip All" reloads the page, and the player should not
 // have to fold the panel away again on every pass through the workflow.
 HHStoredVars[HHStoredVarPrefixKey + TK.teamInfoCollapsed] =
     {
@@ -6172,7 +6173,7 @@ const FLUSH_MS = 1000;
  */
 const RECOVERY_DROP_CHUNKS = 2;
 // Both computed at call time, never at module scope: a top-level read of
-// the prefix crashes on a circular import (lesson zirkulaerer-import-tdz-crash).
+// the prefix crashes on a circular import.
 const idxKey = () => HHStoredVarPrefixKey + "Temp_LogIdx";
 const chunkKey = (i) => HHStoredVarPrefixKey + "Temp_Log" + i;
 /**
@@ -6439,23 +6440,6 @@ function importLegacyLog() {
 
 
 /**
- * Wipe all existing log entries from storage and free up large temp
- * caches. Called from setStoredValue's quota-error catch path, so this
- * function MUST NOT itself perform any storage write -- otherwise a
- * non-log-driven quota fault (e.g. an oversized TK.HaremSize) can be
- * amplified, since the very recovery path would try to add a "cleaned"
- * marker to an already-full storage, throw again, and recurse through
- * setStoredValue's catch.
- *
- * Strategy:
- *   - Drop the whole log ring (LogStore.clearLog removes every chunk and
- *     the index -- deletes, never overwrites, so no new write is needed).
- *   - Drop the league opponent cache, which is the second-largest temp
- *     value typically present.
- * Console.log still receives a one-line breadcrumb so the cleanup is
- * visible during debugging without touching storage.
- */
-/**
  * Make room after a storage write was refused.
  *
  * `full` is the caller's second attempt. The first one only sacrifices the
@@ -6464,7 +6448,13 @@ function importLegacyLog() {
  * Measured on a real session -- one quota error on an unrelated key at 09:34
  * left a log that began at 09:34, five hours short of the run it documented.
  * Only when that frees nothing, or when the retry fails as well, does the
- * whole ring go.
+ * whole ring go. The league opponent cache, usually the largest temp value
+ * after the log, goes every time.
+ *
+ * Called from setStoredValue's quota-error path, so this function MUST NOT
+ * write to storage itself -- only delete. A write here would hit the same
+ * full storage, throw again and recurse through setStoredValue's catch. The
+ * console gets a one-line breadcrumb instead.
  */
 function cleanLogsInStorage(full = false) {
     const sizeBefore = getLocalStorageSize();
@@ -6645,8 +6635,8 @@ class NumberHelper {
 // To keep the menu/* files as graph leaves, they read those helpers from this
 // module instead. src/index.ts imports the real implementations (it sits
 // outside every cycle) and calls setMenuPorts(...) once at boot, before any
-// menu function runs. See lesson zirkulaerer-import-tdz-crash and the
-// setPachinkoAutoLoopKick / setBlockTick wiring in src/index.ts.
+// menu function runs -- the same wiring as setPachinkoAutoLoopKick /
+// setBlockTick in src/index.ts.
 //
 // This module deliberately imports NOTHING from the project so it stays a leaf.
 // `storedVarPrefix` is a plain string set at call time (never evaluated at
@@ -6828,9 +6818,8 @@ function addEventsOnMenuItems() {
 // External callers MUST use getStoredValue / setStoredValue /
 // deleteStoredValue / getStoredJSON / getStoredArray. Direct access to
 // localStorage or sessionStorage is reserved for the storage adapter
-// itself, the ForbiddenBackoff backoff path (see _lessons/zirkulaerer-import-tdz-
-// crash.md -- it must not import HHStoredVars to keep the dependency
-// graph cycle-free), and game-side state that the script does not own
+// itself, the ForbiddenBackoff backoff path (it must not import HHStoredVars:
+// that would pull it into an import cycle, in which a cycle can hand a module an uninitialised binding at load), and game-side state that the script does not own
 // (e.g. localStorage.sort_by, set by the game's harem UI). Anything
 // else is a bypass that defeats the registry, kobanUsing master-switch,
 // and quota-retry contracts.
@@ -6849,8 +6838,7 @@ function addEventsOnMenuItems() {
 
 // setDefaults reference, injected from the boot path (src/index.ts) instead
 // of a static Helper -> Service/StartService import: that edge sat in 127 of
-// the baseline import cycles (ARCH-001; pattern: setPachinkoAutoLoopKick,
-// lesson zirkulaerer-import-tdz-crash). Loud guard instead of a silent noop:
+// the baseline import cycles (ARCH-001; pattern: setPachinkoAutoLoopKick). Loud guard instead of a silent noop:
 // a missed wiring must fail visibly, not skip the defaults reset.
 let setDefaultsRef = null;
 function setSetDefaultsRef(fn) {
@@ -8471,7 +8459,7 @@ var HeroHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 // AutoLoop retry kick, injected from the boot path (src/index.ts) instead of
 // a static Helper -> Service/AutoLoop import: that edge routed HeroHelper
 // through 154 of the baseline import cycles (ARCH-001; same pattern as
-// setPachinkoAutoLoopKick, lesson zirkulaerer-import-tdz-crash).
+// setPachinkoAutoLoopKick).
 let autoLoopKick = () => { };
 function setHeroAutoLoopKick(kick) {
     autoLoopKick = kick;
@@ -9019,7 +9007,6 @@ function migrateSavedDefaults(defaults, filterKey, maxKey) {
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
 const HHAuto_inputPattern = {
     nWith1000sSeparator: "[0-9" + thousandsSeparator + "]+",
-    //kobanBank:"[0-9]+",
     buyCombTimer: "[0-9]+",
     buyMythicCombTimer: "[0-9]+",
     // Defined once in Market.pure so the field and the runtime cannot drift
@@ -9031,7 +9018,6 @@ const HHAuto_inputPattern = {
     // the stored value had drifted to different lengths, so a list of more
     // than five codes was wiped on the next load (#1865).
     autoEquipMythicBooster: MYTHIC_LIST_PATTERN,
-    //calculatePowerLimits:"(\-?[0-9]+;\-?[0-9]+)|default",
     mousePauseTimeout: "[0-9]+",
     safeSecondsForContest: "[0-9]+",
     collectAllTimer: "[1-9][0-9]|[1-9]",
@@ -9055,11 +9041,6 @@ const HHAuto_inputPattern = {
     autoPowerPlacesIndexFilter: "[1-9][0-9]{0,1}(;[1-9][0-9]{0,1})*",
     autoChampsFilter: "[1-6](;[1-6])*",
     autoChampsTeamLoop: "[1-9][0-9]|[1-9]",
-    //autoStats:"[0-9]+",
-    //autoExp:"[0-9]+",
-    //maxExp:"[0-9]+",
-    //autoAff:"[0-9]+",
-    //maxAff:"[0-9]+",
     menuSellNumber: "[0-9]+",
     autoClubChampMax: "[0-9]+",
     menuExpLevel: "[1-4]?[0-9]?[0-9]",
@@ -23255,8 +23236,8 @@ Labyrinth.BUILD_BUTTON_ID = 'hhAutoLabyTeam';
 // top level. A top-level `const X = HHStoredVarPrefixKey + ...` is evaluated at
 // module load and throws a TDZ ReferenceError ("Cannot access
 // 'HHStoredVarPrefixKey' before initialization") if this module is evaluated
-// inside the import cycle before config/HHStoredVars finished initializing
-// (lesson zirkulaerer-import-tdz-crash). This module is reachable early via
+// inside the import cycle before config/HHStoredVars finished initializing.
+// This module is reachable early via
 // InfoService, so it must stay TDZ-safe.
 /** All blocks the watchdog has auto-disabled, keyed by block id. */
 function getAutoDisabledBlocks() {
@@ -23618,22 +23599,19 @@ function bindMouseEvents() {
 // AutoLoop.pure.ts -- Pure decision logic for the auto-loop scheduler.
 //
 // Two helpers:
-//   - decideBurst: replicates the storage/DOM-reading guard at the top
-//     of getBurst(). The DOM reads (sMenu visibility, nav content
-//     visibility) stay in the adapter; this function takes booleans.
-//   - shouldRunStandardHandler: replicates the pre-condition cascade
-//     at the top of runStandardHandler. The actual handler invocation
-//     and ctx mutation stay impure.
-//
-// Both are extracted byte-for-byte. Refactor, not a behaviour change.
+//   - decideBurst: the guard of getBurst() (AutoLoop.ts) without its DOM
+//     reads (sMenu visibility, nav content visibility), which stay in the
+//     adapter; this function takes booleans.
+//   - shouldRunStandardHandler: the precondition of every block built by
+//     fromDescriptor (Pipeline.config.ts). The handler invocation and the
+//     ctx mutation stay in the step.
 /**
- * Replicates getBurst() except the DOM reads.
+ * The decision of getBurst(), which reads the DOM and storage and hands
+ * the result in here.
  *
  * Returns false if either UI overlay is showing (sMenu or nav content),
  * otherwise:
  *     master AND (NOT paranoia OR burst)
- *
- * Bit-for-bit equivalent to the original short-circuit.
  */
 function decideBurst(state) {
     if (state.sMenuVisible)
@@ -24033,7 +24011,7 @@ class BlessingService {
      * and GirlData (camelCase: eyeColor, hairColor, position). Single
      * source of truth shared by detectActiveBlessings and the team
      * builder's blessing matcher, so a future game field rename is a
-     * one-place change (see lesson mapping-fix-vollstaendig-pruefen).
+     * one-place change.
      * position is normalised (the '.png' suffix is stripped).
      */
     static resolveTraitField(g, kind) {
@@ -28288,7 +28266,7 @@ var Pachinko_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
-// Decoupled autoLoop kick (see lesson zirkulaerer-import-tdz-crash). Pachinko
+// Decoupled autoLoop kick. Pachinko
 // must restart the loop after a run -- it sets autoLoop="false" during the
 // pulls, which stops AutoLoop's self-reschedule. Importing autoLoop directly
 // put Pachinko in a Module->Service import cycle; the entry point (index.ts)
@@ -29452,9 +29430,8 @@ class Shop {
             // flag is "true"). A direct setTimeout(autoLoop) here would
             // require a top-level import of Service/AutoLoop, which makes
             // Shop.ts part of a Module -> Service -> Module import cycle
-            // and breaks Pipeline.config.ts (which imports Shop). The
-            // resulting TDZ-style cycle is the pattern guarded against
-            // by the zirkulaerer-import-tdz-crash lesson.
+            // and breaks Pipeline.config.ts (which imports Shop): in the
+            // resulting cycle a cycle can hand a module an uninitialised binding at load.
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
         }
         function sellArmorItems() {
@@ -29819,7 +29796,7 @@ class TeamBuilderService {
         if (BlessingService.getEffectiveMultiplier(girl) <= 1)
             return false;
         // Field resolution is shared with BlessingService.detectActiveBlessings
-        // via resolveTraitField (single source of truth, lesson mapping-fix).
+        // via resolveTraitField (single source of truth).
         const value = BlessingService.resolveTraitField(girl, bless.kind);
         return String(value !== null && value !== void 0 ? value : '') === bless.value;
     }
@@ -32261,7 +32238,7 @@ class TeamModule {
             ? `<div style="color:#fc6; font-size:10px; margin-top:4px;"><b>Fallback applied:</b> ${teamResult.fallbackReason}</div>`
             : '';
         // The panel sits over the workflow buttons, so it folds away. The
-        // state is remembered: "1 Unequip All" reloads the page, and folding
+        // state is remembered: "Unequip All" reloads the page, and folding
         // it again on every pass through the workflow would be tiresome.
         const collapsed = getStoredValue(HHStoredVarPrefixKey + TK.teamInfoCollapsed) === 'true';
         const headline = teamResult.currentModeName || 'Team selection';
@@ -33174,7 +33151,7 @@ function isAutoLoopActive() {
 }
 // Block-scheduler tick is injected from the boot path (index.ts) instead of a
 // static import, to avoid an AutoLoop->BlockPipeline->Pipeline.config->...->
-// AutoLoop import cycle (lesson zirkulaerer-import-tdz-crash). Same pattern as
+// AutoLoop import cycle. Same pattern as
 // setPachinkoAutoLoopKick.
 let blockTick = null;
 function setBlockTick(fn) {
@@ -33593,10 +33570,7 @@ function reviverMap(key, value) {
 // battle simulation result used to decide whether to fight.
 //@ts-check
 class LeagueOpponent {
-    // constructor(opponent_id: any,rank: number,nickname: string,level: number,power: number,player_league_points: number,simuPoints: number,nb_boosters: number, kkOpponent:KKLeagueOpponent, simu:BDSMSimu){
     constructor(opponent_id, nickname, power, simuPoints, simu) {
-        // nb_boosters: number = 0;
-        // kkOpponent:KKLeagueOpponent = {} as any;
         this.simu = {};
         this.opponent_id = opponent_id;
         this.nickname = nickname;
@@ -36476,8 +36450,8 @@ function defaultStorage() {
 //
 // NOTE: the sessionStorage key is built at call time in StartService,
 // never at module top level, to keep this module free of the
-// HHStoredVars TDZ/import-cycle hazard (lesson zirkulaerer-import-tdz-crash)
-// and the top-level-storage-key CI gate.
+// HHStoredVars import-cycle hazard (inside a cycle the prefix may not be
+// initialised yet) and the top-level-storage-key CI gate.
 // How many automatic reloads to attempt before giving up for real and
 // asking the user to reload manually. Each reload costs one full Hero
 // retry window (~75s) before it fires, so a small cap keeps the total
@@ -36695,9 +36669,9 @@ function hardened_start() {
         installAjaxTracker();
         // Wire AjaxTracker's 403 hook to the persistent backoff counter.
         // Done here (not via a direct import inside AjaxTracker) to keep
-        // AjaxTracker free of any HHStoredVars dependency: HHStoredVars
-        // imports PlaceOfPower, which imports AjaxTracker, so a direct
-        // import would form a TDZ cycle (issue #1598 follow-up).
+        // AjaxTracker free of any HHStoredVars dependency: several modules import
+        // AjaxTracker, and a storage import there would pull it into their
+        // import cycles (issue #1598 follow-up).
         setOnAjaxForbidden(() => { try {
             recordForbidden();
         }
@@ -37642,8 +37616,8 @@ class BlockScheduler {
 
 
 
-// Key computed at call-time, never at module top level (TDZ-safety;
-// lesson zirkulaerer-import-tdz-crash).
+// Key computed at call-time, never at module top level: inside an import
+// cycle the prefix may not be initialised yet when this module loads.
 function key() { return HHStoredVarPrefixKey + TK.activeBlockRun; }
 /** Narrow an unknown parsed value to a structurally valid BlockRun. */
 function isBlockRun(v) {
@@ -38495,10 +38469,7 @@ class GenericBattle {
  * The activation paths are guarded by a Pure-spec
  * (spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts, 9 cases) and
  * a wait-marker spec (spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts,
- * 3 cases). New paths must be added to both specs. The lessons file
- * c:\Users\StephanMesser\.kiro\Arbeitsplatz\.kiro\steering\_lessons\
- * mapping-fix-vollstaendig-pruefen.md captures the cost of skipping this
- * pruning step.
+ * 3 cases). New paths must be added to both specs.
  */
 function wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid) {
     const autoTrollOn = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true";
@@ -38575,20 +38546,6 @@ var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (th
 
 
 /**
- * Build a HandlerConfig from a ModuleHandlerDescriptor -- the uniform
- * `name + action + isReady + execute` shape that `runStandardHandler` in
- * AutoLoopActions.ts uses.
- *
- * The returned config is single-step, non-atomic, always-interruptible, and
- * mirrors the cascade in `runStandardHandler`:
- *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
- *   guard -> isReady guard -> execute -> set ctx.busy / ctx.lastActionPerformed.
- *
- * The `lastActionPerformed` gate stays as the descriptor-level continuation:
- * the slot-hold rule does the same job with less machinery
- * (docs/decisions/ADR-006-nothing-bundled-nothing-split.md).
- */
-/**
  * True when the bot is currently on a quest or side-quest page. Used to let
  * navigating handlers (e.g. handleMissions) yield so they do not pull the bot
  * away from a quest mid-completion -- handleQuest needs several reload cycles
@@ -38599,12 +38556,27 @@ function isOnQuestPage(ctx) {
     return ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest')
         || ctx.currentPage === 'side-quests';
 }
+/**
+ * Build a HandlerConfig from a ModuleHandlerDescriptor -- the uniform
+ * `name + action + isReady + execute` shape of the simple modules.
+ *
+ * The returned config is single-step and, unless opts.atomic, non-atomic and
+ * always interruptible. Its precondition is shouldRunStandardHandler
+ * (AutoLoop.pure.ts):
+ *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
+ *   guard -> isReady guard; the step then executes and sets ctx.busy /
+ *   ctx.lastActionPerformed.
+ *
+ * The `lastActionPerformed` gate stays as the descriptor-level continuation:
+ * the slot-hold rule does the same job with less machinery
+ * (docs/decisions/ADR-006-nothing-bundled-nothing-split.md).
+ */
 function fromDescriptor(descriptor, opts) {
     var _a, _b;
     const atomic = (_a = opts.atomic) !== null && _a !== void 0 ? _a : false;
-    // The HandlerConfig.name is the technical identifier used as map key in
-    // Scheduler.lastRunAt, Scheduler.states, sessionStorage TK.pipelineLastRunAt
-    // and the [Scheduler] Starting chain '...' log line. Keep it short and
+    // The HandlerConfig.name becomes the block id: the key in
+    // TK.pipelineLastRunAt, the cooldown and focus maps and the Block Order
+    // list, and the name in the scheduler's log lines. Keep it short and
     // identifier-like (e.g. 'handleMissions'). It must NOT collide with the
     // descriptor.name, which is a user-facing log message ('Time to do
     // missions.'). The user message is logged inside step.fn via descriptor.name.
@@ -38828,7 +38800,7 @@ const handleLeague = {
     atomic: true,
     interruptible: 'never',
     precondition: (ctx) => {
-        // Trigger logic in full (lesson pipeline-inner-trigger-in-precondition):
+        // Trigger logic in full -- every gate here, none left inside step.fn:
         //
         //   1. League auto-mode active and feature enabled at all?
         //   2. Bot not currently mid-action on a different module (the
@@ -39016,9 +38988,8 @@ const handleAutoEquipBoosters = {
 // ---------------------------------------------------------------------------
 //  Handlers built with fromDescriptor.
 //  Each one is a one-step wrapper around a ModuleHandlerDescriptor. isReady
-//  captures both the outer and the inner trigger -- the lesson
-//  pipeline-inner-trigger-in-precondition warns against splitting them between
-//  precondition and step.fn. All of them are non-atomic, always interruptible,
+//  captures both the outer and the inner trigger: split between precondition
+//  and step.fn, the block would start a run whose step then does nothing. All of them are non-atomic, always interruptible,
 //  and carry a minIntervalMs sized to the module's tick frequency.
 // ---------------------------------------------------------------------------
 const handleLoveRaid = fromDescriptor({
@@ -39156,9 +39127,8 @@ const handleLabyrinth = fromDescriptor({
     execute: () => (new LabyrinthAuto).run(),
 }, { minIntervalMs: 5000, handlerName: "handleLabyrinth" });
 // ---------------------------------------------------------------------------
-//  Handlers that do not fit the runStandardHandler descriptor shape. Each one
-//  keeps its full logic in step.fn, with all gates in the precondition (lesson
-//  pipeline-inner-trigger-in-precondition).
+//  Handlers that do not fit the fromDescriptor shape. Each one
+//  keeps its full logic in step.fn, with all gates in the precondition.
 //
 //  handleMythicWave is deliberately absent. Its only effect was setting
 //  ctx.lastActionPerformed = "troll" in the same tick to grant
@@ -39923,7 +39893,7 @@ const handleChampionTicket = {
                 var _a;
                 try {
                     // Avoid getHero() import: it lives in HeroHelper.ts which imports autoLoop,
-                    // closing a Module->Service->Module cycle (lesson zirkulaerer-import-tdz-crash).
+                    // closing a Module->Service->Module cycle.
                     // unsafeWindow.shared?.Hero is the same object getHero() returns.
                     const Hero = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero;
                     if (!Hero)
@@ -40660,8 +40630,7 @@ function buildScheduler() {
 }
 // Lazy singleton: built on the first tick from the boot path, not at module
 // eval, so reading the `pipeline` array cannot hit a TDZ when the cyclic module
-// graph evaluates BlockPipeline before Pipeline.config (lesson
-// zirkulaerer-import-tdz-crash).
+// graph evaluates BlockPipeline before Pipeline.config.
 let _scheduler = null;
 function getBlockScheduler() {
     if (!_scheduler)
@@ -40674,16 +40643,14 @@ function getBlockScheduler() {
 //
 // This is the Tampermonkey userscript entry point. It augments the
 // global Window interface with game-specific properties that the script
-// reads from the page context (via unsafeWindow), then kicks off
-// initialization in two ways:
+// reads from the page context (via unsafeWindow), wires the injected
+// dependencies that keep the modules out of import cycles, and calls
+// hardened_start() once.
 //
-//   1. An IIFE that calls hardened_start() immediately on script load
-//   2. A setTimeout fallback that retries after 5 seconds in case the
-//      game's JS hasn't finished loading yet
-//
-// hardened_start() verifies jQuery is available, checks for "Forbidden"
-// error pages, and delegates to start() which sets up the full menu,
-// timers, and auto-loop.
+// hardened_start() installs the AJAX tracker, answers a "Forbidden" page
+// (no jQuery) with a backed-off reload, and otherwise hands over to start(),
+// which waits for the game's hero data with a bounded retry and reload and
+// then sets up the menu, timers and auto-loop.
 
 
 
@@ -40700,7 +40667,7 @@ function getBlockScheduler() {
 
 
 // Inject the autoLoop kick into Pachinko so it can restart the loop after a
-// run without a static Module->Service import (lesson zirkulaerer-import-tdz-crash).
+// run without a static Module->Service import, which would close an import cycle.
 setPachinkoAutoLoopKick(autoLoop);
 // Same pattern for HeroHelper's page-not-ready retry (ARCH-001: the static
 // HeroHelper -> AutoLoop import sat in 154 baseline cycles).
@@ -40715,16 +40682,16 @@ setAutoLoopKick(autoLoop);
 // StorageHelper -> StartService import sat in 127 baseline cycles).
 setSetDefaultsRef(StartService_setDefaults);
 // Inject the block-scheduler tick into AutoLoop from the boot path (instead of
-// a static AutoLoop->BlockPipeline import) to avoid an import cycle / TDZ
-// (lesson zirkulaerer-import-tdz-crash).
+// a static AutoLoop->BlockPipeline import) to avoid an import cycle, in which
+// a cycle can hand a module an uninitialised binding at load.
 setBlockTick((ctx) => getBlockScheduler().tick(ctx));
 // Wire the Block-Order popup's registry provider (avoids a static
 // PipelineOrderService->BlockPipeline import cycle).
 setPipelineRegistryProvider(buildRegistryAndOrder);
 // Inject the SCC-bound helpers the menu modules need. The menu/* files read
 // these from MenuPorts instead of importing them statically, which keeps them
-// as graph leaves and out of the circular-dependency baseline (WART-002,
-// lesson zirkulaerer-import-tdz-crash). Wrapped in a function so the
+// as graph leaves and out of the circular-dependency baseline (WART-002).
+// Wrapped in a function so the
 // HHStoredVarPrefixKey reference is not evaluated at module top level.
 function wireMenuPorts() {
     setMenuPorts({
