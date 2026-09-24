@@ -7,6 +7,26 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.15.0 - Every reward in the recap and the collect lists
+
+- **Unclaimed rewards:** the recap under "Claim All" on path of valor, path
+  of glory, season, penta drill, path of attraction, double penetration and
+  the seasonal event now counts every reward still to claim, not only
+  energies, XP and currencies. Girl shards, gems, orbs, gifts, books,
+  boosters, bulbs, equipment, rejuvenation stones, event resources and
+  lively scenes are added. Its title is now "Unclaimed rewards". Girl shards
+  count what a tier adds; before, the recap read the girl's own count.
+- **Reward types:** a mythic booster, book or bulb was taken for mythic
+  equipment, because its rarity class reads "mythic". It now counts as the
+  booster, book or bulb it is. If you collect by type, check the boosters,
+  potions and bulbs boxes: the "Mythic Equipment" box no longer covers them.
+- **Three new collect types:** Equipment (random equipment below mythic),
+  Event resource and Lively scene. Tiers holding them were never collected
+  before, even with every box ticked. The new boxes start unticked.
+- **Collect popup:** plain checkboxes instead of switches, the whole label
+  clickable, in the script's font. "Toggle All" stays and still inverts
+  every box.
+
 ### v8.14.1 - Sandalwood for skins
 
 - **Sandalwood in the skin phase:** "Equip Sandalwood" under Shards & Skins

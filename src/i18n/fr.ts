@@ -112,8 +112,8 @@ HHAuto_ToolTips.fr['pogTitle'] = { version: "5.20.3", elementText: "Voie de la G
 HHAuto_ToolTips.fr['poaTitle'] = { version: "6.15.8", elementText: "Chemin d'affection"};
 HHAuto_ToolTips.fr['seasonalEventTitle'] = { version: "5.6.133", elementText: "Evènements saisoniers"};
 HHAuto_ToolTips.fr['mousePause'] = {version: "5.6.135", elementText: "Pause souris", tooltip: "Pause le script pour 5 secondes quand des mouvements de la souris sont detecté. Evite le sript d'interrompre les actions manuelles. (en ms, 5000ms=5s)"};
-HHAuto_ToolTips.fr['rewardsToCollectTitle'] = { version: "6.15.8", elementText: "Energies, XP, monnaies à collecter"};
-HHAuto_ToolTips.fr['showRewardsRecap'] = { version: "6.15.8", elementText: "Affiche recap de récompenses", tooltip: "Affiche les récompenses cumulés des energies, l'XP et les monnaies"};
+HHAuto_ToolTips.fr['rewardsToCollectTitle'] = { version: "8.15.0", elementText: "Récompenses non récupérées"};
+HHAuto_ToolTips.fr['showRewardsRecap'] = { version: "8.15.0", elementText: "Affiche recap de récompenses", tooltip: "Affiche le total de toutes les récompenses pas encore récupérées sur la page"};
 HHAuto_ToolTips.fr['bossBangEvent'] = { version: "8.10.42", elementText: "Activé", tooltip: "Si activé : Effectue les combats boss bang en commençant par l'équipe configuré si après."};
 HHAuto_ToolTips.fr['bossBangEventTitle'] = { version: "6.15.8", elementText: "Boss Bang"};
 HHAuto_ToolTips.fr['bossBangMinTeam'] = { version: "5.6.137", elementText: "Première équipe", tooltip: "Première équipe à utiliser<br>Si 5, le script commencera par la dernière pour finir par la premiere."};

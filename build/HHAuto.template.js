@@ -58,12 +58,12 @@ GM_addStyle('@font-face {font-family:"IBM Plex Sans"; font-style:normal; font-we
 // panel, the popup (its h2 title included -- the game gives h2 a font of its
 // own, which beats inheritance), every script button, the tooltips, the info
 // overlay, the gear controls on the market page, the league score labels and
-// the small marks and panels on the team and harem pages. The game's own
-// elements are left alone.
+// the small marks and panels on the team and harem pages, and the rewards
+// recap on the reward paths. The game's own elements are left alone.
 GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoPopupGlobal h2, #HHAutoTooltip,'
             + ' .myButton, .tooltipHHtext, .HHAutoOverlay, .HHpopup_message, .hhScrollTooltip, .hhTeamSynergyInfo,'
             + ' .topNumber, .HHKeepMark, #hhTeamWorkflow, #HHGearButtons, #HHGearMenuList, #HHGearPreview, #HHGearStatus,'
-            + ' #HHPowerCalcScore, #HHPowerCalcPoints'
+            + ' #HHPowerCalcScore, #HHPowerCalcPoints, .HHRewardNotCollected, .HHRewardNotCollected h1'
             + ' {font-family:"IBM Plex Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;}');
 // Form controls do not inherit font-family -- they take the browser's own
 // control font (Arial here). Left alone, the number fields would have kept
@@ -246,6 +246,14 @@ GM_addStyle(".HHpopup_message .close {   position: absolute;   top: 20px;   righ
 GM_addStyle('#HHPovPogRewards { position: absolute; bottom: 0.2rem; left: -0.75rem; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}');
 GM_addStyle('.HHRewardNotCollected { max-width: 17.9rem; transform: scale(0.8); }');
 GM_addStyle('.HHRewardNotCollected .slot { margin: 1px 1px 0}'); 
+GM_addStyle('.HHRewardNotCollected .slot img { width: 100%; height: 100%; object-fit: contain; }');
+GM_addStyle('.HHRewardNotCollected .HHRewardName { font-size: 0.55rem; line-height: 1.1; display: block; padding-top: 2px; }');
+// The collect popup: plain checkboxes in four columns, the whole label clickable.
+GM_addStyle('.HHCollectables { padding: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }'
+            + '.HHCollectablesGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 12px; }'
+            + '.HHCollectablesItem { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 2px 0; user-select: none; }'
+            + '.HHCollectablesItem input { margin: 0; width: 16px; height: 16px; accent-color: #2196F3; cursor: pointer; flex: none; }'
+            + '#toggleCollectables { font-size: 12px; padding: 4px 12px; }');
 GM_addStyle('.HHGirlMilestone { position: absolute; bottom: 0;  z-index: 1; font-size:smaller; width: 200px; text-align: center;}'); 
 GM_addStyle('.HHGirlMilestone > div { background: rgba(0,0,0,.5); border-radius: 10px; margin:auto;  width: 140px; }'); 
 // GM_addStyle('.HHGirlMilestone.green { border: solid 1px green }');
