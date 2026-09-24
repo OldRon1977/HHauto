@@ -282,6 +282,17 @@ describe("Event Module", function() {
             expect(getTimer('eventBossBangGoing')).toEqual(-1);
         });
 
+        it("leaves the DP, Lively Scene and seasonal collect switches on when their banners are gone", function () {
+            homeWithBossBang(false);
+            const keys = ['Setting_autodpEventCollect', 'Setting_autoLivelySceneEventCollect',
+                'Setting_autoSeasonalEventCollect', 'Setting_autoSeasonalEventCollectAll'];
+            keys.forEach(key => localStorage.setItem(HHStoredVarPrefixKey + key, 'true'));
+
+            EventModule.parsePageForEventId();
+
+            keys.forEach(key => expect(localStorage.getItem(HHStoredVarPrefixKey + key)).toEqual('true'));
+        });
+
         it("keeps the timers while the event is still running", function () {
             homeWithBossBang(true);
             setTimer('nextBossBangTime', 3600);

@@ -11916,17 +11916,10 @@ class BossBang {
             // setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
         }
         else if (eventList[eventID]["isCompleted"]) {
-            // Keep the setting on while milestone rewards are still claimable, so
-            // handleBossBangFight stays eligible to claim them after the boss is
-            // defeated (issue #1455). Disable only once nothing is left to claim.
-            const unclaimedRewards = $(BossBang.PROGRESS_REWARD_SELECTOR).length;
-            if (unclaimedRewards > 0) {
-                logHHAuto("Boss bang completed, " + unclaimedRewards + " progress reward(s) still to claim before disabling.");
-            }
-            else {
-                logHHAuto("Boss bang completed, disabled boss bang event setting");
-                setStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent, false);
-            }
+            // The setting stays on for the next boss bang. This one is stored
+            // as completed, and checkEvent never hands a completed event ID
+            // to the parse or fight blocks again.
+            logHHAuto("Boss bang completed, " + $(BossBang.PROGRESS_REWARD_SELECTOR).length + " progress reward(s) left to claim.");
         }
         else {
             logHHAuto(`No eligible team found for boss bang event, need team ${firstTeamToStartWith} or higher`);
@@ -14756,21 +14749,14 @@ class EventModule {
                 clearTimer('eventBossBangGoing');
             }
             parseForEventId(dpEventQuery, eventIDs);
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" && $(dpEventQuery).length === 0) {
-                logHHAuto("No double penetration event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect, "false");
-            }
             parseForEventId(livelySceneEventQuery, eventIDs);
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length === 0) {
-                logHHAuto("No Lively Scene event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect, "false");
-            }
-            const queryResults = $(seasonalEventQuery);
-            if ((getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true") && queryResults.length === 0) {
-                logHHAuto("No seasonal event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect, "false");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll, "false");
-            }
+            // No event switch is turned off here when its banner is missing.
+            // The switches stay as the user set them: Double Penetration and
+            // Lively Scene are only visited for an event ID parsed above, and
+            // the seasonal block asks the game's own event globals
+            // (SeasonalEvent.isActiveEvent), which every page carries. A
+            // switch that went off with one event had to be turned on again
+            // by hand for the next one.
             // Path of Valor / Path of Glory: the home-page selectors for these events
             // are unreliable (the banner only appears briefly between waves), so a
             // false-negative here would silently flip the user setting back to off.
@@ -28019,9 +28005,11 @@ class SeasonalEvent {
             return true;
         }
         else {
+            // Only the game's globals are read here, no page is loaded, so an
+            // hourly look costs nothing and finds a new event on its first day.
             logHHAuto("No SeasonalEvent active.");
-            setTimer('nextSeasonalEventCollectTime', 604800); // 1 week delay
-            setTimer('nextSeasonalEventCollectAllTime', 604800); // 1 week delay
+            setTimer('nextSeasonalEventCollectTime', randomInterval(3600, 4200));
+            setTimer('nextSeasonalEventCollectAllTime', randomInterval(3600, 4200));
             return false;
         }
     }
@@ -40283,10 +40271,10 @@ const handleBossBangFight = {
         const onBattlePage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang');
         // Reward phase (issue #1455): boss bang is build -> fight -> rewards. The
         // tiered milestone rewards become claimable on the event page once the boss
-        // is defeated -- which is AFTER BossBang.parse auto-disables the fight
-        // setting. So claiming is gated on the FEATURE, not on the fight setting,
-        // and NOT on the fight back-off timer (goToFightPage arms nextBossBangTime
-        // on a finished event); otherwise the rewards are never collected.
+        // is defeated. Claiming is gated on the FEATURE, not on the fight setting --
+        // a user may have switched fighting off by then -- and NOT on the fight
+        // back-off timer (goToFightPage arms nextBossBangTime on a finished event);
+        // otherwise the rewards are never collected.
         if (onEvent && $(BossBang.PROGRESS_REWARD_SELECTOR).length > 0)
             return true;
         // Fight phase: needs the user setting on and the fight back-off timer elapsed.

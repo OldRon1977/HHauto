@@ -73,16 +73,10 @@ export class BossBang {
             // setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
         }
         else if (eventList[eventID]["isCompleted"]) {
-            // Keep the setting on while milestone rewards are still claimable, so
-            // handleBossBangFight stays eligible to claim them after the boss is
-            // defeated (issue #1455). Disable only once nothing is left to claim.
-            const unclaimedRewards = $(BossBang.PROGRESS_REWARD_SELECTOR).length;
-            if (unclaimedRewards > 0) {
-                logHHAuto("Boss bang completed, " + unclaimedRewards + " progress reward(s) still to claim before disabling.");
-            } else {
-                logHHAuto("Boss bang completed, disabled boss bang event setting");
-                setStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent, false);
-            }
+            // The setting stays on for the next boss bang. This one is stored
+            // as completed, and checkEvent never hands a completed event ID
+            // to the parse or fight blocks again.
+            logHHAuto("Boss bang completed, " + $(BossBang.PROGRESS_REWARD_SELECTOR).length + " progress reward(s) left to claim.");
         }
         else {
             logHHAuto(`No eligible team found for boss bang event, need team ${firstTeamToStartWith} or higher`);
