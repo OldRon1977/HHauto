@@ -11,9 +11,8 @@
 //     scheduler; the menu order is just DOM sequence, so applyMenuOrder moves
 //     the existing nodes and the user sees the result immediately, with every
 //     input still bound and still holding its value.
-//   - the labels are translated (the areas are named in the menu the user is
-//     looking at, so an English-only popup would be a step back from the i18n
-//     work this branch is about).
+//   - the labels are translated: the areas are named as in the menu the user
+//     is looking at.
 //
 // The order is written to TK.menuOrder (localStorage, HHType "Setting"), so it
 // survives "delete temp vars" and is included in the JSON settings export.

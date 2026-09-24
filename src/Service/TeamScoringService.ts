@@ -133,7 +133,7 @@ export class TeamScoringService {
      *
      *   projected = current * (750 / level) * (1 + 0.3 * nb_grades) / (1 + 0.3 * graded)
      *
-     * For voll-awakte girls (level 750, graded == nb_grades), projected == current.
+     * For fully developed girls (level 750, graded == nb_grades), projected == current.
      */
     static scoreBestPossible(girl: GirlData, _playerClass?: PlayerClass): number {
         const current = TeamScoringService.caracsSum(girl);

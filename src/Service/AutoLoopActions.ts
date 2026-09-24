@@ -11,23 +11,6 @@ import { SK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 import { LoveRaid } from '../model/LoveRaid';
 
-// ---------------------------------------------------------------------------
-//  Standard handler utility – reduces boilerplate for simple module handlers
-// ---------------------------------------------------------------------------
-
-/**
- * Executes a standard module handler if all preconditions are met.
- * Handles the common pattern: check busy → check autoLoop → check competition
- * → check lastAction → check isReady → log → execute → update busy & lastAction.
- */
-
-// ---------------------------------------------------------------------------
-//  Action handlers – called in order from autoLoop()
-// ---------------------------------------------------------------------------
-
-// Every other action handler lives in Pipeline.config.ts; what remains here are
-// the helpers those handlers share.
-
 /**
  * Pure helper: would handleTrollBattle have fired a fight if combativity were
  * available? Mirrors the activation paths in the main if-block, but without

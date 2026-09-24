@@ -1,10 +1,10 @@
-// Pipeline.config.ts -- Declarative pipeline configuration for the Scheduler.
+// Pipeline.config.ts -- Every action the script takes, as handler entries
+// for the block pipeline.
 //
-// Defines the types and interfaces for handler configurations,
-// plus concrete handler entries for migrated handlers.
-//
-// Order of handler execution is given by the position in the `pipeline`
-// array below: first element runs first. Reordering = move a line.
+// Defines the handler configuration types and one entry per action. The
+// position in the `pipeline` array below is the default order (first element
+// runs first); the player can reorder the blocks in the Block Order popup,
+// within the constraints BlockPipeline declares.
 //
 // Used by: BlockPipeline.ts (adapts these entries into Blocks)
 import { LeagueHelper } from "../Module/League";
@@ -56,9 +56,9 @@ import { shouldRunStandardHandler } from "./AutoLoop.pure";
 import { wouldFightWithPower } from "./AutoLoopActions";
 
 /**
- * How a handler responds to higher-priority interrupts.
- * - 'always': can be interrupted at any point
- * - 'never': runs to completion (only SOFT-interrupt at safe points)
+ * How a handler was meant to respond to higher-priority interrupts
+ * ('always' / 'never'). BlockPipeline.toBlock does not carry it over, so the
+ * block scheduler never sees it.
  */
 type InterruptPolicy = 'always' | 'never';
 
@@ -84,7 +84,7 @@ interface ChainStep {
   name: string;
   /** Async function that performs the step. Receives the shared AutoLoop context. */
   fn: (ctx: AutoLoopContext) => Promise<StepResult>;
-  /** Per-step timeout in ms (optional, defaults to totalTimeoutMs / steps.length) */
+  /** Per-step timeout in ms. Handed on to the Block; the block scheduler does not read it. */
   timeoutMs?: number;
 }
 
@@ -99,17 +99,17 @@ export interface HandlerConfig {
   name: string;
   /** Minimum milliseconds between two runs of this handler */
   minIntervalMs: number;
-  /** If true, the entire step chain runs as an uninterruptible unit */
+  /** Uninterruptible chain. BlockPipeline.toBlock does not carry it over, so it has no effect. */
   atomic: boolean;
-  /** How this handler responds to HARD interrupts */
+  /** Response to HARD interrupts. Not carried over to the Block either; no effect. */
   interruptible: InterruptPolicy;
   /** Skip this handler if precondition returns false. Receives the shared AutoLoop context. */
   precondition: (ctx: AutoLoopContext) => boolean;
   /** Ordered list of steps to execute */
   steps: ChainStep[];
-  /** Called when a step fails (for cleanup/recovery) */
+  /** Cleanup on a failed step. Not carried over to the Block; no effect. */
   onFailure?: (ctx: AutoLoopContext, failedStep: string, reason: string) => Promise<void>;
-  /** Watchdog: max total ms for the entire chain (default: 30000) */
+  /** Max total ms for the chain. Handed on to the Block; the block scheduler does not read it. */
   totalTimeoutMs?: number;
 }
 
@@ -129,8 +129,7 @@ function isOnQuestPage(ctx: AutoLoopContext): boolean {
  * Build a HandlerConfig from a ModuleHandlerDescriptor -- the uniform
  * `name + action + isReady + execute` shape of the simple modules.
  *
- * The returned config is single-step and, unless opts.atomic, non-atomic and
- * always interruptible. Its precondition is shouldRunStandardHandler
+ * The returned config is single-step. Its precondition is shouldRunStandardHandler
  * (AutoLoop.pure.ts):
  *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
  *   guard -> isReady guard; the step then executes and sets ctx.busy /
@@ -195,7 +194,6 @@ function fromDescriptor(
 
 // ---------------------------------------------------------------------------
 //  Handler: handleEventParsing
-//  Non-atomic, always interruptible.
 //  Wraps: EventModule.parseEventPage()
 // ---------------------------------------------------------------------------
 
@@ -352,7 +350,6 @@ export function pruneExpiredEvents(eventList: Record<string, any>, now: number):
 
 // ---------------------------------------------------------------------------
 //  Handler: handleLeague
-//  Atomic (fight sequence must not be interrupted).
 //  Wraps: LeagueHelper.isTimeToFight() + LeagueHelper.doLeagueBattle()
 // ---------------------------------------------------------------------------
 
@@ -360,7 +357,7 @@ const handleLeague: HandlerConfig = {
   name: 'handleLeague',
   // Aligned with the short setTimer('nextLeaguesTime') value used in
   // LeagueHelper.doLeagueBattle when energy remains after a batch.
-  // A larger Scheduler cool-down would silently extend the gap and
+  // A larger block cool-down would silently extend the gap and
   // defeat the purpose of the short setTimer (the user wants the bot
   // to chain through all 15 battles, like a human emptying the league
   // tab in one sitting).
@@ -446,8 +443,7 @@ const handleLeague: HandlerConfig = {
 
 // ---------------------------------------------------------------------------
 //  Handler: handleShop
-//  Non-atomic, always interruptible. Logs and updates the shop only when the
-//  inner trigger matches: either the shop cool-down timer has elapsed, or the
+//  Logs and updates the shop only when the inner trigger matches: either the shop cool-down timer has elapsed, or the
 //  cached character level is below the current hero level, which signals a
 //  level-up that should refresh the shop offers.
 // ---------------------------------------------------------------------------
@@ -501,15 +497,15 @@ const handleShop: HandlerConfig = {
 
 // ---------------------------------------------------------------------------
 //  Handler: handleAutoEquipBoosters
-//  Non-atomic, always interruptible. Auto-equips legendary boosters when
-//  slots are empty/expired and the user opted in.
+//  Auto-equips legendary boosters when slots are empty/expired and the user
+//  opted in, and fills free mythic slots from the priority list.
 // ---------------------------------------------------------------------------
 
 const handleAutoEquipBoosters: HandlerConfig = {
   name: 'handleAutoEquipBoosters',
   // Boosters can expire mid-session; keep the scheduler cool-down short so
   // the next eligible tick reacts quickly. The internal Booster timer (and
-  // the freshness stamp introduced in cluster Z) handles longer waits.
+  // the boosterStatus freshness stamp) handles longer waits.
   minIntervalMs: 5_000,
   atomic: false,
   interruptible: 'always',
@@ -546,8 +542,8 @@ const handleAutoEquipBoosters: HandlerConfig = {
 //  Handlers built with fromDescriptor.
 //  Each one is a one-step wrapper around a ModuleHandlerDescriptor. isReady
 //  captures both the outer and the inner trigger: split between precondition
-//  and step.fn, the block would start a run whose step then does nothing. All of them are non-atomic, always interruptible,
-//  and carry a minIntervalMs sized to the module's tick frequency.
+//  and step.fn, the block would start a run whose step then does nothing.
+//  Each carries a minIntervalMs sized to the module's tick frequency.
 // ---------------------------------------------------------------------------
 
 const handleLoveRaid = fromDescriptor({
@@ -604,9 +600,8 @@ const handleMissions = fromDescriptor({
 // offers it once a day, so it must not wait behind the long battle blocks.
 // From the tail of the pipeline an ad waits minutes for its click: a long
 // block such as handleLabyrinth holds the slot across every page change and
-// releases it only on "nothing left to do", and a lower-ranked block can never
-// preempt (Scheduler.findNextReadyHigherThan keeps only ranks above the
-// running one).
+// releases it only on "nothing left to do", and the block scheduler never
+// preempts a running block.
 //
 // hasAdWork() is what makes the early position safe: the block claims a slot
 // only when a visible ad button (or our own pending reward confirm) is on the
@@ -701,11 +696,8 @@ const handleLabyrinth = fromDescriptor({
 //  handleMythicWave is deliberately absent. Its only effect was setting
 //  ctx.lastActionPerformed = "troll" in the same tick to grant
 //  handleTrollBattle a slot reservation. The scheduler picks one handler per
-//  tick, so the reservation has no
-//  destination -- and handleTrollBattle's own gate already accepts
-//  lastActionPerformed = "none" anyway. The function is kept in
-//  AutoLoopActions.ts as deprecated, the AutoLoop.autoLoop() call site
-//  is removed.
+//  tick, so the reservation has no destination -- and handleTrollBattle's own
+//  gate already accepts lastActionPerformed = "none" anyway.
 // ---------------------------------------------------------------------------
 
 const handleHaremSize: HandlerConfig = {
@@ -859,8 +851,7 @@ const handleTrollBattle: HandlerConfig = {
   // On a live session most 'handleTrollBattle' starts are legitimate skips
   // (currentPower below threshold, no event girl, no raid): the precondition
   // matches but step.fn falls through. Those are silent no-ops; the pipeline
-  // still emits
-  // Starting/completed pairs which adds log noise. Doubling the cool-down
+  // still emits Starting/completed pairs, which adds log noise. Doubling the cool-down
   // to 4 s halves the polling rate without affecting fight responsiveness
   // (the inner Troll battle sequence holds the autoLoop flag for several
   // seconds between fights anyway).
@@ -1036,8 +1027,7 @@ const handleQuest: HandlerConfig = {
           setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'false');
         }
         const questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) as string;
-        // Interim guard (full fix tracked for the step-17 multi-step scheduler):
-        // the resource-wait branches below ('*', '$', 'P') set ctx.busy=false
+        // The resource-wait branches below ('*', '$', 'P') set ctx.busy=false
         // without navigating. Without this the bot strands on /quest.html and
         // handleQuest ticks empty every ~2s while other modules (salary, ...)
         // never run. Route home so the normal loop resumes; auto-quest navigates
@@ -1147,14 +1137,11 @@ const handleQuest: HandlerConfig = {
           setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
           ctx.busy = false;
         } else if (questRequirement === 'outfit') {
-          // Quest step requires an outfit change. Quest.ts:215 writes the
-          // 'outfit' marker but no else-if matched it before, so the
-          // pipeline fell through to the catch-all 'Invalid quest
-          // requirement' branch every tick: the marker was never reset,
-          // so the bot stayed in an infinite log-spam loop on outfit-
-          // gated quests until the user manually intervened. Auto-quest
-          // also stayed enabled (unlike unknownQuestButton), so the
-          // pInfo gave no hint that the bot was stuck.
+          // Quest step requires an outfit change (Quest.ts writes the
+          // 'outfit' marker). Without this branch the marker falls through
+          // to the catch-all 'Invalid quest requirement' branch every tick,
+          // is never reset, and the bot loops on outfit-gated quests with
+          // auto-quest still on and no hint in the pInfo.
           //
           // Mirror the unknownQuestButton path: disable autoQuest /
           // autoSideQuest, log a user-actionable message, reset the
@@ -1739,9 +1726,10 @@ const handleBossBangFight: HandlerConfig = {
           // skip/claim best-effort and keep the slot on repeat so no other block
           // navigates away between fights. The game itself returns to the event
           // page after each fight; termination happens there -- BossBang.parse
-          // disables the setting once the event shows completed (or arms the
-          // back-off timer when no attempt is left), which flips this block's
-          // precondition false and releases the slot. skipFightPage leaves
+          // stores the event as completed once the page shows it (which drops
+          // it from bossBangEventIDs), or arms the back-off timer when no
+          // attempt is left; either flips this block's precondition false and
+          // releases the slot. skipFightPage leaves
           // autoLoop on 'true'; flipping it would make BlockScheduler.tick
           // discard the held run.
           await BossBang.skipFightPage();
@@ -1804,13 +1792,15 @@ const handleGoHome: HandlerConfig = {
 // ---------------------------------------------------------------------------
 //  Pipeline: ordered list of all handler configurations.
 //
-//  ORDER MATTERS: position in this array = priority. Earlier elements run
-//  first. To reorder a handler (e.g. move PoP to the end, or place the Mythic
-//  Wave handler at slot 3), move its entry within this array. No priority
-//  numbers to keep in sync.
+//  The position in this array is the default order: earlier elements run
+//  first. The player can reorder the movable blocks in the Block Order popup
+//  within the constraints of BlockPipeline; handleEventParsing and
+//  handleGoHome stay pinned.
 //
-//  The Scheduler walks the list once per tick, picks the first ready handler
-//  (precondition true, cool-down elapsed, state IDLE), and runs it.
+//  When no run holds the slot and no focused activity applies, the block
+//  scheduler walks the effective order once per tick, picks the first ready
+//  block (not disabled, cool-down and minInterval elapsed, precondition
+//  true), and runs it.
 //
 //  Every action handler lives in this array; the scheduler is the sole driver.
 //
@@ -1829,8 +1819,8 @@ const handleGoHome: HandlerConfig = {
 //   - slot 4 handleShop: writes the storeContents / charLevel /
 //     boosterStatus / boosterIdMap snapshot.
 //   - slot 5 handleAutoEquipBoosters: reads the booster snapshot
-//     produced by handleShop. Must run after handleShop in the same
-//     tick so equip decisions see fresh inventory.
+//     produced by handleShop; a hard constraint in BlockPipeline keeps it
+//     after handleShop in any order, so equip decisions see fresh inventory.
 //
 //  handleKobanAds follows that chain at slot 6: a reward ad is one click
 //  for a few kobans and expires within a day, and its precondition

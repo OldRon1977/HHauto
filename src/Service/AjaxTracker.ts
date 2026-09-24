@@ -36,8 +36,9 @@
 //   awaitServerSettleAfterPost(durMs) -- post-claim pause
 //
 // Used by:
-//   PageNavigationService (idle wait), PlaceOfPower (claim path),
-//   AutoLoop (tick-gate).
+//   PageNavigationService (idle wait), AutoLoop (tick-gate), StartService
+//   (install), and the POST paths of PlaceOfPower, BossBang, Champion,
+//   ClubChampion and Troll.
 import { logHHAuto } from "../Utils/LogUtils";
 
 // Shared timing budget for every caller that waits on the game's AJAX before
@@ -69,10 +70,10 @@ export const POST_SETTLE_FACTOR = 4;
 
 // Optional callback invoked when /ajax.php returns HTTP 403. Decoupled
 // via setter to avoid a circular import between AjaxTracker and
-// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> PlaceOfPower
-// -> AjaxTracker). StartService wires recordForbidden in here right
-// after installAjaxTracker() so the dependency edge runs in the right
-// direction.
+// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> StorageHelper ->
+// Utils -> PageNavigationService -> AjaxTracker). StartService wires
+// recordForbidden in here right after installAjaxTracker() so the
+// dependency edge runs in the right direction.
 let onAjaxForbidden: (() => void) | null = null;
 
 let pending = 0;
@@ -187,11 +188,10 @@ export function installAjaxTracker(): boolean {
  * Pass null to clear. The callback receives no arguments.
  *
  * Decoupled via setter (instead of importing recordForbidden from
- * ForbiddenBackoff directly) because ForbiddenBackoff transitively
- * imports HHStoredVars, which imports PlaceOfPower, which imports
- * this module. A direct import would create a TDZ cycle that crashes
- * the bundle at boot ("Cannot access 'HHStoredVarPrefixKey' before
- * initialization").
+ * ForbiddenBackoff directly) because ForbiddenBackoff imports
+ * HHStoredVars, whose import graph reaches this module (see above). A
+ * direct import would create a TDZ cycle that crashes the bundle at boot
+ * ("Cannot access 'HHStoredVarPrefixKey' before initialization").
  */
 export function setOnAjaxForbidden(cb: (() => void) | null): void {
     onAjaxForbidden = cb;

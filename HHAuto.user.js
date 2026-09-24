@@ -7539,8 +7539,9 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 //   awaitServerSettleAfterPost(durMs) -- post-claim pause
 //
 // Used by:
-//   PageNavigationService (idle wait), PlaceOfPower (claim path),
-//   AutoLoop (tick-gate).
+//   PageNavigationService (idle wait), AutoLoop (tick-gate), StartService
+//   (install), and the POST paths of PlaceOfPower, BossBang, Champion,
+//   ClubChampion and Troll.
 
 // Shared timing budget for every caller that waits on the game's AJAX before
 // navigating. Keeping the constants here is what stops PageNavigationService
@@ -7568,10 +7569,10 @@ const POST_SETTLE_MIN_MS = 2000;
 const POST_SETTLE_FACTOR = 4;
 // Optional callback invoked when /ajax.php returns HTTP 403. Decoupled
 // via setter to avoid a circular import between AjaxTracker and
-// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> PlaceOfPower
-// -> AjaxTracker). StartService wires recordForbidden in here right
-// after installAjaxTracker() so the dependency edge runs in the right
-// direction.
+// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> StorageHelper ->
+// Utils -> PageNavigationService -> AjaxTracker). StartService wires
+// recordForbidden in here right after installAjaxTracker() so the
+// dependency edge runs in the right direction.
 let onAjaxForbidden = null;
 let AjaxTracker_pending = 0;
 let installed = false;
@@ -7680,11 +7681,10 @@ function installAjaxTracker() {
  * Pass null to clear. The callback receives no arguments.
  *
  * Decoupled via setter (instead of importing recordForbidden from
- * ForbiddenBackoff directly) because ForbiddenBackoff transitively
- * imports HHStoredVars, which imports PlaceOfPower, which imports
- * this module. A direct import would create a TDZ cycle that crashes
- * the bundle at boot ("Cannot access 'HHStoredVarPrefixKey' before
- * initialization").
+ * ForbiddenBackoff directly) because ForbiddenBackoff imports
+ * HHStoredVars, whose import graph reaches this module (see above). A
+ * direct import would create a TDZ cycle that crashes the bundle at boot
+ * ("Cannot access 'HHStoredVarPrefixKey' before initialization").
  */
 function setOnAjaxForbidden(cb) {
     onAjaxForbidden = cb;
@@ -23193,8 +23193,7 @@ Labyrinth.BUILD_BUTTON_ID = 'hhAutoLabyTeam';
 // module load and throws a TDZ ReferenceError ("Cannot access
 // 'HHStoredVarPrefixKey' before initialization") if this module is evaluated
 // inside the import cycle before config/HHStoredVars finished initializing.
-// This module is reachable early via
-// InfoService, so it must stay TDZ-safe.
+// This module is reachable early via InfoService, so it must stay TDZ-safe.
 /** All blocks the watchdog has auto-disabled, keyed by block id. */
 function getAutoDisabledBlocks() {
     const v = getStoredJSON(HHStoredVarPrefixKey + TK.blockAutoDisabled, {});
@@ -23340,9 +23339,6 @@ function updateData() {
             contest = " : Wait for contest";
         var Tegzd = '';
         Tegzd += (getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" ? "<span style='color:LimeGreen'>HH auto ++ ON" : "<span style='color:red'>HH auto ++ OFF") + '</span>';
-        //Tegzd+=(getStoredValue(HHStoredVarPrefixKey+SK.master) ==="true"?"<span style='color:LimeGreen'>"+getTextForUI("master","elementText")+" : ON":"<span style='color:red'>"+getTextForUI("master","elementText")+" : OFF")+'</span>';
-        //Tegzd+=getTextForUI("master","elementText")+' : '+(getStoredValue(HHStoredVarPrefixKey+SK.master) ==="true"?"<span style='color:LimeGreen'>ON":"<span style='color:red'>OFF")+'</span>';
-        //Tegzd+=(getStoredValue(HHStoredVarPrefixKey+TK.autoLoop) ==="true"?"<span style='color:LimeGreen;float:right'>Loop ON":"<span style='color:red;float:right'>Loop OFF")+'</span>';
         Tegzd += '<ul>';
         // Watchdog ERROR markers: auto-disabled blocks. Shown red with an
         // <ERROR> prefix, the failure reason in the tooltip plus a request for a
@@ -23479,14 +23475,14 @@ function updateData() {
 // after a manual navigation fires before any fresh mouse event can re-arm the
 // pause, and the bot navigates away from the page the user just opened
 // (#1774). The last activity timestamp is therefore kept in sessionStorage
-// (survives a
-// same-tab reload) and a short startup grace period blocks automation
-// right after every load while mouse-pause is enabled.
+// (survives a same-tab reload) and a short startup grace period blocks
+// automation right after every load while mouse-pause is enabled.
 //
-// While the pause is active (isUserPauseActive), AutoLoop and the
-// Scheduler skip all actions to avoid interfering with manual gameplay.
+// While the pause is active (isUserPauseActive), AutoLoop runs neither the
+// block pipeline nor the paranoia switch, so manual play is not interfered
+// with.
 //
-// Used by: StartService (binds events), AutoLoop + Scheduler (check pause)
+// Used by: StartService (binds events), AutoLoop (checks the pause)
 
 
 
@@ -23826,7 +23822,7 @@ class BlessingService {
             return undefined;
         // Class names as the game's own element_data.flavor gives them
         // (measured 2026-09-11 on 24 girls): light is Submissive, psychic is
-        // Voyeur. The two were swapped here before.
+        // Voyeur.
         const elementMap = {
             'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
             'physical': 'stone', 'playful': 'sun', 'dominatrix': 'darkness',
@@ -24451,7 +24447,7 @@ class TeamScoringService {
      *
      *   projected = current * (750 / level) * (1 + 0.3 * nb_grades) / (1 + 0.3 * graded)
      *
-     * For voll-awakte girls (level 750, graded == nb_grades), projected == current.
+     * For fully developed girls (level 750, graded == nb_grades), projected == current.
      */
     static scoreBestPossible(girl, _playerClass) {
         const current = TeamScoringService.caracsSum(girl);
@@ -24542,9 +24538,10 @@ class TeamScoringService {
 }
 
 ;// ./src/Service/TeamSelectionService.ts
-// TeamSelectionService.ts -- Pure helpers behind the three team selection
-// modes of the edit-team popup (this week by stats, this week against the
-// open league opponents, next week by stats).
+// TeamSelectionService.ts -- Pure helpers behind the team selection popup on
+// the edit-team page: its three groups of rubrics (this week by stats, this
+// week against the open league opponents, next week by stats), each as the
+// best team now and the possibly best one.
 //
 // Why a wider candidate set: the builder ranks girls by caracs_sum, which
 // weighs carac1, carac2 and carac3 alike. The game does not -- measured on a
@@ -25951,7 +25948,7 @@ class ClubChampion {
 // The automation never feeds mythics to anything. This decides what to *show*
 // the player: marked means "keep", unmarked means "safe to use as material".
 //
-// The rule, agreed with the maintainer against his own inventory (207 pieces,
+// The rule, agreed with the maintainer against their own inventory (207 pieces,
 // 107 of them mythic):
 //
 //   For each slot, for each element, keep exactly ONE piece.
@@ -25973,7 +25970,7 @@ class ClubChampion {
 // "Harmony" is the game's name for what the API calls `chance`.
 //
 // Keeping one piece per ELEMENT, not one per resonance combination, is a
-// deliberate choice (variant A): an element you cannot field at all is the
+// deliberate choice: an element you cannot field at all is the
 // real gap, a second bonus flavour of an element you already own is not.
 // It also means an element covered only by a foreign class still keeps its
 // best piece -- without that, an element could disappear from a slot entirely.
@@ -26447,8 +26444,8 @@ function planCurrentBest(items, playerClass, theme) {
  * Only the tier matters here. Every mythic reaches the same caracs at level
  * 20, so the choice is purely which resonances it carries -- no projection
  * arithmetic, no stat comparison. It deliberately equips items that are
- * weaker today, the same way "Best Possible" on the team page fields a
- * level-1 girl; `caracDelta` says by how much, per slot and in total.
+ * weaker today, the same way the team selection's "possibly best" rubrics
+ * field a level-1 girl; `caracDelta` says by how much, per slot and in total.
  */
 function planPossibleBest(items, playerClass, theme) {
     return plan(items, playerClass, theme, 'possible');
@@ -29507,18 +29504,21 @@ class Shop {
 //
 // Public surface:
 //   - buildTeam(allGirls, mode, playerLevel, playerClass): TeamResult | null
+//   - buildTeamCandidates(...): the candidates, strongest stat sum first
 //   - getElementDistribution(team): summary helper for the UI panel
 //
 // Picker semantics:
 //   1. Detect Bless 1 and Bless 2 (BlessingService.detectActiveBlessings).
-//   2. Build up to three candidate teams in parallel:
-//      - Team A from "girls with Bless 1" (only when Bless 1 active).
-//      - Team B from "girls with Bless 2" (only when Bless 2 active).
-//      - Team C from the entire eligible pool (always, no Bless filter).
-//   3. Best candidate by caracs_sum-of-7 wins. Mode-aware: scoreCurrentBest
-//      in mode 1, scoreBestPossible in mode 2.
-//   4. Tie-break: Bless 1 > Bless 2 > Default.
-//   5. If no candidate fills 7 slots, emergency fallback (top-N by caracs_sum).
+//   2. For each pool -- girls with Bless 1, girls with Bless 2, the whole
+//      eligible pool -- build one clustered candidate per usable trait
+//      cluster and one flat candidate; add the theme candidates (the flat
+//      pick with three or four girls of one element).
+//   3. Score by caracs_sum-of-7, mode-aware: scoreCurrentBest in mode 1,
+//      scoreBestPossible in mode 2.
+//   4. Winner (selectBestCandidate): among the candidates within
+//      LEADER_TIEBREAK_MARGIN of the best score, the highest Tier-5 leader
+//      skill; then score, then candidate order.
+//   5. If the pool cannot fill 7 slots, emergency fallback (top-N by caracs_sum).
 
 
 const TEAM_SIZE = 7;
@@ -32637,17 +32637,16 @@ AdsService.PENDING_CONFIRM_WINDOW_MS = 10 * 60 * 1000;
 ;// ./src/Service/AutoLoopPageHandlers.ts
 // AutoLoopPageHandlers.ts
 //
-// Handles page-specific UI enhancements that run on every loop
-// iteration regardless of whether the automation is "busy". These
-// are read-only or display-only operations that enrich the current
-// page with HHAuto overlays (reward previews, opponent info, timer
-// displays, etc.) without navigating away.
+// The page handlers: what runs for the current page on every loop
+// iteration, after the pipeline blocks and outside the master switch.
 //
-// Unlike AutoLoopActions (which fire one-at-a-time and navigate),
-// page handlers run unconditionally based on the current page ID.
-// They add informational elements, parse visible data, and set up
-// page-specific features like the league opponent list or labyrinth
-// auto-battle.
+// Most of it enriches the page -- reward recaps, opponent info, timers,
+// power calc, the gear and sell tools -- and parses what the page shows.
+// Some of it acts: the event pages resume a collect sweep a reload
+// interrupted (Path of Attraction, Double Penetration, Lively Scene run()),
+// the harem tools (Harem.run, HaremGirl.run) and the queued mythic upgrade
+// run on their own pages. Unlike the pipeline blocks, nothing here is
+// picked one at a time; the page ID alone decides.
 //
 // Used by: AutoLoop.autoLoop() (called after action handlers)
 var AutoLoopPageHandlers_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -32776,10 +32775,8 @@ function handlePageSpecific(ctx) {
                     if (getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true") {
                         // parseEventPage is idempotent within a page-load via the
                         // 'parsed' attribute on #contains_all #events, so calling it
-                        // unconditionally here is safe. The previous ctx.eventParsed
-                        // wrapper was never written to (Cluster A2: dead code) and
-                        // the second-call path inside parseEventPage already short-
-                        // circuits when checkEvent(eventID) returns false.
+                        // unconditionally here is safe; a second call also
+                        // short-circuits when checkEvent(eventID) returns false.
                         EventModule.parseEventPage(eventID);
                         EventModule.moduleDisplayEventPriority();
                         EventModule.hideOwnedGilrs();
@@ -32791,10 +32788,9 @@ function handlePageSpecific(ctx) {
                         // a shortcut button: gating the collect on it would switch
                         // off Path of Attraction collecting with the button. The
                         // Collect all button calls goAndCollect directly, which is
-                        // exactly
-                        // the "works when I press it, never on its own" report.
-                        // The club button now decides only about itself, inside
-                        // run().
+                        // exactly the "works when I press it, never on its own"
+                        // report. The club button decides only about itself,
+                        // inside run().
                         PathOfAttraction.run = callItOnce(PathOfAttraction.run);
                         PathOfAttraction.run();
                     }
@@ -32989,11 +32985,11 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 //
 // Each iteration:
 //   1. Checks if "burst" mode is active (master switch on, not in
-//      paranoia rest, menu not open)
-//   2. If active, runs through all action handlers in priority order
-//      (defined in AutoLoopActions.ts). Only one action fires per
-//      iteration to prevent conflicting navigations.
-//   3. Runs page-specific UI handlers regardless of burst state
+//      paranoia rest, menu not open), no user pause and no hold
+//   2. If active, reads the events on the page and hands the tick to the
+//      block scheduler (the pipeline in Pipeline.config.ts), which runs at
+//      most one block's step -- skipped while a POST is in flight
+//   3. Runs the page handlers (AutoLoopPageHandlers) regardless of burst
 //   4. Manages paranoia flip if enabled
 //   5. Schedules the next iteration
 //
@@ -33143,7 +33139,7 @@ function autoLoop() {
             lastMousePauseLog = Date.now();
             logHHAuto("Automation held by " + heldBy + ".");
         }
-        if (burst && !userPaused && !heldBy /*|| checkTimer('nextMissionTime')*/) {
+        if (burst && !userPaused && !heldBy) {
             if (!checkTimer("paranoiaSwitch")) {
                 ParanoiaService.clearParanoiaSpendings();
             }
@@ -33157,21 +33153,20 @@ function autoLoop() {
             const { eventIDs, bossBangEventIDs } = EventModule.parsePageForEventId();
             ctx.eventIDs = eventIDs;
             ctx.bossBangEventIDs = bossBangEventIDs;
-            // Skip the action handlers while a POST is in flight (#1598,
-            // docs/decisions/ADR-003-ajax-post-mutex.md): they are state-changing
-            // POST sources such as PoP claim, BossBang fight, Champion reorder
-            // etc.) while a /ajax.php POST is still in flight or another
-            // caller holds the explicit mutex. UI updates and page-specific
-            // handlers below keep running so the script stays responsive
-            // (issue #1598 follow-up: an earlier patch gated the whole
-            // autoLoop tick and starved the menu UI).
+            // Skip the pipeline while a /ajax.php POST is in flight or another
+            // caller holds the explicit mutex (#1598,
+            // docs/decisions/ADR-003-ajax-post-mutex.md): its blocks are the
+            // state-changing POST sources (PoP claim, BossBang fight, Champion
+            // reorder, ...). UI updates and the page handlers below keep running
+            // so the script stays responsive -- gating the whole tick starved the
+            // menu UI.
             if (isPostInFlight()) {
                 logHHAuto('AutoLoop: POST in flight, deferring action handlers this tick');
             }
             else {
-                // --- Scheduler Pipeline (every action handler runs here) ---
-                // Only trigger the scheduler when no classic action handler has
-                // already started an action this tick. Without this gate the
+                // --- Block pipeline (every action runs here) ---
+                // Only trigger the scheduler when nothing else started an action
+                // this tick (Contest.setTimers above can). Without this gate the
                 // pipeline runs preconditions and step.fn even when the
                 // navigation mutex in PageNavigationService will swallow the
                 // resulting gotoPage / safeReload call. The gate also prevents
@@ -33422,10 +33417,8 @@ class ParanoiaService {
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true") {
                 const eventMythicGirl = EventModule.getEventMythicGirl();
                 if (eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
-                    //             {
                     //mythic onGoing and still have some fight above threshold
-                    if (Troll.getEnergy() > 0) //trollThreshold)
-                     {
+                    if (Troll.getEnergy() > 0) {
                         logHHAuto("Forced bypass Paranoia for mythic (can fight).");
                         setTimer('paranoiaSwitch', 60);
                         return;
@@ -35848,9 +35841,8 @@ class PipelineOrderService {
 //     scheduler; the menu order is just DOM sequence, so applyMenuOrder moves
 //     the existing nodes and the user sees the result immediately, with every
 //     input still bound and still holding its value.
-//   - the labels are translated (the areas are named in the menu the user is
-//     looking at, so an English-only popup would be a step back from the i18n
-//     work this branch is about).
+//   - the labels are translated: the areas are named as in the menu the user
+//     is looking at.
 //
 // The order is written to TK.menuOrder (localStorage, HHType "Setting"), so it
 // survives "delete temp vars" and is included in the JSON settings export.
@@ -36432,9 +36424,10 @@ function nextHeroGiveupReloadCount(prevReloadCount) {
 //   - Auto-loop start: restores timers from storage, applies
 //     defaults, then kicks off the first autoLoop() call
 //
-// The hardened_start() function is the true entry point, called both
-// immediately and after a 5-second delay as a fallback. It guards
-// against missing jQuery and "Forbidden" error pages.
+// The hardened_start() function is the entry point, called once by
+// src/index.ts. It installs the AJAX tracker, answers a "Forbidden" page
+// (no jQuery) with a backed-off reload, and otherwise runs start(), which
+// waits for the game's hero data with a bounded retry and reload.
 //
 // Used by: src/index.ts (entry point)
 
@@ -36494,6 +36487,11 @@ function heroGiveupReloadKey() {
 // so it survives location.reload() but resets when the user closes the
 // tab. On a successful start() (Hero object available), the counter is
 // cleared, so a single transient Forbidden does not penalise later runs.
+// Menu fields that need a check the HTML pattern cannot express. The value is
+// the message that turns the input red; "" means fine.
+const EXTRA_FIELD_VALIDATORS = {
+    autoBuyBoostersFilter: buyListValidationMessage,
+};
 // Cold-start delay (issue #1598).
 //
 // After a long inactivity (PC hibernation, tab in background, slow page
@@ -36502,11 +36500,6 @@ function heroGiveupReloadKey() {
 // few seconds when the last recorded activity is older than the
 // threshold below, giving the page time to settle before any module
 // fires a navigation.
-// Menu fields that need a check the HTML pattern cannot express. The value is
-// the message that turns the input red; "" means fine.
-const EXTRA_FIELD_VALIDATORS = {
-    autoBuyBoostersFilter: buyListValidationMessage,
-};
 const COLD_START_THRESHOLD_MS = 60 * 1000;
 const COLD_START_DELAY_MS = 4000;
 const NORMAL_START_DELAY_MS = 1000;
@@ -36939,7 +36932,7 @@ function start() {
                 $("#timerLeftTime").text(getTextForUI("timerResetNoTimer", "elementText"));
             }
         });
-        // Add Timer reset options //changed
+        // Add Timer reset options
         const timerOptions = document.getElementById("timerResetSelector");
         var countTimers = 0;
         const optionElement = document.createElement("option");
@@ -37052,9 +37045,10 @@ function start() {
     $("#menuOrder").on("click", function () {
         MenuOrderService.showPopup();
     });
-    // Menu layout: tab rail vs one stacked list. Applied immediately -- the
-    // panes keep their DOM, so nothing has to be rebuilt or reloaded. The value
-    // itself is persisted by the generic binding in addEventsOnMenuItems.
+    // Menu density, and layout (tab rail vs one stacked list). Applied
+    // immediately -- the panes keep their DOM, so nothing has to be rebuilt or
+    // reloaded. The values themselves are persisted by the generic binding in
+    // addEventsOnMenuItems.
     $("#menuCompact").on("change", function () {
         applyMenuDensity(this.checked);
     });
@@ -38354,19 +38348,6 @@ class GenericBattle {
 
 
 
-// ---------------------------------------------------------------------------
-//  Standard handler utility – reduces boilerplate for simple module handlers
-// ---------------------------------------------------------------------------
-/**
- * Executes a standard module handler if all preconditions are met.
- * Handles the common pattern: check busy → check autoLoop → check competition
- * → check lastAction → check isReady → log → execute → update busy & lastAction.
- */
-// ---------------------------------------------------------------------------
-//  Action handlers – called in order from autoLoop()
-// ---------------------------------------------------------------------------
-// Every other action handler lives in Pipeline.config.ts; what remains here are
-// the helpers those handlers share.
 /**
  * Pure helper: would handleTrollBattle have fired a fight if combativity were
  * available? Mirrors the activation paths in the main if-block, but without
@@ -38418,13 +38399,13 @@ var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (th
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// Pipeline.config.ts -- Declarative pipeline configuration for the Scheduler.
+// Pipeline.config.ts -- Every action the script takes, as handler entries
+// for the block pipeline.
 //
-// Defines the types and interfaces for handler configurations,
-// plus concrete handler entries for migrated handlers.
-//
-// Order of handler execution is given by the position in the `pipeline`
-// array below: first element runs first. Reordering = move a line.
+// Defines the handler configuration types and one entry per action. The
+// position in the `pipeline` array below is the default order (first element
+// runs first); the player can reorder the blocks in the Block Order popup,
+// within the constraints BlockPipeline declares.
 //
 // Used by: BlockPipeline.ts (adapts these entries into Blocks)
 
@@ -38485,8 +38466,7 @@ function isOnQuestPage(ctx) {
  * Build a HandlerConfig from a ModuleHandlerDescriptor -- the uniform
  * `name + action + isReady + execute` shape of the simple modules.
  *
- * The returned config is single-step and, unless opts.atomic, non-atomic and
- * always interruptible. Its precondition is shouldRunStandardHandler
+ * The returned config is single-step. Its precondition is shouldRunStandardHandler
  * (AutoLoop.pure.ts):
  *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
  *   guard -> isReady guard; the step then executes and sets ctx.busy /
@@ -38550,7 +38530,6 @@ function fromDescriptor(descriptor, opts) {
 }
 // ---------------------------------------------------------------------------
 //  Handler: handleEventParsing
-//  Non-atomic, always interruptible.
 //  Wraps: EventModule.parseEventPage()
 // ---------------------------------------------------------------------------
 /**
@@ -38710,14 +38689,13 @@ function pruneExpiredEvents(eventList, now) {
 }
 // ---------------------------------------------------------------------------
 //  Handler: handleLeague
-//  Atomic (fight sequence must not be interrupted).
 //  Wraps: LeagueHelper.isTimeToFight() + LeagueHelper.doLeagueBattle()
 // ---------------------------------------------------------------------------
 const handleLeague = {
     name: 'handleLeague',
     // Aligned with the short setTimer('nextLeaguesTime') value used in
     // LeagueHelper.doLeagueBattle when energy remains after a batch.
-    // A larger Scheduler cool-down would silently extend the gap and
+    // A larger block cool-down would silently extend the gap and
     // defeat the purpose of the short setTimer (the user wants the bot
     // to chain through all 15 battles, like a human emptying the league
     // tab in one sitting).
@@ -38806,8 +38784,7 @@ const handleLeague = {
 };
 // ---------------------------------------------------------------------------
 //  Handler: handleShop
-//  Non-atomic, always interruptible. Logs and updates the shop only when the
-//  inner trigger matches: either the shop cool-down timer has elapsed, or the
+//  Logs and updates the shop only when the inner trigger matches: either the shop cool-down timer has elapsed, or the
 //  cached character level is below the current hero level, which signals a
 //  level-up that should refresh the shop offers.
 // ---------------------------------------------------------------------------
@@ -38866,14 +38843,14 @@ const handleShop = {
 };
 // ---------------------------------------------------------------------------
 //  Handler: handleAutoEquipBoosters
-//  Non-atomic, always interruptible. Auto-equips legendary boosters when
-//  slots are empty/expired and the user opted in.
+//  Auto-equips legendary boosters when slots are empty/expired and the user
+//  opted in, and fills free mythic slots from the priority list.
 // ---------------------------------------------------------------------------
 const handleAutoEquipBoosters = {
     name: 'handleAutoEquipBoosters',
     // Boosters can expire mid-session; keep the scheduler cool-down short so
     // the next eligible tick reacts quickly. The internal Booster timer (and
-    // the freshness stamp introduced in cluster Z) handles longer waits.
+    // the boosterStatus freshness stamp) handles longer waits.
     minIntervalMs: 5000,
     atomic: false,
     interruptible: 'always',
@@ -38914,8 +38891,8 @@ const handleAutoEquipBoosters = {
 //  Handlers built with fromDescriptor.
 //  Each one is a one-step wrapper around a ModuleHandlerDescriptor. isReady
 //  captures both the outer and the inner trigger: split between precondition
-//  and step.fn, the block would start a run whose step then does nothing. All of them are non-atomic, always interruptible,
-//  and carry a minIntervalMs sized to the module's tick frequency.
+//  and step.fn, the block would start a run whose step then does nothing.
+//  Each carries a minIntervalMs sized to the module's tick frequency.
 // ---------------------------------------------------------------------------
 const handleLoveRaid = fromDescriptor({
     name: "Time to go and check raids.",
@@ -38969,9 +38946,8 @@ const handleMissions = fromDescriptor({
 // offers it once a day, so it must not wait behind the long battle blocks.
 // From the tail of the pipeline an ad waits minutes for its click: a long
 // block such as handleLabyrinth holds the slot across every page change and
-// releases it only on "nothing left to do", and a lower-ranked block can never
-// preempt (Scheduler.findNextReadyHigherThan keeps only ranks above the
-// running one).
+// releases it only on "nothing left to do", and the block scheduler never
+// preempts a running block.
 //
 // hasAdWork() is what makes the early position safe: the block claims a slot
 // only when a visible ad button (or our own pending reward confirm) is on the
@@ -39058,11 +39034,8 @@ const handleLabyrinth = fromDescriptor({
 //  handleMythicWave is deliberately absent. Its only effect was setting
 //  ctx.lastActionPerformed = "troll" in the same tick to grant
 //  handleTrollBattle a slot reservation. The scheduler picks one handler per
-//  tick, so the reservation has no
-//  destination -- and handleTrollBattle's own gate already accepts
-//  lastActionPerformed = "none" anyway. The function is kept in
-//  AutoLoopActions.ts as deprecated, the AutoLoop.autoLoop() call site
-//  is removed.
+//  tick, so the reservation has no destination -- and handleTrollBattle's own
+//  gate already accepts lastActionPerformed = "none" anyway.
 // ---------------------------------------------------------------------------
 const handleHaremSize = {
     name: 'handleHaremSize',
@@ -39228,8 +39201,7 @@ const handleTrollBattle = {
     // On a live session most 'handleTrollBattle' starts are legitimate skips
     // (currentPower below threshold, no event girl, no raid): the precondition
     // matches but step.fn falls through. Those are silent no-ops; the pipeline
-    // still emits
-    // Starting/completed pairs which adds log noise. Doubling the cool-down
+    // still emits Starting/completed pairs, which adds log noise. Doubling the cool-down
     // to 4 s halves the polling rate without affecting fight responsiveness
     // (the inner Troll battle sequence holds the autoLoop flag for several
     // seconds between fights anyway).
@@ -39408,8 +39380,7 @@ const handleQuest = {
                         setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'false');
                     }
                     const questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
-                    // Interim guard (full fix tracked for the step-17 multi-step scheduler):
-                    // the resource-wait branches below ('*', '$', 'P') set ctx.busy=false
+                    // The resource-wait branches below ('*', '$', 'P') set ctx.busy=false
                     // without navigating. Without this the bot strands on /quest.html and
                     // handleQuest ticks empty every ~2s while other modules (salary, ...)
                     // never run. Route home so the normal loop resumes; auto-quest navigates
@@ -39529,14 +39500,11 @@ const handleQuest = {
                         ctx.busy = false;
                     }
                     else if (questRequirement === 'outfit') {
-                        // Quest step requires an outfit change. Quest.ts:215 writes the
-                        // 'outfit' marker but no else-if matched it before, so the
-                        // pipeline fell through to the catch-all 'Invalid quest
-                        // requirement' branch every tick: the marker was never reset,
-                        // so the bot stayed in an infinite log-spam loop on outfit-
-                        // gated quests until the user manually intervened. Auto-quest
-                        // also stayed enabled (unlike unknownQuestButton), so the
-                        // pInfo gave no hint that the bot was stuck.
+                        // Quest step requires an outfit change (Quest.ts writes the
+                        // 'outfit' marker). Without this branch the marker falls through
+                        // to the catch-all 'Invalid quest requirement' branch every tick,
+                        // is never reset, and the bot loops on outfit-gated quests with
+                        // auto-quest still on and no hint in the pInfo.
                         //
                         // Mirror the unknownQuestButton path: disable autoQuest /
                         // autoSideQuest, log a user-actionable message, reset the
@@ -40209,9 +40177,10 @@ const handleBossBangFight = {
                         // skip/claim best-effort and keep the slot on repeat so no other block
                         // navigates away between fights. The game itself returns to the event
                         // page after each fight; termination happens there -- BossBang.parse
-                        // disables the setting once the event shows completed (or arms the
-                        // back-off timer when no attempt is left), which flips this block's
-                        // precondition false and releases the slot. skipFightPage leaves
+                        // stores the event as completed once the page shows it (which drops
+                        // it from bossBangEventIDs), or arms the back-off timer when no
+                        // attempt is left; either flips this block's precondition false and
+                        // releases the slot. skipFightPage leaves
                         // autoLoop on 'true'; flipping it would make BlockScheduler.tick
                         // discard the held run.
                         yield BossBang.skipFightPage();
@@ -40278,13 +40247,15 @@ const handleGoHome = {
 // ---------------------------------------------------------------------------
 //  Pipeline: ordered list of all handler configurations.
 //
-//  ORDER MATTERS: position in this array = priority. Earlier elements run
-//  first. To reorder a handler (e.g. move PoP to the end, or place the Mythic
-//  Wave handler at slot 3), move its entry within this array. No priority
-//  numbers to keep in sync.
+//  The position in this array is the default order: earlier elements run
+//  first. The player can reorder the movable blocks in the Block Order popup
+//  within the constraints of BlockPipeline; handleEventParsing and
+//  handleGoHome stay pinned.
 //
-//  The Scheduler walks the list once per tick, picks the first ready handler
-//  (precondition true, cool-down elapsed, state IDLE), and runs it.
+//  When no run holds the slot and no focused activity applies, the block
+//  scheduler walks the effective order once per tick, picks the first ready
+//  block (not disabled, cool-down and minInterval elapsed, precondition
+//  true), and runs it.
 //
 //  Every action handler lives in this array; the scheduler is the sole driver.
 //
@@ -40303,8 +40274,8 @@ const handleGoHome = {
 //   - slot 4 handleShop: writes the storeContents / charLevel /
 //     boosterStatus / boosterIdMap snapshot.
 //   - slot 5 handleAutoEquipBoosters: reads the booster snapshot
-//     produced by handleShop. Must run after handleShop in the same
-//     tick so equip decisions see fresh inventory.
+//     produced by handleShop; a hard constraint in BlockPipeline keeps it
+//     after handleShop in any order, so equip decisions see fresh inventory.
 //
 //  handleKobanAds follows that chain at slot 6: a reward ad is one click
 //  for a few kobans and expires within a day, and its precondition

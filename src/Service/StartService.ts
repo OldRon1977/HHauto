@@ -15,9 +15,10 @@
 //   - Auto-loop start: restores timers from storage, applies
 //     defaults, then kicks off the first autoLoop() call
 //
-// The hardened_start() function is the true entry point, called both
-// immediately and after a 5-second delay as a fallback. It guards
-// against missing jQuery and "Forbidden" error pages.
+// The hardened_start() function is the entry point, called once by
+// src/index.ts. It installs the AJAX tracker, answers a "Forbidden" page
+// (no jQuery) with a backed-off reload, and otherwise runs start(), which
+// waits for the game's hero data with a bounded retry and reload.
 //
 // Used by: src/index.ts (entry point)
 import { ConfigHelper } from "../Helper/ConfigHelper";
@@ -94,6 +95,12 @@ function heroGiveupReloadKey(): string {
 // tab. On a successful start() (Hero object available), the counter is
 // cleared, so a single transient Forbidden does not penalise later runs.
 
+// Menu fields that need a check the HTML pattern cannot express. The value is
+// the message that turns the input red; "" means fine.
+const EXTRA_FIELD_VALIDATORS: Record<string, (value: string) => string> = {
+    autoBuyBoostersFilter: buyListValidationMessage,
+};
+
 // Cold-start delay (issue #1598).
 //
 // After a long inactivity (PC hibernation, tab in background, slow page
@@ -102,12 +109,6 @@ function heroGiveupReloadKey(): string {
 // few seconds when the last recorded activity is older than the
 // threshold below, giving the page time to settle before any module
 // fires a navigation.
-// Menu fields that need a check the HTML pattern cannot express. The value is
-// the message that turns the input red; "" means fine.
-const EXTRA_FIELD_VALIDATORS: Record<string, (value: string) => string> = {
-    autoBuyBoostersFilter: buyListValidationMessage,
-};
-
 const COLD_START_THRESHOLD_MS = 60 * 1000;
 const COLD_START_DELAY_MS = 4000;
 const NORMAL_START_DELAY_MS = 1000;
@@ -581,7 +582,7 @@ function start() {
                 $("#timerLeftTime").text( getTextForUI("timerResetNoTimer","elementText"));
             }
         });
-        // Add Timer reset options //changed
+        // Add Timer reset options
         const timerOptions = <HTMLSelectElement>document.getElementById("timerResetSelector");
         var countTimers=0;
         const optionElement = document.createElement("option");
@@ -716,9 +717,10 @@ function start() {
         MenuOrderService.showPopup();
     });
 
-    // Menu layout: tab rail vs one stacked list. Applied immediately -- the
-    // panes keep their DOM, so nothing has to be rebuilt or reloaded. The value
-    // itself is persisted by the generic binding in addEventsOnMenuItems.
+    // Menu density, and layout (tab rail vs one stacked list). Applied
+    // immediately -- the panes keep their DOM, so nothing has to be rebuilt or
+    // reloaded. The values themselves are persisted by the generic binding in
+    // addEventsOnMenuItems.
     $("#menuCompact").on("change", function() {
         applyMenuDensity((<HTMLInputElement>this).checked);
     });

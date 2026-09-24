@@ -5,11 +5,11 @@
 //
 // Each iteration:
 //   1. Checks if "burst" mode is active (master switch on, not in
-//      paranoia rest, menu not open)
-//   2. If active, runs through all action handlers in priority order
-//      (defined in AutoLoopActions.ts). Only one action fires per
-//      iteration to prevent conflicting navigations.
-//   3. Runs page-specific UI handlers regardless of burst state
+//      paranoia rest, menu not open), no user pause and no hold
+//   2. If active, reads the events on the page and hands the tick to the
+//      block scheduler (the pipeline in Pipeline.config.ts), which runs at
+//      most one block's step -- skipped while a POST is in flight
+//   3. Runs the page handlers (AutoLoopPageHandlers) regardless of burst
 //   4. Manages paranoia flip if enabled
 //   5. Schedules the next iteration
 //
@@ -196,7 +196,7 @@ export async function autoLoop()
         lastMousePauseLog = Date.now();
         logHHAuto("Automation held by " + heldBy + ".");
     }
-    if (burst && !userPaused && !heldBy /*|| checkTimer('nextMissionTime')*/)
+    if (burst && !userPaused && !heldBy)
     {
 
         if (!checkTimer("paranoiaSwitch") )
@@ -215,20 +215,19 @@ export async function autoLoop()
         ctx.eventIDs = eventIDs;
         ctx.bossBangEventIDs = bossBangEventIDs;
 
-        // Skip the action handlers while a POST is in flight (#1598,
-        // docs/decisions/ADR-003-ajax-post-mutex.md): they are state-changing
-        // POST sources such as PoP claim, BossBang fight, Champion reorder
-        // etc.) while a /ajax.php POST is still in flight or another
-        // caller holds the explicit mutex. UI updates and page-specific
-        // handlers below keep running so the script stays responsive
-        // (issue #1598 follow-up: an earlier patch gated the whole
-        // autoLoop tick and starved the menu UI).
+        // Skip the pipeline while a /ajax.php POST is in flight or another
+        // caller holds the explicit mutex (#1598,
+        // docs/decisions/ADR-003-ajax-post-mutex.md): its blocks are the
+        // state-changing POST sources (PoP claim, BossBang fight, Champion
+        // reorder, ...). UI updates and the page handlers below keep running
+        // so the script stays responsive -- gating the whole tick starved the
+        // menu UI.
         if (isPostInFlight()) {
             logHHAuto('AutoLoop: POST in flight, deferring action handlers this tick');
         } else {
-        // --- Scheduler Pipeline (every action handler runs here) ---
-        // Only trigger the scheduler when no classic action handler has
-        // already started an action this tick. Without this gate the
+        // --- Block pipeline (every action runs here) ---
+        // Only trigger the scheduler when nothing else started an action
+        // this tick (Contest.setTimers above can). Without this gate the
         // pipeline runs preconditions and step.fn even when the
         // navigation mutex in PageNavigationService will swallow the
         // resulting gotoPage / safeReload call. The gate also prevents

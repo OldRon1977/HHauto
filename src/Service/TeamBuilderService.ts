@@ -4,18 +4,21 @@
 //
 // Public surface:
 //   - buildTeam(allGirls, mode, playerLevel, playerClass): TeamResult | null
+//   - buildTeamCandidates(...): the candidates, strongest stat sum first
 //   - getElementDistribution(team): summary helper for the UI panel
 //
 // Picker semantics:
 //   1. Detect Bless 1 and Bless 2 (BlessingService.detectActiveBlessings).
-//   2. Build up to three candidate teams in parallel:
-//      - Team A from "girls with Bless 1" (only when Bless 1 active).
-//      - Team B from "girls with Bless 2" (only when Bless 2 active).
-//      - Team C from the entire eligible pool (always, no Bless filter).
-//   3. Best candidate by caracs_sum-of-7 wins. Mode-aware: scoreCurrentBest
-//      in mode 1, scoreBestPossible in mode 2.
-//   4. Tie-break: Bless 1 > Bless 2 > Default.
-//   5. If no candidate fills 7 slots, emergency fallback (top-N by caracs_sum).
+//   2. For each pool -- girls with Bless 1, girls with Bless 2, the whole
+//      eligible pool -- build one clustered candidate per usable trait
+//      cluster and one flat candidate; add the theme candidates (the flat
+//      pick with three or four girls of one element).
+//   3. Score by caracs_sum-of-7, mode-aware: scoreCurrentBest in mode 1,
+//      scoreBestPossible in mode 2.
+//   4. Winner (selectBestCandidate): among the candidates within
+//      LEADER_TIEBREAK_MARGIN of the best score, the highest Tier-5 leader
+//      skill; then score, then candidate order.
+//   5. If the pool cannot fill 7 slots, emergency fallback (top-N by caracs_sum).
 
 import { BlessingService } from './BlessingService';
 import {

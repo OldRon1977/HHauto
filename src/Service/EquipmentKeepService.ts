@@ -4,7 +4,7 @@
 // The automation never feeds mythics to anything. This decides what to *show*
 // the player: marked means "keep", unmarked means "safe to use as material".
 //
-// The rule, agreed with the maintainer against his own inventory (207 pieces,
+// The rule, agreed with the maintainer against their own inventory (207 pieces,
 // 107 of them mythic):
 //
 //   For each slot, for each element, keep exactly ONE piece.
@@ -26,7 +26,7 @@
 // "Harmony" is the game's name for what the API calls `chance`.
 //
 // Keeping one piece per ELEMENT, not one per resonance combination, is a
-// deliberate choice (variant A): an element you cannot field at all is the
+// deliberate choice: an element you cannot field at all is the
 // real gap, a second bonus flavour of an element you already own is not.
 // It also means an element covered only by a foreign class still keeps its
 // best piece -- without that, an element could disappear from a slot entirely.

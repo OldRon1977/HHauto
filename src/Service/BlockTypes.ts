@@ -36,11 +36,11 @@ export interface Step {
   name: string;
   /** Performs the step. */
   fn: (ctx: AutoLoopContext, run: BlockRun) => Promise<BlockStepResult>;
-  /** Reload relationship. Default 'none'. */
+  /** Reload relationship. Default 'none'. Descriptive only: the scheduler does not read it. */
   reload?: StepReloadKind;
   /** State-changing steps get an at-most-once dispatch marker. */
   stateChanging?: boolean;
-  /** Per-step timeout override in ms. */
+  /** Per-step timeout in ms. Not read by the block scheduler, which has no per-step or per-run cap (SchedulerConfig.noProgressMs). */
   timeoutMs?: number;
   /**
    * After a reload, checks that the expected page/state is present before this
@@ -63,8 +63,8 @@ export type OrderConstraint =
 
 /**
  * Static definition of a user-visible script function (League, Quest, Salary,
- * ...). Replaces HandlerConfig. Carries only its steps and declared metadata;
- * it never hard-codes a global order assumption.
+ * ...), built from a HandlerConfig by BlockPipeline.toBlock. Carries only its
+ * steps and declared metadata; it never hard-codes a global order assumption.
  */
 export interface Block {
   /** Stable, unique id used by order list, enable state and logging. */
@@ -79,9 +79,9 @@ export interface Block {
   constraints?: OrderConstraint[];
   /** Cool-down between two runs of this block, in ms. */
   minIntervalMs: number;
-  /** Watchdog: max ms for a single step. */
+  /** Max ms for a single step. Not read by the block scheduler, which has no per-step or per-run cap (SchedulerConfig.noProgressMs). */
   stepTimeoutMs?: number;
-  /** Watchdog: max ms for the whole block-run. */
+  /** Max ms for the whole block-run. Not read by the block scheduler, which has no per-step or per-run cap (SchedulerConfig.noProgressMs). */
   totalTimeoutMs?: number;
   /**
    * Whether finishing a run makes this block the focused activity (#1841).
@@ -124,10 +124,9 @@ export interface BlockFocus {
 }
 
 /**
- * Runtime memory of a currently executing block. Replaces ActiveChain and is
- * now PERSISTENT (sessionStorage) so it survives planned and unplanned reloads
- *. Continuation lives here instead of the global
- * lastActionPerformed token.
+ * Runtime memory of a currently executing block. Persistent (sessionStorage),
+ * so it survives planned and unplanned reloads; the continuation of a block
+ * lives here rather than in the global lastActionPerformed token.
  */
 export interface BlockRun {
   /** Id of the block currently running. */
