@@ -35,6 +35,10 @@ Older entries below were migrated 1:1 from `README.md`.
   longer turns off once a boss is beaten. They wait for the next event.
   Without a seasonal event the script looks again after an hour instead of
   a week; it reads the game's own event data for that and loads no page.
+- **Timer list:** the info panel lists an event's timer only while the
+  event runs. Boss Bang disappears once the boss is beaten or the event is
+  over, the seasonal event when the game reports none, and path of valor or
+  glory once their end has passed -- instead of showing "Time's up!".
 
 ### v8.14.1 - Sandalwood for skins
 

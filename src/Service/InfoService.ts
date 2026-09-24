@@ -17,12 +17,13 @@ import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { NumberHelper } from "../Helper/NumberHelper";
 import { getPage } from "../Helper/PageHelper";
-import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { TimeHelper } from "../Helper/TimeHelper";
-import { getTimeLeft, getTimer } from "../Helper/TimerHelper";
+import { getSecondsLeft, getTimeLeft, getTimer } from "../Helper/TimerHelper";
 import { Contest } from "../Module/Contest";
 import { DailyGoals } from "../Module/DailyGoals";
 import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
+import { SeasonalEvent } from "../Module/Events/Seasonal";
 import { Season } from "../Module/Events/Season";
 import { Labyrinth } from "../Module/Labyrinth";
 import { LeagueHelper } from "../Module/League";
@@ -85,6 +86,21 @@ export function createPInfo():JQuery<HTMLElement> {
                     +'}');
     }
     return pInfo;
+}
+
+// An event row belongs in the panel only while its event runs. Outside it the
+// row could only say "Time's up!" or n/a, and its switch stays on for the
+// next event.
+// Boss bang: an event parsed from the page, not yet beaten, not yet over.
+export function isBossBangRunning(): boolean {
+    const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.eventsList, {});
+    return Object.values(eventList).some(event => event?.type === 'bossBang' && !event.isCompleted
+        && !(Number(event.seconds_before_end) < Date.now()));
+}
+// PoV / PoG: their end is known once their page was read; an unknown end
+// counts as running.
+function isPathRunning(remainingTimer: string): boolean {
+    return getTimer(remainingTimer) === -1 || getSecondsLeft(remainingTimer) > 0;
 }
 
 export function updateData() {
@@ -228,19 +244,19 @@ export function updateData() {
         {
             Tegzd += pInfoRow(getTextForUI("sultryMysteriesAutoOpenNext","elementText"), getTimeLeft('eventSultryMysteryAutoOpen'));
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledBossBangEvent",false) && getStoredValue(HHStoredVarPrefixKey+SK.bossBangEvent) === "true" && getTimer('nextBossBangTime') !== -1)
+        if (ConfigHelper.getHHScriptVars("isEnabledBossBangEvent",false) && getStoredValue(HHStoredVarPrefixKey+SK.bossBangEvent) === "true" && getTimer('nextBossBangTime') !== -1 && isBossBangRunning())
         {
             Tegzd += pInfoRow(getTextForUI("pinfoBossBang","elementText"), getTimeLeft('nextBossBangTime'));
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true" && getTimer('nextSeasonalEventCollectAllTime') !== -1)
+        if (ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true" && getTimer('nextSeasonalEventCollectAllTime') !== -1 && SeasonalEvent.isActiveEvent())
         {
             Tegzd += pInfoRow(getTextForUI("pinfoSeasonalEvent","elementText"), getTimeLeft('nextSeasonalEventCollectAllTime'));
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledPoV",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll) === "true" && getTimer('nextPoVCollectAllTime') !== -1)
+        if (ConfigHelper.getHHScriptVars("isEnabledPoV",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll) === "true" && getTimer('nextPoVCollectAllTime') !== -1 && isPathRunning('PoVRemainingTime'))
         {
             Tegzd += pInfoRow(getTextForUI("pinfoPoVCollect","elementText"), getTimeLeft('nextPoVCollectAllTime'));
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledPoG",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true" && getTimer('nextPoGCollectAllTime') !== -1)
+        if (ConfigHelper.getHHScriptVars("isEnabledPoG",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true" && getTimer('nextPoGCollectAllTime') !== -1 && isPathRunning('PoGRemainingTime'))
         {
             Tegzd += pInfoRow(getTextForUI("pinfoPoGCollect","elementText"), getTimeLeft('nextPoGCollectAllTime'));
         }
