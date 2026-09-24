@@ -58,9 +58,9 @@ export function getLanguageCode()
 }
 
 /**
- * Vergleicht zwei Versionsstrings.
+ * Compares two version strings numerically.
  *
- * @returns `0` gleich, `1` a groesser als b, `-1` b groesser als a
+ * @returns `0` equal, `1` a is greater than b, `-1` b is greater than a
  */
 function cmpVersions(a: string, b: string)
 {

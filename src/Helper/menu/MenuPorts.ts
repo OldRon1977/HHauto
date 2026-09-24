@@ -1,7 +1,7 @@
 // MenuPorts.ts
 //
 // Dependency-injection "ports" for the extracted menu leaf modules
-// (MenuWidgets, MenuTemplate, MenuSettings). Those files need a handful of
+// (MenuWidgets, MenuTemplate, MenuSettings, MenuTabs). Those files need a handful of
 // helpers (translations, config lookups, storage access, popup/default
 // helpers) that all live inside the project's large import cycle ("SCC").
 // Importing them statically would drag every menu/* file back into that cycle

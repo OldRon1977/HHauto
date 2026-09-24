@@ -28,8 +28,7 @@ import { queryStringGetParam } from "./UrlHelper";
  *
  * The kill switch is explicit and separate from getPage(): a read that also
  * hard-stops the script lets any caller hitting a transient DOM state disable
- * everything without realising it. It lives here
- * now so callers opt into halting explicitly.
+ * everything without realising it, so callers opt into halting explicitly.
  *
  * Used by StartService when it bootstraps and finds no game root.
  */
@@ -84,9 +83,8 @@ function resolvePopState(): PopState
 
     // Fallback for game variants that still expose the globals.
     const popThumb = $(".pop_thumb_selected[pop_id]");
-    // `??` instead of `||`: pop_index = 0 would be a valid index in a
-    // 0-based numbering scheme, the previous `||` would have routed it
-    // to the popThumb fallback. Nullish-coalescing keeps 0 in place.
+    // `??`, not `||`: pop_index 0 is a valid index and must not fall
+    // through to the popThumb fallback.
     const resolved = unsafeWindow.pop_index ?? (popThumb.length > 0 ? popThumb.attr('pop_id') : undefined);
     if (resolved !== undefined)
     {
@@ -110,8 +108,7 @@ export function getPopFallbackIndex(): string | null
     const tab = queryStringGetParam(window.location.search, 'tab');
     if (tab !== 'pop') return null;
     // The POP query param is `pop_id` (#1782). A locked POP cannot render as
-    // a single-POP page; the
-    // game bounces us back to the main list instead. Because the real
+    // a single-POP page; the game bounces us back to the main list instead. Because the real
     // single-POP page has no visible pop_list (measured: pop_list_vis = 0)
     // it never resolves to 'main', so "URL targets a pop_id but the state
     // is 'main'" is an unambiguous lock signal. (The PopTargeted self-heal
@@ -175,8 +172,8 @@ function resolveActivitiesSubTab(tab: string | null): string | null
         return resolvePopPageId();
     }
 
-    // 2. DOM fallback only when the URL has no tab param. Same lookup
-    //    pattern as before, just driven by the table.
+    // 2. DOM fallback only when the URL has no tab param, driven by the
+    //    same table.
     if (tab == null)
     {
         for (const entry of ACTIVITIES_SUB_TABS)

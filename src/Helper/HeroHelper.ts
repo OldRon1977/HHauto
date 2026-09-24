@@ -2,8 +2,8 @@
 //
 // Provides read access to the player's hero data (class, level, money,
 // kobans) and actions that modify the hero: stat upgrades and booster
-// equipping. Hero data lives on the game's global `window.Hero` (or
-// `window.shared.Hero` on newer builds), accessed via unsafeWindow.
+// equipping. Hero data lives on the game's global `window.shared.Hero`,
+// accessed via unsafeWindow.
 //
 // Why stat upgrade logic lives here: Upgrading stats is a sequential,
 // recursive process (buy one increment, wait, repeat) that only touches
@@ -242,7 +242,7 @@ export class HeroHelper {
                 resolve(value);
             };
 
-            // Option C: Safety timeout in case the AJAX call never invokes either callback
+            // Safety timeout in case the AJAX call never invokes either callback
             // (seen in the wild when the referer swap collides with navigation). Without
             // this, the promise would hang forever and the autoLoop stays paused.
             timeoutId = setTimeout(() => {
@@ -261,7 +261,7 @@ export class HeroHelper {
                     logHHAuto('equipBooster: Booster equipped successfully');
                 } else {
                     logHHAuto('equipBooster: Server returned success:false (may already be equipped)');
-                    // Option D: a success:false response means our local boosterStatus is
+                    // A success:false response means our local boosterStatus is
                     // out of sync with the server (another browser/tab probably equipped
                     // boosters while we were paused). Invalidate the freshness timestamp
                     // so autoEquipBoosters refreshes from the market before retrying.

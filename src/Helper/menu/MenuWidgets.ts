@@ -13,9 +13,9 @@
 import { MenuPorts } from "./MenuPorts";
 
 /**
- * `labelPrefix` is prepended to the translated label, e.g. "1 " to number a
- * button inside a step-by-step workflow. Kept out of the translations on
- * purpose: a step number reads the same in every language.
+ * `labelPrefix` is prepended to the translated label -- meant for a step
+ * number, which reads the same in every language and so stays out of the
+ * translations. No caller passes one at present.
  */
 export function hhButton(textKeyId: string, buttonId: string, mainStyle='', labelSyle='', labelPrefix=''){
     const { getTextForUI } = MenuPorts;
