@@ -1,13 +1,11 @@
 // HaremGirl.pure.ts -- Pure equipment scoring/comparison helpers.
 //
-// Extracted from HaremGirl (private static methods) so the resonance and
-// stat-sum logic can be unit-tested without DOM, jQuery, or globals.
-// HaremGirl now imports these for optimizeEquipmentSlots and the (currently
-// unused) findBestItem helper.
+// The resonance and stat-sum logic of HaremGirl.optimizeEquipmentSlots,
+// unit-testable without DOM, jQuery, or globals. HaremGirl imports scoreItem
+// and isBetter; findBestItem has no caller.
 //
-// The data shape is intentionally loose -- the game API uses untyped JSON
-// and the original methods accepted `any`. We mirror that here and document
-// the keys we read.
+// The data shape is intentionally loose -- the game API uses untyped JSON --
+// and the keys this file reads are documented on the types.
 import { KKHaremGirl } from "../../model/KK/KKHaremGirl";
 
 /**
@@ -46,7 +44,7 @@ export type EquipmentScore = {
  * Sum of all stat fields plus the count of class/element/figure resonance
  * matches against the wearer.
  *
- * Matches the original implementation byte for byte:
+ * Rules:
  *   - missing carac fields default to 0
  *   - resonance_bonuses as an array is ignored (zero matches)
  *   - identifier comparison is stringified on both sides
@@ -78,8 +76,7 @@ export function scoreItem(item: EquipmentItem, girl: KKHaremGirl): EquipmentScor
  *   2. resonanceMatches
  *   3. carac1+carac2+carac3 (excluding damage/defense/ego)
  *
- * Returns null on an empty list. Currently unused in the codebase but kept
- * as part of the equipment helper trio for parity with the original module.
+ * Returns null on an empty list. No caller at present.
  */
 export function findBestItem(items: EquipmentItem[], girl: KKHaremGirl): EquipmentItem | null {
     if (items.length === 0) return null;

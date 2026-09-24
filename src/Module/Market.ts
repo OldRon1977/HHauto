@@ -1,8 +1,9 @@
-// Market.ts -- Auto-buys items from the in-game market using soft currency.
+// Market.ts -- Auto-buys from the in-game market: boosters for kobans (the
+// "Boosters to buy" list), gifts and books for money up to the affection and
+// XP amounts set in the menu.
 //
-// Periodically checks the market shop for available items and purchases them
-// via AJAX requests using the player's soft currency. Manages purchase
-// cooldowns and tracks spending to avoid over-buying.
+// Works from the shop contents cached on the last market visit and buys via
+// AJAX, keeping the koban bank and the money floors set in the menu untouched.
 //
 // Used by: Service/StartService.ts
 //

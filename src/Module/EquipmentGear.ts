@@ -1,13 +1,10 @@
-// EquipmentGear.ts -- The gear buttons on the market page: pick the best
-// armor for the hero's six slots and put it on.
+// EquipmentGear.ts -- The gear menu on the market page: pick the best armor
+// for the hero's six slots and put it on, level the worn mythics, and mark
+// the mythics worth keeping.
 //
-// Deliberately built like the team workflow so the player needs one mental
-// model, not two:
-//
-//   Team page                Market page
-//   2a Current Best     ->   Current Best Gear
-//   2b Possible Best    ->   Possible Best Gear
-//   3  Stuff Team       ->   Upgrade Gear
+// One button opens a menu with four actions: Current Best Gear, Possible
+// Best Gear, Upgrade Gear and Mark Keepers. The two "best" actions follow
+// the theme of the team last fielded (see resolveTheme).
 //
 // The ranking itself lives in Service/EquipmentOptimizerService.ts and is
 // pure. This file only does the impure half: read the game's globals and
@@ -132,7 +129,7 @@ export class EquipmentGear {
     private static running = false;
 
     /**
-     * Inject the two gear buttons next to the armor inventory, or take them
+     * Inject the gear menu button next to the armor inventory, or take it
      * away again when the player is on one of the other market tabs. Called
      * from the shop page handler and re-entered on every tab switch.
      */
@@ -638,14 +635,6 @@ export class EquipmentGear {
     // ------------------------------------------------------------- upgrade
 
     /**
-     * "Upgrade Gear": level the mythics the hero is wearing towards the cap.
-     *
-     * The plan is deliberately thin. How much material a level costs is not
-     * derivable (see EquipmentUpgradeService) and the upgrade page states it
-     * per item, so the preview lists the targets and the stock behind them
-     * and leaves the arithmetic to the page that knows it.
-     */
-    /**
      * Mark the mythics worth keeping, so everything unmarked is safe to spend
      * by hand as upgrade material.
      *
@@ -796,6 +785,14 @@ export class EquipmentGear {
         return painted;
     }
 
+    /**
+     * "Upgrade Gear": level the mythics the hero is wearing towards the cap.
+     *
+     * The plan is deliberately thin. How much material a level costs is not
+     * derivable (see EquipmentUpgradeService) and the upgrade page states it
+     * per item, so the preview lists the targets and the stock behind them
+     * and leaves the arithmetic to the page that knows it.
+     */
     private static async previewUpgrade(): Promise<void> {
         if (EquipmentGear.running) return;
         EquipmentGear.running = true;

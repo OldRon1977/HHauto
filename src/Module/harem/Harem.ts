@@ -82,8 +82,6 @@ export class Harem {
             {
                 girlsMap.reverse();
             }
-            /*for(let i=0;i<5;i++)
-                console.log(girlsMap[i].gData.name, getGirlUpgradeCost(girlsMap[i].gData.rarity, girlsMap[i].gData.graded + 1));*/
         }
         return girlsMap;
     }
@@ -316,7 +314,7 @@ export class Harem {
     static async run(): Promise<boolean>
     {
         try {
-            const debugEnabled = true; //getStoredValue(HHStoredVarPrefixKey + TK.Debug") === 'true';
+            const debugEnabled = true;
             const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
             const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
@@ -383,7 +381,6 @@ export class Harem {
                         HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "resetting " + rarity, 7, 0);
                         logHHAuto('Get ' + rarity + ' scrolls needed: ' + (team as any)['scrolls_' + rarity]);
                         let scrollGot = 0;
-                        //await haremFilter.selectGirlFilters('6');
                         const girls: { [id_girl: string]: number } = skilledGirlsScrolls[rarity];
                         for (const girlId in girls) {
                             if (team.girlIds.includes(Number(girlId))) {
@@ -406,7 +403,6 @@ export class Harem {
                             } else {
                                 return false;
                             }
-                            // await TimeHelper.sleep(randomInterval(200, 400)); // wait open
                             if (scrollGot >= (team as any)['scrolls_' + rarity]) {
                                 if (debugEnabled) logHHAuto('Got enough ' + rarity + ' scrolls, stop resetting');
                                 break;

@@ -152,10 +152,8 @@ export class PentaDrill {
                     return false;
                 }
                 logHHAuto(`Going to crush : ${chosenOpponent.player.nickname} (${chosenID})`);
-                // C1: safeNavigateHref handles autoLoop disable + AJAX-idle
-                // wait + URL change atomically. The duplicate setStoredValue
-                // and log line is removed because safeNavigateHref does that
-                // internally. Issue #1598 race-protection.
+                // safeNavigateHref switches autoLoop off, waits for AJAX idle
+                // and changes the URL in one go (#1598 race protection).
                 safeNavigateHref(addNutakuSession(toGoTo) as string);
                 await TimeHelper.sleep(PentaDrill.getActionDelayMs());
                 return true;

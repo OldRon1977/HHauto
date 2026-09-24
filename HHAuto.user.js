@@ -7560,7 +7560,7 @@ const AJAX_IDLE_SETTLE_MS = 250;
 // worst observed claim XHR + settle pause on the 2400-girls account.
 const POST_MUTEX_STALE_MS = 30000;
 // Server-settle minimum pause and amplification factor for
-// awaitServerSettleAfterPost(). Frank-Capture: claim XHR 6.7s,
+// awaitServerSettleAfterPost(). Measured capture: claim XHR 6.7s,
 // observed safe gap before next request ~25-30s -> factor 4.
 // Math.max keeps small accounts fast (a 200ms claim still gets a 2s
 // pause, large accounts get the longer wait).
@@ -9052,7 +9052,7 @@ const HHAuto_inputPattern = {
  * Sum of all stat fields plus the count of class/element/figure resonance
  * matches against the wearer.
  *
- * Matches the original implementation byte for byte:
+ * Rules:
  *   - missing carac fields default to 0
  *   - resonance_bonuses as an array is ignored (zero matches)
  *   - identifier comparison is stringified on both sides
@@ -9083,8 +9083,7 @@ function scoreItem(item, girl) {
  *   2. resonanceMatches
  *   3. carac1+carac2+carac3 (excluding damage/defense/ego)
  *
- * Returns null on an empty list. Currently unused in the codebase but kept
- * as part of the equipment helper trio for parity with the original module.
+ * Returns null on an empty list. No caller at present.
  */
 function findBestItem(items, girl) {
     if (items.length === 0)
@@ -9459,7 +9458,7 @@ class HaremGirl {
         const girlMenuButton = '<div style="position: absolute;left: 425px;top: 0px; font-size: small; z-index:30;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("girlMenu", "tooltip") + '</span><label class="myButton" id="' + girlMenuButtonId + '">+</label></div>';
         var openGirlMenu = function () {
             const selectedGirl = HaremGirl.getCurrentGirl();
-            const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded; // && HaremGirl.getMaxOutButton(HaremGirl.AFFECTION_TYPE).length > 0;
+            const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded;
             const menuIDXp = "haremGirlGiveXP";
             const menuIDMaxGifts = "haremGirlGiveMaxGifts";
             const menuIDUpgradeMax = "haremGirlUpgradeMax";
@@ -10232,8 +10231,6 @@ class Harem {
             if (inSortReversed) {
                 girlsMap.reverse();
             }
-            /*for(let i=0;i<5;i++)
-                console.log(girlsMap[i].gData.name, getGirlUpgradeCost(girlsMap[i].gData.rarity, girlsMap[i].gData.graded + 1));*/
         }
         return girlsMap;
     }
@@ -10447,7 +10444,7 @@ class Harem {
     static run() {
         return Harem_awaiter(this, void 0, void 0, function* () {
             try {
-                const debugEnabled = true; //getStoredValue(HHStoredVarPrefixKey + TK.Debug") === 'true';
+                const debugEnabled = true;
                 const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
                 const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
                 if (getPage() === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
@@ -10510,7 +10507,6 @@ class Harem {
                             HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "resetting " + rarity, 7, 0);
                             logHHAuto('Get ' + rarity + ' scrolls needed: ' + team['scrolls_' + rarity]);
                             let scrollGot = 0;
-                            //await haremFilter.selectGirlFilters('6');
                             const girls = skilledGirlsScrolls[rarity];
                             for (const girlId in girls) {
                                 if (team.girlIds.includes(Number(girlId))) {
@@ -10534,7 +10530,6 @@ class Harem {
                                 else {
                                     return false;
                                 }
-                                // await TimeHelper.sleep(randomInterval(200, 400)); // wait open
                                 if (scrollGot >= team['scrolls_' + rarity]) {
                                     if (debugEnabled)
                                         logHHAuto('Got enough ' + rarity + ' scrolls, stop resetting');
@@ -12612,8 +12607,8 @@ class KinkyCumpetition {
 //
 // Two decisions live here:
 //
-// 1. decideCollectTrigger -- the three-branch OR cascade in
-//    LivelyScene.parse that decides whether to invoke goAndCollect at
+// 1. decideCollectTrigger -- the three-branch OR cascade that decides
+//    whether LivelyScene.parse and collectOnPageLoad invoke goAndCollect at
 //    all. Triggered by any of:
 //      - autoCollect setting on (continuous polling)
 //      - manualCollectAll flag on (user-initiated full sweep)
@@ -12626,7 +12621,7 @@ class KinkyCumpetition {
 //    rule: matching rewardType under needToCollect, OR needToCollectAll
 //    (any rewardType), OR manualCollectAll (any rewardType).
 /**
- * Reproduce the OR cascade in LivelyScene.parse bit by bit:
+ * The OR cascade that decides whether LivelyScene collects at all:
  *
  *   autoCollect
  *   || manualCollectAll
@@ -12641,8 +12636,8 @@ function decideCollectTrigger(state) {
         || (state.remainingTime < state.limitBeforeEnd && state.autoCollectAll));
 }
 /**
- * Reproduce the loop in LivelyScene.parseClaimableRewards bit by bit.
- * Walks the input list and keeps every piece for which:
+ * The piece filter of LivelyScene's collect sweep. Walks the input list and
+ * keeps every piece for which:
  *
  *   reward_unlocked AND NOT reward_claimed
  *   AND (
@@ -15840,9 +15835,6 @@ class Booster {
                     }
                     boosterStatus.mythic = boosterStatus.mythic.filter(({ usages_remaining }) => usages_remaining > 0);
                     setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
-                    /*if (mythicUpdated) {
-                        $(document).trigger('boosters:updated-mythic')
-                    }*/
                     try {
                         if (sandalwood && mythicUpdated && sandalwoodEnded) {
                             const isMultibattle = parseInt(number_of_battles || '') > 1;
@@ -15938,7 +15930,7 @@ class Booster {
         const serverNow = getHHVars('server_now_ts');
         if (boosterCode == '') {
             // have at least one
-            return /*boosterStatus.mythic.length > 0 ||*/ boosterStatus.normal.some((booster) => booster.endAt > serverNow);
+            return boosterStatus.normal.some((booster) => booster.endAt > serverNow);
         }
         else {
             return boosterStatus.mythic.some((booster) => booster.item.identifier === boosterCode)
@@ -17008,7 +17000,8 @@ var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 // Trolls are PvE bosses that cost fight energy to battle. This module manages
 // troll fight scheduling, selects which troll to fight (including event-specific
 // trolls during mythic events), tracks energy regeneration, and processes
-// fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
+// fight rewards. The event and love-raid targets come from EventModule and
+// LoveRaidManager.
 //
 // Depends on: EventModule.ts and LoveRaidManager.ts (event routing), Harem, Booster
 // Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts and others
@@ -17510,7 +17503,7 @@ class Troll {
                 }
             }
             // Valid troll resolved: clear the one-shot invalid-retry guard so a future
-            // invalid target can retry once again (the flag was never reset before).
+            // invalid target can retry once again.
             if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
                 setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "false");
             }
@@ -17541,9 +17534,7 @@ class Troll {
                 logHHAuto("Navigating to chosen Troll.");
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 logHHAuto("setting autoloop to false");
-                //week 28 new battle modification
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
-                //End week 28 new battle modification
                 return true;
             }
         });
@@ -17836,7 +17827,7 @@ class Troll {
         }
     }
     /**
-     * Shared core for canBuyFight / canBuyFightForRaid (Troll review I5).
+     * Shared core for canBuyFight / canBuyFightForRaid.
      * Each public wrapper computes its strategy-specific buy amounts, the
      * activation predicate and the x50 gate, then delegates the common
      * shard/energy gate, x50-vs-x20 decision, koban check, logging and result
@@ -17931,7 +17922,7 @@ class Troll {
         const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
         const activated = !!(getStoredValue(HHStoredVarPrefixKey + SK.buyLoveRaidCombat) === "true"
             && LoveRaidManager.isAnyActivated()
-            && (raid === null || raid === void 0 ? void 0 : raid.seconds_until_event_end) > 0 // new Date() < new Date(raid.end_datetime)
+            && (raid === null || raid === void 0 ? void 0 : raid.seconds_until_event_end) > 0
             && (raid === null || raid === void 0 ? void 0 : raid.id_girl));
         return Troll.evaluateFightPurchase({
             shards: raid === null || raid === void 0 ? void 0 : raid.girl_shards,
@@ -19395,12 +19386,9 @@ class DailyGoals {
                     }
                 }
                 catch (err) {
-                    // Pre-fix this destructured `{ errName, message }` from the
-                    // thrown value, which crashed on primitive throws (the
-                    // destructure itself raised TypeError) and silently logged
-                    // `undefined` on non-Error objects. Standard catch handles
-                    // both safely; the message extraction stays defensive so a
-                    // primitive throw still produces a readable log line.
+                    // The thrown value may be a primitive or a plain object, so
+                    // the message is extracted defensively rather than
+                    // destructured -- a destructure would itself throw.
                     const errMessage = err instanceof Error ? err.message : String(err);
                     logHHAuto(`ERROR during daily goals run: ${errMessage}, retry in 1h`);
                     setTimer('nextDailyGoalsCollectTime', randomInterval(3600, 4000));
@@ -19414,10 +19402,7 @@ class DailyGoals {
             }
         }
         // Default branch: timer not yet elapsed or autoDailyGoalsCollect
-        // disabled. Pre-fix the function fell through with an implicit
-        // `undefined` return that the Pipeline adapter coerced to falsy
-        // (busy=false). Spell that out explicitly to match the declared
-        // boolean return type and to survive a future strict-TS push.
+        // disabled. Not busy.
         return false;
     }
     static parse() {
@@ -19478,7 +19463,6 @@ class DailyGoals {
 }
 class DailyGoalsIcon {
     static getIcon() {
-        //static getIcon(current: number, max: number){
         // TODO translation
         return $(`<i class="daily_goals_potion_icn general_potion_icn hhauto" title="Have daily goal"></i>`);
     }
@@ -19954,22 +19938,6 @@ function getSkillPercentage(team, id) {
 // The impure adapter LeagueHelper.isTimeToFight reads globals and storage,
 // builds a ShouldFightState, and delegates here.
 /**
- * Decide whether the league module should fight right now.
- *
- * Mirrors the original logic of LeagueHelper.isTimeToFight bit by bit:
- *   - timerExpired:        timerLeft <= 0 (checkTimer returns true once it has
- *                          run out)
- *   - energyAboveThreshold: humanLikeRun loosens the upper bound, otherwise
- *                          energy must exceed max(threshold, runThreshold - 1)
- *   - paranoiaOverride:    spend any positive amount of paranoia energy as
- *                          long as energy > 0
- *   - boosterCheck:        either boosters are not required, or they are
- *                          required AND equipped
- *
- * Returns true if (timer expired AND energy ok AND booster ok) OR paranoia
- * spending is active.
- */
-/**
  * Size of the league promotion zone.
  *
  * Kinkoid rule (March 2026): a player is promoted if they finish in the
@@ -19986,6 +19954,23 @@ function leaguePromotionCutoff(bracketSize) {
         return 20;
     return Math.max(Math.round(0.15 * bracketSize), 20);
 }
+/**
+ * Decide whether the league module should fight right now.
+ *
+ * The decision behind LeagueHelper.isTimeToFight:
+ *   - timerExpired:        timerLeft <= 0 (checkTimer returns true once it has
+ *                          run out)
+ *   - energyAboveThreshold: with humanLikeRun, energy above threshold is
+ *                          enough; otherwise energy must exceed
+ *                          max(threshold, runThreshold - 1)
+ *   - paranoiaOverride:    spend any positive amount of paranoia energy as
+ *                          long as energy > 0
+ *   - boosterCheck:        either boosters are not required, or they are
+ *                          required AND equipped
+ *
+ * Returns true if (timer expired AND energy ok AND booster ok) OR paranoia
+ * spending is active.
+ */
 function decideShouldFight(state) {
     const { energy, threshold, runThreshold, humanLikeRun, timerLeft, paranoiaSpending, boosterRequired, boosterEquipped, } = state;
     const timerExpired = timerLeft <= 0;
@@ -20716,7 +20701,7 @@ Season.MIN_MOJO_FIGHT = 8;
 // the game AND level high enough" cascade seven other modules wrote out by
 // hand (ADR-012).
 /**
- * Reproduce Pantheon.isTimeToFight bit by bit. Original line:
+ * The fight decision behind Pantheon.isTimeToFight:
  *
  *   (checkTimer('nextPantheonTime') && energyAboveThreshold &&
  *    (needBoosterToFight && haveBoosterEquiped || !needBoosterToFight
@@ -20733,7 +20718,8 @@ Season.MIN_MOJO_FIGHT = 8;
  * (booster-required-and-equipped OR booster-not-required OR daily-goal).
  *
  * Threshold comparisons are strict (>) on the lower bound and the
- * runThreshold-1 expression keeps the off-by-one the original code uses.
+ * runThreshold-1 expression is an off-by-one kept on purpose: the other
+ * fight modules use the same.
  */
 function Pantheon_pure_decideShouldFight(state) {
     const { energy, threshold, runThreshold, humanLikeRun, timerExpired, paranoiaSpending, needBoosterToFight, haveBoosterEquipped, isDailyGoal, } = state;
@@ -20747,13 +20733,13 @@ function Pantheon_pure_decideShouldFight(state) {
 }
 
 ;// ./src/Module/Pantheon.ts
-// Pantheon.ts -- Automates Pantheon fights: opponent selection and energy management.
+// Pantheon.ts -- Automates Pantheon fights.
 //
-// The Pantheon is a PvP arena with its own energy system. This module selects
-// opponents, manages Pantheon-specific fight energy, and handles cooldown
-// timers. Similar to League but uses a separate energy pool and ranking system.
+// The Pantheon is a ladder of temple fights paid with worship energy. This
+// module decides when to fight (threshold, booster, a pantheon daily goal,
+// paranoia) and walks to the next temple's fight, with its cooldown timer.
 //
-// Depends on: Pantheon.pure.ts (parsing), ParanoiaService, Booster
+// Depends on: Pantheon.pure.ts (the fight decision), ParanoiaService, Booster
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts and others
 //
 
@@ -21084,10 +21070,9 @@ class PlaceOfPower {
                 const buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
                 if ($(buttonClaimQuery).length > 0) {
                     // Serialise the claim POST through the global mutex (#1598,
-                    // docs/decisions/ADR-003-ajax-post-mutex.md):
-                    // the global mutex so AutoLoop and other handlers cannot
-                    // stack a second POST on top while the server is still
-                    // processing this one (which produces HTTP Forbidden on
+                    // docs/decisions/ADR-003-ajax-post-mutex.md), so AutoLoop and
+                    // other handlers cannot stack a second POST on top while the
+                    // server is still processing this one (which produces HTTP Forbidden on
                     // accounts with very large rosters). If another caller
                     // already holds the mutex we yield this tick.
                     if (!acquirePostMutex('pop:claim')) {
@@ -21134,7 +21119,7 @@ class PlaceOfPower {
                     // The HTTP response is back, but the server still needs
                     // time to commit the claim. Acting on the next request
                     // before that commit produces Forbidden on the 2400-girls
-                    // account (Frank-Capture: claim 6.7s, safe gap ~27s).
+                    // account (measured capture: claim 6.7s, safe gap ~27s).
                     yield awaitServerSettleAfterPost(claimDuration);
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(1500, 2500));
                     return true;
@@ -21174,7 +21159,9 @@ class PlaceOfPower {
                 });
                 if (minTime != -1) {
                     if (minTime > 7 * 60 * 60) {
-                        //force check of PowerPlaces every 7 hours // TODO: check time 20min != 7h
+                        // The next PoP ends in more than 7 hours: look again in
+                        // 20-25 minutes instead. (Open: whether 20 minutes rather
+                        // than a longer wait is intended.)
                         setTimer('minPowerPlacesTime', randomInterval(20 * 60, 25 * 60));
                     }
                     else if (getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlacesWaitMax) === "true" && maxTime != -1) {
@@ -21229,12 +21216,10 @@ class PlaceOfPower {
         return PlaceOfPower_awaiter(this, void 0, void 0, function* () {
             if (getPage() !== "powerplace" + index) {
                 // Self-heal for failed PoP navigation: storage round-trips numbers as
-                // strings, so the previous strict-equality check (index === stored)
-                // never matched and this branch was dead code -- the bot stayed in
-                // an infinite "Navigating to powerplaceN page" loop on locked PoPs
-                // (issue #1598 root cause). Coerce the stored value to a Number
-                // before comparing so the index goes onto the unable-to-start list
-                // and the loop terminates.
+                // strings, so the stored value is compared as a Number. Compared
+                // strictly as stored, it never matched, and a locked PoP kept the
+                // bot in an endless "Navigating to powerplaceN page" loop (#1598).
+                // Matched, the index goes onto the unable-to-start list.
                 const storedPopTarget = getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);
                 const storedPopTargetNum = storedPopTarget !== undefined ? Number(storedPopTarget) : NaN;
                 if (!isNaN(storedPopTargetNum) && index === storedPopTargetNum) {
@@ -21377,7 +21362,8 @@ class PlaceOfPower {
         // How much power is needed
         const powerNeeded = PlaceOfPower.getPowerNeeded();
         // Goal is to select girls which add to required power without going over
-        // Once completed, if the time will be under 7.5 hours, proceed
+        // Once completed, the start goes ahead if the time stays under 9.5
+        // hours (checked in doPowerPlacesStuff).
         const girlsList = [];
         if (document.querySelectorAll('[girl]').length > 0) {
             const availGirls = document.querySelectorAll('[girl]');
@@ -21430,14 +21416,7 @@ class PlaceOfPower {
             });
             // Give the team a score to try and use more efficient teams (ie: fewer girls) instead of just the fastest
             const xValue = thisPower / powerText;
-            // Reverted to previous algo, seems to work better for now...
             const thisScore = Math.min(1, ((xValue) * ((1 / Math.sqrt(theseGirls.length)) + 0.28)));
-            //     {
-            //         xValue: xValue,
-            //         power: thisPower + ' / ' + powerText,
-            //         score: thisScore + ' / ' + teamScore,
-            //         scores:  Math.pow(xValue, theseGirls.length) + ' / ' + Math.pow(xValue, kValue),
-            //         nbGirls: theseGirls.length
             if (thisScore > teamScore) {
                 teamScore = thisScore;
                 chosenTeam = theseGirls;
@@ -21550,10 +21529,9 @@ class QuestHelper {
             return navOk;
         }
         if (page !== ConfigHelper.getHHScriptVars("pagesIDQuest") || (doMainQuest && mainQuestUrl.split("?")[0] != window.location.pathname)) {
-            // Resolve the next quest URL ourselves; the navigation service
-            // does not know about the Quest module any more (Cluster C of
-            // the page-nav refactor). When all quests are done, fall back
-            // to the home page and arm the back-off timer.
+            // Resolve the next quest URL here; the navigation service does
+            // not know about the Quest module. When all quests are done, fall
+            // back to the home page and arm the back-off timer.
             const nextQuestUrl = QuestHelper.getNextQuestLink();
             let navOk;
             if (nextQuestUrl !== undefined) {
@@ -21880,10 +21858,8 @@ class PentaDrill {
                         return false;
                     }
                     logHHAuto(`Going to crush : ${chosenOpponent.player.nickname} (${chosenID})`);
-                    // C1: safeNavigateHref handles autoLoop disable + AJAX-idle
-                    // wait + URL change atomically. The duplicate setStoredValue
-                    // and log line is removed because safeNavigateHref does that
-                    // internally. Issue #1598 race-protection.
+                    // safeNavigateHref switches autoLoop off, waits for AJAX idle
+                    // and changes the URL in one go (#1598 race protection).
                     safeNavigateHref(addNutakuSession(toGoTo));
                     yield TimeHelper.sleep(PentaDrill.getActionDelayMs());
                     return true;
@@ -22474,28 +22450,26 @@ SeasonalEvent.SEASONAL_REWARD_MEGA_PATH = '.mega-tier-container:has(.free-slot b
 // Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline
 // and the "find better option" selector.
 //
-// Extracted from Labyrinth.createPathFromMatrix,
-// Labyrinth.filterPathWithNoTreasue, Labyrinth.sortPathsByDifficulty,
-// and Labyrinth.findBetter so the path-building DFS, the treasure
-// filter, the difficulty sort, and the option ranker can be unit-
-// tested without DOM access, jQuery, globals, or storage.
+// Behind Labyrinth.createPathFromMatrix, Labyrinth.keepPathsWithTreasure,
+// Labyrinth.sortPathsByDifficulty and Labyrinth.findBetter, so the
+// path-building DFS, the treasure filter, the difficulty sort and the
+// option ranker can be unit-tested without DOM access, jQuery, globals or
+// storage.
 //
 // The functions are generic over the opponent record so the impure
 // adapter can keep its DOM-bound `LabyrinthOpponent` shape (with
 // jQuery `button` / `cell` handles) while the pure layer only needs
 // the deterministic decision fields.
 /**
- * Reproduce the inner `getNextIndices` closure of
- * createPathFromMatrix bit by bit. Returns the indices in the next
- * row that the cell at (currIdx, currLen) can reach.
+ * The indices in the next row that the cell at (currIdx, currLen) can
+ * reach.
  *
- * Adjacency rules from the original code:
+ * Adjacency rules:
  *   - nextLen === 1 (boss row): every cell maps to [0]
  *   - currLen 1 -> nextLen 2: 0 -> [0, 1]
  *   - currLen 2 -> nextLen 3: 0 -> [0, 1], 1 -> [1, 2]
  *   - currLen 3 -> nextLen 2: 0 -> [0], 1 -> [0, 1], 2 -> [1]
- *   - any other shape returns undefined (matches the original
- *     fallback where the function exits without a return value)
+ *   - any other shape returns undefined
  */
 function getNextIndices(currIdx, currLen, nextLen) {
     if (nextLen === 1)
@@ -22514,13 +22488,12 @@ function getNextIndices(currIdx, currLen, nextLen) {
     return undefined;
 }
 /**
- * Reproduce createPathFromMatrix bit by bit. DFS over a
- * row-of-cells matrix using the adjacency rules in
- * getNextIndices.
+ * Every path through the labyrinth: DFS over a row-of-cells matrix using
+ * the adjacency rules in getNextIndices.
  *
  * Empty leading rows are skipped (`while !matrix[startRow] ||
- * length === 0`) -- this preserves the original quirk that the
- * matrix may carry empty rows ahead of the first real row.
+ * length === 0`): the matrix may carry empty rows ahead of the first real
+ * row.
  */
 function buildPathsFromMatrix(matrix) {
     const rows = matrix.length;
@@ -22540,11 +22513,8 @@ function buildPathsFromMatrix(matrix) {
         const nextLen = matrix[nextRow].length;
         const nextIndices = getNextIndices(idx, currLen, nextLen);
         if (nextIndices === undefined) {
-            // Original fallback path: function returns undefined and
-            // the for-of below would throw. The impure adapter logged
-            // an error before the (commented-out) fallback. Pure
-            // version keeps the same shape: no further descent on an
-            // unrecognised row pair.
+            // An unrecognised row pair: no further descent from here,
+            // instead of iterating an undefined list below.
             acc.pop();
             return;
         }
@@ -22566,17 +22536,15 @@ function buildPathsFromMatrix(matrix) {
     return paths;
 }
 /**
- * Reproduce filterPathWithNoTreasue (typo preserved at the adapter
- * boundary). Keep only paths that contain at least one treasure cell.
+ * Keep only paths that contain at least one treasure cell (behind
+ * Labyrinth.keepPathsWithTreasure).
  */
 function filterPathsWithTreasure(paths) {
     return paths.filter((path) => path.filter((opponent) => opponent.isTreasure).length > 0);
 }
 /**
- * Reproduce sortPathsByDifficulty. Sort paths ascending by the sum
- * of their opponent difficulties. The original used a mutating
- * .sort() and returned the same array; the pure version mirrors that
- * (callers must accept that the input array is sorted in place).
+ * Sort paths ascending by the sum of their opponent difficulties. The
+ * sort mutates: the input array is sorted in place and returned.
  */
 function sortPathsByDifficulty(paths) {
     return paths.sort((pathA, pathB) => {
@@ -22592,7 +22560,7 @@ function sortPathsByDifficulty(paths) {
     });
 }
 /**
- * Reproduce Labyrinth.findBetter bit by bit. Filter cascade:
+ * The option ranker behind Labyrinth.findBetter. Filter cascade:
  *
  *   1. shrines: drop unless (haveGirlWounded AND floor >= 3)
  *      else if floor >= 3 AND any shrine present: keep only shrines
@@ -22850,7 +22818,7 @@ var Labyrinth_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 // remaining attempts and cooldowns, and coordinating with LabyrinthAuto.ts
 // for the actual fight logic and RelicManager.ts for relic selection.
 //
-// Depends on: RelicManager.ts (relic selection), Labyrinth.pure.ts (parsing)
+// Depends on: RelicManager.ts (relic selection), Labyrinth.pure.ts (paths and choice)
 // Used by: Module/LabyrinthAuto.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts
 //
 
@@ -22952,13 +22920,9 @@ class Labyrinth {
                 $('#auto-fill-team:not([disabled])').trigger('click');
                 yield TimeHelper.sleep(randomInterval(200, 500));
             }
-            // await Labyrinth._removeLowPowerGirls();
             const girlClassFront = Number($('#autoLabyrinthBuildFront').val());
             const frontGirls = Labyrinth.getHaremGirl(girlClassFront);
             let frontGirlIndex = 0;
-            if (frontGirls.length >= 2) {
-                // await Labyrinth._buildTwoGirlsRow(2, 3, frontGirls[frontGirlIndex++], frontGirls[frontGirlIndex++]);
-            }
             if (frontGirls.length >= 1)
                 yield Labyrinth._selectGirl(2, frontGirls[frontGirlIndex++]);
             if (frontGirls.length >= 2)
@@ -22975,9 +22939,6 @@ class Labyrinth {
             const girlClassBack = Number($('#autoLabyrinthBuildBack').val());
             const backGirls = Labyrinth.getHaremGirl(girlClassBack, false, 7);
             let backGirlIndex = girlClassBack === girlClassMid ? midGirlIndex : girlClassBack === girlClassFront ? frontGirlIndex : 0;
-            if (backGirls.length >= (backGirlIndex + 2)) {
-                //await Labyrinth._buildTwoGirlsRow(5, 6, backGirls[backGirlIndex++], backGirls[backGirlIndex++]);
-            }
             if (backGirls.length >= (backGirlIndex + 1))
                 yield Labyrinth._selectGirl(5, backGirls[backGirlIndex++]);
             if (backGirls.length >= (backGirlIndex + 1))
@@ -23639,11 +23600,12 @@ var Spreadsheet_awaiter = (undefined && undefined.__awaiter) || function (thisAr
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// Spreadsheet.ts -- Adds external spreadsheet links to the game UI.
+// Spreadsheet.ts -- Adds the community blessing spreadsheet to the blessings
+// popup.
 //
-// Injects helpful links to community spreadsheets (e.g. BDSMPP blessing
-// spreadsheets) directly into the game interface. Listens for AJAX responses
-// to inject links at the right time when relevant pages load.
+// On the home page, once the game has loaded the blessings
+// (get_girls_blessings), a link to this game's blessing spreadsheet goes into
+// the blessings popup -- unless the BDSMPP script already put one there.
 //
 // Used by: Service/AutoLoopPageHandlers.ts
 //
@@ -24995,19 +24957,15 @@ class ChampionModel {
 // settings; output = the deterministic tuple (minTime, minTimeEnded)
 // that the impure adapter feeds into randomInterval and _setTimer.
 //
-// The variable naming is preserved from the original implementation:
-// despite the name, both fields hold MAX values for the entries that
-// match their respective bucket. minTime is the largest entry below
-// 1800s, minTimeEnded is the largest known positive timer overall.
-// We do not change this contract here -- only extract it.
+// Despite their names, both fields hold MAX values for the entries that
+// match their respective bucket: minTime is the largest entry below 1800s,
+// minTimeEnded is the largest known positive timer overall. The adapter
+// relies on that contract.
 /**
- * Reproduce the existing findNextChamptionTime scan bit by bit. The input
- * list is iterated in order; the first ready (timer === 0) or
- * force-start-eligible entry short-circuits with minTime=0/minTimeEnded=-1.
- *
- * Bit-for-bit equivalence to the in-place loop is the explicit goal -- the
- * inner > comparison (instead of <) and the early break are preserved on
- * purpose so that the adapter behaviour does not shift.
+ * The timer scan behind findNextChamptionTime. The input list is iterated
+ * in order; the first ready (timer === 0) or force-start-eligible entry
+ * short-circuits with minTime=0/minTimeEnded=-1. The > comparisons (a
+ * maximum, not a minimum) and the early break are part of the contract.
  */
 function decideNextChampionTime(champions, autoChampsForceStart) {
     let minTime = -1;
@@ -25024,7 +24982,7 @@ function decideNextChampionTime(champions, autoChampsForceStart) {
             if (currTime > minTimeEnded) {
                 minTimeEnded = currTime;
             }
-            // Original wording (preserved): largest timer below 1800s.
+            // Largest timer below 1800s.
             if (currTime > minTime && currTime < 1800) {
                 minTime = currTime;
             }
@@ -25081,7 +25039,7 @@ var Champion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 // Champions feature. Manages fight energy (tickets), selects opponents, and
 // tracks cooldown timers between rounds.
 //
-// Used by: Module/Champion.ts, Module/ClubChampion.ts, Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
+// Used by: Module/ClubChampion.ts, Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
 
 
@@ -25689,17 +25647,14 @@ class Champion {
 //    pre-substituted secsToNextTimer into this function. That keeps the
 //    pure layer uniform: input is one number, output is one window.
 //
-// 2. decideAlignedClubChampionTimer reproduces the small alignment branch
-//    in _setTimer: if both autoChamps and autoChampAlignTimer are on AND
+// 2. decideAlignedClubChampionTimer is the alignment branch of _setTimer: if both autoChamps and autoChampAlignTimer are on AND
 //    both timers fall into the alignment window, return max(proposed,
 //    champTimeLeft); otherwise return the proposed value untouched.
 //
-// Bit-for-bit equivalence is the explicit goal -- thresholds (>7200, >10,
-// <1200) keep their strict comparisons.
+// The thresholds (>7200, >10, <1200) are strict comparisons.
 /**
  * Map the scraped timer plus force-start flag to a [min, max] window for
- * randomInterval. Reproduces the three-branch cascade in
- * updateClubChampionTimer line by line:
+ * randomInterval -- the three-branch cascade of updateClubChampionTimer:
  *
  *   secsToNextTimer === -1                     -> [15*60, 17*60]   no-timer
  *   secsToNextTimer >  7200 && force-start     -> [115*60, 125*60] force-start
@@ -25722,7 +25677,7 @@ function decideNextClubChampionTime(state) {
     };
 }
 /**
- * Reproduce the alignment branch in _setTimer:
+ * The alignment branch of _setTimer:
  *
  *   if (autoChamps && autoChampAlignTimer
  *       && proposedTime > 10 && champTimeLeft < 1200 && proposedTime < 1200)
@@ -26780,16 +26735,13 @@ function decideNextLevelUp(state) {
 }
 
 ;// ./src/Module/EquipmentGear.ts
-// EquipmentGear.ts -- The gear buttons on the market page: pick the best
-// armor for the hero's six slots and put it on.
+// EquipmentGear.ts -- The gear menu on the market page: pick the best armor
+// for the hero's six slots and put it on, level the worn mythics, and mark
+// the mythics worth keeping.
 //
-// Deliberately built like the team workflow so the player needs one mental
-// model, not two:
-//
-//   Team page                Market page
-//   2a Current Best     ->   Current Best Gear
-//   2b Possible Best    ->   Possible Best Gear
-//   3  Stuff Team       ->   Upgrade Gear
+// One button opens a menu with four actions: Current Best Gear, Possible
+// Best Gear, Upgrade Gear and Mark Keepers. The two "best" actions follow
+// the theme of the team last fielded (see resolveTheme).
 //
 // The ranking itself lives in Service/EquipmentOptimizerService.ts and is
 // pure. This file only does the impure half: read the game's globals and
@@ -26872,7 +26824,7 @@ const TIER_KEYS = {
 };
 class EquipmentGear {
     /**
-     * Inject the two gear buttons next to the armor inventory, or take them
+     * Inject the gear menu button next to the armor inventory, or take it
      * away again when the player is on one of the other market tabs. Called
      * from the shop page handler and re-entered on every tab switch.
      */
@@ -27362,14 +27314,6 @@ class EquipmentGear {
     }
     // ------------------------------------------------------------- upgrade
     /**
-     * "Upgrade Gear": level the mythics the hero is wearing towards the cap.
-     *
-     * The plan is deliberately thin. How much material a level costs is not
-     * derivable (see EquipmentUpgradeService) and the upgrade page states it
-     * per item, so the preview lists the targets and the stock behind them
-     * and leaves the arithmetic to the page that knows it.
-     */
-    /**
      * Mark the mythics worth keeping, so everything unmarked is safe to spend
      * by hand as upgrade material.
      *
@@ -27513,6 +27457,14 @@ class EquipmentGear {
         });
         return painted;
     }
+    /**
+     * "Upgrade Gear": level the mythics the hero is wearing towards the cap.
+     *
+     * The plan is deliberately thin. How much material a level costs is not
+     * derivable (see EquipmentUpgradeService) and the upgrade page states it
+     * per item, so the preview lists the targets and the stock behind them
+     * and leaves the arithmetic to the page that knows it.
+     */
     static previewUpgrade() {
         return EquipmentGear_awaiter(this, void 0, void 0, function* () {
             if (EquipmentGear.running)
@@ -28471,7 +28423,7 @@ class Pachinko {
             const orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + timerSelector.options[timerSelector.selectedIndex].value + "] span[total_orbs]");
             updateOrbsNumber(orbsLeft);
         });
-        // Add options //changed
+        // Add options
         const pachinkoOptions = document.getElementById("PachinkoSelector");
         let countTimers = 0;
         const pachinkoTypeEl = $("div.playing-zone #playzone-replace-info div.cover h2")[0];
@@ -28796,8 +28748,8 @@ class Pachinko {
     // counterpart to the stop logic in playXPachinko_func (issue 1745): the run
     // continues only while fewer than orbsToGo orbs have been spent AND at least
     // one orb remains. currentOrbsLeft is the resolveStopOrbsLeft() result
-    // (server-authoritative when available). Extracted to unit-test the
-    // over-consumption boundary (Pachinko review I4, Option A).
+    // (server-authoritative when available). Its own function so the
+    // over-consumption boundary can be unit-tested.
     static shouldContinuePachinkoRun(orbLeftOnAutoStart, currentOrbsLeft, orbsToGo) {
         const spendedOrbs = Number(orbLeftOnAutoStart - currentOrbsLeft);
         return spendedOrbs < orbsToGo && currentOrbsLeft > 0;
@@ -28861,12 +28813,12 @@ function needsStoreContentsForBuying(state) {
     return hasBuyableBoosters(state.autoBuyBoostersFilter);
 }
 /**
- * Reproduce Shop.isTimeToCheckShop:
+ * The visit decision behind Shop.isTimeToCheckShop:
  *
  *     (updateMarket || needBoosterStatus || needsStoreContentsForBuying)
  *     && (!paranoia || !paranoiaSwitchReady)
  *
- * The paranoia leg is unchanged: while paranoia mode is on, the market
+ * The paranoia leg: while paranoia mode is on, the market
  * is only visited inside a burst window (a pending paranoiaSwitch timer).
  */
 function decideCheckShop(state) {
@@ -28877,12 +28829,13 @@ function decideCheckShop(state) {
 }
 
 ;// ./src/Module/Shop.ts
-// Shop.ts -- Automates the equipment shop: buys and sells equipment, manages
-// inventory.
+// Shop.ts -- The market page: when to visit it, what to read there, and the
+// manual sell tools.
 //
-// Handles automated interactions with the in-game equipment shop. Buys
-// desired equipment, sells unwanted items, and manages inventory slots.
-// Tracks shop refresh timers and available currency.
+// Decides when the script walks to the market (isTimeToCheckShop), reads the
+// merchant assortment and the player's inventory into storage for Market.ts
+// and Booster.ts (updateShop), and draws the sell menu and its filters on the
+// page (moduleShopActions). The buying itself lives in Market.ts.
 //
 // Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
@@ -29006,8 +28959,8 @@ class Shop {
     }
     /**
      * Build a jQuery selector for armor inventory slots matching the given
-     * carac/type/rarity/lock filter. Pure string builder extracted from
-     * moduleShopActions (Shop review I4) so it can be unit-tested. "*" means
+     * carac/type/rarity/lock filter. A pure string builder, so it can be
+     * unit-tested. "*" means
      * "any" for carac/type/rarity; inLockedValue true/"locked" selects locked
      * slots, anything else selects unlocked.
      *
@@ -29037,8 +28990,8 @@ class Shop {
     }
     /**
      * Build a jQuery selector for the sell-menu table cells matching the given
-     * carac/type/rarity filter. Pure string builder extracted from
-     * moduleShopActions (Shop review I4) for unit-testing. "*" means "any".
+     * carac/type/rarity filter. A pure string builder, so it can be
+     * unit-tested. "*" means "any".
      */
     static buildCellsFilter(inCaracsValue, inTypeValue, inRarityValue) {
         let filter = 'table.tItems [menuSellFilter*="';
@@ -29424,8 +29377,8 @@ class Shop {
             // flag is "true"). A direct setTimeout(autoLoop) here would
             // require a top-level import of Service/AutoLoop, which makes
             // Shop.ts part of a Module -> Service -> Module import cycle
-            // and breaks Pipeline.config.ts (which imports Shop): in the
-            // resulting cycle a cycle can hand a module an uninitialised binding at load.
+            // and breaks Pipeline.config.ts (which imports Shop): inside such
+            // a cycle a module can meet an uninitialised binding at load.
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
         }
         function sellArmorItems() {
@@ -31238,13 +31191,13 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// TeamModule.ts -- Team management: auto-selects optimal teams for different
-// battle modes.
+// TeamModule.ts -- The edit-team page.
 //
-// Different game modes (league, troll, labyrinth, etc.) benefit from different
-// team compositions. This module automatically selects and switches to the
-// optimal team configuration before each fight type, saving the player from
-// manual team management.
+// Puts the "Team selection" button on the page and hands the team selection
+// popup its actions: read the hexagons and the saved team, save a team in
+// place, unequip and equip the girls' gear, and Stuff Team (skill scrolls).
+// setTopTeam and assignTopTeam, the team workflow before the popup, have no
+// caller any more.
 //
 // Used by: AutoLoopPageHandlers.ts (team building on the fight pages)
 //
@@ -33592,7 +33545,7 @@ var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 // system from BDSMHelper, manages fight energy, and displays power calculations
 // in the UI. Supports both regular and boosted fights.
 //
-// Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (parsing)
+// Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (fight decision, promotion zone)
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts and others
 //
 
@@ -33694,11 +33647,11 @@ class LeagueHelper {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
         const simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
-        // calculateBattleProbabilities answers an unusable simulation with an
-        // empty {} from its own try/catch, and this line used to index into
-        // that stub -- a TypeError inside the un-awaited SimPower below, which
-        // left every opponent after it without a value. A missing point
-        // distribution now yields an expectedValue of 0 and the caller decides.
+        // calculateBattleProbabilities answers a simulation that throws with an
+        // empty {} from its own try/catch. Indexing into that stub would throw
+        // inside the un-awaited SimPower below and leave every opponent after
+        // it without a value, so a missing point distribution yields an
+        // expectedValue of 0 and the caller decides.
         const oppoPoints = simu.points;
         let expectedValue = 0;
         if (oppoPoints) {
@@ -33854,16 +33807,7 @@ class LeagueHelper {
                                     logHHAuto(`Simulation failed for one opponent, skipping it: ${message}`);
                                     continue;
                                 }
-                                leagueOpponent = new LeagueOpponent(opponents.player.id_fighter, 
-                                // opponents.place,
-                                opponents.nickname, 
-                                // opponents.level,
-                                opponents.power, 
-                                // opponents.player_league_points,
-                                Number(NumberHelper.nRounding(simu.expectedValue, 1, -1)), 
-                                // 0, // Boster numbers?
-                                // opponents,
-                                simu);
+                                leagueOpponent = new LeagueOpponent(opponents.player.id_fighter, opponents.nickname, opponents.power, Number(NumberHelper.nRounding(simu.expectedValue, 1, -1)), simu);
                                 opponentsPowerList.opponentsList.push(leagueOpponent);
                                 newlySimulated++;
                                 // Saved after every opponent, not once after the last: the
@@ -33973,7 +33917,6 @@ class LeagueHelper {
                     }
                     catch (_a) { }
                 }
-                //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
             function displayBeatenOpponents() {
                 var board = document.getElementsByClassName("data-list")[0];
@@ -33995,7 +33938,6 @@ class LeagueHelper {
                     }
                     catch (_a) { }
                 }
-                //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
             $(".leagues_middle_header_script").append(beatenOpponents);
             let hideBeatenOppo = getStoredValue(HHStoredVarPrefixKey + TK.hideBeatenOppo);
@@ -34106,15 +34048,7 @@ class LeagueHelper {
                             canUseSimu = false;
                         }
                     }
-                    leagueOpponent = new LeagueOpponent(opponent_id, 
-                    // Number($('.data-column[column="place"]', $(this)).text()),
-                    $('.nickname', $(this)).text(), 
-                    // Number($('.data-column[column="level"]', $(this)).text()),
-                    opponents.power, 
-                    // Number($('.data-column[column="player_league_points"]', $(this)).text().replace(/\D/g, '')),
-                    expectedPoints, 
-                    // opponents,
-                    simu);
+                    leagueOpponent = new LeagueOpponent(opponent_id, $('.nickname', $(this)).text(), opponents.power, expectedPoints, simu);
                     if (opponentsPowerList && opponentsPowerList.opponentsList) {
                         opponentsPowerList.opponentsList.push(leagueOpponent);
                         opponentsPowerListChanged = true;
@@ -34170,8 +34104,7 @@ class LeagueHelper {
             var page = getPage();
             const Hero = getHero();
             if (page === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")) {
-                // On the battle screen.
-                // CrushThemFights(); // TODO ??? // now managed by doBattle
+                // On the battle screen: GenericBattle.doBattle handles it.
             }
             else if (page === ConfigHelper.getHHScriptVars("pagesIDLeaderboard")) {
                 logHHAuto("On leaderboard page.");
@@ -34348,9 +34281,9 @@ class LeagueHelper {
                         // Short cool-down so the next AutoLoop tick can pick
                         // the next opponent. The user expectation is "open
                         // league, fight all 15 battles in a row" which is
-                        // how a human would do it. The Pipeline minIntervalMs
-                        // for handleLeague is aligned to this value so the
-                        // Scheduler does not silently extend the gap.
+                        // how a human would do it. The minIntervalMs of the
+                        // handleLeague block is aligned to this value so the
+                        // block scheduler does not silently extend the gap.
                         setTimer('nextLeaguesTime', randomInterval(2, 5));
                     }
                     else if (nextRefreshTs === 0) {
@@ -34389,8 +34322,8 @@ class LeagueHelper {
                 // this check the league chain would navigate to the
                 // leaderboard while e.g. Quest is still on its own page,
                 // producing a leaderboard<->quest ping-pong loop
-                // (issue #1664). Skip silently; the Scheduler minInterval
-                // cool-down will retry on the next eligible tick.
+                // (issue #1664). Skip silently; the block's minInterval
+                // cool-down retries on the next eligible tick.
                 const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
                 if (lastActionPerformed !== undefined
                     && lastActionPerformed !== "none"
@@ -34431,11 +34364,12 @@ LeagueHelper.SORT_POWER = LEAGUE_SORT.POWER;
 LeagueHelper.SORT_POWERCALC = LEAGUE_SORT.POWERCALC;
 
 ;// ./src/Module/Market.ts
-// Market.ts -- Auto-buys items from the in-game market using soft currency.
+// Market.ts -- Auto-buys from the in-game market: boosters for kobans (the
+// "Boosters to buy" list), gifts and books for money up to the affection and
+// XP amounts set in the menu.
 //
-// Periodically checks the market shop for available items and purchases them
-// via AJAX requests using the player's soft currency. Manages purchase
-// cooldowns and tracks spending to avoid over-buying.
+// Works from the shop contents cached on the last market visit and buys via
+// AJAX, keeping the koban bank and the money floors set in the menu untouched.
 //
 // Used by: Service/StartService.ts
 //
@@ -35003,14 +34937,13 @@ class Missions {
 }
 
 ;// ./src/Module/MonthlyCard.ts
-// MonthlyCard.ts -- Updates input validation patterns for monthly card features
-// based on available energy types.
+// MonthlyCard.ts -- Widens the threshold fields to the energy caps a monthly
+// card raises.
 //
-// Monthly cards grant bonus energy across various game modes. This module
-// dynamically adjusts input validation patterns in the settings UI based on
-// which energy types (league, season, pantheon, etc.) are currently available
-// to the player, ensuring the configuration options stay in sync with unlocked
-// game features.
+// A monthly card lifts the maximum of several energies (troll, season, penta
+// drill, quest, league, pantheon). This module reads the current maxima and
+// rewrites the input patterns of the threshold settings, so a threshold up to
+// the new cap is accepted.
 //
 // Depends on: League.ts, Season.ts, Pantheon.ts, PentaDrill.ts (energy type checks)
 // Used by: Service/StartService.ts
@@ -37750,15 +37683,14 @@ function writeLogContext(ctx) {
 // (extractTimerText). The fallback value itself is computed by the
 // adapter and passed in.
 /**
- * Reproduce Bundles.getExpiryTime bit by bit:
+ * The expiry decision behind Bundles.getExpiryTime:
  *
  *   if scrapedSeconds === null            -> fallbackSeconds
  *   if scrapedSeconds >= 24 * 3600        -> fallbackSeconds
  *   otherwise                              -> scrapedSeconds
  *
- * The 24-hour boundary is strict (<): the original code reads
- * `if (freeBundleTimer < 24 * 3600) return freeBundleTimer`, so
- * exactly 24 * 3600 falls through to the fallback branch.
+ * The 24-hour boundary is strict: exactly 24 * 3600 falls through to the
+ * fallback branch.
  */
 function decideExpiryTime(state) {
     if (state.scrapedSeconds === null)
@@ -38024,11 +37956,10 @@ class LabyrinthAuto {
     }
     run() {
         return LabyrinthAuto_awaiter(this, arguments, void 0, function* (depth = 0) {
-            // I4: run() recurses (reward-popup loops, edit-team retry). A
-            // degenerate DOM (popup never closes / team never reaches 7) could
-            // recurse without bound. Cap the depth so a pathological tick backs
-            // off instead of overflowing the stack. Full continuation model is
-            // tracked for the step-17 multi-step scheduler.
+            // run() recurses (reward-popup loops, edit-team retry). A degenerate
+            // DOM (popup never closes / team never reaches 7) could recurse
+            // without bound. Cap the depth so a pathological tick backs off
+            // instead of overflowing the stack.
             if (depth > 10) {
                 logHHAuto('Labyrinth: max recursion depth reached this tick, backing off.');
                 setTimer('nextLabyrinthTime', randomInterval(60, 120));
@@ -38313,10 +38244,10 @@ class HaremSalary {
 ;// ./src/Module/GenericBattle.ts
 // GenericBattle.ts -- Handles the battle result page UI across all fight types.
 //
-// When a battle completes (troll, event, league, etc.), this module manages
-// the result page: adds skip buttons, auto-skips fight animations, and parses
-// reward drops. It acts as a shared handler for all battle outcomes rather
-// than being specific to one game mode.
+// After a fight (troll, league, season, penta drill, pantheon, labyrinth) this
+// module sends the script back to the page the fight started from. On a troll
+// fight for an event or love-raid girl it first reads the shard reward from
+// the popup (RewardHelper.ObserveAndGetGirlRewards).
 //
 // Used by: Service/Pipeline.config.ts
 //          and other fight modules that navigate to battle pages

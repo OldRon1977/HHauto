@@ -25,7 +25,7 @@ export type ShouldFightState = {
     timerExpired: boolean;
     /**
      * ParanoiaService.checkParanoiaSpendings('worship'). The pure
-     * function gates it on energy > 0 itself, mirroring the original.
+     * function gates it on energy > 0 itself.
      */
     paranoiaSpending: number;
     /**
@@ -45,7 +45,7 @@ export type ShouldFightState = {
 };
 
 /**
- * Reproduce Pantheon.isTimeToFight bit by bit. Original line:
+ * The fight decision behind Pantheon.isTimeToFight:
  *
  *   (checkTimer('nextPantheonTime') && energyAboveThreshold &&
  *    (needBoosterToFight && haveBoosterEquiped || !needBoosterToFight
@@ -62,7 +62,8 @@ export type ShouldFightState = {
  * (booster-required-and-equipped OR booster-not-required OR daily-goal).
  *
  * Threshold comparisons are strict (>) on the lower bound and the
- * runThreshold-1 expression keeps the off-by-one the original code uses.
+ * runThreshold-1 expression is an off-by-one kept on purpose: the other
+ * fight modules use the same.
  */
 export function decideShouldFight(state: ShouldFightState): boolean {
     const {

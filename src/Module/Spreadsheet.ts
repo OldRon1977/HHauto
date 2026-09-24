@@ -1,8 +1,9 @@
-// Spreadsheet.ts -- Adds external spreadsheet links to the game UI.
+// Spreadsheet.ts -- Adds the community blessing spreadsheet to the blessings
+// popup.
 //
-// Injects helpful links to community spreadsheets (e.g. BDSMPP blessing
-// spreadsheets) directly into the game interface. Listens for AJAX responses
-// to inject links at the right time when relevant pages load.
+// On the home page, once the game has loaded the blessings
+// (get_girls_blessings), a link to this game's blessing spreadsheet goes into
+// the blessings popup -- unless the BDSMPP script already put one there.
 //
 // Used by: Service/AutoLoopPageHandlers.ts
 //

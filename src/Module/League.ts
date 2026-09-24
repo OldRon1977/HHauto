@@ -6,7 +6,7 @@
 // system from BDSMHelper, manages fight energy, and displays power calculations
 // in the UI. Supports both regular and boosted fights.
 //
-// Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (parsing)
+// Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (fight decision, promotion zone)
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts and others
 //
 import { BDSMHelper, calculateBattleProbabilities } from "../Helper/BDSMHelper";
@@ -138,11 +138,11 @@ export class LeagueHelper {
         const leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
         const simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
 
-        // calculateBattleProbabilities answers an unusable simulation with an
-        // empty {} from its own try/catch, and this line used to index into
-        // that stub -- a TypeError inside the un-awaited SimPower below, which
-        // left every opponent after it without a value. A missing point
-        // distribution now yields an expectedValue of 0 and the caller decides.
+        // calculateBattleProbabilities answers a simulation that throws with an
+        // empty {} from its own try/catch. Indexing into that stub would throw
+        // inside the un-awaited SimPower below and leave every opponent after
+        // it without a value, so a missing point distribution yields an
+        // expectedValue of 0 and the caller decides.
         const oppoPoints = simu.points;
         let expectedValue = 0;
         if (oppoPoints) {
@@ -319,14 +319,9 @@ export class LeagueHelper {
                         }
                         leagueOpponent = new LeagueOpponent(
                             opponents.player.id_fighter,
-                            // opponents.place,
                             opponents.nickname,
-                            // opponents.level,
                             opponents.power,
-                            // opponents.player_league_points,
                             Number(NumberHelper.nRounding(simu.expectedValue, 1, -1)),
-                            // 0, // Boster numbers?
-                            // opponents,
                             simu
                         );
 
@@ -455,7 +450,6 @@ export class LeagueHelper {
                         }
                     } catch {}
                 }
-                //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
 
             function displayBeatenOpponents() {
@@ -474,7 +468,6 @@ export class LeagueHelper {
                         }
                     } catch {}
                 }
-                //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
 
             $(".leagues_middle_header_script").append(beatenOpponents);
@@ -598,13 +591,9 @@ export class LeagueHelper {
 
                     leagueOpponent = new LeagueOpponent(
                         opponent_id,
-                        // Number($('.data-column[column="place"]', $(this)).text()),
                         $('.nickname', $(this)).text(),
-                        // Number($('.data-column[column="level"]', $(this)).text()),
                         opponents.power,
-                        // Number($('.data-column[column="player_league_points"]', $(this)).text().replace(/\D/g, '')),
                         expectedPoints,
-                        // opponents,
                         simu
                     );
 
@@ -666,8 +655,7 @@ export class LeagueHelper {
         const Hero=getHero();
         if(page===ConfigHelper.getHHScriptVars("pagesIDLeagueBattle"))
         {
-            // On the battle screen.
-            // CrushThemFights(); // TODO ??? // now managed by doBattle
+            // On the battle screen: GenericBattle.doBattle handles it.
         }
         else if(page === ConfigHelper.getHHScriptVars("pagesIDLeaderboard"))
         {
@@ -870,9 +858,9 @@ export class LeagueHelper {
                     // Short cool-down so the next AutoLoop tick can pick
                     // the next opponent. The user expectation is "open
                     // league, fight all 15 battles in a row" which is
-                    // how a human would do it. The Pipeline minIntervalMs
-                    // for handleLeague is aligned to this value so the
-                    // Scheduler does not silently extend the gap.
+                    // how a human would do it. The minIntervalMs of the
+                    // handleLeague block is aligned to this value so the
+                    // block scheduler does not silently extend the gap.
                     setTimer('nextLeaguesTime', randomInterval(2, 5));
                 } else if (nextRefreshTs === 0) {
                     setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
@@ -913,8 +901,8 @@ export class LeagueHelper {
             // this check the league chain would navigate to the
             // leaderboard while e.g. Quest is still on its own page,
             // producing a leaderboard<->quest ping-pong loop
-            // (issue #1664). Skip silently; the Scheduler minInterval
-            // cool-down will retry on the next eligible tick.
+            // (issue #1664). Skip silently; the block's minInterval
+            // cool-down retries on the next eligible tick.
             const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
             if (lastActionPerformed !== undefined
                 && lastActionPerformed !== "none"

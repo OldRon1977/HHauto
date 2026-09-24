@@ -6,8 +6,8 @@
 //
 // Two decisions live here:
 //
-// 1. decideCollectTrigger -- the three-branch OR cascade in
-//    LivelyScene.parse that decides whether to invoke goAndCollect at
+// 1. decideCollectTrigger -- the three-branch OR cascade that decides
+//    whether LivelyScene.parse and collectOnPageLoad invoke goAndCollect at
 //    all. Triggered by any of:
 //      - autoCollect setting on (continuous polling)
 //      - manualCollectAll flag on (user-initiated full sweep)
@@ -51,7 +51,7 @@ export type CollectTriggerState = {
 };
 
 /**
- * Reproduce the OR cascade in LivelyScene.parse bit by bit:
+ * The OR cascade that decides whether LivelyScene collects at all:
  *
  *   autoCollect
  *   || manualCollectAll
@@ -106,8 +106,8 @@ export type SelectClaimableState = {
 };
 
 /**
- * Reproduce the loop in LivelyScene.parseClaimableRewards bit by bit.
- * Walks the input list and keeps every piece for which:
+ * The piece filter of LivelyScene's collect sweep. Walks the input list and
+ * keeps every piece for which:
  *
  *   reward_unlocked AND NOT reward_claimed
  *   AND (

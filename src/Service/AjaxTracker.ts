@@ -60,7 +60,7 @@ export const AJAX_IDLE_SETTLE_MS = 250;
 export const POST_MUTEX_STALE_MS = 30_000;
 
 // Server-settle minimum pause and amplification factor for
-// awaitServerSettleAfterPost(). Frank-Capture: claim XHR 6.7s,
+// awaitServerSettleAfterPost(). Measured capture: claim XHR 6.7s,
 // observed safe gap before next request ~25-30s -> factor 4.
 // Math.max keeps small accounts fast (a 200ms claim still gets a 2s
 // pause, large accounts get the longer wait).

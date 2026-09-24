@@ -15,13 +15,11 @@
 //    pre-substituted secsToNextTimer into this function. That keeps the
 //    pure layer uniform: input is one number, output is one window.
 //
-// 2. decideAlignedClubChampionTimer reproduces the small alignment branch
-//    in _setTimer: if both autoChamps and autoChampAlignTimer are on AND
+// 2. decideAlignedClubChampionTimer is the alignment branch of _setTimer: if both autoChamps and autoChampAlignTimer are on AND
 //    both timers fall into the alignment window, return max(proposed,
 //    champTimeLeft); otherwise return the proposed value untouched.
 //
-// Bit-for-bit equivalence is the explicit goal -- thresholds (>7200, >10,
-// <1200) keep their strict comparisons.
+// The thresholds (>7200, >10, <1200) are strict comparisons.
 
 export type NextClubChampionTimerState = {
     /**
@@ -50,8 +48,7 @@ export type NextClubChampionTimerDecision = {
 
 /**
  * Map the scraped timer plus force-start flag to a [min, max] window for
- * randomInterval. Reproduces the three-branch cascade in
- * updateClubChampionTimer line by line:
+ * randomInterval -- the three-branch cascade of updateClubChampionTimer:
  *
  *   secsToNextTimer === -1                     -> [15*60, 17*60]   no-timer
  *   secsToNextTimer >  7200 && force-start     -> [115*60, 125*60] force-start
@@ -96,7 +93,7 @@ export type AlignClubChampionTimerState = {
 };
 
 /**
- * Reproduce the alignment branch in _setTimer:
+ * The alignment branch of _setTimer:
  *
  *   if (autoChamps && autoChampAlignTimer
  *       && proposedTime > 10 && champTimeLeft < 1200 && proposedTime < 1200)

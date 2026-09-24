@@ -362,7 +362,7 @@ export class HaremGirl {
         const girlMenuButton = '<div style="position: absolute;left: 425px;top: 0px; font-size: small; z-index:30;" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("girlMenu","tooltip")+'</span><label class="myButton" id="'+girlMenuButtonId+'">+</label></div>';
         var openGirlMenu = function(){
             const selectedGirl = HaremGirl.getCurrentGirl();
-            const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded;// && HaremGirl.getMaxOutButton(HaremGirl.AFFECTION_TYPE).length > 0;
+            const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded;
 
             const menuIDXp = "haremGirlGiveXP";
             const menuIDMaxGifts = "haremGirlGiveMaxGifts";

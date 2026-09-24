@@ -37,11 +37,10 @@ export class LabyrinthAuto {
     }
 
     async run(depth: number = 0): Promise<boolean> {
-        // I4: run() recurses (reward-popup loops, edit-team retry). A
-        // degenerate DOM (popup never closes / team never reaches 7) could
-        // recurse without bound. Cap the depth so a pathological tick backs
-        // off instead of overflowing the stack. Full continuation model is
-        // tracked for the step-17 multi-step scheduler.
+        // run() recurses (reward-popup loops, edit-team retry). A degenerate
+        // DOM (popup never closes / team never reaches 7) could recurse
+        // without bound. Cap the depth so a pathological tick backs off
+        // instead of overflowing the stack.
         if (depth > 10) {
             logHHAuto('Labyrinth: max recursion depth reached this tick, backing off.');
             setTimer('nextLabyrinthTime', randomInterval(60, 120));

@@ -1,11 +1,10 @@
-// MonthlyCard.ts -- Updates input validation patterns for monthly card features
-// based on available energy types.
+// MonthlyCard.ts -- Widens the threshold fields to the energy caps a monthly
+// card raises.
 //
-// Monthly cards grant bonus energy across various game modes. This module
-// dynamically adjusts input validation patterns in the settings UI based on
-// which energy types (league, season, pantheon, etc.) are currently available
-// to the player, ensuring the configuration options stay in sync with unlocked
-// game features.
+// A monthly card lifts the maximum of several energies (troll, season, penta
+// drill, quest, league, pantheon). This module reads the current maxima and
+// rewrites the input patterns of the threshold settings, so a threshold up to
+// the new cap is accepted.
 //
 // Depends on: League.ts, Season.ts, Pantheon.ts, PentaDrill.ts (energy type checks)
 // Used by: Service/StartService.ts
