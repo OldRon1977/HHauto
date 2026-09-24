@@ -6,7 +6,7 @@
 // quest energy when configured to do so. Tracks quest completion and manages
 // the quest page navigation.
 //
-// Used by: Module/Champion.ts, Module/ClubChampion.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
+// Used by: Module/Champion.ts, Module/ClubChampion.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts and others
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { HeroHelper } from "../Helper/HeroHelper";

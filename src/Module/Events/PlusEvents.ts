@@ -1,9 +1,9 @@
 // PlusEvents.ts -- Plus Events: parsing and display for event overlay info.
 //
-// Plus Events are a category of events that overlay additional information
-// and rewards on top of normal gameplay. This module parses event data,
-// extracts girl shard progress and troll fight priorities, and displays
-// event overlay information in the UI.
+// Plus Events are the regular events with girls on trolls and champions. This
+// module reads the event page: the event end, and the girls still worth
+// fighting for, which it lists for the troll and champion fights. Once every
+// girl is won it collects the event chest.
 //
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Plus Events are active)

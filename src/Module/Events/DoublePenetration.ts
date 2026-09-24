@@ -1,8 +1,9 @@
 // DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
 //
-// Double Penetration is a time-limited competitive event with its own fight
-// mechanics. This module tracks event progress, manages fight energy, collects
-// milestone rewards, and handles the event-specific UI interactions.
+// Double Penetration is a time-limited event with reward tiers and nothing to
+// fight. This module reads the event page, collects the claimable tiers the
+// collect list allows, and draws the rewards recap, the collect-all button and
+// the club-champion shortcuts on the event page.
 //
 // Depends on: RewardHelper (reward parsing), PageNavigationService, ButtonHelper
 // Used by: EventModule.ts (called when Double Penetration event is active)
@@ -25,10 +26,9 @@ import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 export class DoublePenetration {
 
     static isEnabled() {
-        // The ten-girl condition the old comment here claimed is not
-        // measured; it is written down as an open question in
-        // docs/reference/adventure-quest-flow.md instead of sitting beside a
-        // check that never implemented it. FeatureGate.GATES says the same.
+        // No ten-girl condition: whether the event needs ten girls is not
+        // measured (an open question in docs/reference/adventure-quest-flow.md),
+        // and FeatureGate.GATES says the same.
         return FeatureGate.isUnlocked('doublePenetration');
     }
 
@@ -194,7 +194,7 @@ export class DoublePenetration {
         const freeSlotSelectors = ".free-slot .slot";
         let paidSlotSelectors = "";
         if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Season pass paid
+            // Pass bought: the paid slots count too
             paidSlotSelectors = ".paid-slot  .slot";
         }
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);

@@ -8,7 +8,7 @@
 //
 // Depends on: BDSMHelper (win probability), Season.pure.ts (parsing),
 //             EventModule.ts (event detection)
-// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts and others
 //
 import { BDSMHelper, calculateBattleProbabilities } from "../../Helper/BDSMHelper";
 import { ConfigHelper } from "../../Helper/ConfigHelper";
@@ -238,7 +238,6 @@ export class Season {
         }
     }
 
-//    static getBestOppo(scoreOppo: BDSMSimu[], mojoOppo: number[], expOppo: number[], affOppo: number[], nameOppo: string[]) {
     static getBestOppo(seasonOpponents: SeasonOpponent[], current_kisses=1, max_kisses=10) {
         var chosenIndex = -1;
         var chosenRating = -1;
@@ -754,8 +753,6 @@ export class Season {
         if (modified)
         {
             $('.rewards_seasons_row').css('width', 'max-content');
-            //     ($rowScroll as any).getNiceScroll().resize();
-            //     ($rowScroll as any).getNiceScroll(0).doScrollLeft(0,200);
         }
     }
 }

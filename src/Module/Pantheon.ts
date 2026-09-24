@@ -5,7 +5,7 @@
 // timers. Similar to League but uses a separate energy pool and ranking system.
 //
 // Depends on: Pantheon.pure.ts (parsing), ParanoiaService, Booster
-// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts u. a.
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts and others
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHHVars } from "../Helper/HHHelper";

@@ -1,8 +1,8 @@
 // KinkyCumpetition.ts -- Kinky Cumpetition event handling.
 //
-// Kinky Cumpetition is a periodic competitive event. This module parses event
-// page data, tracks timer countdowns and girl reward progress, and manages
-// the event refresh schedule.
+// Kinky Cumpetition is a periodic competitive event. This module reads the
+// event page: the event end, the next re-read, and whether every girl of the
+// event is won (isCompleted). It collects nothing.
 //
 // Depends on: the HHEvent model only -- this module parses, it does not navigate.
 // Used by: EventModule.ts (called when Kinky Cumpetition event is active)

@@ -7,7 +7,7 @@
 // fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
 //
 // Depends on: EventModule.ts and LoveRaidManager.ts (event routing), Harem, Booster
-// Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
+// Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts and others
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHero, HeroHelper } from "../Helper/HeroHelper";

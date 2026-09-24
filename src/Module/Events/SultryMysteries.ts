@@ -6,7 +6,7 @@
 // regenerated. This module monitors the event shop for refresh timers and
 // automates opening grid squares ("Auto-Mystery").
 //
-// Depends on: SultryMysteries.pure.ts (shop logic), PageNavigationService
+// Depends on: SultryMysteries.pure.ts (remaining time, grid order), PageNavigationService
 // Used by: EventModule.ts (called when Sultry Mysteries event is active)
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
@@ -183,11 +183,11 @@ export class SultryMysteries {
      * square simply extends the current run.
      */
     static autoOpenGrid(eventID: string): boolean {
-        // parseEventPage is re-entered on every pipeline tick for as long as
-        // the auto-open timer sits expired. Without this guard every entry
-        // starts its own click chain: squares open in parallel with requests
-        // still in flight, "Generate new grid" fires repeatedly, and the retry
-        // timer is written several times. One run at a time.
+        // The pipeline block calls this on every tick while a run is still
+        // clicking through the board. Without this guard every call starts
+        // its own click chain: squares open in parallel with requests still in
+        // flight, "Generate new grid" fires repeatedly, and the retry timer is
+        // written several times. One run at a time.
         if (SultryMysteries.autoOpenRunning) return true;
 
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent")) {

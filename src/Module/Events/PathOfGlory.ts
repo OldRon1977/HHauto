@@ -1,9 +1,9 @@
 // PathOfGlory.ts -- Path of Glory (PoG) event: tier collection and reward tracking.
 //
-// Path of Glory is a tiered event where the player earns points through
-// battles to unlock progressive reward tiers. This module tracks tier
-// progress, checks for claimable rewards, and manages fight energy and
-// timer scheduling for the event.
+// Path of Glory is a tiered event: points the game counts elsewhere unlock
+// reward tiers. This module reads the remaining time, collects the claimable
+// tiers the collect list allows, and sweeps everything in the final window
+// when "Collect all" is on.
 //
 // Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
 //          (the collect block)
@@ -79,8 +79,7 @@ export class PathOfGlory {
             // both for "no such timer" and for "already expired", so without
             // it an unknown remaining time opened the collect-all gate at any
             // distance from the event end -- and collect-all bypasses the
-            // player's own tier filter. PathOfAttraction failed closed on this
-            // in 8.11; PathOfGlory and PathOfValue did not.
+            // player's own tier filter.
             if (checkTimer('nextPoGCollectAllTime') && pogEnd > 0 && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true")
             {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0)

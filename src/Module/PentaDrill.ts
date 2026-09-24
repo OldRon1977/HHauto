@@ -6,7 +6,7 @@
 // and collects milestone rewards. Handles the time-limited nature of Penta
 // Drill events.
 //
-// Used by: Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts u. a.
+// Used by: Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts and others
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHHVars } from "../Helper/HHHelper";

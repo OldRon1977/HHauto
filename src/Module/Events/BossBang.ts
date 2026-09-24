@@ -74,7 +74,6 @@ export class BossBang {
                     logHHAuto("Team " + teamIndex + " not eligible");
                 }
             }
-            // setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
         }
         else if (eventList[eventID]["isCompleted"]) {
             // The setting stays on for the next boss bang. This one is stored
