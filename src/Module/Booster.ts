@@ -1123,13 +1123,7 @@ export class Booster {
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
         const correctTrollTargetted = eventGirl.troll_id == nextTrollChoosen;
         if (Booster.skinPhaseBlocksSandalwood(Number(eventGirl.shards))) return false;
-        const remainingShards = Number(100 - Number(eventGirl.shards));
-        const threshold = Booster.getSandalwoodMinShardsThreshold();
-        if (remainingShards <= threshold) {
-            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for event, only ${remainingShards} shards remaining (threshold: ${threshold})`);
-        }
-
-        return activated && correctTrollTargetted && remainingShards > threshold;
+        return activated && correctTrollTargetted && Booster.shardsLeftWorthSandalwood(Number(eventGirl.shards), 'event');
     }
 
     /**
@@ -1234,32 +1228,42 @@ export class Booster {
         return getStoredValue(HHStoredVarPrefixKey + SK.plusSkinSandalWood) !== 'true';
     }
 
+    /**
+     * The "SW min shards" check: is the girl still far enough from 100 to be
+     * worth a perfume?
+     *
+     * The threshold counts the shards the girl is missing, so it only means
+     * something while she is not won. In the skin phase she sits at 100 and
+     * would be 0 shards away, which no threshold lets through -- that kept
+     * the skin-phase Equip Sandalwood switch from ever equipping (#1894).
+     * Whether the skin phase gets a perfume at all is skinPhaseBlocksSandalwood's
+     * call, and the callers ask it first.
+     */
+    static shardsLeftWorthSandalwood(shards: number, path: string): boolean {
+        if (shards >= 100) return true;
+        const remainingShards = 100 - shards;
+        const threshold = Booster.getSandalwoodMinShardsThreshold();
+        if (remainingShards <= threshold) {
+            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for ${path}, only ${remainingShards} shards remaining (threshold: ${threshold})`);
+            return false;
+        }
+        return true;
+    }
+
     static needSandalWoodMythic(nextTrollChoosen: number, eventMythicGirl: EventGirl = null as any): boolean {
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
         const correctTrollTargetted = eventMythicGirl.is_mythic === true && eventMythicGirl.troll_id == nextTrollChoosen;
         // Skin phase: the girl is done and we only keep fighting for her skin.
         // No fresh perfume unless the user asked for it separately (#1843).
         if (Booster.skinPhaseBlocksSandalwood(Number(eventMythicGirl.shards))) return false;
-        const remainingShards = Number(100 - Number(eventMythicGirl.shards));
-        const threshold = Booster.getSandalwoodMinShardsThreshold();
-        if (remainingShards <= threshold) {
-            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for mythic, only ${remainingShards} shards remaining (threshold: ${threshold})`);
-        }
-
-        return activated && correctTrollTargetted && remainingShards > threshold;
+        return activated && correctTrollTargetted && Booster.shardsLeftWorthSandalwood(Number(eventMythicGirl.shards), 'mythic');
     }
     static needSandalWoodLoveRaid(nextTrollChoosen: number, loveRaid: LoveRaid = null as any): boolean {
         if (!loveRaid) return false;
         const activated = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
         const correctTrollTargetted = loveRaid.girl_to_win && loveRaid.trollId == nextTrollChoosen;
         if (Booster.skinPhaseBlocksSandalwood(Number(loveRaid.girl_shards))) return false;
-        const remainingShards = Number(100 - Number(loveRaid.girl_shards));
-        const threshold = Booster.getSandalwoodMinShardsThreshold();
-        if (remainingShards <= threshold) {
-            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for love raid, only ${remainingShards} shards remaining (threshold: ${threshold})`);
-        }
-
-        return activated && correctTrollTargetted && remainingShards > threshold;
+        return activated && correctTrollTargetted && Booster.shardsLeftWorthSandalwood(Number(loveRaid.girl_shards), 'love raid');
     }
 
     static async equipeSandalWoodIfNeeded(nextTrollChoosen: number, settingKey: string = SK.plusEventMythicSandalWood): Promise<boolean> {

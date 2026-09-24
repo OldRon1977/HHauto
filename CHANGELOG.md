@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.14.1 - Sandalwood for skins
+
+- **Sandalwood in the skin phase:** "Equip Sandalwood" under Shards & Skins
+  now equips a perfume once the girl is won and only her skin is left. Until
+  now "SW min shards" blocked it: it counts the shards the girl is missing,
+  which is 0 at 100/100, so no value of the threshold let it through. The
+  threshold still applies while the girl is not won. This covers the event,
+  mythic event and love raid paths alike.
+
 ### v8.14.0 - Team selection popup: this week, against the league, next week
 
 The edit-team column now holds one button, **Team selection**. It opens a

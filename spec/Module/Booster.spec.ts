@@ -7,6 +7,7 @@ import { Timers, setTimer, checkTimer, clearTimer, getSecondsLeft } from '../../
 import { safeReload } from '../../src/Service/PageNavigationService';
 import { MockHelper } from "../testHelpers/MockHelpers";
 import { EventGirl } from '../../src/model/EventGirl';
+import { LoveRaid } from '../../src/model/LoveRaid';
 import { LoveRaidManager } from '../../src/Module/Events/LoveRaidManager';
 
 // Booster reloads the page after a mythic conflict (the game's conflict popup
@@ -518,6 +519,48 @@ describe("Booster", function() {
       localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusGirlSkins", 'true');
       const girl = { girl_id: 42, troll_id: 7, shards: 100, is_mythic: true, event_id: 'me_1' } as unknown as EventGirl;
       expect(Booster.needSandalWoodMythic(7, girl)).toBe(false);
+    });
+  });
+
+  describe("sandalwood in the skin phase with its switch on (#1894)", function() {
+    beforeEach(function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusGirlSkins", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusSkinSandalWood", 'true');
+    });
+    afterEach(() => { jest.restoreAllMocks(); });
+
+    const mythicGirl = (shards: number) =>
+      ({ girl_id: 42, troll_id: 7, shards, is_mythic: true, event_id: 'me_1' }) as unknown as EventGirl;
+
+    it.each(['0', '1', '5'])("equips for a finished mythic girl whatever SW min shards says (%s)", function(threshold) {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEventMythic", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEventMythicSandalWood", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_sandalwoodMinShardsThreshold", threshold);
+      expect(Booster.needSandalWoodMythic(7, mythicGirl(100))).toBe(true);
+    });
+
+    it("still applies SW min shards while the girl is not won", function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEventMythic", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEventMythicSandalWood", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_sandalwoodMinShardsThreshold", '1');
+      expect(Booster.needSandalWoodMythic(7, mythicGirl(99))).toBe(false);
+      expect(Booster.needSandalWoodMythic(7, mythicGirl(98))).toBe(true);
+    });
+
+    it("equips for a finished event girl", function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEvent", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEventSandalWood", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_sandalwoodMinShardsThreshold", '1');
+      const girl = { girl_id: 43, troll_id: 3, shards: 100, is_mythic: false, event_id: 'event_1' } as unknown as EventGirl;
+      expect(Booster.needSandalWoodEvent(3, girl)).toBe(true);
+    });
+
+    it("equips for a finished love raid girl", function() {
+      jest.spyOn(LoveRaidManager, 'isAnyActivated').mockReturnValue(true);
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEventLoveRaidSandalWood", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_sandalwoodMinShardsThreshold", '1');
+      const raid = { id_girl: 22, trollId: 5, girl_shards: 100, girl_to_win: true } as unknown as LoveRaid;
+      expect(Booster.needSandalWoodLoveRaid(5, raid)).toBe(true);
     });
   });
 
