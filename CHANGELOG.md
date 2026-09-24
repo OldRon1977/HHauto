@@ -25,7 +25,10 @@ Older entries below were migrated 1:1 from `README.md`.
   before, even with every box ticked. The new boxes start unticked.
 - **Collect popup:** plain checkboxes instead of switches, the whole label
   clickable, in the script's font. "Toggle All" stays and still inverts
-  every box.
+  every box. "All but XP" ticks every box except XP. "Copy to all"
+  copies the selection to the collect lists of every other reward path and
+  event, the daily goals and the free bundles. Sultry Mysteries picks from
+  rewards of its own and keeps its list.
 
 ### v8.14.1 - Sandalwood for skins
 

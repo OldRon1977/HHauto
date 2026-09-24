@@ -253,7 +253,8 @@ GM_addStyle('.HHCollectables { padding: 10px; display: flex; flex-direction: col
             + '.HHCollectablesGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 12px; }'
             + '.HHCollectablesItem { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 2px 0; user-select: none; }'
             + '.HHCollectablesItem input { margin: 0; width: 16px; height: 16px; accent-color: #2196F3; cursor: pointer; flex: none; }'
-            + '#toggleCollectables { font-size: 12px; padding: 4px 12px; }');
+            + '.HHCollectablesButtons { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }'
+            + '.HHCollectablesButtons .myButton { font-size: 12px; padding: 4px 12px; }');
 GM_addStyle('.HHGirlMilestone { position: absolute; bottom: 0;  z-index: 1; font-size:smaller; width: 200px; text-align: center;}'); 
 GM_addStyle('.HHGirlMilestone > div { background: rgba(0,0,0,.5); border-radius: 10px; margin:auto;  width: 140px; }'); 
 // GM_addStyle('.HHGirlMilestone.green { border: solid 1px green }');
@@ -705,6 +706,9 @@ HHAuto_ToolTips.en['saveTranslation'] = { version: "5.6.25", elementText: "Save 
 HHAuto_ToolTips.en['saveTranslationText'] = { version: "5.6.25", elementText: "Below you'll find all text that can be translated.<br>To contribute, modify directly in the cell the translation (if empty click on the blue part ;))<br><p style='margin-block-start:0px;margin-block-end:0px;color:gray'>Gray cells are translations needing update.</p><p style='margin-block-start:0px;margin-block-end:0px;color:blue'>Blue cell are missing translations</p><p style='margin-block-start:0px;margin-block-end:0px;color:red'>Please try to keep the text length to prevent UI issues.</p>At the bottom you'll find a button to generate a txt file with your modification.<br>Please upload it to : <a target='_blank' href='https://github.com/OldRon1977/HHauto/issues/426'>Github</a>", tooltip: "" };
 HHAuto_ToolTips.en['menuCollectable'] = { version: "5.6.47", elementText: "Collectable preferences.", tooltip: "" };
 HHAuto_ToolTips.en['menuCollectableText'] = { version: "5.6.47", elementText: "Please select the collectables you want to be automatically collected.", tooltip: "" };
+HHAuto_ToolTips.en['collectAllButXp'] = { version: "8.15.0", elementText: "All but XP", tooltip: "" };
+HHAuto_ToolTips.en['collectApplyToAll'] = { version: "8.15.0", elementText: "Copy to all", tooltip: "Copies this selection to the collect lists of every other reward path and event, the daily goals and the free bundles. Sultry Mysteries keeps its own." };
+HHAuto_ToolTips.en['collectAppliedToAll'] = { version: "8.15.0", elementText: "Copied to {n} other lists.", tooltip: "" };
 HHAuto_ToolTips.en['menuDailyCollectableText'] = { version: "5.6.49", elementText: "Please select the collectables you want to be immediately collected.", tooltip: "" };
 HHAuto_ToolTips.en['autoPoVCollect'] = { version: "6.15.8", elementText: "Collect", tooltip: "if enabled : Automatically collect Path of Valor." };
 HHAuto_ToolTips.en['autoPoVCollectAll'] = { version: "8.10.42", elementText: "Collect all", tooltip: "if enabled : Automatically collect all items before end of Path of Valor (configured with Collect all timer)" };
@@ -1253,6 +1257,9 @@ HHAuto_ToolTips.fr['saveTranslation'] = { version: "5.6.25", elementText: "Enreg
 HHAuto_ToolTips.fr['saveTranslationText'] = { version: "5.6.25", elementText: "Vous trouverez ci-dessous tous les textes traduisibles.<br>Pour contribuer, modifiez la traduction directement dans la cellule (si elle est vide, cliquez sur la partie bleue ;))<br><p style='margin-block-start:0px;margin-block-end:0px;color:gray'>Les cellules grises sont des traductions à mettre à jour.</p><p style='margin-block-start:0px;margin-block-end:0px;color:blue'>Les cellules bleues sont des traductions manquantes.</p><p style='margin-block-start:0px;margin-block-end:0px;color:red'>Essayez de conserver la longueur du texte pour ne pas casser l'interface.</p>En bas, un bouton permet de générer un fichier txt avec vos modifications.<br>Merci de le déposer sur : <a target='_blank' href='https://github.com/OldRon1977/HHauto/issues/426'>Github</a>", tooltip: "" };
 HHAuto_ToolTips.fr['menuCollectable'] = { version: "5.6.47", elementText: "Préférences de récupération.", tooltip: "" };
 HHAuto_ToolTips.fr['menuCollectableText'] = { version: "5.6.47", elementText: "Sélectionnez les objets que vous voulez voir récupérés automatiquement.", tooltip: "" };
+HHAuto_ToolTips.fr['collectAllButXp'] = { version: "8.15.0", elementText: "Tout sauf XP", tooltip: "" };
+HHAuto_ToolTips.fr['collectApplyToAll'] = { version: "8.15.0", elementText: "Copier partout", tooltip: "Copie cette sélection dans les listes de collecte de tous les autres chemins de récompenses et événements, des objectifs quotidiens et des offres gratuites. Sultry Mysteries garde la sienne." };
+HHAuto_ToolTips.fr['collectAppliedToAll'] = { version: "8.15.0", elementText: "Copié dans {n} autres listes.", tooltip: "" };
 HHAuto_ToolTips.fr['menuDailyCollectableText'] = { version: "5.6.49", elementText: "Sélectionnez les objets que vous voulez voir récupérés immédiatement.", tooltip: "" };
 HHAuto_ToolTips.fr['autoSeasonalBuyFreeCard'] = { version: "7.26.0", elementText: "Acheter la carte", tooltip: "Si activé : achète automatiquement la carte gratuite de l'Événement saisonnier." };
 HHAuto_ToolTips.fr['autoDailyGoals'] = { version: "8.10.42", elementText: "Activé", tooltip: "BÊTA : effectue les objectifs quotidiens pris en charge <br>(pour l'instant : Panthéon)." };
@@ -1765,6 +1772,9 @@ HHAuto_ToolTips.de['saveTranslation'] = { version: "5.6.25", elementText: "Über
 HHAuto_ToolTips.de['saveTranslationText'] = { version: "8.10.0", elementText: "Unten findest du alle übersetzbaren Texte.<br>Zum Mitmachen die Übersetzung direkt in der Zelle ändern (ist sie leer, klicke auf den blauen Bereich).<br><p style='margin-block-start:0px;margin-block-end:0px;color:gray'>Graue Zellen sind Übersetzungen, die aktualisiert werden müssen.</p><p style='margin-block-start:0px;margin-block-end:0px;color:blue'>Blaue Zellen sind fehlende Übersetzungen.</p><p style='margin-block-start:0px;margin-block-end:0px;color:red'>Bitte die Textlänge in etwa beibehalten, sonst verrutscht die Oberfläche.</p>Ganz unten erzeugt ein Knopf eine txt-Datei mit deinen Änderungen.<br>Bitte lade sie hier hoch: <a target='_blank' href='https://github.com/OldRon1977/HHauto/issues/426'>Github</a>", tooltip: "" };
 HHAuto_ToolTips.de['menuCollectable'] = { version: "5.6.47", elementText: "Einstellungen zum Einsammeln.", tooltip: "" };
 HHAuto_ToolTips.de['menuCollectableText'] = { version: "5.6.47", elementText: "Wähle aus, was automatisch eingesammelt werden soll.", tooltip: "" };
+HHAuto_ToolTips.de['collectAllButXp'] = { version: "8.15.0", elementText: "Alles außer XP", tooltip: "" };
+HHAuto_ToolTips.de['collectApplyToAll'] = { version: "8.15.0", elementText: "Auf alle übertragen", tooltip: "Überträgt diese Auswahl auf die Sammel-Listen aller anderen Belohnungspfade und Events, der Tagesziele und der Gratis-Bundles. Sultry Mysteries behält seine eigene." };
+HHAuto_ToolTips.de['collectAppliedToAll'] = { version: "8.15.0", elementText: "In {n} weitere Listen übernommen.", tooltip: "" };
 HHAuto_ToolTips.de['menuDailyCollectableText'] = { version: "5.6.49", elementText: "Wähle aus, was sofort eingesammelt werden soll.", tooltip: "" };
 HHAuto_ToolTips.de['autoPoVCollect'] = { version: "6.15.8", elementText: "Einsammeln", tooltip: "Wenn aktiv: Sammelt den Path of Valor automatisch ein." };
 HHAuto_ToolTips.de['autoPoVCollectAll'] = { version: "8.10.42", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende des Path of Valor automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
@@ -2346,6 +2356,9 @@ HHAuto_ToolTips.es['saveTranslation'] = { version: "5.6.25", elementText: "Guard
 HHAuto_ToolTips.es['saveTranslationText'] = { version: "5.6.25", elementText: "Abajo encontrarás todos los textos que se pueden traducir.<br>Para colaborar, modifica la traducción directamente en la celda (si está vacía, pulsa en la parte azul ;))<br><p style='margin-block-start:0px;margin-block-end:0px;color:gray'>Las celdas grises son traducciones que hay que actualizar.</p><p style='margin-block-start:0px;margin-block-end:0px;color:blue'>Las celdas azules son traducciones que faltan.</p><p style='margin-block-start:0px;margin-block-end:0px;color:red'>Intenta mantener la longitud del texto para no romper la interfaz.</p>Al final encontrarás un botón para generar un fichero txt con tus cambios.<br>Súbelo a: <a target='_blank' href='https://github.com/OldRon1977/HHauto/issues/426'>Github</a>", tooltip: "" };
 HHAuto_ToolTips.es['menuCollectable'] = { version: "5.6.47", elementText: "Preferencias de recogida.", tooltip: "" };
 HHAuto_ToolTips.es['menuCollectableText'] = { version: "5.6.47", elementText: "Selecciona los objetos que quieres que se recojan automáticamente.", tooltip: "" };
+HHAuto_ToolTips.es['collectAllButXp'] = { version: "8.15.0", elementText: "Todo excepto XP", tooltip: "" };
+HHAuto_ToolTips.es['collectApplyToAll'] = { version: "8.15.0", elementText: "Copiar a todas", tooltip: "Copia esta selección a las listas de recogida de todos los demás caminos de recompensas y eventos, los objetivos diarios y los paquetes gratuitos. Sultry Mysteries conserva la suya." };
+HHAuto_ToolTips.es['collectAppliedToAll'] = { version: "8.15.0", elementText: "Copiado a {n} listas más.", tooltip: "" };
 HHAuto_ToolTips.es['menuDailyCollectableText'] = { version: "5.6.49", elementText: "Selecciona los objetos que quieres que se recojan de inmediato.", tooltip: "" };
 HHAuto_ToolTips.es['autoPoVCollect'] = { version: "6.15.8", elementText: "Recoger", tooltip: "Si habilitado: recoge automáticamente la Camino del Valor." };
 HHAuto_ToolTips.es['autoPoVCollectAll'] = { version: "8.10.42", elementText: "Recoger todo", tooltip: "Si habilitado: recoge automáticamente todos los objetos antes del final de la Camino del Valor (según el temporizador de Recoger todo)." };
@@ -7125,13 +7138,21 @@ function debugDeleteTempVars() {
         setStoredValue(variableName, dataToSave[compoundKey]);
     }
 }
+// The collect lists that pick from the generic reward pool. Sultry Mysteries
+// picks from a pool of its own -- "progressions" means keys there -- so its
+// list takes no part in "copy to all".
+const GENERIC_COLLECT_LISTS = [
+    SK.autoSeasonCollectablesList, SK.autoPentaDrillCollectablesList, SK.autoFreeBundlesCollectablesList,
+    SK.autodpEventCollectablesList, SK.autoLivelySceneEventCollectablesList, SK.autoSeasonalEventCollectablesList,
+    SK.autoPoVCollectablesList, SK.autoPoGCollectablesList, SK.autoPoACollectablesList, SK.autoDailyGoalsCollectablesList,
+].map(key => HHStoredVarPrefixKey + key);
 function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("menuCollectableText", "elementText"), inRewardsListName = "possibleRewardsList") {
     createPopUpCollectables();
     // Plain checkboxes, the whole label clickable: the animated switches of
     // the settings panel were slow to work through twenty-odd entries.
     // "Toggle All" inverts every box.
     function createPopUpCollectables() {
-        var _a;
+        var _a, _b, _c;
         // Features with their own reward pool (Sultry Mysteries) pass their
         // own list name instead of the generic one.
         const possibleRewards = ConfigHelper.getHHScriptVars(inRewardsListName);
@@ -7143,8 +7164,14 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
             const checkedBox = rewardsToCollect.includes(currentItem) ? "checked" : "";
             menuCollectables += '<label class="HHCollectablesItem"><input id="' + currentItem + '" class="menuCollectablesItem" type="checkbox" ' + checkedBox + '><span>' + possibleRewards[currentItem] + '</span></label>';
         }
+        const canApplyToAll = GENERIC_COLLECT_LISTS.includes(inVarName);
         menuCollectables += '</div>'
-            + '<div><button id="toggleCollectables" class="myButton" type="button">Toggle All</button></div>'
+            + '<div class="HHCollectablesButtons">'
+            + '<button id="toggleCollectables" class="myButton" type="button">Toggle All</button>'
+            + (possibleRewards.xp ? '<button id="collectAllButXp" class="myButton" type="button">' + getTextForUI("collectAllButXp", "elementText") + '</button>' : '')
+            + (canApplyToAll ? '<button id="collectApplyToAll" class="myButton" type="button" title="' + getTextForUI("collectApplyToAll", "tooltip") + '">' + getTextForUI("collectApplyToAll", "elementText") + '</button>' : '')
+            + '<span id="collectApplyToAllDone"></span>'
+            + '</div>'
             + '</div>';
         fillHHPopUp("menuCollectable", getTextForUI("menuCollectable", "elementText"), menuCollectables);
         const allInputs = document.querySelectorAll("#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem");
@@ -7152,6 +7179,18 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
         (_a = document.getElementById("toggleCollectables")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
             allInputs.forEach(currentInput => { currentInput.checked = !currentInput.checked; });
             getSelectedCollectables();
+        });
+        (_b = document.getElementById("collectAllButXp")) === null || _b === void 0 ? void 0 : _b.addEventListener("click", () => {
+            allInputs.forEach(currentInput => { currentInput.checked = currentInput.id !== 'xp'; });
+            getSelectedCollectables();
+        });
+        (_c = document.getElementById("collectApplyToAll")) === null || _c === void 0 ? void 0 : _c.addEventListener("click", () => {
+            const selection = getSelectedCollectables();
+            const others = GENERIC_COLLECT_LISTS.filter(key => key !== inVarName);
+            others.forEach(key => setStoredValue(key, JSON.stringify(selection)));
+            const done = document.getElementById("collectApplyToAllDone");
+            if (done)
+                done.textContent = getTextForUI("collectAppliedToAll", "elementText").replace('{n}', String(others.length));
         });
     }
     function getSelectedCollectables() {
@@ -7163,6 +7202,7 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
             }
         });
         setStoredValue(inVarName, JSON.stringify(collectablesList));
+        return collectablesList;
     }
 }
 /**
