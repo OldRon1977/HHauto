@@ -598,15 +598,15 @@ HHAuto_ToolTips.en['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "gir
 HHAuto_ToolTips.en['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Material: every item except mythics, picked by the game's Auto Select, lowest value first. Before each level the price is checked against the money to keep.", tooltip: "" };
 HHAuto_ToolTips.en['HHGirlGearStart'] = { version: "8.16.0", elementText: "Level up", tooltip: "" };
 HHAuto_ToolTips.en['HHTeamGear'] = { version: "8.16.0", elementText: "Team gear", tooltip: "" };
-HHAuto_ToolTips.en['HHTeamGearBest'] = { version: "8.16.0", elementText: "Best gear", tooltip: "Plans the gear of the girls in the hexagons by their current stats, leader first. Each girl can have any item in the inventory or keep her own. Shows the plan; nothing is equipped before you press Equip." };
+HHAuto_ToolTips.en['HHTeamGearBest'] = { version: "8.16.0", elementText: "Best gear", tooltip: "Plans the gear of the girls in the hexagons as a whole team, from the inventory and what the team girls wear: the strongest items go down the team in order (L10 mythics to the first girls), and among equal items the team gets the most resonance. Shows the plan; nothing is equipped before you press Equip." };
 HHAuto_ToolTips.en['HHTeamGearPossible'] = { version: "8.16.0", elementText: "Possibly best gear", tooltip: "Like Best gear, but mythics count with their stats at level 10, where Level-up gear takes them. Every other rarity counts as it is." };
 HHAuto_ToolTips.en['HHTeamGearApply'] = { version: "8.16.0", elementText: "Equip", tooltip: "" };
 HHAuto_ToolTips.en['HHTeamGearReading'] = { version: "8.16.0", elementText: "Reading the girl equipment inventory...", tooltip: "" };
 HHAuto_ToolTips.en['HHTeamGearReadFailed'] = { version: "8.16.0", elementText: "The inventory could not be read. Nothing was changed.", tooltip: "" };
 HHAuto_ToolTips.en['HHTeamGearNoGirls'] = { version: "8.16.0", elementText: "No girls found in the hexagons.", tooltip: "" };
 HHAuto_ToolTips.en['HHTeamGearNoChange'] = { version: "8.16.0", elementText: "Nothing to change: every girl already wears the best item available to her.", tooltip: "" };
-HHAuto_ToolTips.en['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Girls in team order, the leader first, ranked by their current stats. Each can have any item in the inventory or keep her own; an item she trades in goes to the girls after her. Items worn by girls outside the team stay where they are; press Unequip All first to use them.", tooltip: "" };
-HHAuto_ToolTips.en['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Girls in team order, the leader first. Mythics count with their stats at level 10, everything else as it is. Each girl can have any item in the inventory or keep her own; an item she trades in goes to the girls after her. Items worn by girls outside the team stay where they are; press Unequip All first to use them.", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "The whole team is planned at once, slot by slot, from the inventory and what the team girls wear, ranked by the current stats. The strongest items go down the team in order, the leader first; among equal items the team gets the distribution with the most resonance. Items can move between team girls. Items worn by girls outside the team stay where they are; press Unequip All first to use them.", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "The whole team is planned at once, slot by slot, from the inventory and what the team girls wear. Mythics count with their stats at level 10, everything else as it is. The strongest items go down the team in order, the leader first; among equal items the team gets the distribution with the most resonance, then the higher real level. Items can move between team girls. Items worn by girls outside the team stay where they are; press Unequip All first to use them.", tooltip: "" };
 HHAuto_ToolTips.en['HHTeamGearColNow'] = { version: "8.16.0", elementText: "now", tooltip: "" };
 HHAuto_ToolTips.en['HHTeamGearColNew'] = { version: "8.16.0", elementText: "new", tooltip: "" };
 HHAuto_ToolTips.en['HHTeamGearColScore'] = { version: "8.16.0", elementText: "stats · resonance", tooltip: "" };
@@ -1171,15 +1171,15 @@ HHAuto_ToolTips.fr['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "fil
 HHAuto_ToolTips.fr['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Matériau : tous les objets sauf les mythiques, choisis par l'Auto Select du jeu, valeur la plus basse d'abord. Avant chaque niveau, le prix est comparé à l'argent à garder.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGirlGearStart'] = { version: "8.16.0", elementText: "Monter", tooltip: "" };
 HHAuto_ToolTips.fr['HHTeamGear'] = { version: "8.16.0", elementText: "Équipement de l'équipe", tooltip: "" };
-HHAuto_ToolTips.fr['HHTeamGearBest'] = { version: "8.16.0", elementText: "Meilleur équipement", tooltip: "Planifie l'équipement des filles des hexagones selon leurs stats actuelles, la meneuse d'abord. Chaque fille peut recevoir n'importe quel objet de l'inventaire ou garder le sien. Affiche le plan ; rien n'est équipé avant « Équiper »." };
+HHAuto_ToolTips.fr['HHTeamGearBest'] = { version: "8.16.0", elementText: "Meilleur équipement", tooltip: "Planifie l'équipement des filles des hexagones pour toute l'équipe, à partir de l'inventaire et de ce que portent les filles de l'équipe : les objets les plus forts suivent l'ordre de l'équipe (les mythiques niveau 10 aux premières filles), et entre objets égaux l'équipe reçoit le plus de résonance. Affiche le plan ; rien n'est équipé avant « Équiper »." };
 HHAuto_ToolTips.fr['HHTeamGearPossible'] = { version: "8.16.0", elementText: "Meilleur équipement possible", tooltip: "Comme « Meilleur équipement », mais les mythiques comptent avec leurs stats au niveau 10, où « Monter l'équipement » les amène. Les autres raretés comptent telles quelles." };
 HHAuto_ToolTips.fr['HHTeamGearApply'] = { version: "8.16.0", elementText: "Équiper", tooltip: "" };
 HHAuto_ToolTips.fr['HHTeamGearReading'] = { version: "8.16.0", elementText: "Lecture de l'inventaire d'équipement des filles...", tooltip: "" };
 HHAuto_ToolTips.fr['HHTeamGearReadFailed'] = { version: "8.16.0", elementText: "L'inventaire n'a pas pu être lu. Rien n'a été modifié.", tooltip: "" };
 HHAuto_ToolTips.fr['HHTeamGearNoGirls'] = { version: "8.16.0", elementText: "Aucune fille trouvée dans les hexagones.", tooltip: "" };
 HHAuto_ToolTips.fr['HHTeamGearNoChange'] = { version: "8.16.0", elementText: "Rien à changer : chaque fille porte déjà le meilleur objet disponible pour elle.", tooltip: "" };
-HHAuto_ToolTips.fr['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Filles dans l'ordre de l'équipe, la meneuse d'abord, classées selon leurs stats actuelles. Chacune peut recevoir n'importe quel objet de l'inventaire ou garder le sien ; un objet rendu passe aux filles suivantes. Ce que portent les filles hors de l'équipe reste en place ; appuyez d'abord sur « Tout déséquiper » pour l'utiliser.", tooltip: "" };
-HHAuto_ToolTips.fr['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Filles dans l'ordre de l'équipe, la meneuse d'abord. Les mythiques comptent avec leurs stats au niveau 10, le reste tel quel. Chacune peut recevoir n'importe quel objet de l'inventaire ou garder le sien ; un objet rendu passe aux filles suivantes. Ce que portent les filles hors de l'équipe reste en place ; appuyez d'abord sur « Tout déséquiper » pour l'utiliser.", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Toute l'équipe est planifiée d'un coup, emplacement par emplacement, à partir de l'inventaire et de ce que portent les filles de l'équipe, selon les stats actuelles. Les objets les plus forts suivent l'ordre de l'équipe, la meneuse d'abord ; entre objets égaux l'équipe reçoit la répartition avec le plus de résonance. Les objets peuvent passer d'une fille de l'équipe à une autre. Ce que portent les filles hors de l'équipe reste en place ; appuyez d'abord sur « Tout déséquiper » pour l'utiliser.", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Toute l'équipe est planifiée d'un coup, emplacement par emplacement, à partir de l'inventaire et de ce que portent les filles de l'équipe. Les mythiques comptent avec leurs stats au niveau 10, le reste tel quel. Les objets les plus forts suivent l'ordre de l'équipe, la meneuse d'abord ; entre objets égaux l'équipe reçoit la répartition avec le plus de résonance, puis le niveau réel le plus haut. Les objets peuvent passer d'une fille de l'équipe à une autre. Ce que portent les filles hors de l'équipe reste en place ; appuyez d'abord sur « Tout déséquiper » pour l'utiliser.", tooltip: "" };
 HHAuto_ToolTips.fr['HHTeamGearColNow'] = { version: "8.16.0", elementText: "actuel", tooltip: "" };
 HHAuto_ToolTips.fr['HHTeamGearColNew'] = { version: "8.16.0", elementText: "nouveau", tooltip: "" };
 HHAuto_ToolTips.fr['HHTeamGearColScore'] = { version: "8.16.0", elementText: "stats · résonance", tooltip: "" };
@@ -1700,15 +1700,15 @@ HHAuto_ToolTips.de['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "Mä
 HHAuto_ToolTips.de['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Material: alles außer Mythics, ausgewählt vom Auto Select des Spiels, geringster Wert zuerst. Vor jedem Level wird der Preis gegen den Geldrückhalt geprüft.", tooltip: "" };
 HHAuto_ToolTips.de['HHGirlGearStart'] = { version: "8.16.0", elementText: "Leveln", tooltip: "" };
 HHAuto_ToolTips.de['HHTeamGear'] = { version: "8.16.0", elementText: "Team-Ausrüstung", tooltip: "" };
-HHAuto_ToolTips.de['HHTeamGearBest'] = { version: "8.16.0", elementText: "Beste Ausrüstung", tooltip: "Plant die Ausrüstung der Mädels in den Hexagons nach ihren aktuellen Werten, die Anführerin zuerst. Jedes Mädel kann jedes Teil aus dem Inventar bekommen oder ihr eigenes behalten. Zeigt den Plan; angelegt wird erst mit „Anlegen“." };
+HHAuto_ToolTips.de['HHTeamGearBest'] = { version: "8.16.0", elementText: "Beste Ausrüstung", tooltip: "Plant die Ausrüstung der Mädels in den Hexagons als ganzes Team, aus dem Inventar und dem, was die Team-Mädels tragen: Die stärksten Teile gehen in Teamreihenfolge (L10-Mythics an die ersten Mädels), und unter gleichen Teilen bekommt das Team die meiste Resonanz. Zeigt den Plan; angelegt wird erst mit „Anlegen“." };
 HHAuto_ToolTips.de['HHTeamGearPossible'] = { version: "8.16.0", elementText: "Mögliche beste Ausrüstung", tooltip: "Wie „Beste Ausrüstung“, aber Mythics zählen mit ihren Werten auf Level 10, wohin „Ausrüstung leveln“ sie bringt. Alle anderen Seltenheiten zählen, wie sie sind." };
 HHAuto_ToolTips.de['HHTeamGearApply'] = { version: "8.16.0", elementText: "Anlegen", tooltip: "" };
 HHAuto_ToolTips.de['HHTeamGearReading'] = { version: "8.16.0", elementText: "Lese das Inventar der Mädchen-Ausrüstung ...", tooltip: "" };
 HHAuto_ToolTips.de['HHTeamGearReadFailed'] = { version: "8.16.0", elementText: "Das Inventar ließ sich nicht lesen. Nichts wurde geändert.", tooltip: "" };
 HHAuto_ToolTips.de['HHTeamGearNoGirls'] = { version: "8.16.0", elementText: "Keine Mädels in den Hexagons gefunden.", tooltip: "" };
 HHAuto_ToolTips.de['HHTeamGearNoChange'] = { version: "8.16.0", elementText: "Nichts zu ändern: Jedes Mädel trägt schon das beste Teil, das ihr zur Verfügung steht.", tooltip: "" };
-HHAuto_ToolTips.de['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Mädels in Teamreihenfolge, die Anführerin zuerst, bewertet nach ihren aktuellen Werten. Jede kann jedes Teil aus dem Inventar bekommen oder ihr eigenes behalten; ein abgegebenes Teil steht den Mädels nach ihr zur Verfügung. Was Mädels außerhalb des Teams tragen, bleibt, wo es ist; dafür vorher „Alles ablegen“ drücken.", tooltip: "" };
-HHAuto_ToolTips.de['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Mädels in Teamreihenfolge, die Anführerin zuerst. Mythics zählen mit ihren Werten auf Level 10, alles andere, wie es ist. Jede kann jedes Teil aus dem Inventar bekommen oder ihr eigenes behalten; ein abgegebenes Teil steht den Mädels nach ihr zur Verfügung. Was Mädels außerhalb des Teams tragen, bleibt, wo es ist; dafür vorher „Alles ablegen“ drücken.", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Das ganze Team wird auf einmal geplant, Platz für Platz, aus dem Inventar und dem, was die Team-Mädels tragen, bewertet nach den aktuellen Werten. Die stärksten Teile gehen in Teamreihenfolge, die Anführerin zuerst; unter gleichen Teilen bekommt das Team die Verteilung mit der meisten Resonanz. Teile können zwischen Team-Mädels wandern. Was Mädels außerhalb des Teams tragen, bleibt, wo es ist; dafür vorher „Alles ablegen“ drücken.", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Das ganze Team wird auf einmal geplant, Platz für Platz, aus dem Inventar und dem, was die Team-Mädels tragen. Mythics zählen mit ihren Werten auf Level 10, alles andere, wie es ist. Die stärksten Teile gehen in Teamreihenfolge, die Anführerin zuerst; unter gleichen Teilen bekommt das Team die Verteilung mit der meisten Resonanz, dann das höhere echte Level. Teile können zwischen Team-Mädels wandern. Was Mädels außerhalb des Teams tragen, bleibt, wo es ist; dafür vorher „Alles ablegen“ drücken.", tooltip: "" };
 HHAuto_ToolTips.de['HHTeamGearColNow'] = { version: "8.16.0", elementText: "jetzt", tooltip: "" };
 HHAuto_ToolTips.de['HHTeamGearColNew'] = { version: "8.16.0", elementText: "neu", tooltip: "" };
 HHAuto_ToolTips.de['HHTeamGearColScore'] = { version: "8.16.0", elementText: "Werte · Resonanz", tooltip: "" };
@@ -2148,15 +2148,15 @@ HHAuto_ToolTips.es['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "chi
 HHAuto_ToolTips.es['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Material: todo objeto salvo los míticos, elegido por el Auto Select del juego, el de menor valor primero. Antes de cada nivel se compara el precio con el dinero a conservar.", tooltip: "" };
 HHAuto_ToolTips.es['HHGirlGearStart'] = { version: "8.16.0", elementText: "Subir", tooltip: "" };
 HHAuto_ToolTips.es['HHTeamGear'] = { version: "8.16.0", elementText: "Equipo de las chicas", tooltip: "" };
-HHAuto_ToolTips.es['HHTeamGearBest'] = { version: "8.16.0", elementText: "Mejor equipo", tooltip: "Planifica el equipo de las chicas de los hexágonos según sus estadísticas actuales, la líder primero. Cada chica puede recibir cualquier objeto del inventario o conservar el suyo. Muestra el plan; no se equipa nada antes de pulsar «Equipar»." };
+HHAuto_ToolTips.es['HHTeamGearBest'] = { version: "8.16.0", elementText: "Mejor equipo", tooltip: "Planifica el equipo de las chicas de los hexágonos para todo el equipo, a partir del inventario y de lo que llevan las chicas del equipo: los objetos más fuertes siguen el orden del equipo (los míticos de nivel 10 para las primeras chicas), y entre objetos iguales el equipo recibe la mayor resonancia. Muestra el plan; no se equipa nada antes de pulsar «Equipar»." };
 HHAuto_ToolTips.es['HHTeamGearPossible'] = { version: "8.16.0", elementText: "Mejor equipo posible", tooltip: "Como «Mejor equipo», pero los míticos cuentan con sus estadísticas a nivel 10, adonde los lleva «Subir equipo». Las demás rarezas cuentan tal como están." };
 HHAuto_ToolTips.es['HHTeamGearApply'] = { version: "8.16.0", elementText: "Equipar", tooltip: "" };
 HHAuto_ToolTips.es['HHTeamGearReading'] = { version: "8.16.0", elementText: "Leyendo el inventario de equipo de las chicas...", tooltip: "" };
 HHAuto_ToolTips.es['HHTeamGearReadFailed'] = { version: "8.16.0", elementText: "No se pudo leer el inventario. No se cambió nada.", tooltip: "" };
 HHAuto_ToolTips.es['HHTeamGearNoGirls'] = { version: "8.16.0", elementText: "No se encontraron chicas en los hexágonos.", tooltip: "" };
 HHAuto_ToolTips.es['HHTeamGearNoChange'] = { version: "8.16.0", elementText: "Nada que cambiar: cada chica ya lleva el mejor objeto disponible para ella.", tooltip: "" };
-HHAuto_ToolTips.es['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Chicas en el orden del equipo, la líder primero, según sus estadísticas actuales. Cada una puede recibir cualquier objeto del inventario o conservar el suyo; un objeto que entrega pasa a las chicas siguientes. Lo que llevan las chicas fuera del equipo se queda donde está; pulsa antes «Desequipar todo» para usarlo.", tooltip: "" };
-HHAuto_ToolTips.es['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Chicas en el orden del equipo, la líder primero. Los míticos cuentan con sus estadísticas a nivel 10, lo demás tal como está. Cada una puede recibir cualquier objeto del inventario o conservar el suyo; un objeto que entrega pasa a las chicas siguientes. Lo que llevan las chicas fuera del equipo se queda donde está; pulsa antes «Desequipar todo» para usarlo.", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Todo el equipo se planifica de una vez, ranura por ranura, a partir del inventario y de lo que llevan las chicas del equipo, según las estadísticas actuales. Los objetos más fuertes siguen el orden del equipo, la líder primero; entre objetos iguales el equipo recibe el reparto con más resonancia. Los objetos pueden pasar de una chica del equipo a otra. Lo que llevan las chicas fuera del equipo se queda donde está; pulsa antes «Desequipar todo» para usarlo.", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Todo el equipo se planifica de una vez, ranura por ranura, a partir del inventario y de lo que llevan las chicas del equipo. Los míticos cuentan con sus estadísticas a nivel 10, lo demás tal como está. Los objetos más fuertes siguen el orden del equipo, la líder primero; entre objetos iguales el equipo recibe el reparto con más resonancia y luego el nivel real más alto. Los objetos pueden pasar de una chica del equipo a otra. Lo que llevan las chicas fuera del equipo se queda donde está; pulsa antes «Desequipar todo» para usarlo.", tooltip: "" };
 HHAuto_ToolTips.es['HHTeamGearColNow'] = { version: "8.16.0", elementText: "actual", tooltip: "" };
 HHAuto_ToolTips.es['HHTeamGearColNew'] = { version: "8.16.0", elementText: "nuevo", tooltip: "" };
 HHAuto_ToolTips.es['HHTeamGearColScore'] = { version: "8.16.0", elementText: "estadísticas · resonancia", tooltip: "" };
@@ -31324,25 +31324,36 @@ TeamSelectionPopup.stylesAdded = false;
 // TeamGearService.ts -- Pure planning for "Best gear" and "Possibly best
 // gear": which item each team girl should wear in each of her six slots.
 //
-// The ranking is the one Stuff Team used on the girl page (HaremGirl.pure:
-// scoreItem, isBetter): the sum of the six stats first, then the resonance
-// matches with the wearer, then the three caracs. A girl only trades her
-// item in when the candidate is better by that rule, so equal items do not
-// cause a swap.
+// The whole team is planned at once, slot by slot. For one slot the pool is
+// every item in the inventory plus what the team girls wear there; items
+// other girls wear are not in play (a player who wants them pressed Unequip
+// All first). Two rules decide, in this order:
 //
-// "Possibly best" ranks a mythic by the stats it will have at level 10,
-// because Level-up gear takes worn mythics there. The stats grow linearly
-// with the level (measured: a mythic at level 1 carries 30/30/30 and ego 45,
-// at level 10 300/300/300 and 450; a legendary goes from 26 to 52 between
-// level 1 and 2). Every other rarity counts as it is: nothing in the script
-// levels it.
+//   1. The stats go down the team in order. The girl in position 1 gets an
+//      item of the highest stat sum in the pool, position 2 the next, and so
+//      on -- so the girls get L10 mythics in team order, as many as there
+//      are, and when they run out the later girls get legendaries, epics.
+//      The stat sum is the ranking Stuff Team used on the girl page
+//      (HaremGirl.pure: scoreItem): all six stats added up. Within one
+//      rarity and level every item has the same sum (measured: every L10
+//      mythic 1545), so rule 1 fixes which rarity and level each girl gets.
+//   2. Among the items of the same sum, the girls get the distribution with
+//      the most resonance matches for the team. On a tie the earlier girls'
+//      matches count first, then the higher real level (less to level up),
+//      then keeping what a girl already wears.
 //
-// Girls are served in team order, the leader first, each through slots 1 to
-// 6. A girl can get any item in the inventory, or keep what she wears in
-// that slot herself. What other girls wear is not in play -- a player who
-// wants it pressed Unequip All first. An item a girl trades in goes back to
-// the pool for the girls after her. Each item goes to one girl only, so when
-// the mythics run out the later girls get legendaries, epics and so on.
+// Rule 2 is why this is not decided girl by girl: every L10 mythic has the
+// same stats, and a leader who takes the first one that fits her equally
+// well takes the one a later girl would have matched on two axes.
+//
+// "Possibly best" ranks a mythic below level 10 by the stats it will have at
+// level 10, because Level-up gear takes worn mythics there. The game stores
+// an item's base stats (`armor`) and shows base times level, rounded
+// (measured: a legendary with damage 6.5 shows 7 at level 1 and 13 at level
+// 2), so the level 10 value is the base times 10 -- not the shown level 1
+// value times 10, which rounds a mythic's 7.5 damage up to 8 and made an L1
+// mythic look 5 points better than a real L10 one. Every other rarity counts
+// as it is: nothing in the script levels it.
 //
 // Used by: Module/TeamGear.ts
 
@@ -31351,85 +31362,166 @@ const GIRL_GEAR_CAP = 10;
 const GIRL_GEAR_SLOTS = [1, 2, 3, 4, 5, 6];
 /**
  * The item as the chosen mode ranks it. In 'possible' mode a mythic below
- * level 10 gets its stats scaled to level 10; everything else is unchanged.
+ * level 10 gets its level 10 stats; everything else is unchanged.
  */
 function rankedItem(item, mode) {
-    var _a;
     const level = Number(item.level);
     if (mode !== 'possible' || item.rarity !== 'mythic' || !(level > 0) || level >= GIRL_GEAR_CAP)
         return item;
-    const f = GIRL_GEAR_CAP / level;
-    const c = (_a = item.caracs) !== null && _a !== void 0 ? _a : {};
-    const scale = (v) => (v === undefined ? undefined : v * f);
+    const base = item.armor;
+    const at10 = (key) => {
+        var _a;
+        const b = base === null || base === void 0 ? void 0 : base[key];
+        if (typeof b === 'number')
+            return Math.round(b * GIRL_GEAR_CAP);
+        const shown = (_a = item.caracs) === null || _a === void 0 ? void 0 : _a[key];
+        return shown === undefined ? undefined : shown * GIRL_GEAR_CAP / level;
+    };
     return Object.assign(Object.assign({}, item), { caracs: {
-            carac1: scale(c.carac1), carac2: scale(c.carac2), carac3: scale(c.carac3),
-            damage: scale(c.damage), defense: scale(c.defense), ego: scale(c.ego),
+            carac1: at10('carac1'), carac2: at10('carac2'), carac3: at10('carac3'),
+            damage: at10('damage'), defense: at10('defense'), ego: at10('ego'),
         } });
 }
-/** The sort order of HaremGirl's slot optimiser, as a comparison: negative
- *  when `a` ranks before `b`. Ties fall to the inventory id so the plan does
- *  not depend on the order the game sent the list in. */
-function compare(a, b, girl, mode) {
-    const ra = rankedItem(a.item, mode);
-    const rb = rankedItem(b.item, mode);
-    const sa = scoreItem(ra, girl);
-    const sb = scoreItem(rb, girl);
-    if (sb.caracSum !== sa.caracSum)
-        return sb.caracSum - sa.caracSum;
-    if (sb.resonanceMatches !== sa.resonanceMatches)
-        return sb.resonanceMatches - sa.resonanceMatches;
-    const three = (i) => { var _a, _b, _c; return (((_a = i.caracs) === null || _a === void 0 ? void 0 : _a.carac1) || 0) + (((_b = i.caracs) === null || _b === void 0 ? void 0 : _b.carac2) || 0) + (((_c = i.caracs) === null || _c === void 0 ? void 0 : _c.carac3) || 0); };
-    const d = three(rb) - three(ra);
-    if (d !== 0)
-        return d;
-    return sourceOrder(a.source) - sourceOrder(b.source);
-}
-function sourceOrder(s) {
-    return s.kind === 'inventory' ? s.id : Number.MAX_SAFE_INTEGER - s.fromGirl;
-}
 /**
- * The plan for the whole team, girl by girl in team order.
+ * The plan for the whole team.
  *
  * `girls` in team order, leader first, with what they wear now. `inventory`
  * is every item not worn by anyone, all six slots.
  */
 function planTeamGear(girls, inventory, mode) {
-    const pool = new Map();
-    for (const slot of GIRL_GEAR_SLOTS)
-        pool.set(slot, []);
-    for (const item of inventory) {
-        const list = pool.get(Number(item.slot_index));
-        if (!list)
-            continue;
-        list.push({ item, source: { kind: 'inventory', id: Number(item.id_girl_armor) } });
-    }
-    return girls.map((girl, position) => {
-        const slots = GIRL_GEAR_SLOTS.map((slot) => {
-            var _a, _b;
-            const current = (_b = ((_a = girl.armor) !== null && _a !== void 0 ? _a : []).find(a => Number(a.slot_index) === slot)) !== null && _b !== void 0 ? _b : null;
-            const currentScore = current ? scoreItem(rankedItem(current, mode), girl) : null;
-            const candidates = pool.get(slot);
-            let bestIndex = -1;
-            for (let i = 0; i < candidates.length; i++) {
-                if (bestIndex < 0 || compare(candidates[i], candidates[bestIndex], girl, mode) < 0)
-                    bestIndex = i;
-            }
-            const best = bestIndex >= 0 ? candidates[bestIndex] : null;
-            if (!best || (current && !isBetter(rankedItem(best.item, mode), rankedItem(current, mode), girl))) {
-                return { slot, current, chosen: current, change: false, source: null, currentScore, chosenScore: currentScore };
-            }
-            candidates.splice(bestIndex, 1);
-            if (current)
-                candidates.push({ item: current, source: { kind: 'traded', fromGirl: girl.id_girl, slot } });
-            return {
-                slot, current, chosen: best.item, change: true, source: best.source,
-                currentScore, chosenScore: scoreItem(rankedItem(best.item, mode), girl),
-            };
+    const plans = girls.map((g, position) => ({ position, id_girl: g.id_girl, name: g.name, slots: [] }));
+    for (const slot of GIRL_GEAR_SLOTS) {
+        const worn = girls.map(g => { var _a, _b; return (_b = ((_a = g.armor) !== null && _a !== void 0 ? _a : []).find(a => Number(a.slot_index) === slot)) !== null && _b !== void 0 ? _b : null; });
+        const chosen = planSlot(slot, girls, worn, inventory, mode);
+        girls.forEach((girl, i) => {
+            const current = worn[i];
+            const pick = chosen[i];
+            const keeps = pick !== null && pick.source.kind === 'worn' && pick.source.fromGirl === girl.id_girl;
+            const change = keeps ? false : (pick !== null || current !== null);
+            plans[i].slots.push({
+                slot,
+                current,
+                chosen: pick ? pick.item : null,
+                change,
+                source: change && pick ? pick.source : null,
+                currentScore: current ? scoreItem(rankedItem(current, mode), girl) : null,
+                chosenScore: pick ? scoreItem(rankedItem(pick.item, mode), girl) : null,
+            });
         });
-        return { position, id_girl: girl.id_girl, name: girl.name, slots };
-    });
+    }
+    return plans;
 }
-/** How many slots the plan changes. */
+/** The item each girl gets in one slot, by the two rules in the file
+ *  header; null where the pool has run out. */
+function planSlot(slot, girls, worn, inventory, mode) {
+    const pool = [];
+    const sumOf = (item) => {
+        var _a;
+        const c = (_a = rankedItem(item, mode).caracs) !== null && _a !== void 0 ? _a : {};
+        return (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
+    };
+    for (const item of inventory) {
+        if (Number(item.slot_index) !== slot)
+            continue;
+        pool.push({ item, source: { kind: 'inventory', id: Number(item.id_girl_armor) }, sum: sumOf(item), order: 0 });
+    }
+    worn.forEach((item, i) => {
+        if (!item)
+            return;
+        pool.push({
+            item, sum: sumOf(item), order: 0,
+            source: { kind: 'worn', fromGirl: girls[i].id_girl, slot, idEquipped: Number(item.id_girl_armor_equipped) },
+        });
+    });
+    // Rule 1: the i-th girl gets the i-th highest stat sum. Stable order for
+    // the ties so the plan does not depend on the order the game sent.
+    pool.sort((a, b) => b.sum - a.sum || sourceKey(a.source) - sourceKey(b.source));
+    pool.forEach((p, i) => { p.order = i; });
+    const result = girls.map(() => null);
+    const served = Math.min(girls.length, pool.length);
+    let i = 0;
+    while (i < served) {
+        // One tier: the girls whose target sum is the same.
+        const sum = pool[i].sum;
+        let j = i;
+        while (j < served && pool[j].sum === sum)
+            j++;
+        const tierGirls = Array.from({ length: j - i }, (_, k) => i + k);
+        const tierItems = pool.filter(p => p.sum === sum);
+        const picks = assignTier(tierGirls, tierItems, (g, p) => weight(girls[g], g, p, mode));
+        tierGirls.forEach((g, k) => { result[g] = tierItems[picks[k]]; });
+        i = j;
+    }
+    return result;
+}
+function sourceKey(s) {
+    return s.kind === 'inventory' ? s.id : Number.MAX_SAFE_INTEGER - s.idEquipped;
+}
+/**
+ * Rule 2 as one additive number, so the best assignment is the one with the
+ * largest sum. The parts, from most to least important: resonance matches
+ * (up to 3 per girl, 21 per team); the same matches weighted by position
+ * with base 4 -- more than a later girl can make up, so the earlier girls
+ * win a tie; the real level; keeping the own item. Each part's team total
+ * stays below the step of the part above it, so they never mix.
+ */
+function weight(girl, position, p, mode) {
+    const res = scoreItem(rankedItem(p.item, mode), girl).resonanceMatches;
+    const byPosition = res * Math.pow(4, Math.max(0, 6 - position));
+    const level = Number(p.item.level) || 0;
+    const keeps = p.source.kind === 'worn' && p.source.fromGirl === girl.id_girl ? 1 : 0;
+    return res * 1e9 + byPosition * 1e4 + level * 10 + keeps;
+}
+/**
+ * Best assignment of `girls` (at most 7) to distinct `items` by `w`, as a
+ * dynamic program over the items with the set of served girls as state:
+ * items x 2^girls x girls steps, a few hundred thousand for a full tier.
+ * Returns, per girl, the index of her item. There are always at least as
+ * many items as girls in a tier.
+ */
+function assignTier(girls, items, w) {
+    const k = girls.length;
+    const full = (1 << k) - 1;
+    const states = 1 << k;
+    const n = items.length;
+    const dp = new Float64Array((n + 1) * states).fill(-Infinity);
+    const from = new Int8Array((n + 1) * states).fill(-2);
+    dp[0] = 0;
+    const weights = girls.map(g => items.map(p => w(g, p)));
+    for (let i = 0; i < n; i++) {
+        for (let mask = 0; mask < states; mask++) {
+            const here = dp[i * states + mask];
+            if (here === -Infinity)
+                continue;
+            const skip = (i + 1) * states + mask;
+            if (here > dp[skip]) {
+                dp[skip] = here;
+                from[skip] = -1;
+            }
+            for (let g = 0; g < k; g++) {
+                if (mask & (1 << g))
+                    continue;
+                const next = (i + 1) * states + (mask | (1 << g));
+                const v = here + weights[g][i];
+                if (v > dp[next]) {
+                    dp[next] = v;
+                    from[next] = g;
+                }
+            }
+        }
+    }
+    const picks = new Array(k).fill(-1);
+    let mask = full;
+    for (let i = n; i > 0; i--) {
+        const g = from[i * states + mask];
+        if (g >= 0) {
+            picks[g] = i - 1;
+            mask &= ~(1 << g);
+        }
+    }
+    return picks;
+}
+/** How many girl slots the plan changes. */
 function countChanges(plan) {
     return plan.reduce((n, g) => n + g.slots.filter(s => s.change).length, 0);
 }
@@ -31445,13 +31537,13 @@ function countChanges(plan) {
 // ({items, items_count}). The list does not depend on id_girl -- two girls
 // got the same items in the same order -- so it is read once per slot.
 //
-// Equipping is girl_equipment_equip, one call per changed slot, in plan
-// order. Every call hands out new ids: the item put on gets a new
-// id_girl_armor_equipped, the one taken off a new id_girl_armor (measured).
-// An item one girl trades in and a later girl gets is therefore put on with
-// the id from the answer to the trade, not the one it had in the plan. After
-// the run the page reloads, so the hexagons -- and Level-up gear, which reads
-// the worn ids from them -- see the new state.
+// Equipping is girl_equipment_equip, one call per changed slot. Every call
+// hands out new ids: the item put on gets a new id_girl_armor_equipped, the
+// one taken off a new id_girl_armor (measured). An item that moves from one
+// team girl to another is therefore put on with the id from the answer that
+// freed it, not the one it had in the plan (see execute). After the run the
+// page reloads, so the hexagons -- and Level-up gear, which reads the worn
+// ids from them -- see the new state.
 //
 // Used by: Module/TeamModule.ts
 var TeamGear_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -31556,9 +31648,10 @@ class TeamGear {
     }
     static showPlan(mode, plan, changes) {
         const t = (key) => TeamGear.text(key);
+        const names = new Map(plan.map(g => [g.id_girl, `${g.position + 1}. ${g.name}`]));
         const rows = plan.map(g => {
             const head = `<tr class="tgGirl"><td colspan="5">${g.position + 1}. ${TeamGear_esc(g.name)}</td></tr>`;
-            return head + g.slots.map(s => TeamGear.slotRow(s)).join('');
+            return head + g.slots.map(s => TeamGear.slotRow(s, names)).join('');
         }).join('');
         const body = changes === 0
             ? `<p>${t('HHTeamGearNoChange')}</p>`
@@ -31580,19 +31673,32 @@ class TeamGear {
             void TeamGear.execute(plan, changes);
         });
     }
-    static slotRow(s) {
+    static slotRow(s, names) {
+        var _a, _b;
         const t = (key) => TeamGear.text(key);
         const score = (sc) => sc ? `${Math.round(sc.caracSum)} &middot; ${sc.resonanceMatches}` : '';
         const now = s.current ? TeamGear_esc(TeamGear.describe(s.current)) : '&ndash;';
-        const next = s.change ? `<b>${TeamGear_esc(TeamGear.describe(s.chosen))}</b>` : '=';
+        let next = '=';
+        if (s.change) {
+            const from = ((_a = s.source) === null || _a === void 0 ? void 0 : _a.kind) === 'worn' ? ` <span class="tgFrom">(${TeamGear_esc((_b = names.get(s.source.fromGirl)) !== null && _b !== void 0 ? _b : '')})</span>` : '';
+            next = s.chosen ? `<b>${TeamGear_esc(TeamGear.describe(s.chosen))}</b>${from}` : '<b>&ndash;</b>';
+        }
         return `<tr${s.change ? ' class="tgChange"' : ''}><td>${s.slot} ${t(TeamGear_SLOT_KEYS[s.slot])}</td>`
             + `<td>${now}</td><td class="num">${score(s.currentScore)}</td>`
             + `<td>${next}</td><td class="num">${s.change ? score(s.chosenScore) : ''}</td></tr>`;
     }
     /**
-     * Put the plan on, one call per changed slot, in plan order -- the order
-     * the trades in the plan depend on. Stops at the first call the game
-     * refuses; what was put on until then stays on.
+     * Put the plan on.
+     *
+     * An item from the inventory goes on at once. An item a team girl wears
+     * can only go on once she has let go of it: when she puts on her own new
+     * item the game hands the old one back with a new inventory id
+     * (unequipped_armor), and that id is what the next girl equips. When no
+     * change can go ahead -- two girls swapping, or a girl whose item goes to
+     * an earlier girl while nothing is left for her -- the item is taken off
+     * with girl_equipment_unequip, which also answers with its new id
+     * (measured). Stops at the first call the game refuses; what was changed
+     * until then stays changed.
      */
     static execute(plan, changes) {
         return TeamGear_awaiter(this, void 0, void 0, function* () {
@@ -31601,23 +31707,46 @@ class TeamGear {
                 return;
             }
             TeamGear.busy = true;
-            let done = 0;
+            let equipped = 0;
+            let takenOff = 0;
             let stopped = null;
+            const key = (girl, slot) => `${girl}:${slot}`;
+            const nameOf = new Map(plan.map(g => [g.id_girl, g.name]));
+            const status = (text) => $('#HHTeamGearStatus').text(text);
+            const idOf = (off) => {
+                const item = Array.isArray(off) ? off[0] : off;
+                return item && item.id_girl_armor !== undefined ? Number(item.id_girl_armor) : undefined;
+            };
             try {
                 yield TeamGear.withLoopHeld(() => TeamGear_awaiter(this, void 0, void 0, function* () {
-                    // Inventory id of what each girl traded in, by girl and slot.
-                    const traded = new Map();
+                    var _a, _b;
+                    // What each girl still wears from before the run, and the
+                    // inventory id of what she has let go of.
+                    const stillWorn = new Map();
+                    const released = new Map();
                     for (const g of plan) {
                         for (const s of g.slots) {
-                            if (!s.change || !s.source)
-                                continue;
-                            const id = s.source.kind === 'inventory' ? s.source.id
-                                : traded.get(`${s.source.fromGirl}:${s.source.slot}`);
-                            if (id === undefined || !Number.isFinite(id)) {
-                                stopped = `${g.name}, slot ${s.slot}: the item traded in earlier has no inventory id`;
-                                return;
+                            if (((_a = s.current) === null || _a === void 0 ? void 0 : _a.id_girl_armor_equipped) !== undefined) {
+                                stillWorn.set(key(g.id_girl, s.slot), Number(s.current.id_girl_armor_equipped));
                             }
-                            $('#HHTeamGearStatus').text(`${done + 1}/${changes}: ${g.name}, ${getTextForUI(TeamGear_SLOT_KEYS[s.slot], 'elementText')}`);
+                        }
+                    }
+                    const pending = [];
+                    for (const g of plan)
+                        for (const s of g.slots)
+                            if (s.change && s.chosen && s.source)
+                                pending.push({ g, s });
+                    while (pending.length > 0) {
+                        let progressed = false;
+                        for (let i = 0; i < pending.length;) {
+                            const { g, s } = pending[i];
+                            const src = s.source;
+                            const id = src.kind === 'inventory' ? src.id : released.get(key(src.fromGirl, s.slot));
+                            if (id === undefined) {
+                                i++;
+                                continue;
+                            }
+                            status(`${equipped + 1}/${pending.length + equipped}: ${g.name}, ${getTextForUI(TeamGear_SLOT_KEYS[s.slot], 'elementText')}`);
                             const answer = yield TeamGear.call({
                                 action: 'girl_equipment_equip', id_girl: g.id_girl, id_girl_armor: id,
                                 sort_by: 'rarity', sorting_order: 'desc',
@@ -31626,14 +31755,43 @@ class TeamGear {
                                 stopped = `${g.name}, slot ${s.slot}: the game refused the item`;
                                 return;
                             }
-                            const off = Array.isArray(answer.unequipped_armor) ? answer.unequipped_armor[0] : answer.unequipped_armor;
-                            if (off && off.id_girl_armor !== undefined)
-                                traded.set(`${g.id_girl}:${s.slot}`, Number(off.id_girl_armor));
-                            done++;
+                            const mine = key(g.id_girl, s.slot);
+                            const offId = idOf(answer.unequipped_armor);
+                            if (stillWorn.has(mine) && offId !== undefined) {
+                                released.set(mine, offId);
+                                stillWorn.delete(mine);
+                            }
+                            pending.splice(i, 1);
+                            equipped++;
+                            progressed = true;
                             logHHAuto(`Team gear: ${g.name}, slot ${s.slot} now wears ${TeamGear.describe(s.chosen)}.`);
-                            if (done < changes)
-                                yield TimeHelper.sleep(randomInterval(500, 900));
+                            yield TimeHelper.sleep(randomInterval(500, 900));
                         }
+                        if (progressed || pending.length === 0)
+                            continue;
+                        // Nothing can go ahead: take off the first item a waiting
+                        // girl needs.
+                        const src = pending.map(p => p.s.source).find(x => x.kind === 'worn');
+                        const owner = src ? key(src.fromGirl, src.slot) : '';
+                        const idEquipped = stillWorn.get(owner);
+                        if (!src || idEquipped === undefined) {
+                            stopped = 'a planned item is neither in the inventory nor still worn';
+                            return;
+                        }
+                        const answer = yield TeamGear.call({
+                            action: 'girl_equipment_unequip', id_girl_armor_equipped: idEquipped,
+                            sort_by: 'rarity', sorting_order: 'desc',
+                        });
+                        const offId = answer && answer.success !== false ? idOf(answer.unequipped_armor) : undefined;
+                        if (offId === undefined) {
+                            stopped = `slot ${src.slot}: the game did not take the item off`;
+                            return;
+                        }
+                        released.set(owner, offId);
+                        stillWorn.delete(owner);
+                        takenOff++;
+                        logHHAuto(`Team gear: took slot ${src.slot} off ${(_b = nameOf.get(src.fromGirl)) !== null && _b !== void 0 ? _b : src.fromGirl} to hand it on.`);
+                        yield TimeHelper.sleep(randomInterval(500, 900));
                     }
                 }));
             }
@@ -31644,12 +31802,12 @@ class TeamGear {
                 TeamGear.busy = false;
             }
             if (stopped !== null) {
-                logHHAuto(`Team gear: stopped after ${done} of ${changes} change(s) -- ${stopped}.`);
-                $('#HHTeamGearStatus').text(`${getTextForUI('HHTeamGearStopped', 'elementText')} ${done}/${changes}`);
+                logHHAuto(`Team gear: stopped after ${equipped} item(s) put on, ${takenOff} taken off -- ${stopped}.`);
+                status(`${getTextForUI('HHTeamGearStopped', 'elementText')} ${equipped}/${changes}`);
                 return;
             }
-            logHHAuto(`Team gear: ${done} change(s) put on; reloading.`);
-            $('#HHTeamGearStatus').text(`${getTextForUI('HHTeamGearDone', 'elementText')} ${done}/${changes}`);
+            logHHAuto(`Team gear: ${equipped} item(s) put on, ${takenOff} taken off; reloading.`);
+            status(`${getTextForUI('HHTeamGearDone', 'elementText')} ${equipped}`);
             safeReload(randomInterval(1200, 1800));
         });
     }
@@ -31719,6 +31877,7 @@ class TeamGear {
                 + '#HHTeamGear td.num,#HHTeamGear th.num{text-align:right;font-variant-numeric:tabular-nums;}'
                 + '#HHTeamGear tr.tgGirl td{font-weight:bold;background:rgba(0,0,0,0.06);}'
                 + '#HHTeamGear tr.tgChange td{background:rgba(27,110,42,0.08);}'
+                + '#HHTeamGear .tgFrom{color:#555;font-weight:normal;}'
                 + '#HHTeamGear .tgDisabled{opacity:0.45;pointer-events:none;}');
         }
         fillHHPopUp('HHTeamGearPopup', title, `<div id="HHTeamGear">${html}</div>`);

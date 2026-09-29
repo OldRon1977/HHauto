@@ -13,16 +13,21 @@ Older entries below were migrated 1:1 from `README.md`.
   below Stuff Team) with four buttons for the girls in the hexagons:
   - **Unequip All**, the same as the button above it, for re-equipping a
     team without building a new one.
-  - **Best gear**: plans every slot of every team girl by the current
-    stats (the ranking Stuff Team used: stat sum, then resonance with the
-    girl), leader first. A girl can get any item in the inventory or keep
-    her own; an item she trades in goes to the girls after her; each item
-    goes to one girl only, so when the mythics run out the later girls get
-    legendaries, epics and so on. Items worn by girls outside the team are
-    left alone; press Unequip All first to use them. The plan is shown slot
-    by slot, now and new, and nothing is equipped before you press Equip.
+  - **Best gear**: plans the whole team at once, slot by slot, from the
+    inventory and what the team girls wear, by the current stats (the stat
+    sum Stuff Team ranked by). The strongest items go down the team in
+    order: the first girls get the L10 mythics, as many as there are, and
+    when they run out the later girls get legendaries, epics and so on.
+    Among items of equal stats the team gets the distribution with the most
+    resonance, so the leader no longer takes the mythic a later girl would
+    have matched on more axes. Items can move between team girls; items
+    worn by girls outside the team are left alone (press Unequip All first
+    to use them). The plan is shown slot by slot, now and new, and nothing
+    is equipped before you press Equip.
   - **Possibly best gear**: the same, but mythics count with their stats at
-    level 10. Every other rarity counts as it is.
+    level 10, computed from the item's base stats. Every other rarity counts
+    as it is. Among equal mythics the higher real level wins, so a finished
+    mythic is not traded for a low one that fits no better.
   - **Level-up gear**: levels the worn mythics to level 10. Girls go in
     team order, the leader first; for each girl the item with the highest
     level goes first. Every item except mythics can be material, picked by

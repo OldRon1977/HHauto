@@ -8,13 +8,13 @@
 // ({items, items_count}). The list does not depend on id_girl -- two girls
 // got the same items in the same order -- so it is read once per slot.
 //
-// Equipping is girl_equipment_equip, one call per changed slot, in plan
-// order. Every call hands out new ids: the item put on gets a new
-// id_girl_armor_equipped, the one taken off a new id_girl_armor (measured).
-// An item one girl trades in and a later girl gets is therefore put on with
-// the id from the answer to the trade, not the one it had in the plan. After
-// the run the page reloads, so the hexagons -- and Level-up gear, which reads
-// the worn ids from them -- see the new state.
+// Equipping is girl_equipment_equip, one call per changed slot. Every call
+// hands out new ids: the item put on gets a new id_girl_armor_equipped, the
+// one taken off a new id_girl_armor (measured). An item that moves from one
+// team girl to another is therefore put on with the id from the answer that
+// freed it, not the one it had in the plan (see execute). After the run the
+// page reloads, so the hexagons -- and Level-up gear, which reads the worn
+// ids from them -- see the new state.
 //
 // Used by: Module/TeamModule.ts
 
@@ -26,6 +26,7 @@ import { kickAutoLoop } from '../Service/AutoLoopKick';
 import { safeReload } from '../Service/PageNavigationService';
 import {
     GIRL_GEAR_SLOTS,
+    GearSource,
     GirlGearItem,
     GirlPlan,
     SlotPlan,
@@ -132,9 +133,10 @@ export class TeamGear {
 
     private static showPlan(mode: TeamGearMode, plan: GirlPlan[], changes: number): void {
         const t = (key: string) => TeamGear.text(key);
+        const names = new Map(plan.map(g => [g.id_girl, `${g.position + 1}. ${g.name}`] as [number, string]));
         const rows = plan.map(g => {
             const head = `<tr class="tgGirl"><td colspan="5">${g.position + 1}. ${esc(g.name)}</td></tr>`;
-            return head + g.slots.map(s => TeamGear.slotRow(s)).join('');
+            return head + g.slots.map(s => TeamGear.slotRow(s, names)).join('');
         }).join('');
         const body = changes === 0
             ? `<p>${t('HHTeamGearNoChange')}</p>`
@@ -156,20 +158,32 @@ export class TeamGear {
         });
     }
 
-    private static slotRow(s: SlotPlan): string {
+    private static slotRow(s: SlotPlan, names: Map<number, string>): string {
         const t = (key: string) => TeamGear.text(key);
         const score = (sc: SlotPlan['currentScore']) => sc ? `${Math.round(sc.caracSum)} &middot; ${sc.resonanceMatches}` : '';
         const now = s.current ? esc(TeamGear.describe(s.current)) : '&ndash;';
-        const next = s.change ? `<b>${esc(TeamGear.describe(s.chosen))}</b>` : '=';
+        let next = '=';
+        if (s.change) {
+            const from = s.source?.kind === 'worn' ? ` <span class="tgFrom">(${esc(names.get(s.source.fromGirl) ?? '')})</span>` : '';
+            next = s.chosen ? `<b>${esc(TeamGear.describe(s.chosen))}</b>${from}` : '<b>&ndash;</b>';
+        }
         return `<tr${s.change ? ' class="tgChange"' : ''}><td>${s.slot} ${t(SLOT_KEYS[s.slot])}</td>`
             + `<td>${now}</td><td class="num">${score(s.currentScore)}</td>`
             + `<td>${next}</td><td class="num">${s.change ? score(s.chosenScore) : ''}</td></tr>`;
     }
 
     /**
-     * Put the plan on, one call per changed slot, in plan order -- the order
-     * the trades in the plan depend on. Stops at the first call the game
-     * refuses; what was put on until then stays on.
+     * Put the plan on.
+     *
+     * An item from the inventory goes on at once. An item a team girl wears
+     * can only go on once she has let go of it: when she puts on her own new
+     * item the game hands the old one back with a new inventory id
+     * (unequipped_armor), and that id is what the next girl equips. When no
+     * change can go ahead -- two girls swapping, or a girl whose item goes to
+     * an earlier girl while nothing is left for her -- the item is taken off
+     * with girl_equipment_unequip, which also answers with its new id
+     * (measured). Stops at the first call the game refuses; what was changed
+     * until then stays changed.
      */
     private static async execute(plan: GirlPlan[], changes: number): Promise<void> {
         if (!getHHAjax()) {
@@ -177,22 +191,40 @@ export class TeamGear {
             return;
         }
         TeamGear.busy = true;
-        let done = 0;
+        let equipped = 0;
+        let takenOff = 0;
         let stopped: string | null = null;
+        const key = (girl: number, slot: number) => `${girl}:${slot}`;
+        const nameOf = new Map(plan.map(g => [g.id_girl, g.name] as [number, string]));
+        const status = (text: string) => $('#HHTeamGearStatus').text(text);
+        const idOf = (off: GirlGearItem | GirlGearItem[] | null | undefined) => {
+            const item = Array.isArray(off) ? off[0] : off;
+            return item && item.id_girl_armor !== undefined ? Number(item.id_girl_armor) : undefined;
+        };
         try {
             await TeamGear.withLoopHeld(async () => {
-                // Inventory id of what each girl traded in, by girl and slot.
-                const traded = new Map<string, number>();
+                // What each girl still wears from before the run, and the
+                // inventory id of what she has let go of.
+                const stillWorn = new Map<string, number>();
+                const released = new Map<string, number>();
                 for (const g of plan) {
                     for (const s of g.slots) {
-                        if (!s.change || !s.source) continue;
-                        const id = s.source.kind === 'inventory' ? s.source.id
-                            : traded.get(`${s.source.fromGirl}:${s.source.slot}`);
-                        if (id === undefined || !Number.isFinite(id)) {
-                            stopped = `${g.name}, slot ${s.slot}: the item traded in earlier has no inventory id`;
-                            return;
+                        if (s.current?.id_girl_armor_equipped !== undefined) {
+                            stillWorn.set(key(g.id_girl, s.slot), Number(s.current.id_girl_armor_equipped));
                         }
-                        $('#HHTeamGearStatus').text(`${done + 1}/${changes}: ${g.name}, ${getTextForUI(SLOT_KEYS[s.slot], 'elementText')}`);
+                    }
+                }
+                const pending: { g: GirlPlan; s: SlotPlan }[] = [];
+                for (const g of plan) for (const s of g.slots) if (s.change && s.chosen && s.source) pending.push({ g, s });
+
+                while (pending.length > 0) {
+                    let progressed = false;
+                    for (let i = 0; i < pending.length;) {
+                        const { g, s } = pending[i];
+                        const src = s.source!;
+                        const id = src.kind === 'inventory' ? src.id : released.get(key(src.fromGirl, s.slot));
+                        if (id === undefined) { i++; continue; }
+                        status(`${equipped + 1}/${pending.length + equipped}: ${g.name}, ${getTextForUI(SLOT_KEYS[s.slot], 'elementText')}`);
                         const answer = await TeamGear.call<EquipAnswer>({
                             action: 'girl_equipment_equip', id_girl: g.id_girl, id_girl_armor: id,
                             sort_by: 'rarity', sorting_order: 'desc',
@@ -201,12 +233,43 @@ export class TeamGear {
                             stopped = `${g.name}, slot ${s.slot}: the game refused the item`;
                             return;
                         }
-                        const off = Array.isArray(answer.unequipped_armor) ? answer.unequipped_armor[0] : answer.unequipped_armor;
-                        if (off && off.id_girl_armor !== undefined) traded.set(`${g.id_girl}:${s.slot}`, Number(off.id_girl_armor));
-                        done++;
+                        const mine = key(g.id_girl, s.slot);
+                        const offId = idOf(answer.unequipped_armor);
+                        if (stillWorn.has(mine) && offId !== undefined) {
+                            released.set(mine, offId);
+                            stillWorn.delete(mine);
+                        }
+                        pending.splice(i, 1);
+                        equipped++;
+                        progressed = true;
                         logHHAuto(`Team gear: ${g.name}, slot ${s.slot} now wears ${TeamGear.describe(s.chosen)}.`);
-                        if (done < changes) await TimeHelper.sleep(randomInterval(500, 900));
+                        await TimeHelper.sleep(randomInterval(500, 900));
                     }
+                    if (progressed || pending.length === 0) continue;
+
+                    // Nothing can go ahead: take off the first item a waiting
+                    // girl needs.
+                    const src = pending.map(p => p.s.source!).find(x => x.kind === 'worn') as Extract<GearSource, { kind: 'worn' }> | undefined;
+                    const owner = src ? key(src.fromGirl, src.slot) : '';
+                    const idEquipped = stillWorn.get(owner);
+                    if (!src || idEquipped === undefined) {
+                        stopped = 'a planned item is neither in the inventory nor still worn';
+                        return;
+                    }
+                    const answer = await TeamGear.call<EquipAnswer>({
+                        action: 'girl_equipment_unequip', id_girl_armor_equipped: idEquipped,
+                        sort_by: 'rarity', sorting_order: 'desc',
+                    });
+                    const offId = answer && answer.success !== false ? idOf(answer.unequipped_armor) : undefined;
+                    if (offId === undefined) {
+                        stopped = `slot ${src.slot}: the game did not take the item off`;
+                        return;
+                    }
+                    released.set(owner, offId);
+                    stillWorn.delete(owner);
+                    takenOff++;
+                    logHHAuto(`Team gear: took slot ${src.slot} off ${nameOf.get(src.fromGirl) ?? src.fromGirl} to hand it on.`);
+                    await TimeHelper.sleep(randomInterval(500, 900));
                 }
             });
         } catch (err) {
@@ -215,12 +278,12 @@ export class TeamGear {
             TeamGear.busy = false;
         }
         if (stopped !== null) {
-            logHHAuto(`Team gear: stopped after ${done} of ${changes} change(s) -- ${stopped}.`);
-            $('#HHTeamGearStatus').text(`${getTextForUI('HHTeamGearStopped', 'elementText')} ${done}/${changes}`);
+            logHHAuto(`Team gear: stopped after ${equipped} item(s) put on, ${takenOff} taken off -- ${stopped}.`);
+            status(`${getTextForUI('HHTeamGearStopped', 'elementText')} ${equipped}/${changes}`);
             return;
         }
-        logHHAuto(`Team gear: ${done} change(s) put on; reloading.`);
-        $('#HHTeamGearStatus').text(`${getTextForUI('HHTeamGearDone', 'elementText')} ${done}/${changes}`);
+        logHHAuto(`Team gear: ${equipped} item(s) put on, ${takenOff} taken off; reloading.`);
+        status(`${getTextForUI('HHTeamGearDone', 'elementText')} ${equipped}`);
         safeReload(randomInterval(1200, 1800));
     }
 
@@ -286,6 +349,7 @@ export class TeamGear {
                 + '#HHTeamGear td.num,#HHTeamGear th.num{text-align:right;font-variant-numeric:tabular-nums;}'
                 + '#HHTeamGear tr.tgGirl td{font-weight:bold;background:rgba(0,0,0,0.06);}'
                 + '#HHTeamGear tr.tgChange td{background:rgba(27,110,42,0.08);}'
+                + '#HHTeamGear .tgFrom{color:#555;font-weight:normal;}'
                 + '#HHTeamGear .tgDisabled{opacity:0.45;pointer-events:none;}');
         }
         fillHHPopUp('HHTeamGearPopup', title, `<div id="HHTeamGear">${html}</div>`);
