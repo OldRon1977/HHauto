@@ -30820,11 +30820,11 @@ function autoLoopHolder() {
 // it acts on: the gear on the team, and whether the hexagons match the saved
 // team (Stuff Team skills the hexagon girls, the league fights the saved
 // team).
-// Below them the Team gear block, for the hexagon girls: Unequip All once
-// more (for re-equipping a team without building a new one), Best gear and
+// Below them the Team gear block, for the hexagon girls: Best gear and
 // Possibly best gear (each shows its plan before equipping), and Level-up
 // gear, which levels the worn mythics. None of them depends on the saved
-// team, so they ask nothing.
+// team, so they ask nothing. Unequip All is not repeated there -- it stands
+// right above, in the same popup.
 //
 // The actions that live in TeamModule are handed in, so this file does not
 // import TeamModule (which opens it).
@@ -30941,7 +30941,6 @@ class TeamSelectionPopup {
                 </div>
                 <div class="tsGear">
                     <div class="tsGearHead">${getTextForUI('HHTeamGear', 'elementText')}</div>
-                    <label class="myButton" id="hhTsGearUnequip">${getTextForUI('UnequipAll', 'elementText')}</label>
                     <label class="myButton" id="hhTsBestGear" title="${getTextForUI('HHTeamGearBest', 'tooltip')}">${getTextForUI('HHTeamGearBest', 'elementText')}</label>
                     <label class="myButton" id="hhTsPossibleGear" title="${getTextForUI('HHTeamGearPossible', 'tooltip')}">${getTextForUI('HHTeamGearPossible', 'elementText')}</label>
                     <label class="myButton" id="hhTsLevelUpGear" title="${getTextForUI('HHGirlGearLevelUp', 'tooltip')}">${getTextForUI('HHGirlGearLevelUp', 'elementText')}</label>
@@ -30965,7 +30964,6 @@ class TeamSelectionPopup {
                 return;
             a.stuffTeam();
         });
-        $('#hhTsGearUnequip').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.unequipAll(); });
         $('#hhTsBestGear').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.bestGear(); });
         $('#hhTsPossibleGear').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.possibleGear(); });
         $('#hhTsLevelUpGear').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.levelUpGear(); });

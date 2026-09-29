@@ -10,9 +10,8 @@ Older entries below were migrated 1:1 from `README.md`.
 ### v8.16.0 - Team gear
 
 - **Team gear** (Team optimization popup on the edit-team page, a new block
-  below Stuff Team) with four buttons for the girls in the hexagons:
-  - **Unequip All**, the same as the button above it, for re-equipping a
-    team without building a new one.
+  below Unequip All and Stuff Team) with three buttons for the girls in the
+  hexagons:
   - **Best gear**: plans the whole team at once, slot by slot, from the
     inventory and what the team girls wear, by the current stats (the stat
     sum Stuff Team ranked by). The strongest items go down the team in
