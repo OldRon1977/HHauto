@@ -69,9 +69,11 @@ export function girlUpgradePageUrl(idGirlArmorEquipped: number): string {
 /** One worn piece of girl equipment, as `availableGirls[].armor` and
  *  `teams_data[].girls[].armor` carry it. */
 export interface RawGirlArmor {
-    id_girl_armor_equipped: number;
-    slot_index: number;
-    level: number;
+    // The game sends some of these as strings; everything reading them
+    // goes through Number().
+    id_girl_armor_equipped?: number | string;
+    slot_index: number | string;
+    level: number | string;
     rarity: string;
     skin?: { name?: string };
 }

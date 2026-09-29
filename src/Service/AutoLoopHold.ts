@@ -15,7 +15,8 @@
 // This file imports nothing, for the reason AutoLoopKick.ts gives: a leaf
 // cannot join an import cycle.
 //
-// Used by: AutoLoop.ts (reads it), TeamSelectionPopup.ts (holds it)
+// Used by: AutoLoop.ts (reads it), TeamSelectionPopup.ts and TeamGear.ts
+// (hold it)
 
 let holder: string | null = null;
 

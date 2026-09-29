@@ -32,8 +32,11 @@
 // The right-hand column holds Unequip All and Stuff Team, each with the state
 // it acts on: the gear on the team, and whether the hexagons match the saved
 // team (Stuff Team equips the hexagons, the league fights the saved team).
-// Below them Level-up gear, which levels the hexagon girls' worn mythics;
-// leveling does not depend on the saved team, so it asks nothing.
+// Below them the Team gear block, for the hexagon girls: Unequip All once
+// more (for re-equipping a team without building a new one), Best gear and
+// Possibly best gear (each shows its plan before equipping), and Level-up
+// gear, which levels the worn mythics. None of them depends on the saved
+// team, so they ask nothing.
 //
 // The actions that live in TeamModule are handed in, so this file does not
 // import TeamModule (which opens it).
@@ -71,6 +74,9 @@ export interface TeamSelectionActions {
     saveTeam: (ids: number[], onDone: (ok: boolean, message: string) => void) => void;
     unequipAll: () => void;
     stuffTeam: () => void;
+    /** Plan and equip the hexagon girls' gear (TeamGear.preview). */
+    bestGear: () => void;
+    possibleGear: () => void;
     /** Level the hexagon girls' worn mythics (EquipmentGear.previewGirlUpgrade). */
     levelUpGear: () => void;
 }
@@ -161,6 +167,8 @@ export class TeamSelectionPopup {
             + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #999;padding-left:10px;}'
             + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:calc(13px + 1pt);}'
             + '#hhTeamSel .tsState{font-size:calc(11px + 1pt);color:#555;margin-top:3px;}'
+            + '#hhTeamSel .tsGear{display:flex;flex-direction:column;gap:6px;border-top:1px solid #999;padding-top:8px;}'
+            + '#hhTeamSel .tsGearHead{font-weight:bold;}'
             + '#hhTeamSel .myButton.tsDisabled{opacity:0.45;pointer-events:none;}'
             + '#hhTeamSel .tsInfo{display:inline-block;width:1.25em;height:1.25em;line-height:1.25em;border-radius:50%;'
             + 'background:#476e9e;color:#fff;text-align:center;font-weight:bold;font-style:italic;cursor:pointer;user-select:none;}'
@@ -201,7 +209,11 @@ export class TeamSelectionPopup {
                     <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
                     <div class="tsState" id="hhTsSavedState"></div>
                 </div>
-                <div>
+                <div class="tsGear">
+                    <div class="tsGearHead">${getTextForUI('HHTeamGear', 'elementText')}</div>
+                    <label class="myButton" id="hhTsGearUnequip">${getTextForUI('UnequipAll', 'elementText')}</label>
+                    <label class="myButton" id="hhTsBestGear" title="${getTextForUI('HHTeamGearBest', 'tooltip')}">${getTextForUI('HHTeamGearBest', 'elementText')}</label>
+                    <label class="myButton" id="hhTsPossibleGear" title="${getTextForUI('HHTeamGearPossible', 'tooltip')}">${getTextForUI('HHTeamGearPossible', 'elementText')}</label>
                     <label class="myButton" id="hhTsLevelUpGear" title="${getTextForUI('HHGirlGearLevelUp', 'tooltip')}">${getTextForUI('HHGirlGearLevelUp', 'elementText')}</label>
                 </div>
             </div>
@@ -221,6 +233,9 @@ export class TeamSelectionPopup {
             if (!TeamSelectionPopup.hexagonsMatchSaved() && !window.confirm(getTextForUI('teamSelStuffUnsaved', 'elementText'))) return;
             a.stuffTeam();
         });
+        $('#hhTsGearUnequip').on('click', () => TeamSelectionPopup.actions?.unequipAll());
+        $('#hhTsBestGear').on('click', () => TeamSelectionPopup.actions?.bestGear());
+        $('#hhTsPossibleGear').on('click', () => TeamSelectionPopup.actions?.possibleGear());
         $('#hhTsLevelUpGear').on('click', () => TeamSelectionPopup.actions?.levelUpGear());
     }
 

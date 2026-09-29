@@ -586,7 +586,7 @@ HHAuto_ToolTips.en['ChangeTeamButton'] = { version: "5.6.24", elementText: "Curr
 HHAuto_ToolTips.en['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Possible Best", tooltip: "Get list of top 16 girls for your team if they are Max Lv & Aff" };
 HHAuto_ToolTips.en['UnequipAll'] = { version: "7.22.0", elementText: "Unequip All", tooltip: "Unequip all girls equipment" };
 HHAuto_ToolTips.en['EquipAll'] = { version: "7.29.0", elementText: "Equip Teams", tooltip: "Equip team girls equipment with ingame girl equip button" };
-HHAuto_ToolTips.en['StuffTeam'] = { version: "7.30.0", elementText: "Stuff Team", tooltip: "Auto build the team by selecting equipment and skills. Can also remove skills from other girls if needed. Money limit will be considered" };
+HHAuto_ToolTips.en['StuffTeam'] = { version: "8.16.0", elementText: "Stuff Team", tooltip: "Auto build the team's skills. Can also remove skills from other girls if needed. Money limit will be considered. The gear is in the Team gear block." };
 HHAuto_ToolTips.en['HHGearMenu'] = { version: "8.10.20", elementText: "HH Gear", tooltip: "Opens the gear tools: best gear now, best gear once levelled, upgrade the worn mythics, and mark the ones worth keeping. They live in a menu because four buttons do not fit beside the game\u0027s own." };
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker." };
 HHAuto_ToolTips.en['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Possible Best Gear", tooltip: "Equip the armor that will be strongest once it is levelled to the max, matching your class and your team's theme. Shows what the switch costs you today." };
@@ -597,6 +597,21 @@ HHAuto_ToolTips.en['HHGirlGearIntro'] = { version: "8.16.0", elementText: "These
 HHAuto_ToolTips.en['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "girl", tooltip: "" };
 HHAuto_ToolTips.en['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Material: every item except mythics, picked by the game's Auto Select, lowest value first. Before each level the price is checked against the money to keep.", tooltip: "" };
 HHAuto_ToolTips.en['HHGirlGearStart'] = { version: "8.16.0", elementText: "Level up", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGear'] = { version: "8.16.0", elementText: "Team gear", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearBest'] = { version: "8.16.0", elementText: "Best gear", tooltip: "Plans the gear of the girls in the hexagons by their current stats, leader first. Each girl can have any item in the inventory or keep her own. Shows the plan; nothing is equipped before you press Equip." };
+HHAuto_ToolTips.en['HHTeamGearPossible'] = { version: "8.16.0", elementText: "Possibly best gear", tooltip: "Like Best gear, but mythics count with their stats at level 10, where Level-up gear takes them. Every other rarity counts as it is." };
+HHAuto_ToolTips.en['HHTeamGearApply'] = { version: "8.16.0", elementText: "Equip", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearReading'] = { version: "8.16.0", elementText: "Reading the girl equipment inventory...", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearReadFailed'] = { version: "8.16.0", elementText: "The inventory could not be read. Nothing was changed.", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearNoGirls'] = { version: "8.16.0", elementText: "No girls found in the hexagons.", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearNoChange'] = { version: "8.16.0", elementText: "Nothing to change: every girl already wears the best item available to her.", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Girls in team order, the leader first, ranked by their current stats. Each can have any item in the inventory or keep her own; an item she trades in goes to the girls after her. Items worn by girls outside the team stay where they are; press Unequip All first to use them.", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Girls in team order, the leader first. Mythics count with their stats at level 10, everything else as it is. Each girl can have any item in the inventory or keep her own; an item she trades in goes to the girls after her. Items worn by girls outside the team stay where they are; press Unequip All first to use them.", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearColNow'] = { version: "8.16.0", elementText: "now", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearColNew'] = { version: "8.16.0", elementText: "new", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearColScore'] = { version: "8.16.0", elementText: "stats · resonance", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearStopped'] = { version: "8.16.0", elementText: "Stopped: the game refused an item. Equipped so far:", tooltip: "" };
+HHAuto_ToolTips.en['HHTeamGearDone'] = { version: "8.16.0", elementText: "Done, reloading. Equipped:", tooltip: "" };
 HHAuto_ToolTips.en['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Mark Keepers", tooltip: "<p>Marks the mythic pieces worth keeping with a star, so <b>everything unmarked is safe to spend by hand as upgrade material</b>.</p><p>One piece is kept per slot and element. Which one: your own class first, then <code>damage</code> before <code>defence</code> before <code>ego</code> before <code>harmony</code>, then the higher level.</p><p>An element you own only on a foreign class keeps its best piece anyway -- otherwise that element would vanish from the slot entirely.</p><p>Display only: nothing is equipped, sold or consumed, and the automation never feeds mythics to anything.</p>" };
 HHAuto_ToolTips.en['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Every mythic item you are wearing is already at the maximum level. Only mythic items can be levelled.", tooltip: "" };
 HHAuto_ToolTips.en['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "You have not equipped any mythic item yet. Only mythic items can be levelled -- put them on first; Possible Best Gear does exactly that.", tooltip: "" };
@@ -660,14 +675,11 @@ HHAuto_ToolTips.en['HHGearUpgradeStart'] = { version: "8.13.1", elementText: "Le
 HHAuto_ToolTips.en['HHGearStartingWith'] = { version: "8.13.1", elementText: "starting with", tooltip: "" };
 HHAuto_ToolTips.en['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Estimated cost (5M per skill):", tooltip: "Estimated cost of the team stuff operation" };
 HHAuto_ToolTips.en['StuffTeamMoney'] = { version: "7.30.0", elementText: "Money to keep", tooltip: "(Integer)<br>Minimum money to keep." };
-HHAuto_ToolTips.en['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Auto select girl equipment." };
-HHAuto_ToolTips.en['StuffTeamSkills'] = { version: "7.30.0", elementText: "Give skills", tooltip: "Auto select girl skills." };
 HHAuto_ToolTips.en['stuffTeamResetMythicGirls'] = { version: "7.30.0", elementText: "Reset Mythic girls", tooltip: "Reset Mythic girls to ket more orbs" };
 HHAuto_ToolTips.en['stuffTeamResetLegendaryGirls'] = { version: "7.30.0", elementText: "Reset Legendary girls", tooltip: "Reset Legendary girls to ket more orbs" };
 HHAuto_ToolTips.en['stuffTeamResetEpicGirls'] = { version: "7.30.0", elementText: "Reset Epic girls", tooltip: "Reset Epic girls to ket more orbs" };
 HHAuto_ToolTips.en['stuffTeamResetRareGirls'] = { version: "7.30.0", elementText: "Reset Rare girls", tooltip: "Reset Rare girls to ket more orbs" };
 HHAuto_ToolTips.en['stuffTeamResetCommonGirls'] = { version: "7.30.0", elementText: "Reset Common girls", tooltip: "Reset Common girls to ket more orbs" };
-HHAuto_ToolTips.en['unequipGirlsBefore'] = { version: "7.30.0", elementText: "Un-equip all Before", tooltip: "Remove all equipment from girls before starting" };
 HHAuto_ToolTips.en['skillPointTooltipTitle'] = { version: "7.30.0", elementText: "Skill points:<br/>(needed/owned)" };
 HHAuto_ToolTips.en['skillPointTooltipDescription'] = { version: "7.30.0", elementText: "Main girl up to 5th skill<br />Other girls up to 4th skill" };
 HHAuto_ToolTips.en['enoughBulbsOwned'] = { version: "7.30.0", elementText: "Enough bulbs owned" };
@@ -1147,7 +1159,7 @@ HHAuto_ToolTips.fr['ChangeTeamButton'] = { version: "5.6.24", elementText: "Meil
 HHAuto_ToolTips.fr['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Meilleure possible", tooltip: "Récupère la liste des 16 meilleures filles pour votre équipe si elles étaient au niveau et à l'affection maximum." };
 HHAuto_ToolTips.fr['UnequipAll'] = { version: "7.22.0", elementText: "Tout déséquiper", tooltip: "Retire l'équipement de toutes les filles." };
 HHAuto_ToolTips.fr['EquipAll'] = { version: "7.29.0", elementText: "Équiper les équipes", tooltip: "Équipe les filles de l'équipe avec le bouton d'équipement du jeu." };
-HHAuto_ToolTips.fr['StuffTeam'] = { version: "7.30.0", elementText: "Équiper l'équipe", tooltip: "Construit l'équipe automatiquement en choisissant équipement et compétences. Peut aussi retirer des compétences à d'autres filles si nécessaire. La limite d'argent est respectée." };
+HHAuto_ToolTips.fr['StuffTeam'] = { version: "8.16.0", elementText: "Équiper l'équipe", tooltip: "Construit automatiquement les compétences de l'équipe. Peut aussi retirer des compétences à d'autres filles si nécessaire. La limite d'argent est respectée. L'équipement est dans le bloc « Équipement de l'équipe »." };
 HHAuto_ToolTips.fr['HHGearMenu'] = { version: "8.10.20", elementText: "Équipement HH", tooltip: "Ouvre les outils d'équipement : meilleur équipement actuel, meilleur équipement une fois monté au niveau max, amélioration des mythiques portés, et marquage de ceux qui valent la peine d'être gardés. Ils sont dans un menu parce que quatre boutons ne tiennent pas à côté de ceux du jeu." };
 HHAuto_ToolTips.fr['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Meilleur équipement actuel", tooltip: "Équipe la meilleure armure que vous possédez pour chacun des six emplacements du héros, jugée sur les statistiques du jour. Les statistiques brutes décident, la résonance départage : cela ne vous affaiblit jamais." };
 HHAuto_ToolTips.fr['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Meilleur équipement possible", tooltip: "Équipe l'armure qui sera la plus forte une fois montée au niveau maximum, en accord avec votre classe et le thème de votre équipe. Affiche ce que le changement vous coûte aujourd'hui." };
@@ -1158,6 +1170,21 @@ HHAuto_ToolTips.fr['HHGirlGearIntro'] = { version: "8.16.0", elementText: "Ces m
 HHAuto_ToolTips.fr['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "fille", tooltip: "" };
 HHAuto_ToolTips.fr['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Matériau : tous les objets sauf les mythiques, choisis par l'Auto Select du jeu, valeur la plus basse d'abord. Avant chaque niveau, le prix est comparé à l'argent à garder.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGirlGearStart'] = { version: "8.16.0", elementText: "Monter", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGear'] = { version: "8.16.0", elementText: "Équipement de l'équipe", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearBest'] = { version: "8.16.0", elementText: "Meilleur équipement", tooltip: "Planifie l'équipement des filles des hexagones selon leurs stats actuelles, la meneuse d'abord. Chaque fille peut recevoir n'importe quel objet de l'inventaire ou garder le sien. Affiche le plan ; rien n'est équipé avant « Équiper »." };
+HHAuto_ToolTips.fr['HHTeamGearPossible'] = { version: "8.16.0", elementText: "Meilleur équipement possible", tooltip: "Comme « Meilleur équipement », mais les mythiques comptent avec leurs stats au niveau 10, où « Monter l'équipement » les amène. Les autres raretés comptent telles quelles." };
+HHAuto_ToolTips.fr['HHTeamGearApply'] = { version: "8.16.0", elementText: "Équiper", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearReading'] = { version: "8.16.0", elementText: "Lecture de l'inventaire d'équipement des filles...", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearReadFailed'] = { version: "8.16.0", elementText: "L'inventaire n'a pas pu être lu. Rien n'a été modifié.", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearNoGirls'] = { version: "8.16.0", elementText: "Aucune fille trouvée dans les hexagones.", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearNoChange'] = { version: "8.16.0", elementText: "Rien à changer : chaque fille porte déjà le meilleur objet disponible pour elle.", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Filles dans l'ordre de l'équipe, la meneuse d'abord, classées selon leurs stats actuelles. Chacune peut recevoir n'importe quel objet de l'inventaire ou garder le sien ; un objet rendu passe aux filles suivantes. Ce que portent les filles hors de l'équipe reste en place ; appuyez d'abord sur « Tout déséquiper » pour l'utiliser.", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Filles dans l'ordre de l'équipe, la meneuse d'abord. Les mythiques comptent avec leurs stats au niveau 10, le reste tel quel. Chacune peut recevoir n'importe quel objet de l'inventaire ou garder le sien ; un objet rendu passe aux filles suivantes. Ce que portent les filles hors de l'équipe reste en place ; appuyez d'abord sur « Tout déséquiper » pour l'utiliser.", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearColNow'] = { version: "8.16.0", elementText: "actuel", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearColNew'] = { version: "8.16.0", elementText: "nouveau", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearColScore'] = { version: "8.16.0", elementText: "stats · résonance", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearStopped'] = { version: "8.16.0", elementText: "Arrêté : le jeu a refusé un objet. Équipés jusqu'ici :", tooltip: "" };
+HHAuto_ToolTips.fr['HHTeamGearDone'] = { version: "8.16.0", elementText: "Terminé, rechargement. Équipés :", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Marquer à garder", tooltip: "<p>Marque d'une étoile les pièces mythiques qui valent la peine d'être gardées, de sorte que <b>tout ce qui n'est pas marqué peut être dépensé à la main comme matériau d'amélioration</b>.</p><p>Une pièce est gardée par emplacement et par élément. Laquelle : votre propre classe d'abord, puis <code>dégâts</code> avant <code>défense</code>, avant <code>ego</code>, avant <code>harmonie</code>, et enfin le niveau le plus élevé.</p><p>Un élément que vous ne possédez que sur une classe étrangère garde tout de même sa meilleure pièce, sans quoi cet élément disparaîtrait complètement de l'emplacement.</p><p>Purement indicatif : rien n'est équipé, vendu ni consommé, et l'automatisation ne donne jamais de mythique comme matériau.</p>" };
 HHAuto_ToolTips.fr['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Tous les objets mythiques que vous portez sont déjà au niveau maximum. Seuls les objets mythiques peuvent monter de niveau.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Vous n'avez encore équipé aucun objet mythique. Seuls les objets mythiques peuvent monter de niveau : équipez-les d'abord, « Meilleur équipement possible » s'en charge.", tooltip: "" };
@@ -1221,14 +1248,11 @@ HHAuto_ToolTips.fr['HHGearUpgradeStart'] = { version: "8.13.1", elementText: "Am
 HHAuto_ToolTips.fr['HHGearStartingWith'] = { version: "8.13.1", elementText: "en commençant par", tooltip: "" };
 HHAuto_ToolTips.fr['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Coût estimé (5 M par compétence) :", tooltip: "Coût estimé de l'équipement de l'équipe." };
 HHAuto_ToolTips.fr['StuffTeamMoney'] = { version: "7.30.0", elementText: "Argent à conserver", tooltip: "(Entier)<br>Argent minimum à conserver." };
-HHAuto_ToolTips.fr['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Donner l'équipement", tooltip: "Sélectionne automatiquement l'équipement des filles." };
-HHAuto_ToolTips.fr['StuffTeamSkills'] = { version: "7.30.0", elementText: "Donner les compétences", tooltip: "Sélectionne automatiquement les compétences des filles." };
 HHAuto_ToolTips.fr['stuffTeamResetMythicGirls'] = { version: "7.30.0", elementText: "Réinitialiser les filles mythiques", tooltip: "Réinitialise les filles mythiques pour récupérer plus d'orbes." };
 HHAuto_ToolTips.fr['stuffTeamResetLegendaryGirls'] = { version: "7.30.0", elementText: "Réinitialiser les filles légendaires", tooltip: "Réinitialise les filles légendaires pour récupérer plus d'orbes." };
 HHAuto_ToolTips.fr['stuffTeamResetEpicGirls'] = { version: "7.30.0", elementText: "Réinitialiser les filles épiques", tooltip: "Réinitialise les filles épiques pour récupérer plus d'orbes." };
 HHAuto_ToolTips.fr['stuffTeamResetRareGirls'] = { version: "7.30.0", elementText: "Réinitialiser les filles rares", tooltip: "Réinitialise les filles rares pour récupérer plus d'orbes." };
 HHAuto_ToolTips.fr['stuffTeamResetCommonGirls'] = { version: "7.30.0", elementText: "Réinitialiser les filles communes", tooltip: "Réinitialise les filles communes pour récupérer plus d'orbes." };
-HHAuto_ToolTips.fr['unequipGirlsBefore'] = { version: "7.30.0", elementText: "Tout déséquiper avant", tooltip: "Retire tout l'équipement des filles avant de commencer." };
 HHAuto_ToolTips.fr['skillPointTooltipTitle'] = { version: "7.30.0", elementText: "Points de compétence :<br/>(nécessaires/possédés)", tooltip: "" };
 HHAuto_ToolTips.fr['skillPointTooltipDescription'] = { version: "7.30.0", elementText: "Fille principale jusqu'à la 5e compétence<br />Autres filles jusqu'à la 4e compétence", tooltip: "" };
 HHAuto_ToolTips.fr['enoughBulbsOwned'] = { version: "7.30.0", elementText: "Assez d'ampoules possédées", tooltip: "" };
@@ -1664,7 +1688,7 @@ HHAuto_ToolTips.de['ChangeTeamButton'] = { version: "5.6.24", elementText: "Aktu
 HHAuto_ToolTips.de['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mögliches Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team, wenn sie auf max. Level und Zuneigung wären." };
 HHAuto_ToolTips.de['UnequipAll'] = { version: "7.22.0", elementText: "Alles ablegen", tooltip: "Nimmt allen Mädels die Ausrüstung ab." };
 HHAuto_ToolTips.de['EquipAll'] = { version: "7.29.0", elementText: "Teams ausrüsten", tooltip: "Rüstet die Team-Mädels über den spieleigenen Ausrüsten-Knopf aus." };
-HHAuto_ToolTips.de['StuffTeam'] = { version: "7.30.0", elementText: "Team bestücken", tooltip: "Baut das Team automatisch auf, indem Ausrüstung und Skills gewählt werden. Kann anderen Mädels auch Skills wieder abnehmen." };
+HHAuto_ToolTips.de['StuffTeam'] = { version: "8.16.0", elementText: "Team bestücken", tooltip: "Baut die Skills des Teams automatisch auf. Kann anderen Mädels auch Skills wieder abnehmen. Die Ausrüstung steht im Block „Team-Ausrüstung“." };
 HHAuto_ToolTips.de['HHGearMenu'] = { version: "8.10.20", elementText: "HH Ausrüstung", tooltip: "Öffnet die Ausrüstungs-Werkzeuge: beste Ausrüstung jetzt, beste nach dem Leveln, getragene Mythics aufwerten und die Behalter markieren. Sie stecken in einem Menü, weil vier Knöpfe neben den spieleigenen nicht hinpassen." };
 HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten." };
 HHAuto_ToolTips.de['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mögliche beste Ausrüstung", tooltip: "Legt die Rüstung an, die nach vollem Aufleveln die stärkste wäre, passend zu deiner Klasse und deinem Team-Thema." };
@@ -1675,6 +1699,21 @@ HHAuto_ToolTips.de['HHGirlGearIntro'] = { version: "8.16.0", elementText: "Diese
 HHAuto_ToolTips.de['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "Mädel", tooltip: "" };
 HHAuto_ToolTips.de['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Material: alles außer Mythics, ausgewählt vom Auto Select des Spiels, geringster Wert zuerst. Vor jedem Level wird der Preis gegen den Geldrückhalt geprüft.", tooltip: "" };
 HHAuto_ToolTips.de['HHGirlGearStart'] = { version: "8.16.0", elementText: "Leveln", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGear'] = { version: "8.16.0", elementText: "Team-Ausrüstung", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearBest'] = { version: "8.16.0", elementText: "Beste Ausrüstung", tooltip: "Plant die Ausrüstung der Mädels in den Hexagons nach ihren aktuellen Werten, die Anführerin zuerst. Jedes Mädel kann jedes Teil aus dem Inventar bekommen oder ihr eigenes behalten. Zeigt den Plan; angelegt wird erst mit „Anlegen“." };
+HHAuto_ToolTips.de['HHTeamGearPossible'] = { version: "8.16.0", elementText: "Mögliche beste Ausrüstung", tooltip: "Wie „Beste Ausrüstung“, aber Mythics zählen mit ihren Werten auf Level 10, wohin „Ausrüstung leveln“ sie bringt. Alle anderen Seltenheiten zählen, wie sie sind." };
+HHAuto_ToolTips.de['HHTeamGearApply'] = { version: "8.16.0", elementText: "Anlegen", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearReading'] = { version: "8.16.0", elementText: "Lese das Inventar der Mädchen-Ausrüstung ...", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearReadFailed'] = { version: "8.16.0", elementText: "Das Inventar ließ sich nicht lesen. Nichts wurde geändert.", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearNoGirls'] = { version: "8.16.0", elementText: "Keine Mädels in den Hexagons gefunden.", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearNoChange'] = { version: "8.16.0", elementText: "Nichts zu ändern: Jedes Mädel trägt schon das beste Teil, das ihr zur Verfügung steht.", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Mädels in Teamreihenfolge, die Anführerin zuerst, bewertet nach ihren aktuellen Werten. Jede kann jedes Teil aus dem Inventar bekommen oder ihr eigenes behalten; ein abgegebenes Teil steht den Mädels nach ihr zur Verfügung. Was Mädels außerhalb des Teams tragen, bleibt, wo es ist; dafür vorher „Alles ablegen“ drücken.", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Mädels in Teamreihenfolge, die Anführerin zuerst. Mythics zählen mit ihren Werten auf Level 10, alles andere, wie es ist. Jede kann jedes Teil aus dem Inventar bekommen oder ihr eigenes behalten; ein abgegebenes Teil steht den Mädels nach ihr zur Verfügung. Was Mädels außerhalb des Teams tragen, bleibt, wo es ist; dafür vorher „Alles ablegen“ drücken.", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearColNow'] = { version: "8.16.0", elementText: "jetzt", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearColNew'] = { version: "8.16.0", elementText: "neu", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearColScore'] = { version: "8.16.0", elementText: "Werte · Resonanz", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearStopped'] = { version: "8.16.0", elementText: "Angehalten: Das Spiel hat ein Teil abgelehnt. Bisher angelegt:", tooltip: "" };
+HHAuto_ToolTips.de['HHTeamGearDone'] = { version: "8.16.0", elementText: "Fertig, lade neu. Angelegt:", tooltip: "" };
 HHAuto_ToolTips.de['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Behalten markieren", tooltip: "<p>Markiert die mythischen Teile, die du behalten solltest, mit einem Stern &mdash; <b>alles Unmarkierte kannst du gefahrlos von Hand als Material verwenden</b>.</p><p>Behalten wird je Slot und Element genau eines. Welches: zuerst deine eigene Klasse, dann <code>damage</code> vor <code>defence</code> vor <code>ego</code> vor <code>harmony</code>, dann das höhere Level.</p><p>Ein Element, das du nur mit fremder Klasse besitzt, behält trotzdem sein bestes Teil &mdash; sonst würde das Element ganz aus dem Slot verschwinden.</p><p>Reine Anzeige: es wird nichts angelegt, verkauft oder verbraucht, und die Automatik fasst Mythics ohnehin nie an.</p>" };
 HHAuto_ToolTips.de['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Alle angelegten Mythic-Items sind bereits auf Maximallevel. Nur Mythic-Items können gelevelt werden.", tooltip: "" };
 HHAuto_ToolTips.de['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Du hast noch kein Mythic-Item angelegt. Nur Mythic-Items können gelevelt werden – leg sie zuerst an, „Mögliche beste Ausrüstung“ erledigt das.", tooltip: "" };
@@ -1738,14 +1777,11 @@ HHAuto_ToolTips.de['HHGearUpgradeStart'] = { version: "8.13.1", elementText: "Al
 HHAuto_ToolTips.de['HHGearStartingWith'] = { version: "8.13.1", elementText: "beginnend mit", tooltip: "" };
 HHAuto_ToolTips.de['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Geschätzte Kosten (5 Mio. pro Skill):", tooltip: "Geschätzte Kosten für das Bestücken des Teams" };
 HHAuto_ToolTips.de['StuffTeamMoney'] = { version: "7.30.0", elementText: "Geld behalten", tooltip: "(Ganzzahl)<br>Mindestbetrag, der behalten wird." };
-HHAuto_ToolTips.de['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Wählt die Mädel-Ausrüstung automatisch." };
-HHAuto_ToolTips.de['StuffTeamSkills'] = { version: "7.30.0", elementText: "Skills geben", tooltip: "Wählt die Mädel-Skills automatisch." };
 HHAuto_ToolTips.de['stuffTeamResetMythicGirls'] = { version: "7.30.0", elementText: "Mythic-Mädels zurücksetzen", tooltip: "Setzt Mythic-Mädels zurück, um mehr Orbs zu bekommen." };
 HHAuto_ToolTips.de['stuffTeamResetLegendaryGirls'] = { version: "7.30.0", elementText: "Legendäre Mädels zurücksetzen", tooltip: "Setzt legendäre Mädels zurück, um mehr Orbs zu bekommen." };
 HHAuto_ToolTips.de['stuffTeamResetEpicGirls'] = { version: "7.30.0", elementText: "Epische Mädels zurücksetzen", tooltip: "Setzt epische Mädels zurück, um mehr Orbs zu bekommen." };
 HHAuto_ToolTips.de['stuffTeamResetRareGirls'] = { version: "7.30.0", elementText: "Seltene Mädels zurücksetzen", tooltip: "Setzt seltene Mädels zurück, um mehr Orbs zu bekommen." };
 HHAuto_ToolTips.de['stuffTeamResetCommonGirls'] = { version: "7.30.0", elementText: "Gewöhnliche Mädels zurücksetzen", tooltip: "Setzt gewöhnliche Mädels zurück, um mehr Orbs zu bekommen." };
-HHAuto_ToolTips.de['unequipGirlsBefore'] = { version: "7.30.0", elementText: "Vorher alles ablegen", tooltip: "Nimmt den Mädels vor dem Start die gesamte Ausrüstung ab." };
 HHAuto_ToolTips.de['skillPointTooltipTitle'] = { version: "7.30.0", elementText: "Skillpunkte:<br/>(benötigt/vorhanden)" };
 HHAuto_ToolTips.de['skillPointTooltipDescription'] = { version: "7.30.0", elementText: "Haupt-Mädel bis zum 5. Skill<br />Andere Mädels bis zum 4. Skill" };
 HHAuto_ToolTips.de['enoughBulbsOwned'] = { version: "7.30.0", elementText: "Genug Birnen vorhanden" };
@@ -2100,7 +2136,7 @@ HHAuto_ToolTips.es['ChangeTeamButton'] = { version: "5.6.24", elementText: "Mejo
 HHAuto_ToolTips.es['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mejor posible", tooltip: "Obtiene la lista de las 16 mejores chicas para tu equipo si estuvieran al nivel y afecto máximos." };
 HHAuto_ToolTips.es['UnequipAll'] = { version: "7.22.0", elementText: "Desequipar todo", tooltip: "Quita el equipo a todas las chicas." };
 HHAuto_ToolTips.es['EquipAll'] = { version: "7.29.0", elementText: "Equipar equipos", tooltip: "Equipa a las chicas del equipo con el botón de equipar del propio juego." };
-HHAuto_ToolTips.es['StuffTeam'] = { version: "7.30.0", elementText: "Preparar equipo", tooltip: "Construye el equipo automáticamente eligiendo equipo y habilidades. También puede quitar habilidades a otras chicas si hace falta. Se respeta el límite de dinero." };
+HHAuto_ToolTips.es['StuffTeam'] = { version: "8.16.0", elementText: "Preparar equipo", tooltip: "Construye automáticamente las habilidades del equipo. También puede quitar habilidades a otras chicas si hace falta. Se respeta el límite de dinero. El equipo está en el bloque «Equipo de las chicas»." };
 HHAuto_ToolTips.es['HHGearMenu'] = { version: "8.10.20", elementText: "Equipo HH", tooltip: "Abre las herramientas de equipo: mejor equipo ahora, mejor equipo una vez subido de nivel, mejorar los míticos puestos y marcar los que merece la pena conservar. Están en un menú porque cuatro botones no caben junto a los del propio juego." };
 HHAuto_ToolTips.es['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Mejor equipo actual", tooltip: "Equipa la armadura más fuerte que tienes para cada una de las seis ranuras del héroe, según las estadísticas de hoy. Deciden las estadísticas brutas y la resonancia desempata; esto nunca te deja más débil." };
 HHAuto_ToolTips.es['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mejor equipo posible", tooltip: "Equipa la armadura que será más fuerte una vez subida al máximo, acorde con tu clase y con el tema de tu equipo. Muestra lo que te cuesta el cambio hoy." };
@@ -2111,6 +2147,21 @@ HHAuto_ToolTips.es['HHGirlGearIntro'] = { version: "8.16.0", elementText: "Estos
 HHAuto_ToolTips.es['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "chica", tooltip: "" };
 HHAuto_ToolTips.es['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Material: todo objeto salvo los míticos, elegido por el Auto Select del juego, el de menor valor primero. Antes de cada nivel se compara el precio con el dinero a conservar.", tooltip: "" };
 HHAuto_ToolTips.es['HHGirlGearStart'] = { version: "8.16.0", elementText: "Subir", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGear'] = { version: "8.16.0", elementText: "Equipo de las chicas", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearBest'] = { version: "8.16.0", elementText: "Mejor equipo", tooltip: "Planifica el equipo de las chicas de los hexágonos según sus estadísticas actuales, la líder primero. Cada chica puede recibir cualquier objeto del inventario o conservar el suyo. Muestra el plan; no se equipa nada antes de pulsar «Equipar»." };
+HHAuto_ToolTips.es['HHTeamGearPossible'] = { version: "8.16.0", elementText: "Mejor equipo posible", tooltip: "Como «Mejor equipo», pero los míticos cuentan con sus estadísticas a nivel 10, adonde los lleva «Subir equipo». Las demás rarezas cuentan tal como están." };
+HHAuto_ToolTips.es['HHTeamGearApply'] = { version: "8.16.0", elementText: "Equipar", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearReading'] = { version: "8.16.0", elementText: "Leyendo el inventario de equipo de las chicas...", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearReadFailed'] = { version: "8.16.0", elementText: "No se pudo leer el inventario. No se cambió nada.", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearNoGirls'] = { version: "8.16.0", elementText: "No se encontraron chicas en los hexágonos.", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearNoChange'] = { version: "8.16.0", elementText: "Nada que cambiar: cada chica ya lleva el mejor objeto disponible para ella.", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearIntroBest'] = { version: "8.16.0", elementText: "Chicas en el orden del equipo, la líder primero, según sus estadísticas actuales. Cada una puede recibir cualquier objeto del inventario o conservar el suyo; un objeto que entrega pasa a las chicas siguientes. Lo que llevan las chicas fuera del equipo se queda donde está; pulsa antes «Desequipar todo» para usarlo.", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearIntroPossible'] = { version: "8.16.0", elementText: "Chicas en el orden del equipo, la líder primero. Los míticos cuentan con sus estadísticas a nivel 10, lo demás tal como está. Cada una puede recibir cualquier objeto del inventario o conservar el suyo; un objeto que entrega pasa a las chicas siguientes. Lo que llevan las chicas fuera del equipo se queda donde está; pulsa antes «Desequipar todo» para usarlo.", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearColNow'] = { version: "8.16.0", elementText: "actual", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearColNew'] = { version: "8.16.0", elementText: "nuevo", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearColScore'] = { version: "8.16.0", elementText: "estadísticas · resonancia", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearStopped'] = { version: "8.16.0", elementText: "Detenido: el juego rechazó un objeto. Equipados hasta ahora:", tooltip: "" };
+HHAuto_ToolTips.es['HHTeamGearDone'] = { version: "8.16.0", elementText: "Hecho, recargando. Equipados:", tooltip: "" };
 HHAuto_ToolTips.es['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Marcar los que conservar", tooltip: "<p>Marca con una estrella las piezas míticas que merece la pena conservar, de modo que <b>todo lo no marcado se puede gastar a mano como material de mejora sin riesgo</b>.</p><p>Se conserva una pieza por ranura y elemento. Cuál: primero tu propia clase, después <code>daño</code> antes que <code>defensa</code>, antes que <code>ego</code>, antes que <code>armonía</code>, y por último el nivel más alto.</p><p>Un elemento que sólo tengas en una clase ajena conserva igualmente su mejor pieza; de lo contrario ese elemento desaparecería por completo de la ranura.</p><p>Sólo informativo: no se equipa, vende ni consume nada, y la automatización nunca usa míticos como material.</p>" };
 HHAuto_ToolTips.es['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Todos los objetos míticos que llevas puestos ya están al nivel máximo. Solo los objetos míticos pueden subir de nivel.", tooltip: "" };
 HHAuto_ToolTips.es['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Todavía no llevas puesto ningún objeto mítico. Solo los objetos míticos pueden subir de nivel: equípalos primero, «Mejor equipo posible» lo hace por ti.", tooltip: "" };
@@ -2174,14 +2225,11 @@ HHAuto_ToolTips.es['HHGearUpgradeStart'] = { version: "8.13.1", elementText: "Su
 HHAuto_ToolTips.es['HHGearStartingWith'] = { version: "8.13.1", elementText: "empezando por", tooltip: "" };
 HHAuto_ToolTips.es['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Coste estimado (5 M por habilidad):", tooltip: "Coste estimado de preparar el equipo." };
 HHAuto_ToolTips.es['StuffTeamMoney'] = { version: "7.30.0", elementText: "Dinero a conservar", tooltip: "(Entero)<br>Dinero mínimo que se conserva." };
-HHAuto_ToolTips.es['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Dar equipo", tooltip: "Selecciona automáticamente el equipo de las chicas." };
-HHAuto_ToolTips.es['StuffTeamSkills'] = { version: "7.30.0", elementText: "Dar habilidades", tooltip: "Selecciona automáticamente las habilidades de las chicas." };
 HHAuto_ToolTips.es['stuffTeamResetMythicGirls'] = { version: "7.30.0", elementText: "Reiniciar chicas míticas", tooltip: "Reinicia las chicas míticas para recuperar más orbes." };
 HHAuto_ToolTips.es['stuffTeamResetLegendaryGirls'] = { version: "7.30.0", elementText: "Reiniciar chicas legendarias", tooltip: "Reinicia las chicas legendarias para recuperar más orbes." };
 HHAuto_ToolTips.es['stuffTeamResetEpicGirls'] = { version: "7.30.0", elementText: "Reiniciar chicas épicas", tooltip: "Reinicia las chicas épicas para recuperar más orbes." };
 HHAuto_ToolTips.es['stuffTeamResetRareGirls'] = { version: "7.30.0", elementText: "Reiniciar chicas raras", tooltip: "Reinicia las chicas raras para recuperar más orbes." };
 HHAuto_ToolTips.es['stuffTeamResetCommonGirls'] = { version: "7.30.0", elementText: "Reiniciar chicas comunes", tooltip: "Reinicia las chicas comunes para recuperar más orbes." };
-HHAuto_ToolTips.es['unequipGirlsBefore'] = { version: "7.30.0", elementText: "Desequipar todo antes", tooltip: "Quita todo el equipo a las chicas antes de empezar." };
 HHAuto_ToolTips.es['skillPointTooltipTitle'] = { version: "7.30.0", elementText: "Puntos de habilidad:<br/>(necesarios/disponibles)", tooltip: "" };
 HHAuto_ToolTips.es['skillPointTooltipDescription'] = { version: "7.30.0", elementText: "Chica principal hasta la 5.ª habilidad<br />Las demás chicas hasta la 4.ª habilidad", tooltip: "" };
 HHAuto_ToolTips.es['enoughBulbsOwned'] = { version: "7.30.0", elementText: "Tienes bombillas suficientes", tooltip: "" };
@@ -12156,7 +12204,7 @@ function getGoToClubChampionButton() {
 // caller's to pass.
 //
 // Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts, TeamSelectionPopup.ts,
-//   DoublePenetration.ts, PathOfAttraction.ts; wired in index.ts
+//   TeamGear.ts, DoublePenetration.ts, PathOfAttraction.ts; wired in index.ts
 let kick = () => { };
 /** Wired once from the boot path with the real autoLoop. */
 function setAutoLoopKick(fn) {
@@ -30723,7 +30771,8 @@ class BlessingForecast {
 // This file imports nothing, for the reason AutoLoopKick.ts gives: a leaf
 // cannot join an import cycle.
 //
-// Used by: AutoLoop.ts (reads it), TeamSelectionPopup.ts (holds it)
+// Used by: AutoLoop.ts (reads it), TeamSelectionPopup.ts and TeamGear.ts
+// (hold it)
 let holder = null;
 /** Take the hold. */
 function holdAutoLoop(name) {
@@ -30773,8 +30822,11 @@ function autoLoopHolder() {
 // The right-hand column holds Unequip All and Stuff Team, each with the state
 // it acts on: the gear on the team, and whether the hexagons match the saved
 // team (Stuff Team equips the hexagons, the league fights the saved team).
-// Below them Level-up gear, which levels the hexagon girls' worn mythics;
-// leveling does not depend on the saved team, so it asks nothing.
+// Below them the Team gear block, for the hexagon girls: Unequip All once
+// more (for re-equipping a team without building a new one), Best gear and
+// Possibly best gear (each shows its plan before equipping), and Level-up
+// gear, which levels the worn mythics. None of them depends on the saved
+// team, so they ask nothing.
 //
 // The actions that live in TeamModule are handed in, so this file does not
 // import TeamModule (which opens it).
@@ -30850,6 +30902,8 @@ class TeamSelectionPopup {
             + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #999;padding-left:10px;}'
             + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:calc(13px + 1pt);}'
             + '#hhTeamSel .tsState{font-size:calc(11px + 1pt);color:#555;margin-top:3px;}'
+            + '#hhTeamSel .tsGear{display:flex;flex-direction:column;gap:6px;border-top:1px solid #999;padding-top:8px;}'
+            + '#hhTeamSel .tsGearHead{font-weight:bold;}'
             + '#hhTeamSel .myButton.tsDisabled{opacity:0.45;pointer-events:none;}'
             + '#hhTeamSel .tsInfo{display:inline-block;width:1.25em;height:1.25em;line-height:1.25em;border-radius:50%;'
             + 'background:#476e9e;color:#fff;text-align:center;font-weight:bold;font-style:italic;cursor:pointer;user-select:none;}'
@@ -30887,7 +30941,11 @@ class TeamSelectionPopup {
                     <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
                     <div class="tsState" id="hhTsSavedState"></div>
                 </div>
-                <div>
+                <div class="tsGear">
+                    <div class="tsGearHead">${getTextForUI('HHTeamGear', 'elementText')}</div>
+                    <label class="myButton" id="hhTsGearUnequip">${getTextForUI('UnequipAll', 'elementText')}</label>
+                    <label class="myButton" id="hhTsBestGear" title="${getTextForUI('HHTeamGearBest', 'tooltip')}">${getTextForUI('HHTeamGearBest', 'elementText')}</label>
+                    <label class="myButton" id="hhTsPossibleGear" title="${getTextForUI('HHTeamGearPossible', 'tooltip')}">${getTextForUI('HHTeamGearPossible', 'elementText')}</label>
                     <label class="myButton" id="hhTsLevelUpGear" title="${getTextForUI('HHGirlGearLevelUp', 'tooltip')}">${getTextForUI('HHGirlGearLevelUp', 'elementText')}</label>
                 </div>
             </div>
@@ -30909,6 +30967,9 @@ class TeamSelectionPopup {
                 return;
             a.stuffTeam();
         });
+        $('#hhTsGearUnequip').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.unequipAll(); });
+        $('#hhTsBestGear').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.bestGear(); });
+        $('#hhTsPossibleGear').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.possibleGear(); });
         $('#hhTsLevelUpGear').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.levelUpGear(); });
     }
     static hexagonsMatchSaved() {
@@ -31259,6 +31320,416 @@ TeamSelectionPopup.busy = false;
 // ---- Rendering -------------------------------------------------------
 TeamSelectionPopup.stylesAdded = false;
 
+;// ./src/Service/TeamGearService.ts
+// TeamGearService.ts -- Pure planning for "Best gear" and "Possibly best
+// gear": which item each team girl should wear in each of her six slots.
+//
+// The ranking is the one Stuff Team used on the girl page (HaremGirl.pure:
+// scoreItem, isBetter): the sum of the six stats first, then the resonance
+// matches with the wearer, then the three caracs. A girl only trades her
+// item in when the candidate is better by that rule, so equal items do not
+// cause a swap.
+//
+// "Possibly best" ranks a mythic by the stats it will have at level 10,
+// because Level-up gear takes worn mythics there. The stats grow linearly
+// with the level (measured: a mythic at level 1 carries 30/30/30 and ego 45,
+// at level 10 300/300/300 and 450; a legendary goes from 26 to 52 between
+// level 1 and 2). Every other rarity counts as it is: nothing in the script
+// levels it.
+//
+// Girls are served in team order, the leader first, each through slots 1 to
+// 6. A girl can get any item in the inventory, or keep what she wears in
+// that slot herself. What other girls wear is not in play -- a player who
+// wants it pressed Unequip All first. An item a girl trades in goes back to
+// the pool for the girls after her. Each item goes to one girl only, so when
+// the mythics run out the later girls get legendaries, epics and so on.
+//
+// Used by: Module/TeamGear.ts
+
+/** Level-up gear's cap on girl items (upgradeable_item_max_level). */
+const GIRL_GEAR_CAP = 10;
+const GIRL_GEAR_SLOTS = [1, 2, 3, 4, 5, 6];
+/**
+ * The item as the chosen mode ranks it. In 'possible' mode a mythic below
+ * level 10 gets its stats scaled to level 10; everything else is unchanged.
+ */
+function rankedItem(item, mode) {
+    var _a;
+    const level = Number(item.level);
+    if (mode !== 'possible' || item.rarity !== 'mythic' || !(level > 0) || level >= GIRL_GEAR_CAP)
+        return item;
+    const f = GIRL_GEAR_CAP / level;
+    const c = (_a = item.caracs) !== null && _a !== void 0 ? _a : {};
+    const scale = (v) => (v === undefined ? undefined : v * f);
+    return Object.assign(Object.assign({}, item), { caracs: {
+            carac1: scale(c.carac1), carac2: scale(c.carac2), carac3: scale(c.carac3),
+            damage: scale(c.damage), defense: scale(c.defense), ego: scale(c.ego),
+        } });
+}
+/** The sort order of HaremGirl's slot optimiser, as a comparison: negative
+ *  when `a` ranks before `b`. Ties fall to the inventory id so the plan does
+ *  not depend on the order the game sent the list in. */
+function compare(a, b, girl, mode) {
+    const ra = rankedItem(a.item, mode);
+    const rb = rankedItem(b.item, mode);
+    const sa = scoreItem(ra, girl);
+    const sb = scoreItem(rb, girl);
+    if (sb.caracSum !== sa.caracSum)
+        return sb.caracSum - sa.caracSum;
+    if (sb.resonanceMatches !== sa.resonanceMatches)
+        return sb.resonanceMatches - sa.resonanceMatches;
+    const three = (i) => { var _a, _b, _c; return (((_a = i.caracs) === null || _a === void 0 ? void 0 : _a.carac1) || 0) + (((_b = i.caracs) === null || _b === void 0 ? void 0 : _b.carac2) || 0) + (((_c = i.caracs) === null || _c === void 0 ? void 0 : _c.carac3) || 0); };
+    const d = three(rb) - three(ra);
+    if (d !== 0)
+        return d;
+    return sourceOrder(a.source) - sourceOrder(b.source);
+}
+function sourceOrder(s) {
+    return s.kind === 'inventory' ? s.id : Number.MAX_SAFE_INTEGER - s.fromGirl;
+}
+/**
+ * The plan for the whole team, girl by girl in team order.
+ *
+ * `girls` in team order, leader first, with what they wear now. `inventory`
+ * is every item not worn by anyone, all six slots.
+ */
+function planTeamGear(girls, inventory, mode) {
+    const pool = new Map();
+    for (const slot of GIRL_GEAR_SLOTS)
+        pool.set(slot, []);
+    for (const item of inventory) {
+        const list = pool.get(Number(item.slot_index));
+        if (!list)
+            continue;
+        list.push({ item, source: { kind: 'inventory', id: Number(item.id_girl_armor) } });
+    }
+    return girls.map((girl, position) => {
+        const slots = GIRL_GEAR_SLOTS.map((slot) => {
+            var _a, _b;
+            const current = (_b = ((_a = girl.armor) !== null && _a !== void 0 ? _a : []).find(a => Number(a.slot_index) === slot)) !== null && _b !== void 0 ? _b : null;
+            const currentScore = current ? scoreItem(rankedItem(current, mode), girl) : null;
+            const candidates = pool.get(slot);
+            let bestIndex = -1;
+            for (let i = 0; i < candidates.length; i++) {
+                if (bestIndex < 0 || compare(candidates[i], candidates[bestIndex], girl, mode) < 0)
+                    bestIndex = i;
+            }
+            const best = bestIndex >= 0 ? candidates[bestIndex] : null;
+            if (!best || (current && !isBetter(rankedItem(best.item, mode), rankedItem(current, mode), girl))) {
+                return { slot, current, chosen: current, change: false, source: null, currentScore, chosenScore: currentScore };
+            }
+            candidates.splice(bestIndex, 1);
+            if (current)
+                candidates.push({ item: current, source: { kind: 'traded', fromGirl: girl.id_girl, slot } });
+            return {
+                slot, current, chosen: best.item, change: true, source: best.source,
+                currentScore, chosenScore: scoreItem(rankedItem(best.item, mode), girl),
+            };
+        });
+        return { position, id_girl: girl.id_girl, name: girl.name, slots };
+    });
+}
+/** How many slots the plan changes. */
+function countChanges(plan) {
+    return plan.reduce((n, g) => n + g.slots.filter(s => s.change).length, 0);
+}
+
+;// ./src/Module/TeamGear.ts
+// TeamGear.ts -- "Best gear" and "Possibly best gear" on the edit-team
+// page: read the girl inventory, plan who wears what (TeamGearService), show
+// the plan, and put it on when the player presses Equip.
+//
+// Where the data comes from (measured on a live account): the hexagon girls
+// and what they wear from availableGirls, which TeamModule hands in; the
+// inventory from girl_equipment_list, one slot at a time and paged
+// ({items, items_count}). The list does not depend on id_girl -- two girls
+// got the same items in the same order -- so it is read once per slot.
+//
+// Equipping is girl_equipment_equip, one call per changed slot, in plan
+// order. Every call hands out new ids: the item put on gets a new
+// id_girl_armor_equipped, the one taken off a new id_girl_armor (measured).
+// An item one girl trades in and a later girl gets is therefore put on with
+// the id from the answer to the trade, not the one it had in the plan. After
+// the run the page reloads, so the hexagons -- and Level-up gear, which reads
+// the worn ids from them -- see the new state.
+//
+// Used by: Module/TeamModule.ts
+var TeamGear_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+/** Pages per slot before giving up. A cap this side of infinity keeps a
+ *  changed response shape from paging forever; the page size is not known
+ *  (the test account's whole inventory fit on the first page). */
+const MAX_PAGES_PER_SLOT = 200;
+const TeamGear_SLOT_KEYS = {
+    1: 'HHGearSlotHead', 2: 'HHGearSlotBody', 3: 'HHGearSlotLegs',
+    4: 'HHGearSlotFlag', 5: 'HHGearSlotPet', 6: 'HHGearSlotWeapon',
+};
+class TeamGear {
+    /**
+     * Read the inventory, plan, and show the plan with an Equip button.
+     * `girls` in team order, leader first, with what they wear now.
+     */
+    static preview(mode, girls) {
+        return TeamGear_awaiter(this, void 0, void 0, function* () {
+            if (TeamGear.busy)
+                return;
+            const title = TeamGear.title(mode);
+            if (girls.length === 0) {
+                TeamGear.show(title, `<p>${TeamGear.text('HHTeamGearNoGirls')}</p>`);
+                return;
+            }
+            TeamGear.busy = true;
+            TeamGear.show(title, `<p>${TeamGear.text('HHTeamGearReading')}</p><p id="HHTeamGearStatus"></p>`);
+            let inventory = null;
+            try {
+                inventory = yield TeamGear.withLoopHeld(() => TeamGear.fetchInventory(girls[0].id_girl));
+            }
+            catch (err) {
+                logHHAuto('Team gear: reading the inventory failed: ' + err);
+            }
+            finally {
+                TeamGear.busy = false;
+            }
+            if (inventory === null) {
+                TeamGear.show(title, `<p>${TeamGear.text('HHTeamGearReadFailed')}</p>`);
+                return;
+            }
+            const plan = planTeamGear(girls, inventory, mode);
+            const changes = countChanges(plan);
+            logHHAuto(`Team gear [${mode}]: ${inventory.length} item(s) in the inventory, ${changes} change(s)`
+                + ` for ${girls.length} girl(s).`);
+            for (const g of plan) {
+                for (const s of g.slots.filter(x => x.change)) {
+                    logHHAuto(`  ${g.position + 1}. ${g.name}, slot ${s.slot}: ${TeamGear.describe(s.current)}`
+                        + ` -> ${TeamGear.describe(s.chosen)}`);
+                }
+            }
+            TeamGear.showPlan(mode, plan, changes);
+        });
+    }
+    /** Every item not worn by anyone, all six slots. Null when an answer
+     *  does not have the expected shape. */
+    static fetchInventory(idGirl) {
+        return TeamGear_awaiter(this, void 0, void 0, function* () {
+            const byId = new Map();
+            for (const slot of GIRL_GEAR_SLOTS) {
+                let got = 0;
+                for (let page = 1; page <= MAX_PAGES_PER_SLOT; page++) {
+                    const answer = yield TeamGear.call({
+                        action: 'girl_equipment_list', slot_index: slot, sort_by: 'rarity',
+                        sorting_order: 'desc', page, id_girl: idGirl,
+                    });
+                    if (!answer || !Array.isArray(answer.items)) {
+                        logHHAuto(`Team gear: girl_equipment_list gave no item list for slot ${slot}, page ${page}.`);
+                        return null;
+                    }
+                    for (const item of answer.items)
+                        byId.set(Number(item.id_girl_armor), item);
+                    got += answer.items.length;
+                    $('#HHTeamGearStatus').text(`${getTextForUI(TeamGear_SLOT_KEYS[slot], 'elementText')}: ${got}`);
+                    if (answer.items.length === 0 || got >= Number(answer.items_count || 0))
+                        break;
+                    yield TimeHelper.sleep(randomInterval(250, 450));
+                }
+            }
+            return [...byId.values()];
+        });
+    }
+    static showPlan(mode, plan, changes) {
+        const t = (key) => TeamGear.text(key);
+        const rows = plan.map(g => {
+            const head = `<tr class="tgGirl"><td colspan="5">${g.position + 1}. ${TeamGear_esc(g.name)}</td></tr>`;
+            return head + g.slots.map(s => TeamGear.slotRow(s)).join('');
+        }).join('');
+        const body = changes === 0
+            ? `<p>${t('HHTeamGearNoChange')}</p>`
+            : `<label class="myButton" id="HHTeamGearApply" style="font-size:14px;width:100%;text-align:center;">`
+                + `${t('HHTeamGearApply')} (${changes})</label>`;
+        TeamGear.show(TeamGear.title(mode), `
+            <p>${t(mode === 'possible' ? 'HHTeamGearIntroPossible' : 'HHTeamGearIntroBest')}</p>
+            <table>
+                <tr><th>${t('HHGearColSlot')}</th><th>${t('HHTeamGearColNow')}</th><th class="num">${t('HHTeamGearColScore')}</th>`
+            + `<th>${t('HHTeamGearColNew')}</th><th class="num">${t('HHTeamGearColScore')}</th></tr>
+                ${rows}
+            </table>
+            <p id="HHTeamGearStatus"></p>
+            ${body}`);
+        $('#HHTeamGearApply').on('click', function () {
+            if (TeamGear.busy)
+                return;
+            $(this).addClass('tgDisabled');
+            void TeamGear.execute(plan, changes);
+        });
+    }
+    static slotRow(s) {
+        const t = (key) => TeamGear.text(key);
+        const score = (sc) => sc ? `${Math.round(sc.caracSum)} &middot; ${sc.resonanceMatches}` : '';
+        const now = s.current ? TeamGear_esc(TeamGear.describe(s.current)) : '&ndash;';
+        const next = s.change ? `<b>${TeamGear_esc(TeamGear.describe(s.chosen))}</b>` : '=';
+        return `<tr${s.change ? ' class="tgChange"' : ''}><td>${s.slot} ${t(TeamGear_SLOT_KEYS[s.slot])}</td>`
+            + `<td>${now}</td><td class="num">${score(s.currentScore)}</td>`
+            + `<td>${next}</td><td class="num">${s.change ? score(s.chosenScore) : ''}</td></tr>`;
+    }
+    /**
+     * Put the plan on, one call per changed slot, in plan order -- the order
+     * the trades in the plan depend on. Stops at the first call the game
+     * refuses; what was put on until then stays on.
+     */
+    static execute(plan, changes) {
+        return TeamGear_awaiter(this, void 0, void 0, function* () {
+            if (!getHHAjax()) {
+                $('#HHTeamGearStatus').text(getTextForUI('HHGearAjaxMissing', 'elementText'));
+                return;
+            }
+            TeamGear.busy = true;
+            let done = 0;
+            let stopped = null;
+            try {
+                yield TeamGear.withLoopHeld(() => TeamGear_awaiter(this, void 0, void 0, function* () {
+                    // Inventory id of what each girl traded in, by girl and slot.
+                    const traded = new Map();
+                    for (const g of plan) {
+                        for (const s of g.slots) {
+                            if (!s.change || !s.source)
+                                continue;
+                            const id = s.source.kind === 'inventory' ? s.source.id
+                                : traded.get(`${s.source.fromGirl}:${s.source.slot}`);
+                            if (id === undefined || !Number.isFinite(id)) {
+                                stopped = `${g.name}, slot ${s.slot}: the item traded in earlier has no inventory id`;
+                                return;
+                            }
+                            $('#HHTeamGearStatus').text(`${done + 1}/${changes}: ${g.name}, ${getTextForUI(TeamGear_SLOT_KEYS[s.slot], 'elementText')}`);
+                            const answer = yield TeamGear.call({
+                                action: 'girl_equipment_equip', id_girl: g.id_girl, id_girl_armor: id,
+                                sort_by: 'rarity', sorting_order: 'desc',
+                            });
+                            if (!answer || answer.success === false || !answer.equipped_armor) {
+                                stopped = `${g.name}, slot ${s.slot}: the game refused the item`;
+                                return;
+                            }
+                            const off = Array.isArray(answer.unequipped_armor) ? answer.unequipped_armor[0] : answer.unequipped_armor;
+                            if (off && off.id_girl_armor !== undefined)
+                                traded.set(`${g.id_girl}:${s.slot}`, Number(off.id_girl_armor));
+                            done++;
+                            logHHAuto(`Team gear: ${g.name}, slot ${s.slot} now wears ${TeamGear.describe(s.chosen)}.`);
+                            if (done < changes)
+                                yield TimeHelper.sleep(randomInterval(500, 900));
+                        }
+                    }
+                }));
+            }
+            catch (err) {
+                stopped = String(err);
+            }
+            finally {
+                TeamGear.busy = false;
+            }
+            if (stopped !== null) {
+                logHHAuto(`Team gear: stopped after ${done} of ${changes} change(s) -- ${stopped}.`);
+                $('#HHTeamGearStatus').text(`${getTextForUI('HHTeamGearStopped', 'elementText')} ${done}/${changes}`);
+                return;
+            }
+            logHHAuto(`Team gear: ${done} change(s) put on; reloading.`);
+            $('#HHTeamGearStatus').text(`${getTextForUI('HHTeamGearDone', 'elementText')} ${done}/${changes}`);
+            safeReload(randomInterval(1200, 1800));
+        });
+    }
+    /**
+     * Run `work` with the auto-loop kept out, as the team selection does: the
+     * flag stops new ticks, the hold keeps a tick that runs anyway from
+     * navigating away in the middle.
+     */
+    static withLoopHeld(work) {
+        return TeamGear_awaiter(this, void 0, void 0, function* () {
+            const loopWasOn = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === 'true';
+            if (loopWasOn)
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
+            holdAutoLoop('team gear');
+            try {
+                return yield work();
+            }
+            finally {
+                releaseAutoLoopHold();
+                if (loopWasOn) {
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
+                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
+                }
+            }
+        });
+    }
+    /** One game call as a promise; null on an error or after 20 s. */
+    static call(params) {
+        const ajax = getHHAjax();
+        if (!ajax)
+            return Promise.resolve(null);
+        return new Promise(resolve => {
+            let settled = false;
+            const settle = (value) => { if (!settled) {
+                settled = true;
+                resolve(value);
+            } };
+            try {
+                ajax(params, (data) => settle(data), () => settle(null));
+            }
+            catch (_a) {
+                settle(null);
+            }
+            setTimeout(() => settle(null), 20000);
+        });
+    }
+    static describe(item) {
+        var _a, _b;
+        if (!item)
+            return '-';
+        return `${item.rarity} L${item.level} ${(_b = (_a = item.skin) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : ''}`.trim();
+    }
+    static title(mode) {
+        return getTextForUI(mode === 'possible' ? 'HHTeamGearPossible' : 'HHTeamGearBest', 'elementText');
+    }
+    static text(key) {
+        return TeamGear_esc(getTextForUI(key, 'elementText'));
+    }
+    static show(title, html) {
+        if (!TeamGear.stylesAdded) {
+            TeamGear.stylesAdded = true;
+            // The popup sits on white, so everything in here is dark on light.
+            GM_addStyle('#HHTeamGear{color:#000;padding:10px;max-width:900px;font-size:13px;}'
+                + '#HHTeamGear table{width:100%;border-collapse:collapse;font-size:12px;}'
+                + '#HHTeamGear th,#HHTeamGear td{padding:2px 6px;text-align:left;color:#000;'
+                + 'border-bottom:1px solid rgba(0,0,0,0.15);}'
+                + '#HHTeamGear td.num,#HHTeamGear th.num{text-align:right;font-variant-numeric:tabular-nums;}'
+                + '#HHTeamGear tr.tgGirl td{font-weight:bold;background:rgba(0,0,0,0.06);}'
+                + '#HHTeamGear tr.tgChange td{background:rgba(27,110,42,0.08);}'
+                + '#HHTeamGear .tgDisabled{opacity:0.45;pointer-events:none;}');
+        }
+        fillHHPopUp('HHTeamGearPopup', title, `<div id="HHTeamGear">${html}</div>`);
+    }
+}
+TeamGear.busy = false;
+TeamGear.stylesAdded = false;
+function TeamGear_esc(value) {
+    return String(value).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
 ;// ./src/Service/TraitMappings.ts
 // TraitMappings.ts -- Maps internal hex / image / unicode codes to
 // human-readable trait names.
@@ -31421,12 +31892,14 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 // Puts the "Team selection" button on the page and hands the team selection
 // popup its actions: read the hexagons and the saved team, save a team in
 // place, unequip and equip the girls' gear, Stuff Team (skill scrolls), and
+// the Team gear block: Best gear and Possibly best gear (run by TeamGear),
 // Level-up gear (the girls' worn mythics, run by EquipmentGear).
 // setTopTeam and assignTopTeam, the team workflow before the popup, have no
 // caller any more.
 //
 // Used by: AutoLoopPageHandlers.ts (team building on the fight pages)
 //
+
 
 
 
@@ -31614,12 +32087,6 @@ class TeamModule {
                 ${getTextForUI("stuffTeaEstimatedCost", "elementText")}<span class="hudSC_mix_icn"></span>${Math.round(estimatedCost)}M
             </div>
             <hr style="border: 1px solid #ffa23e; width:100%"/>
-            <div class="rowLine">
-                ${hhMenuSwitch('unequipGirlsBefore')}
-                ${hhMenuSwitch('StuffTeamEquipment')}
-                ${hhMenuSwitch('StuffTeamSkills')}
-            </div>
-            <hr/>
             <div class="rowLine" ${team.scrolls_mythic > 0 ? '' : 'style="display:none;"'}>${displayScrollSwitch('Mythic')}</div>
             <div class="rowLine" ${team.scrolls_legendary > 0 ? '' : 'style="display:none;"'}>${displayScrollSwitch('Legendary')}</div>
             <div class="rowLine" ${team.scrolls_epic > 0 ? '' : 'style="display:none;"'}>${displayScrollSwitch('Epic')}</div>
@@ -31644,41 +32111,31 @@ class TeamModule {
             <p style="color: red;" id="stuffTeamError"></p>
         </div>`;
         fillHHPopUp("stuffTeamMenu", getTextForUI("StuffTeam", "elementText"), stuffTeamMenu);
-        document.getElementById("unequipGirlsBefore").checked = true;
-        document.getElementById("StuffTeamEquipment").checked = true;
-        document.getElementById("StuffTeamSkills").checked = true;
+        // Skills only. The gear moved to the Team gear block of the team
+        // selection popup (TeamGear, Level-up gear), which plans the whole
+        // team at once instead of girl by girl on the girl page.
         $("#stuffTeamSubmit").on("click", function () {
             logHHAuto('Stuff from edit team');
-            const saveAndGo = function () {
-                const teamSettings = {
-                    moneyToKeep: document.getElementById("moneyToKeep").value,
-                    resetMythicGirls: document.getElementById("stuffTeamResetMythicGirls").checked,
-                    resetLegendaryGirls: document.getElementById("stuffTeamResetLegendaryGirls").checked,
-                    resetEpicGirls: document.getElementById("stuffTeamResetEpicGirls").checked,
-                    resetRareGirls: document.getElementById("stuffTeamResetRareGirls").checked,
-                    resetCommonGirls: document.getElementById("stuffTeamResetCommonGirls").checked,
-                };
-                logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
-                setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
-                setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
-                setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
-                if (teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
-                }
-                else {
-                    logHHAuto('No skill to reset, going to harem.');
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHarem"));
-                }
+            const teamSettings = {
+                moneyToKeep: document.getElementById("moneyToKeep").value,
+                resetMythicGirls: document.getElementById("stuffTeamResetMythicGirls").checked,
+                resetLegendaryGirls: document.getElementById("stuffTeamResetLegendaryGirls").checked,
+                resetEpicGirls: document.getElementById("stuffTeamResetEpicGirls").checked,
+                resetRareGirls: document.getElementById("stuffTeamResetRareGirls").checked,
+                resetCommonGirls: document.getElementById("stuffTeamResetCommonGirls").checked,
             };
-            const unequipBefore = document.getElementById("unequipGirlsBefore").checked;
-            if (unequipBefore) {
-                // First un-equip all
-                TeamModule.unequipAllGirls(saveAndGo);
+            logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
+            setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
+            setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.SKILLS_TYPE);
+            setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
+            setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
+            setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+            if (teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
             }
             else {
-                saveAndGo();
+                logHHAuto('No skill to reset, going to harem.');
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHarem"));
             }
         });
     }
@@ -31927,25 +32384,30 @@ class TeamModule {
             }),
             unequipAll: () => TeamModule.unequipAllGirls(),
             stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
-            levelUpGear: () => TeamModule.levelUpTeamGear(),
+            bestGear: () => { void TeamGear.preview('best', TeamModule.getHexagonGirlsWithGear()); },
+            possibleGear: () => { void TeamGear.preview('possible', TeamModule.getHexagonGirlsWithGear()); },
+            levelUpGear: () => EquipmentGear.previewGirlUpgrade(TeamModule.getHexagonGirlsWithGear()),
         });
     }
     /**
-     * Level-up gear: the hexagon girls in team order, leader first, with the
-     * armor the edit page loaded (availableGirls carries it, measured).
+     * The hexagon girls in team order, leader first, with what they wear and
+     * the three resonance axes -- availableGirls carries all of it (measured).
      */
-    static levelUpTeamGear() {
+    static getHexagonGirlsWithGear() {
         const available = getHHVars('availableGirls', false);
         if (!Array.isArray(available)) {
             logHHAuto('Error: availableGirls not found on the edit team page, cancel action');
-            return;
+            return [];
         }
-        const girls = TeamModule.getEditTeamGirlIds().map(id => {
+        return TeamModule.getEditTeamGirlIds().map(id => {
             var _a;
             const g = available.find((a) => Number(a.id_girl) === id);
-            return { id_girl: id, name: String((_a = g === null || g === void 0 ? void 0 : g.name) !== null && _a !== void 0 ? _a : id), armor: Array.isArray(g === null || g === void 0 ? void 0 : g.armor) ? g.armor : [] };
+            return {
+                id_girl: id, name: String((_a = g === null || g === void 0 ? void 0 : g.name) !== null && _a !== void 0 ? _a : id),
+                class: g === null || g === void 0 ? void 0 : g.class, element: g === null || g === void 0 ? void 0 : g.element, figure: g === null || g === void 0 ? void 0 : g.figure,
+                armor: Array.isArray(g === null || g === void 0 ? void 0 : g.armor) ? g.armor : [],
+            };
         });
-        EquipmentGear.previewGirlUpgrade(girls);
     }
     static assignTopTeam() {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
