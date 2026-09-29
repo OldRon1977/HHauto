@@ -7,18 +7,34 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.16.0 - Level-up gear for the team
+### v8.16.0 - Team gear
 
-- **Level-up gear** (Team selection popup on the edit-team page, below Stuff
-  Team): levels the worn mythic items of the girls in the hexagons to level
-  10. Girls go in team order, the leader first; for each girl the item with
-  the highest level goes first. Every item except mythics can be material,
-  picked by the game's own Auto Select, lowest value first; the material
-  list is scrolled so the pieces beyond the first batch are available too.
-  The run stops at the first item the material cannot take one level
-  further (that item keeps the levels it got), and before a level whose
-  price would take the money below "Money to keep" (500 M by default, as
-  in Stuff Team). A preview lists the items before anything is spent.
+- **Team gear** (Team selection popup on the edit-team page, a new block
+  below Stuff Team) with four buttons for the girls in the hexagons:
+  - **Unequip All**, the same as the button above it, for re-equipping a
+    team without building a new one.
+  - **Best gear**: plans every slot of every team girl by the current
+    stats (the ranking Stuff Team used: stat sum, then resonance with the
+    girl), leader first. A girl can get any item in the inventory or keep
+    her own; an item she trades in goes to the girls after her; each item
+    goes to one girl only, so when the mythics run out the later girls get
+    legendaries, epics and so on. Items worn by girls outside the team are
+    left alone; press Unequip All first to use them. The plan is shown slot
+    by slot, now and new, and nothing is equipped before you press Equip.
+  - **Possibly best gear**: the same, but mythics count with their stats at
+    level 10. Every other rarity counts as it is.
+  - **Level-up gear**: levels the worn mythics to level 10. Girls go in
+    team order, the leader first; for each girl the item with the highest
+    level goes first. Every item except mythics can be material, picked by
+    the game's own Auto Select, lowest value first; the material list is
+    scrolled so the pieces beyond the first batch are available too. The
+    run stops at the first item the material cannot take one level further
+    (that item keeps the levels it got), and before a level whose price
+    would take the money below "Money to keep" (500 M by default, as in
+    Stuff Team). A preview lists the items before anything is spent.
+- **Stuff Team** now does the skills only. Its switches "Give equipment",
+  "Give skills" and "Un-equip all before" are gone; the gear is in the Team
+  gear block.
 
 ### v8.15.0 - Every reward in the recap and the collect lists
 

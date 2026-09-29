@@ -3,6 +3,7 @@
 // Puts the "Team selection" button on the page and hands the team selection
 // popup its actions: read the hexagons and the saved team, save a team in
 // place, unequip and equip the girls' gear, Stuff Team (skill scrolls), and
+// the Team gear block: Best gear and Possibly best gear (run by TeamGear),
 // Level-up gear (the girls' worn mythics, run by EquipmentGear).
 // setTopTeam and assignTopTeam, the team workflow before the popup, have no
 // caller any more.
@@ -23,6 +24,8 @@ import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuil
 import { TeamEvaluationService } from '../Service/TeamEvaluationService';
 import { TeamSelectionPopup } from './TeamSelectionPopup';
 import { EquipmentGear } from './EquipmentGear';
+import { TeamGear } from './TeamGear';
+import type { TeamGearGirl } from '../Service/TeamGearService';
 import { GirlData, ElementType, RarityType, PlayerClass } from '../Service/TeamScoringService';
 import { TraitMappings } from '../Service/TraitMappings';
 import { fillHHPopUp } from "../Utils/HHPopup";
@@ -223,12 +226,6 @@ export class TeamModule {
                 ${getTextForUI("stuffTeaEstimatedCost", "elementText")}<span class="hudSC_mix_icn"></span>${Math.round(estimatedCost)}M
             </div>
             <hr style="border: 1px solid #ffa23e; width:100%"/>
-            <div class="rowLine">
-                ${hhMenuSwitch('unequipGirlsBefore')}
-                ${hhMenuSwitch('StuffTeamEquipment')}
-                ${hhMenuSwitch('StuffTeamSkills')}
-            </div>
-            <hr/>
             <div class="rowLine" ${team.scrolls_mythic > 0    ? '' : 'style="display:none;"' }>${displayScrollSwitch('Mythic')}</div>
             <div class="rowLine" ${team.scrolls_legendary > 0 ? '' : 'style="display:none;"' }>${displayScrollSwitch('Legendary')}</div>
             <div class="rowLine" ${team.scrolls_epic > 0      ? '' : 'style="display:none;"' }>${displayScrollSwitch('Epic')}</div>
@@ -254,44 +251,32 @@ export class TeamModule {
         </div>`;
         fillHHPopUp("stuffTeamMenu", getTextForUI("StuffTeam", "elementText"), stuffTeamMenu);
 
-        (<HTMLInputElement>document.getElementById("unequipGirlsBefore")).checked = true;
-        (<HTMLInputElement>document.getElementById("StuffTeamEquipment")).checked = true;
-        (<HTMLInputElement>document.getElementById("StuffTeamSkills")).checked = true;
-
-
+        // Skills only. The gear moved to the Team gear block of the team
+        // selection popup (TeamGear, Level-up gear), which plans the whole
+        // team at once instead of girl by girl on the girl page.
         $("#stuffTeamSubmit").on("click", function() {
             logHHAuto('Stuff from edit team');
-            const saveAndGo = function () {
-
-                const teamSettings = {
-                    moneyToKeep: (<HTMLInputElement>document.getElementById("moneyToKeep")).value,
-                    resetMythicGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetMythicGirls")).checked,
-                    resetLegendaryGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetLegendaryGirls")).checked,
-                    resetEpicGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetEpicGirls")).checked,
-                    resetRareGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetRareGirls")).checked,
-                    resetCommonGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetCommonGirls")).checked,
-                };
-                logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
-                
-                setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
-                setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
-                setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
-                
-                if(teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
-                } else {
-                    logHHAuto('No skill to reset, going to harem.');
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHarem"));
-                }
-            }
-            const unequipBefore = (<HTMLInputElement>document.getElementById("unequipGirlsBefore")).checked;
-            if (unequipBefore) {
-                // First un-equip all
-                TeamModule.unequipAllGirls(saveAndGo);
+            const teamSettings = {
+                moneyToKeep: (<HTMLInputElement>document.getElementById("moneyToKeep")).value,
+                resetMythicGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetMythicGirls")).checked,
+                resetLegendaryGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetLegendaryGirls")).checked,
+                resetEpicGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetEpicGirls")).checked,
+                resetRareGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetRareGirls")).checked,
+                resetCommonGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetCommonGirls")).checked,
+            };
+            logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
+            
+            setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
+            setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.SKILLS_TYPE);
+            setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
+            setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
+            setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+            
+            if(teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
             } else {
-                saveAndGo();
+                logHHAuto('No skill to reset, going to harem.');
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHarem"));
             }
         });
     }
@@ -546,25 +531,30 @@ export class TeamModule {
             }),
             unequipAll: () => TeamModule.unequipAllGirls(),
             stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
-            levelUpGear: () => TeamModule.levelUpTeamGear(),
+            bestGear: () => { void TeamGear.preview('best', TeamModule.getHexagonGirlsWithGear()); },
+            possibleGear: () => { void TeamGear.preview('possible', TeamModule.getHexagonGirlsWithGear()); },
+            levelUpGear: () => EquipmentGear.previewGirlUpgrade(TeamModule.getHexagonGirlsWithGear()),
         });
     }
 
     /**
-     * Level-up gear: the hexagon girls in team order, leader first, with the
-     * armor the edit page loaded (availableGirls carries it, measured).
+     * The hexagon girls in team order, leader first, with what they wear and
+     * the three resonance axes -- availableGirls carries all of it (measured).
      */
-    static levelUpTeamGear() {
+    static getHexagonGirlsWithGear(): TeamGearGirl[] {
         const available = getHHVars('availableGirls', false);
         if (!Array.isArray(available)) {
             logHHAuto('Error: availableGirls not found on the edit team page, cancel action');
-            return;
+            return [];
         }
-        const girls = TeamModule.getEditTeamGirlIds().map(id => {
+        return TeamModule.getEditTeamGirlIds().map(id => {
             const g = available.find((a: { id_girl?: unknown }) => Number(a.id_girl) === id);
-            return { id_girl: id, name: String(g?.name ?? id), armor: Array.isArray(g?.armor) ? g.armor : [] };
+            return {
+                id_girl: id, name: String(g?.name ?? id),
+                class: g?.class, element: g?.element, figure: g?.figure,
+                armor: Array.isArray(g?.armor) ? g.armor : [],
+            };
         });
-        EquipmentGear.previewGirlUpgrade(girls);
     }
 
     static assignTopTeam() {

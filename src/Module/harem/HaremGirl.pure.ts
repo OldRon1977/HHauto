@@ -1,8 +1,9 @@
 // HaremGirl.pure.ts -- Pure equipment scoring/comparison helpers.
 //
 // The resonance and stat-sum logic of HaremGirl.optimizeEquipmentSlots,
-// unit-testable without DOM, jQuery, or globals. HaremGirl imports scoreItem
-// and isBetter; findBestItem has no caller.
+// unit-testable without DOM, jQuery, or globals. HaremGirl and
+// TeamGearService (Best gear / Possibly best gear) import scoreItem and
+// isBetter; findBestItem has no caller.
 //
 // The data shape is intentionally loose -- the game API uses untyped JSON --
 // and the keys this file reads are documented on the types.
@@ -35,6 +36,9 @@ export type EquipmentItem = {
         | unknown[];
 };
 
+/** What the score reads from the wearer: the three resonance axes. */
+export type EquipmentWearer = Pick<KKHaremGirl, 'class' | 'element' | 'figure'>;
+
 export type EquipmentScore = {
     caracSum: number;
     resonanceMatches: number;
@@ -49,7 +53,7 @@ export type EquipmentScore = {
  *   - resonance_bonuses as an array is ignored (zero matches)
  *   - identifier comparison is stringified on both sides
  */
-export function scoreItem(item: EquipmentItem, girl: KKHaremGirl): EquipmentScore {
+export function scoreItem(item: EquipmentItem, girl: EquipmentWearer): EquipmentScore {
     const c = item.caracs;
     const caracSum =
         (c.carac1 || 0) +
@@ -78,7 +82,7 @@ export function scoreItem(item: EquipmentItem, girl: KKHaremGirl): EquipmentScor
  *
  * Returns null on an empty list. No caller at present.
  */
-export function findBestItem(items: EquipmentItem[], girl: KKHaremGirl): EquipmentItem | null {
+export function findBestItem(items: EquipmentItem[], girl: EquipmentWearer): EquipmentItem | null {
     if (items.length === 0) return null;
     return items.slice().sort((a, b) => {
         const sa = scoreItem(a, girl);
@@ -103,7 +107,7 @@ export function findBestItem(items: EquipmentItem[], girl: KKHaremGirl): Equipme
 export function isBetter(
     candidate: EquipmentItem,
     current: EquipmentItem | null | undefined,
-    girl: KKHaremGirl,
+    girl: EquipmentWearer,
 ): boolean {
     if (!current || !current.caracs) return true;
     const sc = scoreItem(candidate, girl);
