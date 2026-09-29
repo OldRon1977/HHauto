@@ -41,12 +41,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
 // ===, so a mismatch means the popup silently never appears, and adding a
 // paragraph without moving this number changes nothing on screen. If the
 // release number changes, change it here and in the title too.
-const FEATURE_POPUP_VERSION: string = "8.15.0";
+const FEATURE_POPUP_VERSION: string = "8.16.0";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.15.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.16.0";
 
 /**
  * HTML content for the feature popup.
@@ -55,16 +55,14 @@ const FEATURE_POPUP_TITLE = "HHAuto v8.15.0";
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">Please check your collect settings</p>
-    <p style="margin:0 0 10px 0;">Mythic boosters, books and light bulbs used to be collected under <i>Mythic Equipment</i>. They now count as what they are. If you collect those, tick <b>Boosters</b>, <b>Potions</b> and <b>Light Bulbs</b>.</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">The team buttons moved</p>
+    <p style="margin:0 0 10px 0;">The team list (Team Leagues and the other team pages) no longer has <i>Unequip All</i>, <i>Equip Teams</i> and <i>Stuff Team</i>. Open a team with <b>Edit</b> and click <b>Team optimization</b> (formerly <i>Team selection</i>): Unequip All and Stuff Team are there, and <b>Best gear</b> replaces Equip Teams. Stuff Team now does the skills only.</p>
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">What changed</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">New: Team gear</p>
     <ul style="margin:0 0 10px 18px; padding:0;">
-      <li style="margin-bottom:6px;"><b>Unclaimed rewards:</b> the box under <i>Claim All</i> now lists every reward still to claim &mdash; shards, gems, orbs, items, bulbs, equipment and more &mdash; not only energies, XP and currencies.</li>
-      <li style="margin-bottom:6px;"><b>Collect popup:</b> plain checkboxes, one click each. New buttons: <b>All but XP</b>, and <b>Copy to all</b>, which copies your selection to every other collect list.</li>
-      <li style="margin-bottom:6px;"><b>Three new collect types:</b> Equipment, Event resource and Lively scene. Tiers with them were never collected before. They start unticked.</li>
-      <li style="margin-bottom:6px;"><b>Event switches stay on:</b> Double Penetration, Lively Scene, Seasonal event and Boss Bang no longer switch themselves off between events.</li>
-      <li><b>Timer list:</b> events that are not running no longer show &quot;Time's up!&quot;.</li>
+      <li style="margin-bottom:6px;"><b>Best gear:</b> plans the gear of the whole team from your inventory and what the team wears. The first girls get the L10 mythics; among equal items the team gets the most resonance. You see the plan first &mdash; nothing is equipped before you press <b>Equip</b>.</li>
+      <li style="margin-bottom:6px;"><b>Possibly best gear:</b> the same, with mythics counted at level 10.</li>
+      <li><b>Level-up gear:</b> levels the mythics your team wears to level 10, leader first, with every item except mythics as material. It stops when the material runs out, and before your money drops below <i>Money to keep</i>.</li>
     </ul>
 
     <p style="margin-bottom:0; font-size:11px; color:#888;">Full details in the <a href="https://github.com/OldRon1977/HHauto/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG</a>.</p>
