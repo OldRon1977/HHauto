@@ -288,7 +288,6 @@ HHAuto_ToolTips.de['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Verb
 HHAuto_ToolTips.de['ChangeTeamButton'] = { version: "5.6.24", elementText: "Aktuell Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team."};
 HHAuto_ToolTips.de['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mögliches Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team, wenn sie auf max. Level und Zuneigung wären."};
 HHAuto_ToolTips.de['UnequipAll'] = { version: "7.22.0", elementText: "Alles ablegen", tooltip: "Nimmt allen Mädels die Ausrüstung ab."};
-HHAuto_ToolTips.de['EquipAll'] = { version: "7.29.0", elementText: "Teams ausrüsten", tooltip: "Rüstet die Team-Mädels über den spieleigenen Ausrüsten-Knopf aus."};
 HHAuto_ToolTips.de['StuffTeam'] = { version: "8.16.0", elementText: "Team bestücken", tooltip: "Baut die Skills des Teams automatisch auf. Kann anderen Mädels auch Skills wieder abnehmen. Die Ausrüstung steht im Block „Team-Ausrüstung“."};
 HHAuto_ToolTips.de['HHGearMenu'] = { version: "8.10.20", elementText: "HH Ausrüstung", tooltip: "Öffnet die Ausrüstungs-Werkzeuge: beste Ausrüstung jetzt, beste nach dem Leveln, getragene Mythics aufwerten und die Behalter markieren. Sie stecken in einem Menü, weil vier Knöpfe neben den spieleigenen nicht hinpassen."};
 HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten."};
@@ -513,9 +512,9 @@ HHAuto_ToolTips.de['giveequipment'] = { version: "7.30.0", elementText: "Ausrüs
 HHAuto_ToolTips.de['giveskills'] = { version: "7.30.0", elementText: "Skills geben", tooltip: "Gibt dem gewählten Mädel automatisch alle Skills."};
 HHAuto_ToolTips.de['costexperience'] = { version: "7.18.0", elementText: "Für Gesamtkosten von ", tooltip: ""};
 
-// Team selection popup (TeamSelectionPopup)
-HHAuto_ToolTips.de['teamSelOpen'] = { version: "8.14.0", elementText: "Teamwahl", tooltip: "Öffnet die Teamwahl: diese Woche nach Werten, diese Woche gegen die offenen Liga-Gegner, Vorschau nächste Woche."};
-HHAuto_ToolTips.de['teamSelTitle'] = { version: "8.14.0", elementText: "Teamwahl", tooltip: ""};
+// Team optimization popup (TeamSelectionPopup)
+HHAuto_ToolTips.de['teamSelOpen'] = { version: "8.16.0", elementText: "Team-Optimierung", tooltip: "Öffnet die Team-Optimierung: diese Woche nach Werten, diese Woche gegen die offenen Liga-Gegner, Vorschau nächste Woche, und die Ausrüstung des Teams."};
+HHAuto_ToolTips.de['teamSelTitle'] = { version: "8.16.0", elementText: "Team-Optimierung", tooltip: ""};
 HHAuto_ToolTips.de['teamSelCalculate'] = { version: "8.14.0", elementText: "Berechnen", tooltip: ""};
 HHAuto_ToolTips.de['teamSelApply'] = { version: "8.14.0", elementText: "Übernehmen (speichern)", tooltip: ""};
 HHAuto_ToolTips.de['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Noch keine Gegnerliste: einmal die Liga-Seite öffnen.", tooltip: ""};

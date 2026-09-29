@@ -9,7 +9,7 @@ Older entries below were migrated 1:1 from `README.md`.
 
 ### v8.16.0 - Team gear
 
-- **Team gear** (Team selection popup on the edit-team page, a new block
+- **Team gear** (Team optimization popup on the edit-team page, a new block
   below Stuff Team) with four buttons for the girls in the hexagons:
   - **Unequip All**, the same as the button above it, for re-equipping a
     team without building a new one.
@@ -26,8 +26,9 @@ Older entries below were migrated 1:1 from `README.md`.
     is equipped before you press Equip.
   - **Possibly best gear**: the same, but mythics count with their stats at
     level 10, computed from the item's base stats. Every other rarity counts
-    as it is. Among equal mythics the higher real level wins, so a finished
-    mythic is not traded for a low one that fits no better.
+    as it is. A low mythic that fits better takes the place of a finished
+    one, which goes to a later girl; Level-up gear then levels it. Among
+    mythics that fit equally well the higher real level wins.
   - **Level-up gear**: levels the worn mythics to level 10. Girls go in
     team order, the leader first; for each girl the item with the highest
     level goes first. Every item except mythics can be material, picked by
@@ -40,6 +41,13 @@ Older entries below were migrated 1:1 from `README.md`.
 - **Stuff Team** now does the skills only. Its switches "Give equipment",
   "Give skills" and "Un-equip all before" are gone; the gear is in the Team
   gear block.
+- The **Team selection** button on the edit-team page is now called **Team
+  optimization**; the popup behind it holds the team rubrics and the Team
+  gear block.
+- The **team list** (Team Leagues and the other team pages) no longer has the
+  Unequip All, Equip Teams and Stuff Team buttons. Everything they did is in
+  the Team optimization popup on the edit-team page; Equip Teams, the game's
+  own auto-equip per girl, is replaced by Best gear.
 
 ### v8.15.0 - Every reward in the recap and the collect lists
 

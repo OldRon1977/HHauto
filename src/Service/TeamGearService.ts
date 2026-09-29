@@ -10,10 +10,10 @@
 //      item of the highest stat sum in the pool, position 2 the next, and so
 //      on -- so the girls get L10 mythics in team order, as many as there
 //      are, and when they run out the later girls get legendaries, epics.
-//      The stat sum is the ranking Stuff Team used on the girl page
-//      (HaremGirl.pure: scoreItem): all six stats added up. Within one
-//      rarity and level every item has the same sum (measured: every L10
-//      mythic 1545), so rule 1 fixes which rarity and level each girl gets.
+//      The stat sum is scoreItem's (HaremGirl.pure): all six stats added
+//      up. Within one rarity and level every item has the same sum
+//      (measured: every L10 mythic 1545), so rule 1 fixes which rarity and
+//      level each girl gets.
 //   2. Among the items of the same sum, the girls get the distribution with
 //      the most resonance matches for the team. On a tie the earlier girls'
 //      matches count first, then the higher real level (less to level up),
@@ -22,6 +22,12 @@
 // Rule 2 is why this is not decided girl by girl: every L10 mythic has the
 // same stats, and a leader who takes the first one that fits her equally
 // well takes the one a later girl would have matched on two axes.
+//
+// In "possibly best" every mythic sits in the level 10 tier, so resonance
+// decides before the real level: a low mythic that fits an earlier girl
+// better replaces her finished one, which goes to a later girl. That is the
+// player's decision, not an oversight -- the plan is the team after Level-up
+// gear, even if it is weaker until the material for that is there.
 //
 // "Possibly best" ranks a mythic below level 10 by the stats it will have at
 // level 10, because Level-up gear takes worn mythics there. The game stores

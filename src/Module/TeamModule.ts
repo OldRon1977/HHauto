@@ -1,12 +1,15 @@
-// TeamModule.ts -- The edit-team page.
+// TeamModule.ts -- The edit-team page, and the skill scroll hint on the
+// team list.
 //
-// Puts the "Team selection" button on the page and hands the team selection
-// popup its actions: read the hexagons and the saved team, save a team in
-// place, unequip and equip the girls' gear, Stuff Team (skill scrolls), and
-// the Team gear block: Best gear and Possibly best gear (run by TeamGear),
-// Level-up gear (the girls' worn mythics, run by EquipmentGear).
-// setTopTeam and assignTopTeam, the team workflow before the popup, have no
-// caller any more.
+// Puts the "Team optimization" button on the edit-team page and hands the
+// popup behind it (TeamSelectionPopup) its actions: read the hexagons and
+// the saved team, save a team in place, Unequip All, Stuff Team (skill
+// scrolls), and the Team gear block: Best gear and Possibly best gear (run
+// by TeamGear), Level-up gear (the girls' worn mythics, run by
+// EquipmentGear). The team list (teams.html) gets only the scroll hint; its
+// former Unequip All / Equip Teams / Stuff Team buttons are gone, the popup
+// does all of it. setTopTeam and assignTopTeam, the team workflow before the
+// popup, have no caller any more.
 //
 // Used by: AutoLoopPageHandlers.ts (team building on the fight pages)
 //
@@ -48,10 +51,11 @@ export class TeamModule {
     }
     
     /**
-     * Edit-team page: one button, "Team selection", which opens the team
-     * selection popup (TeamSelectionPopup). The popup holds everything the
-     * former column did -- Unequip All, picking a team, applying it, Stuff
-     * Team -- and the modes that replaced "Current Best" / "Possible Best".
+     * Edit-team page: one button, "Team optimization", which opens the team
+     * popup (TeamSelectionPopup). The popup holds everything the former
+     * column did -- Unequip All, picking a team, applying it, Stuff Team --
+     * the modes that replaced "Current Best" / "Possible Best", and the Team
+     * gear block.
      */
     static moduleChangeTeam()
     {
@@ -72,28 +76,17 @@ export class TeamModule {
         $("#hhTeamSelectionOpen").on("click", () => TeamModule.openTeamSelection());
     }
 
-    static moduleEquipTeam()
+    private static teamListBound = false;
+
+    /**
+     * Team list (teams.html): the skill scroll hint for the selected team,
+     * redrawn when another team is picked. Once per page load -- the page
+     * handler runs on every loop tick.
+     */
+    static moduleTeamList()
     {
-        if (document.getElementById("EquipAll") !== null)
-        {
-            return;
-        }
-
-        GM_addStyle('.team-hexagon-container .team-hexagon .team-member-container.selected .team-member-border {background-color: #ffb827;}');
-
-        const buttonStyles = 'position: absolute;top: 420px;z-index:10';
-        const UnequipAll = hhButton('UnequipAll', 'UnequipAll', buttonStyles + ';left: 68%', 'font-size:small');
-        const EquipAll = hhButton('EquipAll', 'EquipAll', buttonStyles + ';left: 78%', 'font-size:small');
-        const StuffTeam = hhButton('StuffTeam', 'StuffTeam', buttonStyles + ';left: 88%', 'font-size:small');
-
-        $("#contains_all section").append(EquipAll);
-        $("#contains_all section").append(UnequipAll);
-        $("#contains_all section").append(StuffTeam);
-
-        $("#EquipAll").on("click", TeamModule.equipAllGirls);
-        $("#UnequipAll").on("click", TeamModule.unequipAllGirls);
-        $("#StuffTeam").on("click", TeamModule.buildStuffTeamSelectPopUp);
-
+        if (TeamModule.teamListBound) return;
+        TeamModule.teamListBound = true;
         $('.team-slot-container').on('click', TeamModule.manageSkillScrollTooltip);
         TeamModule.manageSkillScrollTooltip();
     }
@@ -301,60 +294,6 @@ export class TeamModule {
         return Math.max(0, fullNeededScrolls - usedScrolls);
     }
 
-    static equipAllGirls() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-            logHHAuto("Setting autoloop to false to let the equip action complete without interruptions.");
-
-            logHHAuto('Equip team');
-            $("#EquipAll").attr('disabled', 'disabled');
-            const girlIds = TeamModule.getSelectedGirlsId();
-            if (girlIds.length == 0) {
-                // The button was disabled a line above and only the success
-                // path re-enabled it, so a run that found no girls left it
-                // grey until the next page load -- and autoLoop switched off
-                // with it. Both are undone here.
-                $("#EquipAll").removeAttr('disabled');
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                return
-            }
-            
-            const currentPage = window.location.pathname + window.location.search;
-            let index = 0;
-
-            const equipGirl = (girlId: number) => {
-                logHHAuto(`Performing equip action for girl ${girlId} (${index + 1}/${girlIds.length})`);
-
-                $(`.team-member-container[data-girl-id="${girlId}"]`).addClass('selected');
-                // change referer
-                window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=equipment') as string);
-                var params1 = {
-                    action: "girl_equipment_equip_all",
-                    id_girl: girlId
-                };
-                getHHAjax()!(params1, function (data: any) {
-                    $('.team-member-container').removeClass('selected');
-                    if (data && data.success){
-                        logHHAuto(`Successfully equip girl ${girlId}`);
-                    } else logHHAuto(`Failed to equip girl ${girlId}`);
-                    index++;
-
-                    if(index <= (girlIds.length - 1)){
-                        setTimeout(function () { equipGirl(girlIds[index]) }, randomInterval(800, 1000));
-                    } else {
-                        $("#EquipAll").removeAttr('disabled');
-                        // change referer
-                        window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
-                        // C1: safeReload(delay) replaces setTimeout + reload
-                        // with mutex + waitForAjaxIdle protection.
-                        safeReload(randomInterval(200, 500));
-                    }
-                });
-            }
-            equipGirl(girlIds[index]);
-        } 
-    }
-
     static getFirstSelectedGirlId(): number{
         const selectedPosition = $('.team-member-container[data-team-member-position="0"]');
 
@@ -470,7 +409,7 @@ export class TeamModule {
     /**
      * Save a given team (leader first) with the request the game's Validate
      * button sends. Reports the outcome instead of only logging it: the
-     * team selection popup shows it next to the team it applied.
+     * Team optimization popup shows it next to the team it applied.
      */
     static saveTeamIds(girls: number[], onDone: (ok: boolean, message: string) => void) {
         const ajax = getHHAjax();
@@ -501,9 +440,10 @@ export class TeamModule {
     }
 
     /**
-     * The team selection popup (TeamSelectionPopup). A team it applies is
-     * saved and the page reloaded, so the hexagons show the saved team and
-     * "Stuff Team" equips the girls that will actually fight.
+     * The Team optimization popup (TeamSelectionPopup). A team it applies is
+     * saved and the page reloaded, so the hexagons show the saved team, and
+     * Stuff Team and the Team gear block work on the girls that will
+     * actually fight.
      */
     static openTeamSelection() {
         TeamSelectionPopup.open({

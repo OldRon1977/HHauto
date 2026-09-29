@@ -288,9 +288,9 @@ export class TeamGear {
     }
 
     /**
-     * Run `work` with the auto-loop kept out, as the team selection does: the
-     * flag stops new ticks, the hold keeps a tick that runs anyway from
-     * navigating away in the middle.
+     * Run `work` with the auto-loop kept out, as the team selection rubrics
+     * do (TeamSelectionPopup.run): the flag stops new ticks, the hold keeps
+     * a tick that runs anyway from navigating away in the middle.
      */
     private static async withLoopHeld<T>(work: () => Promise<T>): Promise<T> {
         const loopWasOn = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === 'true';
