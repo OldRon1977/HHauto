@@ -60,10 +60,10 @@ let seasonArenaPreviewShown = false;
 let opponentSnapshotTaken = false;
 
 export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
-    // The mythic upgrade page carries no `page` attribute, so it never
-    // reaches the switch below -- it is matched on its path instead. The run
-    // is a no-op unless "Upgrade Gear" filled the queue, so this cannot fire
-    // on its own.
+    // The upgrade pages are matched on their path: the mythic one carries no
+    // `page` attribute, so it never reaches the switch below. The run is a
+    // no-op unless "Upgrade Gear" or "Level-up gear" filled a queue, so this
+    // cannot fire on its own.
     if (EquipmentGear.isUpgradePage()) {
         // Marks first: this is the page where material is picked by hand, so
         // the stars have to be there whether or not a queued run follows.
@@ -236,6 +236,9 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
             ctx.busy = await Harem.run();
             break;
         case ConfigHelper.getHHScriptVars("pagesIDGirlPage"):
+            // Where the game lands after a girl item reached level 10; a
+            // no-op unless Level-up gear left a queue.
+            EquipmentGear.resumeGirlUpgradeQueue();
             HaremGirl.moduleHaremGirl = callItOnce(HaremGirl.moduleHaremGirl);
             HaremGirl.moduleHaremGirl();
             HaremGirl.showSkillButtons();

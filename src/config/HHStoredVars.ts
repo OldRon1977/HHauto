@@ -2427,6 +2427,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.gearUpgradeQueue] =
     storage:"localStorage",
     HHType:"Temp"
 };
+// The same for "Level-up gear" on the team page; its own key so the market
+// and the girl page, which hand the two runs on, never take the other's.
+HHStoredVars[HHStoredVarPrefixKey + TK.girlGearUpgradeQueue] =
+    {
+    default:"[]",
+    storage:"localStorage",
+    HHType:"Temp"
+};
 // The pieces "Mark Keepers" decided to keep, as level-independent identity
 // keys (see EquipmentKeepService.keepKey). localStorage and HHType Setting for
 // the same reason as pipelineOrder: it is a user decision, so it has to

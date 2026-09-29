@@ -1,7 +1,11 @@
 import {
+    GIRL_GEAR_MAX_LEVEL,
+    type RawGirlArmor,
     countMaterialStock,
     decideNextLevelUp,
+    girlUpgradePageUrl,
     parseRequirement,
+    pickGirlUpgradeTargets,
     pickUpgradeTargets,
     summariseNoTargets,
 } from '../../src/Service/EquipmentUpgradeService';
@@ -214,5 +218,89 @@ describe('decideNextLevelUp', () => {
             .toEqual({ go: true });
         expect(decideNextLevelUp({ currentLevel: MYTHIC_MAX_LEVEL, levelUpEnabled: true }))
             .toMatchObject({ go: false, done: true });
+    });
+});
+
+describe('decideNextLevelUp on the girl page', () => {
+    it('stops at level 10', () => {
+        expect(decideNextLevelUp({ currentLevel: 9, levelUpEnabled: true, maxLevel: GIRL_GEAR_MAX_LEVEL }))
+            .toEqual({ go: true });
+        expect(decideNextLevelUp({ currentLevel: 10, levelUpEnabled: true, maxLevel: GIRL_GEAR_MAX_LEVEL }))
+            .toMatchObject({ go: false, done: true });
+    });
+
+    it('buys a level that leaves exactly the money to keep', () => {
+        expect(decideNextLevelUp({ currentLevel: 3, levelUpEnabled: true, maxLevel: 10,
+            money: { available: 1_080_000, cost: 80_000, keep: 1_000_000 } })).toEqual({ go: true });
+    });
+
+    it('stops, not finished, before a level that would go below the money to keep', () => {
+        const d = decideNextLevelUp({ currentLevel: 3, levelUpEnabled: true, maxLevel: 10,
+            money: { available: 1_079_999, cost: 80_000, keep: 1_000_000 } });
+        expect(d).toMatchObject({ go: false, done: false, reason: expect.stringMatching(/money/) });
+    });
+
+    it('reports missing material before money', () => {
+        const d = decideNextLevelUp({ currentLevel: 3, levelUpEnabled: false, maxLevel: 10,
+            money: { available: 0, cost: 80_000, keep: 1_000_000 } });
+        expect(d).toMatchObject({ reason: expect.stringMatching(/material/) });
+    });
+});
+
+describe('parseRequirement on the girl page', () => {
+    // Measured on /girl-equipment-upgrade.html, a level 1 item.
+    it('takes the level 10 line as the cap', () => {
+        expect(parseRequirement('Until lvl.2: 8 Until lvl.10: 216', GIRL_GEAR_MAX_LEVEL))
+            .toEqual({ toNextLevel: 8, toMaxLevel: 216 });
+    });
+});
+
+describe('pickGirlUpgradeTargets', () => {
+    let id = 100;
+    const armor = (slot: number, rarity: string, level: number): RawGirlArmor =>
+        ({ id_girl_armor_equipped: id++, slot_index: slot, rarity, level, skin: { name: `item${slot}` } });
+
+    it('takes only worn mythics below level 10', () => {
+        const t = pickGirlUpgradeTargets([{ id_girl: 1, armor: [
+            armor(1, 'mythic', 3), armor(2, 'legendary', 1), armor(3, 'mythic', 10), armor(4, 'epic', 1),
+        ] }]);
+        expect(t.map(x => x.slot)).toEqual([1]);
+    });
+
+    it('orders girls by team position, leader first', () => {
+        const t = pickGirlUpgradeTargets([
+            { id_girl: 7, armor: [armor(1, 'mythic', 1)] },
+            { id_girl: 3, armor: [armor(1, 'mythic', 9)] },
+        ]);
+        expect(t.map(x => [x.girlId, x.position])).toEqual([[7, 0], [3, 1]]);
+    });
+
+    it('within one girl, the highest level first, then by slot', () => {
+        const t = pickGirlUpgradeTargets([{ id_girl: 1, armor: [
+            armor(4, 'mythic', 2), armor(2, 'mythic', 7), armor(6, 'mythic', 7), armor(1, 'mythic', 1),
+        ] }]);
+        expect(t.map(x => [x.slot, x.level])).toEqual([[2, 7], [6, 7], [4, 2], [1, 1]]);
+    });
+
+    it('keeps the position of a girl without gear', () => {
+        const t = pickGirlUpgradeTargets([
+            { id_girl: 1, armor: [] },
+            { id_girl: 2, armor: [armor(1, 'mythic', 1)] },
+        ]);
+        expect(t[0].position).toBe(1);
+    });
+
+    it('reads the levels the game sends as strings', () => {
+        const t = pickGirlUpgradeTargets([{ id_girl: 1, armor: [
+            { ...armor(1, 'mythic', 0), level: '10' as unknown as number },
+            { ...armor(2, 'mythic', 0), level: '4' as unknown as number },
+        ] }]);
+        expect(t.map(x => [x.slot, x.level])).toEqual([[2, 4]]);
+    });
+});
+
+describe('girlUpgradePageUrl', () => {
+    it('uses the parameter the game uses for a worn girl item', () => {
+        expect(girlUpgradePageUrl(42)).toBe('/girl-equipment-upgrade.html?id_girl_armor_equipped=42');
     });
 });

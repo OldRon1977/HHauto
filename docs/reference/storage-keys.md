@@ -502,6 +502,7 @@ shown in the info panel as "Auto-Mystery").
 | `teamTheme` | `Temp_teamTheme` | `localStorage` | `Temp` | the theme of the team built last; the gear optimiser needs it on the market page, where the team is not available |
 | `gearSwapLog` | `Temp_gearSwapLog` | `localStorage` | `Temp` | the inventory IDs of the items the gear optimiser took off, so a rollback stays possible (the ID changes on every unequip) |
 | `gearUpgradeQueue` | `Temp_gearUpgradeQueue` | `localStorage` | `Temp` | the items "Upgrade Gear" still has to level; worked through across the navigations to the upgrade page |
+| `girlGearUpgradeQueue` | `Temp_girlGearUpgradeQueue` | `localStorage` | `Temp` | the team girls' items "Level-up gear" still has to level, with the money floor; handed on from the girl page the game returns to after each item reaches level 10 |
 | `gearKeepKeys` | `Temp_gearKeepKeys` | `localStorage` | `Setting` | the pieces chosen by "Mark Keepers" as level-independent identity keys; a `Setting` despite the `Temp_` prefix, because it is a user decision (from 8.10.22) |
 
 ### Resources

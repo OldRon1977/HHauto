@@ -86,12 +86,15 @@ declare global {
         // First page of the market inventory. Only `armor` is read (by
         // EquipmentGear); the remaining pages come from market_get_armor.
         player_inventory?: { armor?: unknown[]; [key: string]: unknown };
-        // Only on /mythic-equipment-upgrade.html: the item that page is
-        // raising. EquipmentGear reads its id and level to drive the run.
+        // Only on /mythic-equipment-upgrade.html and
+        // /girl-equipment-upgrade.html: the item that page is raising.
+        // EquipmentGear reads its id and level to drive the run.
         item_to_upgrade?: {
             id_member_armor?: number;
             // Worn items report only this one, and as a string.
             id_member_armor_equipped?: number | string;
+            // The girls' page: the worn girl item.
+            id_girl_armor_equipped?: number | string;
             level?: number;
             [key: string]: unknown;
         };

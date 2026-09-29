@@ -32,6 +32,8 @@
 // The right-hand column holds Unequip All and Stuff Team, each with the state
 // it acts on: the gear on the team, and whether the hexagons match the saved
 // team (Stuff Team equips the hexagons, the league fights the saved team).
+// Below them Level-up gear, which levels the hexagon girls' worn mythics;
+// leveling does not depend on the saved team, so it asks nothing.
 //
 // The actions that live in TeamModule are handed in, so this file does not
 // import TeamModule (which opens it).
@@ -69,6 +71,8 @@ export interface TeamSelectionActions {
     saveTeam: (ids: number[], onDone: (ok: boolean, message: string) => void) => void;
     unequipAll: () => void;
     stuffTeam: () => void;
+    /** Level the hexagon girls' worn mythics (EquipmentGear.previewGirlUpgrade). */
+    levelUpGear: () => void;
 }
 
 interface Rubric {
@@ -197,6 +201,9 @@ export class TeamSelectionPopup {
                     <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
                     <div class="tsState" id="hhTsSavedState"></div>
                 </div>
+                <div>
+                    <label class="myButton" id="hhTsLevelUpGear" title="${getTextForUI('HHGirlGearLevelUp', 'tooltip')}">${getTextForUI('HHGirlGearLevelUp', 'elementText')}</label>
+                </div>
             </div>
         </div>`;
     }
@@ -214,6 +221,7 @@ export class TeamSelectionPopup {
             if (!TeamSelectionPopup.hexagonsMatchSaved() && !window.confirm(getTextForUI('teamSelStuffUnsaved', 'elementText'))) return;
             a.stuffTeam();
         });
+        $('#hhTsLevelUpGear').on('click', () => TeamSelectionPopup.actions?.levelUpGear());
     }
 
     private static hexagonsMatchSaved(): boolean {

@@ -1,5 +1,11 @@
-// EquipmentUpgradeService.ts -- Pure helpers for "Upgrade Gear": which worn
-// items are worth levelling, and when to stop.
+// EquipmentUpgradeService.ts -- Pure helpers for "Upgrade Gear" (the hero's
+// items) and "Level-up gear" (the team girls' items): which worn items are
+// worth levelling, and when to stop.
+//
+// Both run on the same game page code, so they share the stop rule. The
+// girls' page states its material table client-side (material_costs_map,
+// materials_per_rarity), but it ships the same Auto Select, so the girl run
+// leaves the picking to the game as well.
 //
 // The deliberate non-decision in here: this file does not compute how much
 // material a level costs, and does not pick the material. Both are left to
@@ -44,6 +50,73 @@ export const UPGRADE_PATH = '/mythic-equipment-upgrade.html';
 
 export function upgradePageUrl(target: { id_member_armor: number }): string {
     return `${UPGRADE_PATH}?id_member_item_equipped=${target.id_member_armor}`;
+}
+
+/** The girls' upgrade page. Same game bundle as the player one
+ *  (mythic_equipment.js); it tells the two apart by this query parameter.
+ *  A worn girl item keeps its id_girl_armor_equipped across level-ups
+ *  (measured: `next_level_item` carries the same id). */
+export const GIRL_UPGRADE_PATH = '/girl-equipment-upgrade.html';
+
+/** `upgradeable_item_max_level` on the girls' page (measured), where the
+ *  player page has MYTHIC_MAX_LEVEL. */
+export const GIRL_GEAR_MAX_LEVEL = 10;
+
+export function girlUpgradePageUrl(idGirlArmorEquipped: number): string {
+    return `${GIRL_UPGRADE_PATH}?id_girl_armor_equipped=${idGirlArmorEquipped}`;
+}
+
+/** One worn piece of girl equipment, as `availableGirls[].armor` and
+ *  `teams_data[].girls[].armor` carry it. */
+export interface RawGirlArmor {
+    id_girl_armor_equipped: number;
+    slot_index: number;
+    level: number;
+    rarity: string;
+    skin?: { name?: string };
+}
+
+export interface GirlUpgradeTarget {
+    id: number;
+    girlId: number;
+    /** Team position, 0 = leader. */
+    position: number;
+    slot: number;
+    level: number;
+    name: string;
+}
+
+/**
+ * The team's worn mythics below level 10, in the order they get the
+ * material.
+ *
+ * Girls in team order, the leader first -- the player's decision: when the
+ * material runs out, the front of the team is what got it. Within one girl
+ * the highest level first, because it reaches the cap on the least material,
+ * then by slot.
+ *
+ * Only mythics, although the game offers the upgrade page for every rarity:
+ * that too is the player's decision, not a limit of the game.
+ */
+export function pickGirlUpgradeTargets(
+    girls: { id_girl: number; armor: RawGirlArmor[] }[],
+): GirlUpgradeTarget[] {
+    const out: GirlUpgradeTarget[] = [];
+    girls.forEach((girl, position) => {
+        const own = (girl.armor ?? [])
+            .filter(a => a.rarity === 'mythic' && Number(a.level) < GIRL_GEAR_MAX_LEVEL)
+            .map(a => ({
+                id: Number(a.id_girl_armor_equipped),
+                girlId: Number(girl.id_girl),
+                position,
+                slot: Number(a.slot_index),
+                level: Number(a.level),
+                name: a.skin?.name ?? '',
+            }))
+            .sort((a, b) => b.level - a.level || a.slot - b.slot);
+        out.push(...own);
+    });
+    return out;
 }
 
 /**
@@ -158,7 +231,7 @@ export interface UpgradeRequirement {
     toMaxLevel: number | null;
 }
 
-export function parseRequirement(pageText: string): UpgradeRequirement {
+export function parseRequirement(pageText: string, maxLevel: number = MYTHIC_MAX_LEVEL): UpgradeRequirement {
     const out: UpgradeRequirement = { toNextLevel: null, toMaxLevel: null };
     // "Until lvl.3: 23" / "Until lvl.20: 1,535"
     const re = /Until\s+lvl\.(\d+):\s*([\d.,]+)/gi;
@@ -170,9 +243,9 @@ export function parseRequirement(pageText: string): UpgradeRequirement {
         // One level below the cap the page prints the same line twice --
         // "Until lvl.20: 204" is both the next level and the last one. So the
         // first match is always the next level, and the cap line is whichever
-        // one names MYTHIC_MAX_LEVEL; at level 19 that is the same number.
+        // one names the cap; one level below it that is the same number.
         if (out.toNextLevel === null) out.toNextLevel = amount;
-        if (level >= MYTHIC_MAX_LEVEL) out.toMaxLevel = amount;
+        if (level >= maxLevel) out.toMaxLevel = amount;
     }
     return out;
 }
@@ -191,19 +264,29 @@ export type UpgradeStop =
  *
  * There is deliberately no per-run cap: the caller passes
  * `startLevel + performed` as the current level, so the level rises with every
- * pass and the max-level check below ends the loop after at most 19 passes,
- * 1 -> 20 being the whole range the game allows. A cap on top of that would
- * read like a safeguard without ever firing.
+ * pass and the max-level check below ends the loop after at most maxLevel - 1
+ * passes, the whole range the game allows. A cap on top of that would read
+ * like a safeguard without ever firing.
+ *
+ * `money` is optional: the player page has no money floor, "Level-up gear"
+ * on the team page does. With it, a level whose price (the Level-up button's
+ * `cost` attribute) would take the money below `moneyToKeep` is not bought.
  */
 export function decideNextLevelUp(state: {
     currentLevel: number;
     levelUpEnabled: boolean;
+    maxLevel?: number;
+    money?: { available: number; cost: number; keep: number };
 }): UpgradeStop {
-    if (state.currentLevel >= MYTHIC_MAX_LEVEL) {
+    if (state.currentLevel >= (state.maxLevel ?? MYTHIC_MAX_LEVEL)) {
         return { go: false, reason: 'item is at max level', done: true };
     }
     if (!state.levelUpEnabled) {
         return { go: false, reason: 'not enough material left for another level', done: false };
+    }
+    if (state.money && state.money.available - state.money.cost < state.money.keep) {
+        return { go: false, reason: `the next level costs ${state.money.cost} and would take the money below`
+            + ` ${state.money.keep}`, done: false };
     }
     return { go: true };
 }

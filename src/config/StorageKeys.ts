@@ -316,6 +316,9 @@ export const TK = {
     // Items "Upgrade Gear" still has to level, worked off across the
     // navigations to the upgrade page.
     gearUpgradeQueue: "Temp_gearUpgradeQueue",
+    // Items "Level-up gear" (team page) still has to level; handed on from
+    // the girl page the game returns to after each capped item.
+    girlGearUpgradeQueue: "Temp_girlGearUpgradeQueue",
     gearKeepKeys: "Temp_gearKeepKeys",
 
     // Resources

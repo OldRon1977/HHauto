@@ -7,6 +7,19 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.16.0 - Level-up gear for the team
+
+- **Level-up gear** (Team selection popup on the edit-team page, below Stuff
+  Team): levels the worn mythic items of the girls in the hexagons to level
+  10. Girls go in team order, the leader first; for each girl the item with
+  the highest level goes first. Every item except mythics can be material,
+  picked by the game's own Auto Select, lowest value first; the material
+  list is scrolled so the pieces beyond the first batch are available too.
+  The run stops at the first item the material cannot take one level
+  further (that item keeps the levels it got), and before a level whose
+  price would take the money below "Money to keep" (500 M by default, as
+  in Stuff Team). A preview lists the items before anything is spent.
+
 ### v8.15.0 - Every reward in the recap and the collect lists
 
 - **Unclaimed rewards:** the recap under "Claim All" on path of valor, path
