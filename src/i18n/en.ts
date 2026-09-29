@@ -287,7 +287,6 @@ HHAuto_ToolTips.en['PachinkoOrbsSpent'] = {version: "7.3.5", elementText: 'Orbs 
 HHAuto_ToolTips.en['ChangeTeamButton'] = {version: "5.6.24", elementText: "Current Best", tooltip: "Get list of top 16 girls for your team."};
 HHAuto_ToolTips.en['ChangeTeamButton2'] = {version: "5.6.24", elementText: "Possible Best", tooltip: "Get list of top 16 girls for your team if they are Max Lv & Aff"};
 HHAuto_ToolTips.en['UnequipAll'] = { version: "7.22.0", elementText: "Unequip All", tooltip: "Unequip all girls equipment"};
-HHAuto_ToolTips.en['EquipAll'] = { version: "7.29.0", elementText: "Equip Teams", tooltip: "Equip team girls equipment with ingame girl equip button"};
 HHAuto_ToolTips.en['StuffTeam'] = { version: "8.16.0", elementText: "Stuff Team", tooltip: "Auto build the team's skills. Can also remove skills from other girls if needed. Money limit will be considered. The gear is in the Team gear block."};
 HHAuto_ToolTips.en['HHGearMenu'] = { version: "8.10.20", elementText: "HH Gear", tooltip: "Opens the gear tools: best gear now, best gear once levelled, upgrade the worn mythics, and mark the ones worth keeping. They live in a menu because four buttons do not fit beside the game\u0027s own."};
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker."};
@@ -512,9 +511,9 @@ HHAuto_ToolTips.en['giveequipment'] = { version: "7.30.0", elementText: "Give eq
 HHAuto_ToolTips.en['giveskills'] = { version: "7.30.0", elementText: "Give skills", tooltip: "Automatically give all skills to selected girl."};
 HHAuto_ToolTips.en['costexperience'] = { version: "7.18.0", elementText: "For a total cost of ", tooltip: ""};
 
-// Team selection popup (TeamSelectionPopup)
-HHAuto_ToolTips.en['teamSelOpen'] = { version: "8.14.0", elementText: "Team selection", tooltip: "Open the team selection: this week by stats, this week against the open league opponents, next week preview."};
-HHAuto_ToolTips.en['teamSelTitle'] = { version: "8.14.0", elementText: "Team selection", tooltip: ""};
+// Team optimization popup (TeamSelectionPopup)
+HHAuto_ToolTips.en['teamSelOpen'] = { version: "8.16.0", elementText: "Team optimization", tooltip: "Open the team optimization: this week by stats, this week against the open league opponents, next week preview, and the team's gear."};
+HHAuto_ToolTips.en['teamSelTitle'] = { version: "8.16.0", elementText: "Team optimization", tooltip: ""};
 HHAuto_ToolTips.en['teamSelCalculate'] = { version: "8.14.0", elementText: "Calculate", tooltip: ""};
 HHAuto_ToolTips.en['teamSelApply'] = { version: "8.14.0", elementText: "Apply (save)", tooltip: ""};
 HHAuto_ToolTips.en['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "No opponent list yet: open the league page once.", tooltip: ""};

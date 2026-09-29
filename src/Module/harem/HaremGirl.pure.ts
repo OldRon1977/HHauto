@@ -1,9 +1,9 @@
 // HaremGirl.pure.ts -- Pure equipment scoring/comparison helpers.
 //
 // The resonance and stat-sum logic of HaremGirl.optimizeEquipmentSlots,
-// unit-testable without DOM, jQuery, or globals. HaremGirl and
-// TeamGearService (Best gear / Possibly best gear) import scoreItem and
-// isBetter; findBestItem has no caller.
+// unit-testable without DOM, jQuery, or globals. HaremGirl imports scoreItem
+// and isBetter, TeamGearService (Best gear / Possibly best gear) scoreItem;
+// findBestItem has no caller.
 //
 // The data shape is intentionally loose -- the game API uses untyped JSON --
 // and the keys this file reads are documented on the types.

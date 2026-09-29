@@ -1,7 +1,7 @@
-// TeamSelectionService.ts -- Pure helpers behind the team selection popup on
-// the edit-team page: its three groups of rubrics (this week by stats, this
-// week against the open league opponents, next week by stats), each as the
-// best team now and the possibly best one.
+// TeamSelectionService.ts -- Pure helpers behind the team selection rubrics
+// of the Team optimization popup on the edit-team page: three groups (this
+// week by stats, this week against the open league opponents, next week by
+// stats), each as the best team now and the possibly best one.
 //
 // Why a wider candidate set: the builder ranks girls by caracs_sum, which
 // weighs carac1, carac2 and carac3 alike. The game does not -- measured on a

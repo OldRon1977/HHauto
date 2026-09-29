@@ -585,7 +585,6 @@ HHAuto_ToolTips.en['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: 'Orbs
 HHAuto_ToolTips.en['ChangeTeamButton'] = { version: "5.6.24", elementText: "Current Best", tooltip: "Get list of top 16 girls for your team." };
 HHAuto_ToolTips.en['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Possible Best", tooltip: "Get list of top 16 girls for your team if they are Max Lv & Aff" };
 HHAuto_ToolTips.en['UnequipAll'] = { version: "7.22.0", elementText: "Unequip All", tooltip: "Unequip all girls equipment" };
-HHAuto_ToolTips.en['EquipAll'] = { version: "7.29.0", elementText: "Equip Teams", tooltip: "Equip team girls equipment with ingame girl equip button" };
 HHAuto_ToolTips.en['StuffTeam'] = { version: "8.16.0", elementText: "Stuff Team", tooltip: "Auto build the team's skills. Can also remove skills from other girls if needed. Money limit will be considered. The gear is in the Team gear block." };
 HHAuto_ToolTips.en['HHGearMenu'] = { version: "8.10.20", elementText: "HH Gear", tooltip: "Opens the gear tools: best gear now, best gear once levelled, upgrade the worn mythics, and mark the ones worth keeping. They live in a menu because four buttons do not fit beside the game\u0027s own." };
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker." };
@@ -809,9 +808,9 @@ HHAuto_ToolTips.en['costaffection'] = { version: "7.18.0", elementText: "For a t
 HHAuto_ToolTips.en['giveequipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Automatically give all equipment to selected girl." };
 HHAuto_ToolTips.en['giveskills'] = { version: "7.30.0", elementText: "Give skills", tooltip: "Automatically give all skills to selected girl." };
 HHAuto_ToolTips.en['costexperience'] = { version: "7.18.0", elementText: "For a total cost of ", tooltip: "" };
-// Team selection popup (TeamSelectionPopup)
-HHAuto_ToolTips.en['teamSelOpen'] = { version: "8.14.0", elementText: "Team selection", tooltip: "Open the team selection: this week by stats, this week against the open league opponents, next week preview." };
-HHAuto_ToolTips.en['teamSelTitle'] = { version: "8.14.0", elementText: "Team selection", tooltip: "" };
+// Team optimization popup (TeamSelectionPopup)
+HHAuto_ToolTips.en['teamSelOpen'] = { version: "8.16.0", elementText: "Team optimization", tooltip: "Open the team optimization: this week by stats, this week against the open league opponents, next week preview, and the team's gear." };
+HHAuto_ToolTips.en['teamSelTitle'] = { version: "8.16.0", elementText: "Team optimization", tooltip: "" };
 HHAuto_ToolTips.en['teamSelCalculate'] = { version: "8.14.0", elementText: "Calculate", tooltip: "" };
 HHAuto_ToolTips.en['teamSelApply'] = { version: "8.14.0", elementText: "Apply (save)", tooltip: "" };
 HHAuto_ToolTips.en['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "No opponent list yet: open the league page once.", tooltip: "" };
@@ -1158,7 +1157,6 @@ HHAuto_ToolTips.fr['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Orbe
 HHAuto_ToolTips.fr['ChangeTeamButton'] = { version: "5.6.24", elementText: "Meilleure actuelle", tooltip: "Récupère la liste des 16 meilleures filles pour votre équipe." };
 HHAuto_ToolTips.fr['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Meilleure possible", tooltip: "Récupère la liste des 16 meilleures filles pour votre équipe si elles étaient au niveau et à l'affection maximum." };
 HHAuto_ToolTips.fr['UnequipAll'] = { version: "7.22.0", elementText: "Tout déséquiper", tooltip: "Retire l'équipement de toutes les filles." };
-HHAuto_ToolTips.fr['EquipAll'] = { version: "7.29.0", elementText: "Équiper les équipes", tooltip: "Équipe les filles de l'équipe avec le bouton d'équipement du jeu." };
 HHAuto_ToolTips.fr['StuffTeam'] = { version: "8.16.0", elementText: "Équiper l'équipe", tooltip: "Construit automatiquement les compétences de l'équipe. Peut aussi retirer des compétences à d'autres filles si nécessaire. La limite d'argent est respectée. L'équipement est dans le bloc « Équipement de l'équipe »." };
 HHAuto_ToolTips.fr['HHGearMenu'] = { version: "8.10.20", elementText: "Équipement HH", tooltip: "Ouvre les outils d'équipement : meilleur équipement actuel, meilleur équipement une fois monté au niveau max, amélioration des mythiques portés, et marquage de ceux qui valent la peine d'être gardés. Ils sont dans un menu parce que quatre boutons ne tiennent pas à côté de ceux du jeu." };
 HHAuto_ToolTips.fr['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Meilleur équipement actuel", tooltip: "Équipe la meilleure armure que vous possédez pour chacun des six emplacements du héros, jugée sur les statistiques du jour. Les statistiques brutes décident, la résonance départage : cela ne vous affaiblit jamais." };
@@ -1359,9 +1357,9 @@ HHAuto_ToolTips.fr['costaffection'] = { version: "7.18.0", elementText: "Pour un
 HHAuto_ToolTips.fr['giveequipment'] = { version: "7.30.0", elementText: "Donner l'équipement", tooltip: "Donne automatiquement tout l'équipement à la fille sélectionnée." };
 HHAuto_ToolTips.fr['giveskills'] = { version: "7.30.0", elementText: "Donner les compétences", tooltip: "Donne automatiquement toutes les compétences à la fille sélectionnée." };
 HHAuto_ToolTips.fr['costexperience'] = { version: "7.18.0", elementText: "Pour un coût total de ", tooltip: "" };
-// Team selection popup (TeamSelectionPopup)
-HHAuto_ToolTips.fr['teamSelOpen'] = { version: "8.14.0", elementText: "Choix d'équipe", tooltip: "Ouvre le choix d'équipe : cette semaine selon les stats, cette semaine contre les adversaires de ligue restants, aperçu de la semaine prochaine." };
-HHAuto_ToolTips.fr['teamSelTitle'] = { version: "8.14.0", elementText: "Choix d'équipe", tooltip: "" };
+// Team optimization popup (TeamSelectionPopup)
+HHAuto_ToolTips.fr['teamSelOpen'] = { version: "8.16.0", elementText: "Optimisation d'équipe", tooltip: "Ouvre l'optimisation d'équipe : cette semaine selon les stats, cette semaine contre les adversaires de ligue restants, aperçu de la semaine prochaine, et l'équipement de l'équipe." };
+HHAuto_ToolTips.fr['teamSelTitle'] = { version: "8.16.0", elementText: "Optimisation d'équipe", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelCalculate'] = { version: "8.14.0", elementText: "Calculer", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelApply'] = { version: "8.14.0", elementText: "Appliquer (enregistrer)", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Pas encore de liste d'adversaires : ouvrez une fois la page de ligue.", tooltip: "" };
@@ -1687,7 +1685,6 @@ HHAuto_ToolTips.de['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Verb
 HHAuto_ToolTips.de['ChangeTeamButton'] = { version: "5.6.24", elementText: "Aktuell Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team." };
 HHAuto_ToolTips.de['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mögliches Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team, wenn sie auf max. Level und Zuneigung wären." };
 HHAuto_ToolTips.de['UnequipAll'] = { version: "7.22.0", elementText: "Alles ablegen", tooltip: "Nimmt allen Mädels die Ausrüstung ab." };
-HHAuto_ToolTips.de['EquipAll'] = { version: "7.29.0", elementText: "Teams ausrüsten", tooltip: "Rüstet die Team-Mädels über den spieleigenen Ausrüsten-Knopf aus." };
 HHAuto_ToolTips.de['StuffTeam'] = { version: "8.16.0", elementText: "Team bestücken", tooltip: "Baut die Skills des Teams automatisch auf. Kann anderen Mädels auch Skills wieder abnehmen. Die Ausrüstung steht im Block „Team-Ausrüstung“." };
 HHAuto_ToolTips.de['HHGearMenu'] = { version: "8.10.20", elementText: "HH Ausrüstung", tooltip: "Öffnet die Ausrüstungs-Werkzeuge: beste Ausrüstung jetzt, beste nach dem Leveln, getragene Mythics aufwerten und die Behalter markieren. Sie stecken in einem Menü, weil vier Knöpfe neben den spieleigenen nicht hinpassen." };
 HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten." };
@@ -1910,9 +1907,9 @@ HHAuto_ToolTips.de['costaffection'] = { version: "7.18.0", elementText: "Für Ge
 HHAuto_ToolTips.de['giveequipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Gibt dem gewählten Mädel automatisch die komplette Ausrüstung." };
 HHAuto_ToolTips.de['giveskills'] = { version: "7.30.0", elementText: "Skills geben", tooltip: "Gibt dem gewählten Mädel automatisch alle Skills." };
 HHAuto_ToolTips.de['costexperience'] = { version: "7.18.0", elementText: "Für Gesamtkosten von ", tooltip: "" };
-// Team selection popup (TeamSelectionPopup)
-HHAuto_ToolTips.de['teamSelOpen'] = { version: "8.14.0", elementText: "Teamwahl", tooltip: "Öffnet die Teamwahl: diese Woche nach Werten, diese Woche gegen die offenen Liga-Gegner, Vorschau nächste Woche." };
-HHAuto_ToolTips.de['teamSelTitle'] = { version: "8.14.0", elementText: "Teamwahl", tooltip: "" };
+// Team optimization popup (TeamSelectionPopup)
+HHAuto_ToolTips.de['teamSelOpen'] = { version: "8.16.0", elementText: "Team-Optimierung", tooltip: "Öffnet die Team-Optimierung: diese Woche nach Werten, diese Woche gegen die offenen Liga-Gegner, Vorschau nächste Woche, und die Ausrüstung des Teams." };
+HHAuto_ToolTips.de['teamSelTitle'] = { version: "8.16.0", elementText: "Team-Optimierung", tooltip: "" };
 HHAuto_ToolTips.de['teamSelCalculate'] = { version: "8.14.0", elementText: "Berechnen", tooltip: "" };
 HHAuto_ToolTips.de['teamSelApply'] = { version: "8.14.0", elementText: "Übernehmen (speichern)", tooltip: "" };
 HHAuto_ToolTips.de['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Noch keine Gegnerliste: einmal die Liga-Seite öffnen.", tooltip: "" };
@@ -2135,7 +2132,6 @@ HHAuto_ToolTips.es['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Orbe
 HHAuto_ToolTips.es['ChangeTeamButton'] = { version: "5.6.24", elementText: "Mejor actual", tooltip: "Obtiene la lista de las 16 mejores chicas para tu equipo." };
 HHAuto_ToolTips.es['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mejor posible", tooltip: "Obtiene la lista de las 16 mejores chicas para tu equipo si estuvieran al nivel y afecto máximos." };
 HHAuto_ToolTips.es['UnequipAll'] = { version: "7.22.0", elementText: "Desequipar todo", tooltip: "Quita el equipo a todas las chicas." };
-HHAuto_ToolTips.es['EquipAll'] = { version: "7.29.0", elementText: "Equipar equipos", tooltip: "Equipa a las chicas del equipo con el botón de equipar del propio juego." };
 HHAuto_ToolTips.es['StuffTeam'] = { version: "8.16.0", elementText: "Preparar equipo", tooltip: "Construye automáticamente las habilidades del equipo. También puede quitar habilidades a otras chicas si hace falta. Se respeta el límite de dinero. El equipo está en el bloque «Equipo de las chicas»." };
 HHAuto_ToolTips.es['HHGearMenu'] = { version: "8.10.20", elementText: "Equipo HH", tooltip: "Abre las herramientas de equipo: mejor equipo ahora, mejor equipo una vez subido de nivel, mejorar los míticos puestos y marcar los que merece la pena conservar. Están en un menú porque cuatro botones no caben junto a los del propio juego." };
 HHAuto_ToolTips.es['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Mejor equipo actual", tooltip: "Equipa la armadura más fuerte que tienes para cada una de las seis ranuras del héroe, según las estadísticas de hoy. Deciden las estadísticas brutas y la resonancia desempata; esto nunca te deja más débil." };
@@ -2460,9 +2456,9 @@ HHAuto_ToolTips.es['costaffection'] = { version: "7.18.0", elementText: "Por un 
 HHAuto_ToolTips.es['giveequipment'] = { version: "7.30.0", elementText: "Dar equipo", tooltip: "Da automáticamente todo el equipo a la chica seleccionada." };
 HHAuto_ToolTips.es['giveskills'] = { version: "7.30.0", elementText: "Dar habilidades", tooltip: "Da automáticamente todas las habilidades a la chica seleccionada." };
 HHAuto_ToolTips.es['costexperience'] = { version: "7.18.0", elementText: "Por un coste total de", tooltip: "" };
-// Team selection popup (TeamSelectionPopup)
-HHAuto_ToolTips.es['teamSelOpen'] = { version: "8.14.0", elementText: "Elección de equipo", tooltip: "Abre la elección de equipo: esta semana según estadísticas, esta semana contra los rivales de liga pendientes, vista previa de la próxima semana." };
-HHAuto_ToolTips.es['teamSelTitle'] = { version: "8.14.0", elementText: "Elección de equipo", tooltip: "" };
+// Team optimization popup (TeamSelectionPopup)
+HHAuto_ToolTips.es['teamSelOpen'] = { version: "8.16.0", elementText: "Optimización del equipo", tooltip: "Abre la optimización del equipo: esta semana según estadísticas, esta semana contra los rivales de liga pendientes, vista previa de la próxima semana, y el equipo de las chicas." };
+HHAuto_ToolTips.es['teamSelTitle'] = { version: "8.16.0", elementText: "Optimización del equipo", tooltip: "" };
 HHAuto_ToolTips.es['teamSelCalculate'] = { version: "8.14.0", elementText: "Calcular", tooltip: "" };
 HHAuto_ToolTips.es['teamSelApply'] = { version: "8.14.0", elementText: "Aplicar (guardar)", tooltip: "" };
 HHAuto_ToolTips.es['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Aún no hay lista de rivales: abre una vez la página de liga.", tooltip: "" };
@@ -24621,10 +24617,10 @@ class TeamScoringService {
 }
 
 ;// ./src/Service/TeamSelectionService.ts
-// TeamSelectionService.ts -- Pure helpers behind the team selection popup on
-// the edit-team page: its three groups of rubrics (this week by stats, this
-// week against the open league opponents, next week by stats), each as the
-// best team now and the possibly best one.
+// TeamSelectionService.ts -- Pure helpers behind the team selection rubrics
+// of the Team optimization popup on the edit-team page: three groups (this
+// week by stats, this week against the open league opponents, next week by
+// stats), each as the best team now and the possibly best one.
 //
 // Why a wider candidate set: the builder ranks girls by caracs_sum, which
 // weighs carac1, carac2 and carac3 alike. The game does not -- measured on a
@@ -30788,7 +30784,8 @@ function autoLoopHolder() {
 }
 
 ;// ./src/Module/TeamSelectionPopup.ts
-// TeamSelectionPopup.ts -- The team selection popup on the edit-team page.
+// TeamSelectionPopup.ts -- The "Team optimization" popup on the edit-team
+// page: the team selection rubrics, and the team's gear.
 //
 // Six rubrics in three groups, kept visibly apart because they answer
 // different questions:
@@ -30821,7 +30818,8 @@ function autoLoopHolder() {
 //
 // The right-hand column holds Unequip All and Stuff Team, each with the state
 // it acts on: the gear on the team, and whether the hexagons match the saved
-// team (Stuff Team equips the hexagons, the league fights the saved team).
+// team (Stuff Team skills the hexagon girls, the league fights the saved
+// team).
 // Below them the Team gear block, for the hexagon girls: Unequip All once
 // more (for re-equipping a team without building a new one), Best gear and
 // Possibly best gear (each shows its plan before equipping), and Level-up
@@ -31333,10 +31331,10 @@ TeamSelectionPopup.stylesAdded = false;
 //      item of the highest stat sum in the pool, position 2 the next, and so
 //      on -- so the girls get L10 mythics in team order, as many as there
 //      are, and when they run out the later girls get legendaries, epics.
-//      The stat sum is the ranking Stuff Team used on the girl page
-//      (HaremGirl.pure: scoreItem): all six stats added up. Within one
-//      rarity and level every item has the same sum (measured: every L10
-//      mythic 1545), so rule 1 fixes which rarity and level each girl gets.
+//      The stat sum is scoreItem's (HaremGirl.pure): all six stats added
+//      up. Within one rarity and level every item has the same sum
+//      (measured: every L10 mythic 1545), so rule 1 fixes which rarity and
+//      level each girl gets.
 //   2. Among the items of the same sum, the girls get the distribution with
 //      the most resonance matches for the team. On a tie the earlier girls'
 //      matches count first, then the higher real level (less to level up),
@@ -31345,6 +31343,12 @@ TeamSelectionPopup.stylesAdded = false;
 // Rule 2 is why this is not decided girl by girl: every L10 mythic has the
 // same stats, and a leader who takes the first one that fits her equally
 // well takes the one a later girl would have matched on two axes.
+//
+// In "possibly best" every mythic sits in the level 10 tier, so resonance
+// decides before the real level: a low mythic that fits an earlier girl
+// better replaces her finished one, which goes to a later girl. That is the
+// player's decision, not an oversight -- the plan is the team after Level-up
+// gear, even if it is weaker until the material for that is there.
 //
 // "Possibly best" ranks a mythic below level 10 by the stats it will have at
 // level 10, because Level-up gear takes worn mythics there. The game stores
@@ -31812,9 +31816,9 @@ class TeamGear {
         });
     }
     /**
-     * Run `work` with the auto-loop kept out, as the team selection does: the
-     * flag stops new ticks, the hold keeps a tick that runs anyway from
-     * navigating away in the middle.
+     * Run `work` with the auto-loop kept out, as the team selection rubrics
+     * do (TeamSelectionPopup.run): the flag stops new ticks, the hold keeps
+     * a tick that runs anyway from navigating away in the middle.
      */
     static withLoopHeld(work) {
         return TeamGear_awaiter(this, void 0, void 0, function* () {
@@ -32046,15 +32050,18 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// TeamModule.ts -- The edit-team page.
+// TeamModule.ts -- The edit-team page, and the skill scroll hint on the
+// team list.
 //
-// Puts the "Team selection" button on the page and hands the team selection
-// popup its actions: read the hexagons and the saved team, save a team in
-// place, unequip and equip the girls' gear, Stuff Team (skill scrolls), and
-// the Team gear block: Best gear and Possibly best gear (run by TeamGear),
-// Level-up gear (the girls' worn mythics, run by EquipmentGear).
-// setTopTeam and assignTopTeam, the team workflow before the popup, have no
-// caller any more.
+// Puts the "Team optimization" button on the edit-team page and hands the
+// popup behind it (TeamSelectionPopup) its actions: read the hexagons and
+// the saved team, save a team in place, Unequip All, Stuff Team (skill
+// scrolls), and the Team gear block: Best gear and Possibly best gear (run
+// by TeamGear), Level-up gear (the girls' worn mythics, run by
+// EquipmentGear). The team list (teams.html) gets only the scroll hint; its
+// former Unequip All / Equip Teams / Stuff Team buttons are gone, the popup
+// does all of it. setTopTeam and assignTopTeam, the team workflow before the
+// popup, have no caller any more.
 //
 // Used by: AutoLoopPageHandlers.ts (team building on the fight pages)
 //
@@ -32090,10 +32097,11 @@ class TeamModule {
         $('#validate-team').trigger('click');
     }
     /**
-     * Edit-team page: one button, "Team selection", which opens the team
-     * selection popup (TeamSelectionPopup). The popup holds everything the
-     * former column did -- Unequip All, picking a team, applying it, Stuff
-     * Team -- and the modes that replaced "Current Best" / "Possible Best".
+     * Edit-team page: one button, "Team optimization", which opens the team
+     * popup (TeamSelectionPopup). The popup holds everything the former
+     * column did -- Unequip All, picking a team, applying it, Stuff Team --
+     * the modes that replaced "Current Best" / "Possible Best", and the Team
+     * gear block.
      */
     static moduleChangeTeam() {
         if (document.getElementById("hhTeamSelectionOpen") !== null) {
@@ -32109,21 +32117,15 @@ class TeamModule {
             + '</div>');
         $("#hhTeamSelectionOpen").on("click", () => TeamModule.openTeamSelection());
     }
-    static moduleEquipTeam() {
-        if (document.getElementById("EquipAll") !== null) {
+    /**
+     * Team list (teams.html): the skill scroll hint for the selected team,
+     * redrawn when another team is picked. Once per page load -- the page
+     * handler runs on every loop tick.
+     */
+    static moduleTeamList() {
+        if (TeamModule.teamListBound)
             return;
-        }
-        GM_addStyle('.team-hexagon-container .team-hexagon .team-member-container.selected .team-member-border {background-color: #ffb827;}');
-        const buttonStyles = 'position: absolute;top: 420px;z-index:10';
-        const UnequipAll = hhButton('UnequipAll', 'UnequipAll', buttonStyles + ';left: 68%', 'font-size:small');
-        const EquipAll = hhButton('EquipAll', 'EquipAll', buttonStyles + ';left: 78%', 'font-size:small');
-        const StuffTeam = hhButton('StuffTeam', 'StuffTeam', buttonStyles + ';left: 88%', 'font-size:small');
-        $("#contains_all section").append(EquipAll);
-        $("#contains_all section").append(UnequipAll);
-        $("#contains_all section").append(StuffTeam);
-        $("#EquipAll").on("click", TeamModule.equipAllGirls);
-        $("#UnequipAll").on("click", TeamModule.unequipAllGirls);
-        $("#StuffTeam").on("click", TeamModule.buildStuffTeamSelectPopUp);
+        TeamModule.teamListBound = true;
         $('.team-slot-container').on('click', TeamModule.manageSkillScrollTooltip);
         TeamModule.manageSkillScrollTooltip();
     }
@@ -32317,57 +32319,6 @@ class TeamModule {
             logHHAuto(`Total skill points used by ${rarity}_${nbGrades} girls in the team: ${usedScrolls}/${fullNeededScrolls}`);
         return Math.max(0, fullNeededScrolls - usedScrolls);
     }
-    static equipAllGirls() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-            logHHAuto("Setting autoloop to false to let the equip action complete without interruptions.");
-            logHHAuto('Equip team');
-            $("#EquipAll").attr('disabled', 'disabled');
-            const girlIds = TeamModule.getSelectedGirlsId();
-            if (girlIds.length == 0) {
-                // The button was disabled a line above and only the success
-                // path re-enabled it, so a run that found no girls left it
-                // grey until the next page load -- and autoLoop switched off
-                // with it. Both are undone here.
-                $("#EquipAll").removeAttr('disabled');
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                return;
-            }
-            const currentPage = window.location.pathname + window.location.search;
-            let index = 0;
-            const equipGirl = (girlId) => {
-                logHHAuto(`Performing equip action for girl ${girlId} (${index + 1}/${girlIds.length})`);
-                $(`.team-member-container[data-girl-id="${girlId}"]`).addClass('selected');
-                // change referer
-                window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=equipment'));
-                var params1 = {
-                    action: "girl_equipment_equip_all",
-                    id_girl: girlId
-                };
-                getHHAjax()(params1, function (data) {
-                    $('.team-member-container').removeClass('selected');
-                    if (data && data.success) {
-                        logHHAuto(`Successfully equip girl ${girlId}`);
-                    }
-                    else
-                        logHHAuto(`Failed to equip girl ${girlId}`);
-                    index++;
-                    if (index <= (girlIds.length - 1)) {
-                        setTimeout(function () { equipGirl(girlIds[index]); }, randomInterval(800, 1000));
-                    }
-                    else {
-                        $("#EquipAll").removeAttr('disabled');
-                        // change referer
-                        window.history.replaceState(null, '', addNutakuSession(currentPage));
-                        // C1: safeReload(delay) replaces setTimeout + reload
-                        // with mutex + waitForAjaxIdle protection.
-                        safeReload(randomInterval(200, 500));
-                    }
-                });
-            };
-            equipGirl(girlIds[index]);
-        }
-    }
     static getFirstSelectedGirlId() {
         const selectedPosition = $('.team-member-container[data-team-member-position="0"]');
         if (selectedPosition.length > 0) {
@@ -32478,7 +32429,7 @@ class TeamModule {
     /**
      * Save a given team (leader first) with the request the game's Validate
      * button sends. Reports the outcome instead of only logging it: the
-     * team selection popup shows it next to the team it applied.
+     * Team optimization popup shows it next to the team it applied.
      */
     static saveTeamIds(girls, onDone) {
         const ajax = getHHAjax();
@@ -32510,9 +32461,10 @@ class TeamModule {
         });
     }
     /**
-     * The team selection popup (TeamSelectionPopup). A team it applies is
-     * saved and the page reloaded, so the hexagons show the saved team and
-     * "Stuff Team" equips the girls that will actually fight.
+     * The Team optimization popup (TeamSelectionPopup). A team it applies is
+     * saved and the page reloaded, so the hexagons show the saved team, and
+     * Stuff Team and the Team gear block work on the girls that will
+     * actually fight.
      */
     static openTeamSelection() {
         TeamSelectionPopup.open({
@@ -33118,6 +33070,7 @@ class TeamModule {
         $("#contains_all section").append(synergyInfo);
     }
 }
+TeamModule.teamListBound = false;
 TeamModule.ELEMENT_EMOJI = {
     fire: '🔥', water: '💧', nature: '🌿', stone: '🪨',
     sun: '☀️', darkness: '🌑', psychic: '🔮', light: '✨',
@@ -33745,7 +33698,7 @@ function handlePageSpecific(ctx) {
                 Harem.moduleHaremCountMax();
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDBattleTeams"):
-                TeamModule.moduleEquipTeam();
+                TeamModule.moduleTeamList();
                 // Read-only: records the fielded team's theme for the gear
                 // buttons on the market page, which has no team data.
                 EquipmentGear.recordTeamTheme();

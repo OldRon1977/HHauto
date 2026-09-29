@@ -309,7 +309,6 @@ HHAuto_ToolTips.fr['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Orbe
 HHAuto_ToolTips.fr['ChangeTeamButton'] = { version: "5.6.24", elementText: "Meilleure actuelle", tooltip: "Récupère la liste des 16 meilleures filles pour votre équipe."};
 HHAuto_ToolTips.fr['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Meilleure possible", tooltip: "Récupère la liste des 16 meilleures filles pour votre équipe si elles étaient au niveau et à l'affection maximum."};
 HHAuto_ToolTips.fr['UnequipAll'] = { version: "7.22.0", elementText: "Tout déséquiper", tooltip: "Retire l'équipement de toutes les filles."};
-HHAuto_ToolTips.fr['EquipAll'] = { version: "7.29.0", elementText: "Équiper les équipes", tooltip: "Équipe les filles de l'équipe avec le bouton d'équipement du jeu."};
 HHAuto_ToolTips.fr['StuffTeam'] = { version: "8.16.0", elementText: "Équiper l'équipe", tooltip: "Construit automatiquement les compétences de l'équipe. Peut aussi retirer des compétences à d'autres filles si nécessaire. La limite d'argent est respectée. L'équipement est dans le bloc « Équipement de l'équipe »."};
 HHAuto_ToolTips.fr['HHGearMenu'] = { version: "8.10.20", elementText: "Équipement HH", tooltip: "Ouvre les outils d'équipement : meilleur équipement actuel, meilleur équipement une fois monté au niveau max, amélioration des mythiques portés, et marquage de ceux qui valent la peine d'être gardés. Ils sont dans un menu parce que quatre boutons ne tiennent pas à côté de ceux du jeu."};
 HHAuto_ToolTips.fr['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Meilleur équipement actuel", tooltip: "Équipe la meilleure armure que vous possédez pour chacun des six emplacements du héros, jugée sur les statistiques du jour. Les statistiques brutes décident, la résonance départage : cela ne vous affaiblit jamais."};
@@ -511,9 +510,9 @@ HHAuto_ToolTips.fr['giveequipment'] = { version: "7.30.0", elementText: "Donner 
 HHAuto_ToolTips.fr['giveskills'] = { version: "7.30.0", elementText: "Donner les compétences", tooltip: "Donne automatiquement toutes les compétences à la fille sélectionnée."};
 HHAuto_ToolTips.fr['costexperience'] = { version: "7.18.0", elementText: "Pour un coût total de ", tooltip: ""};
 
-// Team selection popup (TeamSelectionPopup)
-HHAuto_ToolTips.fr['teamSelOpen'] = { version: "8.14.0", elementText: "Choix d'équipe", tooltip: "Ouvre le choix d'équipe : cette semaine selon les stats, cette semaine contre les adversaires de ligue restants, aperçu de la semaine prochaine."};
-HHAuto_ToolTips.fr['teamSelTitle'] = { version: "8.14.0", elementText: "Choix d'équipe", tooltip: ""};
+// Team optimization popup (TeamSelectionPopup)
+HHAuto_ToolTips.fr['teamSelOpen'] = { version: "8.16.0", elementText: "Optimisation d'équipe", tooltip: "Ouvre l'optimisation d'équipe : cette semaine selon les stats, cette semaine contre les adversaires de ligue restants, aperçu de la semaine prochaine, et l'équipement de l'équipe."};
+HHAuto_ToolTips.fr['teamSelTitle'] = { version: "8.16.0", elementText: "Optimisation d'équipe", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelCalculate'] = { version: "8.14.0", elementText: "Calculer", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelApply'] = { version: "8.14.0", elementText: "Appliquer (enregistrer)", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Pas encore de liste d'adversaires : ouvrez une fois la page de ligue.", tooltip: ""};

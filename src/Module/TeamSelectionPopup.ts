@@ -1,4 +1,5 @@
-// TeamSelectionPopup.ts -- The team selection popup on the edit-team page.
+// TeamSelectionPopup.ts -- The "Team optimization" popup on the edit-team
+// page: the team selection rubrics, and the team's gear.
 //
 // Six rubrics in three groups, kept visibly apart because they answer
 // different questions:
@@ -31,7 +32,8 @@
 //
 // The right-hand column holds Unequip All and Stuff Team, each with the state
 // it acts on: the gear on the team, and whether the hexagons match the saved
-// team (Stuff Team equips the hexagons, the league fights the saved team).
+// team (Stuff Team skills the hexagon girls, the league fights the saved
+// team).
 // Below them the Team gear block, for the hexagon girls: Unequip All once
 // more (for re-equipping a team without building a new one), Best gear and
 // Possibly best gear (each shows its plan before equipping), and Level-up

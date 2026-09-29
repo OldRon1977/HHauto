@@ -1,9 +1,5 @@
 import { TeamModule } from "../../src/Module/TeamModule";
 import { loadFixture } from "../testHelpers/Fixtures";
-import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
-import { TK } from "../../src/config/StorageKeys";
-import { getStoredValue } from "../../src/Helper/StorageHelper";
-import { MockHelper } from "../testHelpers/MockHelpers";
 
 describe("TeamModule.getSelectedGirlsId -- I1 regression (return type)", () => {
     afterEach(() => {
@@ -20,7 +16,7 @@ describe("TeamModule.getSelectedGirlsId -- I1 regression (return type)", () => {
         // crashes on `.length`. It must be an empty array.
         expect(Array.isArray(result)).toBe(true);
         expect(result).toEqual([]);
-        // The exact crash path: equipAllGirls does `if (girlIds.length == 0)`.
+        // Consumers read `.length` right away, so it must not throw.
         expect(() => result.length).not.toThrow();
         expect(result.length).toBe(0);
     });
@@ -31,8 +27,8 @@ describe("TeamModule.getSelectedGirlsId -- I1 regression (return type)", () => {
     // nulls, next to its own max_team_size of 7. The game states capacity
     // separately from occupancy, so "not seven" is not "unreadable"; it is a
     // young account. Under the old rule every consumer of this list gave up:
-    // the Stuff Team popup returned at once, and equipAllGirls disabled
-    // #EquipAll before its early return and equipped nothing.
+    // the Stuff Team popup returned at once, and the team list's former Equip
+    // Teams button equipped nothing.
     it("returns the girls a team of fewer than seven actually holds", () => {
         document.body.innerHTML =
             "<div id=\"hh_hentai\" page=\"edit-team\">" +
@@ -60,43 +56,6 @@ describe("TeamModule.getSelectedGirlsId -- I1 regression (return type)", () => {
         unsafeWindow.teams_data = { 2: { girls_ids: [11, 22, 33, 44, 55, 66, 77] } } as unknown as typeof unsafeWindow.teams_data;
         const result = TeamModule.getSelectedGirlsId();
         expect(result).toEqual([11, 22, 33, 44, 55, 66, 77]);
-    });
-});
-
-// equipAllGirls disables its own button and switches autoLoop off before it
-// knows whether there is anything to do. Only the success path put either
-// back, so a run that found no girls left the button grey until the next page
-// load.
-describe('TeamModule.equipAllGirls -- the button survives an empty team', () => {
-    afterEach(() => {
-        document.body.innerHTML = "";
-        localStorage.clear();
-        sessionStorage.clear();
-    });
-
-    const battleTeamsPage = (teamIndex: string) => {
-        // getPage() looks the game root up by the environment's gameID, and
-        // that comes from the hostname -- without this the id does not match
-        // and equipAllGirls leaves through its page guard, which would make
-        // the assertions below pass for the wrong reason.
-        MockHelper.mockDomain('www.hentaiheroes.com', '/teams.html');
-        document.body.innerHTML =
-            '<div id="hh_hentai" page="teams">' +
-            `<div class="team-slot-container selected-team" data-team-index="${teamIndex}"></div>` +
-            '<button id="EquipAll">Equip All</button>' +
-            '</div>';
-    };
-
-    it("re-enables #EquipAll and autoLoop when the team is empty", () => {
-        battleTeamsPage('1');
-        unsafeWindow.teams_data = { 1: { girls_ids: [] } } as unknown as typeof unsafeWindow.teams_data;
-
-        TeamModule.equipAllGirls();
-
-        expect(document.querySelector('#EquipAll')!.hasAttribute('disabled')).toBe(false);
-        // Read it back the way the code writes it, rather than guessing which
-        // of the two stores HHStoredVars routes this key to.
-        expect(getStoredValue(HHStoredVarPrefixKey + TK.autoLoop)).toBe('true');
     });
 });
 

@@ -32,8 +32,10 @@ refactoring with a long run of feature work:
   stuck-script situations.
 - **Smarter team building** — blessing- and synergy-aware League / Edit Team
   selection.
-- **Better equipment** — optimized "Stuff Team", auto-equip boosters and
-  smarter Sandalwood handling.
+- **Better equipment** — a Team gear block in the Team optimization popup
+  that plans the whole team's gear, best now or best after levelling, and
+  levels the worn mythics to level 10; auto-equip boosters and smarter
+  Sandalwood handling.
 - **Gear for your hero** — three buttons on the market page pick the best
   armor for your six slots, put on the items worth developing, and level them
   with legendary and epic material.

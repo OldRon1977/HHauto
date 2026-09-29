@@ -184,7 +184,6 @@ HHAuto_ToolTips.es['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Orbe
 HHAuto_ToolTips.es['ChangeTeamButton'] = { version: "5.6.24", elementText: "Mejor actual", tooltip: "Obtiene la lista de las 16 mejores chicas para tu equipo."};
 HHAuto_ToolTips.es['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mejor posible", tooltip: "Obtiene la lista de las 16 mejores chicas para tu equipo si estuvieran al nivel y afecto máximos."};
 HHAuto_ToolTips.es['UnequipAll'] = { version: "7.22.0", elementText: "Desequipar todo", tooltip: "Quita el equipo a todas las chicas."};
-HHAuto_ToolTips.es['EquipAll'] = { version: "7.29.0", elementText: "Equipar equipos", tooltip: "Equipa a las chicas del equipo con el botón de equipar del propio juego."};
 HHAuto_ToolTips.es['StuffTeam'] = { version: "8.16.0", elementText: "Preparar equipo", tooltip: "Construye automáticamente las habilidades del equipo. También puede quitar habilidades a otras chicas si hace falta. Se respeta el límite de dinero. El equipo está en el bloque «Equipo de las chicas»."};
 HHAuto_ToolTips.es['HHGearMenu'] = { version: "8.10.20", elementText: "Equipo HH", tooltip: "Abre las herramientas de equipo: mejor equipo ahora, mejor equipo una vez subido de nivel, mejorar los míticos puestos y marcar los que merece la pena conservar. Están en un menú porque cuatro botones no caben junto a los del propio juego."};
 HHAuto_ToolTips.es['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Mejor equipo actual", tooltip: "Equipa la armadura más fuerte que tienes para cada una de las seis ranuras del héroe, según las estadísticas de hoy. Deciden las estadísticas brutas y la resonancia desempata; esto nunca te deja más débil."};
@@ -510,9 +509,9 @@ HHAuto_ToolTips.es['giveequipment'] = { version: "7.30.0", elementText: "Dar equ
 HHAuto_ToolTips.es['giveskills'] = { version: "7.30.0", elementText: "Dar habilidades", tooltip: "Da automáticamente todas las habilidades a la chica seleccionada."};
 HHAuto_ToolTips.es['costexperience'] = { version: "7.18.0", elementText: "Por un coste total de", tooltip: ""};
 
-// Team selection popup (TeamSelectionPopup)
-HHAuto_ToolTips.es['teamSelOpen'] = { version: "8.14.0", elementText: "Elección de equipo", tooltip: "Abre la elección de equipo: esta semana según estadísticas, esta semana contra los rivales de liga pendientes, vista previa de la próxima semana."};
-HHAuto_ToolTips.es['teamSelTitle'] = { version: "8.14.0", elementText: "Elección de equipo", tooltip: ""};
+// Team optimization popup (TeamSelectionPopup)
+HHAuto_ToolTips.es['teamSelOpen'] = { version: "8.16.0", elementText: "Optimización del equipo", tooltip: "Abre la optimización del equipo: esta semana según estadísticas, esta semana contra los rivales de liga pendientes, vista previa de la próxima semana, y el equipo de las chicas."};
+HHAuto_ToolTips.es['teamSelTitle'] = { version: "8.16.0", elementText: "Optimización del equipo", tooltip: ""};
 HHAuto_ToolTips.es['teamSelCalculate'] = { version: "8.14.0", elementText: "Calcular", tooltip: ""};
 HHAuto_ToolTips.es['teamSelApply'] = { version: "8.14.0", elementText: "Aplicar (guardar)", tooltip: ""};
 HHAuto_ToolTips.es['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Aún no hay lista de rivales: abre una vez la página de liga.", tooltip: ""};
