@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.15.0
+// @version      8.16.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -591,6 +591,12 @@ HHAuto_ToolTips.en['HHGearMenu'] = { version: "8.10.20", elementText: "HH Gear",
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker." };
 HHAuto_ToolTips.en['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Possible Best Gear", tooltip: "Equip the armor that will be strongest once it is levelled to the max, matching your class and your team's theme. Shows what the switch costs you today." };
 HHAuto_ToolTips.en['HHGearUpgrade'] = { version: "8.8.0", elementText: "Upgrade Gear", tooltip: "Level the mythic items you are wearing towards the cap, using legendary and epic items as material. Mythics are never consumed. Shows what it costs before anything is spent." };
+HHAuto_ToolTips.en['HHGirlGearLevelUp'] = { version: "8.16.0", elementText: "Level-up gear", tooltip: "Levels the worn mythic items of the girls in the hexagons to level 10, leader first. Uses every item except mythics as material, picked by the game's Auto Select. Stops at the first item the material cannot take further, and before the money drops below the amount to keep." };
+HHAuto_ToolTips.en['HHGirlGearNone'] = { version: "8.16.0", elementText: "No girl in this team wears a mythic item below level 10.", tooltip: "" };
+HHAuto_ToolTips.en['HHGirlGearIntro'] = { version: "8.16.0", elementText: "These worn mythics are levelled to level 10, in this order. The run stops at the first item the material cannot take further; that item keeps the levels it got.", tooltip: "" };
+HHAuto_ToolTips.en['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "girl", tooltip: "" };
+HHAuto_ToolTips.en['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Material: every item except mythics, picked by the game's Auto Select, lowest value first. Before each level the price is checked against the money to keep.", tooltip: "" };
+HHAuto_ToolTips.en['HHGirlGearStart'] = { version: "8.16.0", elementText: "Level up", tooltip: "" };
 HHAuto_ToolTips.en['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Mark Keepers", tooltip: "<p>Marks the mythic pieces worth keeping with a star, so <b>everything unmarked is safe to spend by hand as upgrade material</b>.</p><p>One piece is kept per slot and element. Which one: your own class first, then <code>damage</code> before <code>defence</code> before <code>ego</code> before <code>harmony</code>, then the higher level.</p><p>An element you own only on a foreign class keeps its best piece anyway -- otherwise that element would vanish from the slot entirely.</p><p>Display only: nothing is equipped, sold or consumed, and the automation never feeds mythics to anything.</p>" };
 HHAuto_ToolTips.en['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Every mythic item you are wearing is already at the maximum level. Only mythic items can be levelled.", tooltip: "" };
 HHAuto_ToolTips.en['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "You have not equipped any mythic item yet. Only mythic items can be levelled -- put them on first; Possible Best Gear does exactly that.", tooltip: "" };
@@ -1146,6 +1152,12 @@ HHAuto_ToolTips.fr['HHGearMenu'] = { version: "8.10.20", elementText: "Équipeme
 HHAuto_ToolTips.fr['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Meilleur équipement actuel", tooltip: "Équipe la meilleure armure que vous possédez pour chacun des six emplacements du héros, jugée sur les statistiques du jour. Les statistiques brutes décident, la résonance départage : cela ne vous affaiblit jamais." };
 HHAuto_ToolTips.fr['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Meilleur équipement possible", tooltip: "Équipe l'armure qui sera la plus forte une fois montée au niveau maximum, en accord avec votre classe et le thème de votre équipe. Affiche ce que le changement vous coûte aujourd'hui." };
 HHAuto_ToolTips.fr['HHGearUpgrade'] = { version: "8.8.0", elementText: "Améliorer l'équipement", tooltip: "Monte au maximum possible les objets mythiques que vous portez, en utilisant des objets légendaires et épiques comme matériau. Les mythiques ne sont jamais consommés. Affiche le coût avant toute dépense." };
+HHAuto_ToolTips.fr['HHGirlGearLevelUp'] = { version: "8.16.0", elementText: "Monter l'équipement", tooltip: "Monte au niveau 10 les objets mythiques portés par les filles des hexagones, la meneuse d'abord. Tous les objets sauf les mythiques servent de matériau, choisis par l'Auto Select du jeu. S'arrête au premier objet que le matériau ne peut plus monter, et avant que l'argent passe sous le montant à garder." };
+HHAuto_ToolTips.fr['HHGirlGearNone'] = { version: "8.16.0", elementText: "Aucune fille de cette équipe ne porte d'objet mythique sous le niveau 10.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGirlGearIntro'] = { version: "8.16.0", elementText: "Ces mythiques portés sont montés au niveau 10, dans cet ordre. Le lancement s'arrête au premier objet que le matériau ne peut plus monter ; cet objet garde les niveaux obtenus.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "fille", tooltip: "" };
+HHAuto_ToolTips.fr['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Matériau : tous les objets sauf les mythiques, choisis par l'Auto Select du jeu, valeur la plus basse d'abord. Avant chaque niveau, le prix est comparé à l'argent à garder.", tooltip: "" };
+HHAuto_ToolTips.fr['HHGirlGearStart'] = { version: "8.16.0", elementText: "Monter", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Marquer à garder", tooltip: "<p>Marque d'une étoile les pièces mythiques qui valent la peine d'être gardées, de sorte que <b>tout ce qui n'est pas marqué peut être dépensé à la main comme matériau d'amélioration</b>.</p><p>Une pièce est gardée par emplacement et par élément. Laquelle : votre propre classe d'abord, puis <code>dégâts</code> avant <code>défense</code>, avant <code>ego</code>, avant <code>harmonie</code>, et enfin le niveau le plus élevé.</p><p>Un élément que vous ne possédez que sur une classe étrangère garde tout de même sa meilleure pièce, sans quoi cet élément disparaîtrait complètement de l'emplacement.</p><p>Purement indicatif : rien n'est équipé, vendu ni consommé, et l'automatisation ne donne jamais de mythique comme matériau.</p>" };
 HHAuto_ToolTips.fr['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Tous les objets mythiques que vous portez sont déjà au niveau maximum. Seuls les objets mythiques peuvent monter de niveau.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Vous n'avez encore équipé aucun objet mythique. Seuls les objets mythiques peuvent monter de niveau : équipez-les d'abord, « Meilleur équipement possible » s'en charge.", tooltip: "" };
@@ -1657,6 +1669,12 @@ HHAuto_ToolTips.de['HHGearMenu'] = { version: "8.10.20", elementText: "HH Ausrü
 HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten." };
 HHAuto_ToolTips.de['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mögliche beste Ausrüstung", tooltip: "Legt die Rüstung an, die nach vollem Aufleveln die stärkste wäre, passend zu deiner Klasse und deinem Team-Thema." };
 HHAuto_ToolTips.de['HHGearUpgrade'] = { version: "8.8.0", elementText: "Ausrüstung aufwerten", tooltip: "Levelt die getragenen Mythic-Teile Richtung Maximum und nutzt legendäre und epische Teile als Material." };
+HHAuto_ToolTips.de['HHGirlGearLevelUp'] = { version: "8.16.0", elementText: "Ausrüstung leveln", tooltip: "Levelt die angelegten Mythic-Teile der Mädels in den Hexagons auf Level 10, die Anführerin zuerst. Als Material dient alles außer Mythics, ausgewählt vom Auto Select des Spiels. Endet beim ersten Teil, das das Material nicht weiterbringt, und bevor das Geld unter den Rückhalt fällt." };
+HHAuto_ToolTips.de['HHGirlGearNone'] = { version: "8.16.0", elementText: "Kein Mädel in diesem Team trägt ein Mythic-Teil unter Level 10.", tooltip: "" };
+HHAuto_ToolTips.de['HHGirlGearIntro'] = { version: "8.16.0", elementText: "Diese angelegten Mythics werden in dieser Reihenfolge auf Level 10 gebracht. Der Lauf endet beim ersten Teil, das das Material nicht weiterbringt; es behält die erreichten Level.", tooltip: "" };
+HHAuto_ToolTips.de['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "Mädel", tooltip: "" };
+HHAuto_ToolTips.de['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Material: alles außer Mythics, ausgewählt vom Auto Select des Spiels, geringster Wert zuerst. Vor jedem Level wird der Preis gegen den Geldrückhalt geprüft.", tooltip: "" };
+HHAuto_ToolTips.de['HHGirlGearStart'] = { version: "8.16.0", elementText: "Leveln", tooltip: "" };
 HHAuto_ToolTips.de['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Behalten markieren", tooltip: "<p>Markiert die mythischen Teile, die du behalten solltest, mit einem Stern &mdash; <b>alles Unmarkierte kannst du gefahrlos von Hand als Material verwenden</b>.</p><p>Behalten wird je Slot und Element genau eines. Welches: zuerst deine eigene Klasse, dann <code>damage</code> vor <code>defence</code> vor <code>ego</code> vor <code>harmony</code>, dann das höhere Level.</p><p>Ein Element, das du nur mit fremder Klasse besitzt, behält trotzdem sein bestes Teil &mdash; sonst würde das Element ganz aus dem Slot verschwinden.</p><p>Reine Anzeige: es wird nichts angelegt, verkauft oder verbraucht, und die Automatik fasst Mythics ohnehin nie an.</p>" };
 HHAuto_ToolTips.de['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Alle angelegten Mythic-Items sind bereits auf Maximallevel. Nur Mythic-Items können gelevelt werden.", tooltip: "" };
 HHAuto_ToolTips.de['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Du hast noch kein Mythic-Item angelegt. Nur Mythic-Items können gelevelt werden – leg sie zuerst an, „Mögliche beste Ausrüstung“ erledigt das.", tooltip: "" };
@@ -2087,6 +2105,12 @@ HHAuto_ToolTips.es['HHGearMenu'] = { version: "8.10.20", elementText: "Equipo HH
 HHAuto_ToolTips.es['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Mejor equipo actual", tooltip: "Equipa la armadura más fuerte que tienes para cada una de las seis ranuras del héroe, según las estadísticas de hoy. Deciden las estadísticas brutas y la resonancia desempata; esto nunca te deja más débil." };
 HHAuto_ToolTips.es['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mejor equipo posible", tooltip: "Equipa la armadura que será más fuerte una vez subida al máximo, acorde con tu clase y con el tema de tu equipo. Muestra lo que te cuesta el cambio hoy." };
 HHAuto_ToolTips.es['HHGearUpgrade'] = { version: "8.8.0", elementText: "Mejorar equipo", tooltip: "Sube al máximo posible los objetos míticos que llevas puestos, usando objetos legendarios y épicos como material. Los míticos nunca se consumen. Muestra el coste antes de gastar nada." };
+HHAuto_ToolTips.es['HHGirlGearLevelUp'] = { version: "8.16.0", elementText: "Subir equipo", tooltip: "Sube a nivel 10 los objetos míticos que llevan las chicas de los hexágonos, la líder primero. Todo objeto salvo los míticos sirve de material, elegido por el Auto Select del juego. Se detiene en el primer objeto que el material ya no puede subir, y antes de que el dinero baje del mínimo a conservar." };
+HHAuto_ToolTips.es['HHGirlGearNone'] = { version: "8.16.0", elementText: "Ninguna chica de este equipo lleva un objeto mítico por debajo del nivel 10.", tooltip: "" };
+HHAuto_ToolTips.es['HHGirlGearIntro'] = { version: "8.16.0", elementText: "Estos míticos equipados se suben a nivel 10, en este orden. La ejecución se detiene en el primer objeto que el material ya no puede subir; ese objeto conserva los niveles obtenidos.", tooltip: "" };
+HHAuto_ToolTips.es['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "chica", tooltip: "" };
+HHAuto_ToolTips.es['HHGirlGearFootnote'] = { version: "8.16.0", elementText: "Material: todo objeto salvo los míticos, elegido por el Auto Select del juego, el de menor valor primero. Antes de cada nivel se compara el precio con el dinero a conservar.", tooltip: "" };
+HHAuto_ToolTips.es['HHGirlGearStart'] = { version: "8.16.0", elementText: "Subir", tooltip: "" };
 HHAuto_ToolTips.es['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Marcar los que conservar", tooltip: "<p>Marca con una estrella las piezas míticas que merece la pena conservar, de modo que <b>todo lo no marcado se puede gastar a mano como material de mejora sin riesgo</b>.</p><p>Se conserva una pieza por ranura y elemento. Cuál: primero tu propia clase, después <code>daño</code> antes que <code>defensa</code>, antes que <code>ego</code>, antes que <code>armonía</code>, y por último el nivel más alto.</p><p>Un elemento que sólo tengas en una clase ajena conserva igualmente su mejor pieza; de lo contrario ese elemento desaparecería por completo de la ranura.</p><p>Sólo informativo: no se equipa, vende ni consume nada, y la automatización nunca usa míticos como material.</p>" };
 HHAuto_ToolTips.es['HHGearUpgradeAllAtCap'] = { version: "8.13.0", elementText: "Todos los objetos míticos que llevas puestos ya están al nivel máximo. Solo los objetos míticos pueden subir de nivel.", tooltip: "" };
 HHAuto_ToolTips.es['HHGearUpgradeNoneEquipped'] = { version: "8.13.0", elementText: "Todavía no llevas puesto ningún objeto mítico. Solo los objetos míticos pueden subir de nivel: equípalos primero, «Mejor equipo posible» lo hace por ti.", tooltip: "" };
@@ -2947,6 +2971,9 @@ const TK = {
     // Items "Upgrade Gear" still has to level, worked off across the
     // navigations to the upgrade page.
     gearUpgradeQueue: "Temp_gearUpgradeQueue",
+    // Items "Level-up gear" (team page) still has to level; handed on from
+    // the girl page the game returns to after each capped item.
+    girlGearUpgradeQueue: "Temp_girlGearUpgradeQueue",
     gearKeepKeys: "Temp_gearKeepKeys",
     // Resources
     haveAff: "Temp_haveAff",
@@ -5649,6 +5676,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.gearSwapLog] =
 // Empty unless the player pressed "Upgrade Gear": the automation on the
 // upgrade page does nothing at all while this is empty.
 HHStoredVars[HHStoredVarPrefixKey + TK.gearUpgradeQueue] =
+    {
+        default: "[]",
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+// The same for "Level-up gear" on the team page; its own key so the market
+// and the girl page, which hand the two runs on, never take the other's.
+HHStoredVars[HHStoredVarPrefixKey + TK.girlGearUpgradeQueue] =
     {
         default: "[]",
         storage: "localStorage",
@@ -26566,8 +26601,14 @@ function parseArmorItem(raw, isEquipped = false) {
 }
 
 ;// ./src/Service/EquipmentUpgradeService.ts
-// EquipmentUpgradeService.ts -- Pure helpers for "Upgrade Gear": which worn
-// items are worth levelling, and when to stop.
+// EquipmentUpgradeService.ts -- Pure helpers for "Upgrade Gear" (the hero's
+// items) and "Level-up gear" (the team girls' items): which worn items are
+// worth levelling, and when to stop.
+//
+// Both run on the same game page code, so they share the stop rule. The
+// girls' page states its material table client-side (material_costs_map,
+// materials_per_rarity), but it ships the same Auto Select, so the girl run
+// leaves the picking to the game as well.
 //
 // The deliberate non-decision in here: this file does not compute how much
 // material a level costs, and does not pick the material. Both are left to
@@ -26598,6 +26639,51 @@ function parseArmorItem(raw, isEquipped = false) {
 const UPGRADE_PATH = '/mythic-equipment-upgrade.html';
 function upgradePageUrl(target) {
     return `${UPGRADE_PATH}?id_member_item_equipped=${target.id_member_armor}`;
+}
+/** The girls' upgrade page. Same game bundle as the player one
+ *  (mythic_equipment.js); it tells the two apart by this query parameter.
+ *  A worn girl item keeps its id_girl_armor_equipped across level-ups
+ *  (measured: `next_level_item` carries the same id). */
+const GIRL_UPGRADE_PATH = '/girl-equipment-upgrade.html';
+/** `upgradeable_item_max_level` on the girls' page (measured), where the
+ *  player page has MYTHIC_MAX_LEVEL. */
+const GIRL_GEAR_MAX_LEVEL = 10;
+function girlUpgradePageUrl(idGirlArmorEquipped) {
+    return `${GIRL_UPGRADE_PATH}?id_girl_armor_equipped=${idGirlArmorEquipped}`;
+}
+/**
+ * The team's worn mythics below level 10, in the order they get the
+ * material.
+ *
+ * Girls in team order, the leader first -- the player's decision: when the
+ * material runs out, the front of the team is what got it. Within one girl
+ * the highest level first, because it reaches the cap on the least material,
+ * then by slot.
+ *
+ * Only mythics, although the game offers the upgrade page for every rarity:
+ * that too is the player's decision, not a limit of the game.
+ */
+function pickGirlUpgradeTargets(girls) {
+    const out = [];
+    girls.forEach((girl, position) => {
+        var _a;
+        const own = ((_a = girl.armor) !== null && _a !== void 0 ? _a : [])
+            .filter(a => a.rarity === 'mythic' && Number(a.level) < GIRL_GEAR_MAX_LEVEL)
+            .map(a => {
+            var _a, _b;
+            return ({
+                id: Number(a.id_girl_armor_equipped),
+                girlId: Number(girl.id_girl),
+                position,
+                slot: Number(a.slot_index),
+                level: Number(a.level),
+                name: (_b = (_a = a.skin) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : '',
+            });
+        })
+            .sort((a, b) => b.level - a.level || a.slot - b.slot);
+        out.push(...own);
+    });
+    return out;
 }
 /**
  * The worn items worth spending material on: mythics that are not yet at
@@ -26686,7 +26772,7 @@ function countMaterialStock(items) {
     }
     return out;
 }
-function parseRequirement(pageText) {
+function parseRequirement(pageText, maxLevel = (/* inlined export .MYTHIC_MAX_LEVEL */20)) {
     const out = { toNextLevel: null, toMaxLevel: null };
     // "Until lvl.3: 23" / "Until lvl.20: 1,535"
     const re = /Until\s+lvl\.(\d+):\s*([\d.,]+)/gi;
@@ -26699,10 +26785,10 @@ function parseRequirement(pageText) {
         // One level below the cap the page prints the same line twice --
         // "Until lvl.20: 204" is both the next level and the last one. So the
         // first match is always the next level, and the cap line is whichever
-        // one names MYTHIC_MAX_LEVEL; at level 19 that is the same number.
+        // one names the cap; one level below it that is the same number.
         if (out.toNextLevel === null)
             out.toNextLevel = amount;
-        if (level >= (/* inlined export .MYTHIC_MAX_LEVEL */20))
+        if (level >= maxLevel)
             out.toMaxLevel = amount;
     }
     return out;
@@ -26717,16 +26803,25 @@ function parseRequirement(pageText) {
  *
  * There is deliberately no per-run cap: the caller passes
  * `startLevel + performed` as the current level, so the level rises with every
- * pass and the max-level check below ends the loop after at most 19 passes,
- * 1 -> 20 being the whole range the game allows. A cap on top of that would
- * read like a safeguard without ever firing.
+ * pass and the max-level check below ends the loop after at most maxLevel - 1
+ * passes, the whole range the game allows. A cap on top of that would read
+ * like a safeguard without ever firing.
+ *
+ * `money` is optional: the player page has no money floor, "Level-up gear"
+ * on the team page does. With it, a level whose price (the Level-up button's
+ * `cost` attribute) would take the money below `moneyToKeep` is not bought.
  */
 function decideNextLevelUp(state) {
-    if (state.currentLevel >= (/* inlined export .MYTHIC_MAX_LEVEL */20)) {
+    var _a;
+    if (state.currentLevel >= ((_a = state.maxLevel) !== null && _a !== void 0 ? _a : (/* inlined export .MYTHIC_MAX_LEVEL */20))) {
         return { go: false, reason: 'item is at max level', done: true };
     }
     if (!state.levelUpEnabled) {
         return { go: false, reason: 'not enough material left for another level', done: false };
+    }
+    if (state.money && state.money.available - state.money.cost < state.money.keep) {
+        return { go: false, reason: `the next level costs ${state.money.cost} and would take the money below`
+                + ` ${state.money.keep}`, done: false };
     }
     return { go: true };
 }
@@ -26734,7 +26829,8 @@ function decideNextLevelUp(state) {
 ;// ./src/Module/EquipmentGear.ts
 // EquipmentGear.ts -- The gear menu on the market page: pick the best armor
 // for the hero's six slots and put it on, level the worn mythics, and mark
-// the mythics worth keeping.
+// the mythics worth keeping. Also "Level-up gear" from the team page, which
+// levels the team girls' worn mythics on the same machinery.
 //
 // One button opens a menu with four actions: Current Best Gear, Possible
 // Best Gear, Upgrade Gear and Mark Keepers. The two "best" actions follow
@@ -26748,8 +26844,8 @@ function decideNextLevelUp(state) {
 // Background, data model and the measurement traps:
 // docs/reference/equipment-resonance.md.
 //
-// Used by: Service/AutoLoopPageHandlers.ts (market page, and the upgrade
-// page the Level-up button navigates to)
+// Used by: Service/AutoLoopPageHandlers.ts (market page, girl page, and the
+// two upgrade pages), Module/TeamModule.ts (Level-up gear)
 var EquipmentGear_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -26778,6 +26874,27 @@ var EquipmentGear_awaiter = (undefined && undefined.__awaiter) || function (this
  *  the page sizes the game uses that is well under 100 requests. A cap this
  *  side of infinity keeps a changed response shape from looping forever. */
 const MAX_INVENTORY_PAGES = 120;
+const HERO_UPGRADE = {
+    queueKey: TK.gearUpgradeQueue,
+    maxLevel: (/* inlined export .MYTHIC_MAX_LEVEL */20),
+    path: UPGRADE_PATH,
+    url: id => upgradePageUrl({ id_member_armor: id }),
+    // A worn item reports its id under id_member_armor_equipped, and the
+    // game sends it back as a string.
+    idOnPage: () => {
+        var _a, _b, _c;
+        return Number((_b = (_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_member_armor_equipped) !== null && _b !== void 0 ? _b : (_c = unsafeWindow.item_to_upgrade) === null || _c === void 0 ? void 0 : _c.id_member_armor);
+    },
+};
+const GIRL_UPGRADE = {
+    queueKey: TK.girlGearUpgradeQueue,
+    maxLevel: (/* inlined export .GIRL_GEAR_MAX_LEVEL */10),
+    path: GIRL_UPGRADE_PATH,
+    url: girlUpgradePageUrl,
+    idOnPage: () => { var _a; return Number((_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_girl_armor_equipped); },
+};
+/** Stuff Team's default, so the two team buttons start from the same floor. */
+const DEFAULT_MONEY_TO_KEEP = 500000000;
 /** How long a queue may sit untouched before the market page forgets it.
  *  Long enough to survive the navigation the Start button triggers. */
 const STALE_QUEUE_MS = 90000;
@@ -26828,7 +26945,7 @@ class EquipmentGear {
     static moduleGearActions() {
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDShop"))
             return;
-        EquipmentGear.resumeUpgradeQueue();
+        EquipmentGear.resumeUpgradeQueue(HERO_UPGRADE);
         EquipmentGear.watchTabSwitch();
         // The player's own inventory has its own tab strip
         // (.my-hero-switch-tab: booster / armor / player-stats), separate
@@ -26878,20 +26995,12 @@ class EquipmentGear {
             + '#HHGearMenuList a:hover{background:rgba(255,162,62,.18);}'
             + '#HHGearMenuList .sub{display:block;color:#444;font-weight:normal;'
             + 'font-size:11px;margin-top:2px;}'
-            // The popup sits on white (#HHAutoPopupGlobalPopup is
-            // rgb(255,255,255), measured), so everything in here is dark on
-            // light -- white borders would not show at all.
-            + '#HHGearPreview{color:#000;}'
-            + '#HHGearPreview h1,#HHGearPreview h2,#HHGearPreview h3,#HHGearPreview th{color:#000;}'
-            + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
-            + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
-            + 'border-bottom:1px solid rgba(0,0,0,0.15);}'
-            + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}'
             // The keep marker. Anchored to the slot itself so it rides along
             // when the inventory re-renders a row.
             + '#player-inventory-armor .slot{position:relative;}'
             + '.HHKeepMark{position:absolute;top:0;right:0;width:22px;height:22px;z-index:5;'
             + 'pointer-events:none;background-repeat:no-repeat;background-size:22px 22px;}');
+        EquipmentGear.addPreviewStyles();
         // One button, not four. Measured on the live page: between the game's
         // own Level-up/Equip buttons and the right edge of .bottom-container
         // there are 150 device px (~98 CSS px) of width and 115 (~75) of
@@ -26915,9 +27024,10 @@ class EquipmentGear {
         });
     }
     /**
-     * Carry an upgrade run on from the market page, or forget it.
+     * Carry an upgrade run on from the page the game lands on, or forget it.
      *
-     * The market is where a run both starts and lands: at the cap the game
+     * For the hero that is the market, for the girls the girl page (see
+     * UpgradeProfile). The market is where a hero run both starts and lands: at the cap the game
      * navigates off the upgrade page by itself, so the hand-off to the next
      * item cannot happen there -- the upgrade page writes the remaining queue
      * before it triggers that redirect, and this opens whatever it left. The
@@ -26928,16 +27038,16 @@ class EquipmentGear {
      * is over one way or another. The age check is what keeps that from
      * eating the queue the Start button just wrote, one navigation earlier.
      */
-    static resumeUpgradeQueue() {
+    static resumeUpgradeQueue(profile) {
         var _a;
         if (EquipmentGear.resumeNavigating)
             return;
-        const queue = getStoredJSON(HHStoredVarPrefixKey + TK.gearUpgradeQueue, []);
+        const queue = getStoredJSON(HHStoredVarPrefixKey + profile.queueKey, []);
         if (!Array.isArray(queue) || queue.length === 0)
             return;
         const startedAt = Number((_a = queue[0]) === null || _a === void 0 ? void 0 : _a.startedAt) || 0;
         if (Date.now() - startedAt >= STALE_QUEUE_MS) {
-            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+            setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
             EquipmentGear.releaseAutoLoop();
             logHHAuto(`Gear: dropping a stale upgrade queue (${queue.length} item(s) left);`
                 + ' the run is no longer on the upgrade page.');
@@ -26954,21 +27064,42 @@ class EquipmentGear {
                 + ` ${MAX_QUEUE_HEAD_TRIES} attempt(s); skipping it,`
                 + ` ${rest.length} item(s) left.`);
             if (rest.length === 0) {
-                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+                setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
                 EquipmentGear.releaseAutoLoop();
                 logHHAuto('Gear: upgrade run finished -- nothing left to open.');
                 return;
             }
-            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(rest.map(r => (Object.assign(Object.assign({}, r), { startedAt: Date.now(), tries: 0 })))));
+            setStoredValue(HHStoredVarPrefixKey + profile.queueKey, JSON.stringify(rest.map(r => (Object.assign(Object.assign({}, r), { startedAt: Date.now(), tries: 0 })))));
             EquipmentGear.resumeNavigating = true;
-            EquipmentGear.gotoUpgradePage(rest[0].id);
+            EquipmentGear.gotoUpgradePage(profile, rest[0].id);
             return;
         }
-        setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify([Object.assign(Object.assign({}, head), { tries }), ...queue.slice(1)]));
+        setStoredValue(HHStoredVarPrefixKey + profile.queueKey, JSON.stringify([Object.assign(Object.assign({}, head), { tries }), ...queue.slice(1)]));
         logHHAuto(`Gear: upgrade run continues with ${head.name} (slot ${head.slot});`
             + ` ${queue.length} item(s) left.`);
         EquipmentGear.resumeNavigating = true;
-        EquipmentGear.gotoUpgradePage(head.id);
+        EquipmentGear.gotoUpgradePage(profile, head.id);
+    }
+    /** The girl page's half of Level-up gear: the game lands here after every
+     *  item that reached level 10. A no-op without a queue. */
+    static resumeGirlUpgradeQueue() {
+        EquipmentGear.resumeUpgradeQueue(GIRL_UPGRADE);
+    }
+    /** The popup's styles, apart from the market button's: Level-up gear
+     *  opens the same popup on the team page. */
+    static addPreviewStyles() {
+        if (EquipmentGear.previewStylesAdded)
+            return;
+        EquipmentGear.previewStylesAdded = true;
+        // The popup sits on white (#HHAutoPopupGlobalPopup is
+        // rgb(255,255,255), measured), so everything in here is dark on
+        // light -- white borders would not show at all.
+        GM_addStyle('#HHGearPreview{color:#000;}'
+            + '#HHGearPreview h1,#HHGearPreview h2,#HHGearPreview h3,#HHGearPreview th{color:#000;}'
+            + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
+            + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
+            + 'border-bottom:1px solid rgba(0,0,0,0.15);}'
+            + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}');
     }
     /** Re-run the injection after a tab switch. The market swaps tabs without
      *  a page load, and it opens on Boosters -- so a one-shot injection from
@@ -27561,7 +27692,73 @@ class EquipmentGear {
             }));
             setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(queue));
             logHHAuto(`Gear: queued ${queue.length} item(s) for upgrade; going to the upgrade page.`);
-            EquipmentGear.gotoUpgradePage(queue[0].id);
+            EquipmentGear.gotoUpgradePage(HERO_UPGRADE, queue[0].id);
+        });
+    }
+    /**
+     * "Level-up gear" on the team page: list the team's worn mythics below
+     * level 10 and, on Start, level them one after the other.
+     *
+     * `girls` in team order, leader first, each with the armor the page
+     * loaded with (availableGirls). The run stops for good at the first item
+     * the material cannot take one level further -- a disabled Level-up after
+     * Auto Select and a full scroll of the list -- because every later item
+     * would find the same empty stock. The item it stops on keeps the levels
+     * it got. It also stops before a level whose price would take the money
+     * below the floor.
+     */
+    static previewGirlUpgrade(girls) {
+        EquipmentGear.addPreviewStyles();
+        const t = (key) => EquipmentGear.gearText(key);
+        const title = EquipmentGear.gearTitle('HHGirlGearLevelUp');
+        const targets = pickGirlUpgradeTargets(girls);
+        logHHAuto(`Gear [Level-up gear]: ${targets.length} worn mythic(s) below level ${(/* inlined export .GIRL_GEAR_MAX_LEVEL */10)}`
+            + ` on ${girls.length} team girl(s).`);
+        if (targets.length === 0) {
+            EquipmentGear.showMessage(title, `<p>${t('HHGirlGearNone')}</p>`);
+            return;
+        }
+        const nameOf = (target) => { var _a, _b; return (_b = (_a = girls[target.position]) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : String(target.girlId); };
+        const rows = targets.map(target => {
+            logHHAuto(`  ${target.position + 1}. ${nameOf(target)}, slot ${target.slot}: ${target.name} at level ${target.level}`);
+            return `<tr><td class="num">${target.position + 1}</td><td>${esc(nameOf(target))}</td>`
+                + `<td>${target.slot} ${t(SLOT_KEYS[target.slot])}</td><td>${esc(target.name)}</td>`
+                + `<td class="num">lvl ${target.level}</td></tr>`;
+        }).join('');
+        fillHHPopUp('HHGearPreview', title, `
+        <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
+            <p>${t('HHGirlGearIntro')}</p>
+            <table>
+                <tr><th>#</th><th>${t('HHGirlGearColGirl')}</th><th>${t('HHGearColSlot')}</th>`
+            + `<th>${t('HHGearColItem')}</th><th>${t('HHGearColLevel')}</th></tr>
+                ${rows}
+            </table>
+            <div class="rowLine" style="display:flex;align-items:center;">
+                <span class="hudSC_mix_icn"></span>
+                <div style="padding:10px;" class="tooltipHH">
+                    <span class="tooltipHHtext">${getTextForUI('StuffTeamMoney', 'tooltip')}</span>
+                    <label for="HHGirlGearMoneyToKeep">${t('StuffTeamMoney')}</label>
+                    <input id="HHGirlGearMoneyToKeep" class="maxMoneyInputField" style="width:150px;height:20px"
+                        required pattern="[0-9 ]+" type="text" value="${DEFAULT_MONEY_TO_KEEP}">
+                </div>
+            </div>
+            <p style="color:#aaa;font-size:11px;">${t('HHGirlGearFootnote')}</p>
+            <label class="myButton" id="HHGirlGearStart" style="font-size:14px;width:100%;text-align:center;">
+                ${t('HHGirlGearStart')} (${targets.length})</label>
+        </div>`);
+        $('#HHGirlGearStart').on('click', function () {
+            const keep = Number(String($('#HHGirlGearMoneyToKeep').val()).replace(/\s/g, ''));
+            if (!Number.isFinite(keep) || keep < 0)
+                return;
+            $(this).attr('disabled', 'disabled').css('opacity', '0.5');
+            const queue = targets.map(target => ({
+                id: target.id, name: `${nameOf(target)} / ${target.name}`, slot: target.slot,
+                startedAt: Date.now(), moneyToKeep: keep,
+            }));
+            setStoredValue(HHStoredVarPrefixKey + GIRL_UPGRADE.queueKey, JSON.stringify(queue));
+            logHHAuto(`Gear: queued ${queue.length} girl item(s) for level-up, keeping ${keep} money;`
+                + ' going to the upgrade page.');
+            EquipmentGear.gotoUpgradePage(GIRL_UPGRADE, queue[0].id);
         });
     }
     /**
@@ -27574,8 +27771,8 @@ class EquipmentGear {
      * ended up back on the market with nothing done. gotoPage() sets the
      * same flag for the same reason.
      */
-    static gotoUpgradePage(id) {
-        const target = addNutakuSession(upgradePageUrl({ id_member_armor: id }));
+    static gotoUpgradePage(profile, id) {
+        const target = addNutakuSession(profile.url(id));
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         logHHAuto('Gear: navigating to ' + target);
         window.location.href = target;
@@ -27585,11 +27782,20 @@ class EquipmentGear {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
     }
     // --------------------------------------------------- the upgrade page
-    /** True on /mythic-equipment-upgrade.html. That page carries no `page`
-     *  attribute, so getPage() cannot identify it -- the path is the only
-     *  handle. */
+    /** The profile of the upgrade page open now, or null elsewhere. Matched
+     *  on the path: /mythic-equipment-upgrade.html carries no `page`
+     *  attribute, so getPage() cannot identify it. */
+    static currentUpgradeProfile() {
+        const path = window.location.pathname;
+        if (path.indexOf(UPGRADE_PATH) !== -1)
+            return HERO_UPGRADE;
+        if (path.indexOf(GIRL_UPGRADE_PATH) !== -1)
+            return GIRL_UPGRADE;
+        return null;
+    }
+    /** True on either upgrade page. */
     static isUpgradePage() {
-        return window.location.pathname.indexOf(UPGRADE_PATH) !== -1;
+        return EquipmentGear.currentUpgradeProfile() !== null;
     }
     /** The game's own verdict on whether the picked material covers the next
      *  level. Read fresh every time: Auto Select and a scroll both change it. */
@@ -27694,42 +27900,49 @@ class EquipmentGear {
      */
     static runUpgradePage() {
         return EquipmentGear_awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c, _d, _e, _f, _g;
-            if (!EquipmentGear.isUpgradePage())
+            var _a, _b, _c, _d;
+            const profile = EquipmentGear.currentUpgradeProfile();
+            if (profile === null)
                 return;
-            const queue = getStoredJSON(HHStoredVarPrefixKey + TK.gearUpgradeQueue, []);
+            const queue = getStoredJSON(HHStoredVarPrefixKey + profile.queueKey, []);
             if (!Array.isArray(queue) || queue.length === 0)
                 return;
             if (EquipmentGear.running)
                 return;
             EquipmentGear.running = true;
             const finish = (msg) => {
-                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+                setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
                 EquipmentGear.releaseAutoLoop();
                 logHHAuto('Gear: upgrade run finished -- ' + msg);
             };
             try {
                 const head = queue[0];
-                // A worn item reports its id under id_member_armor_equipped, and
-                // the game sends it back as a string.
-                const onPage = Number((_b = (_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_member_armor_equipped) !== null && _b !== void 0 ? _b : (_c = unsafeWindow.item_to_upgrade) === null || _c === void 0 ? void 0 : _c.id_member_armor);
+                const onPage = profile.idOnPage();
                 if (onPage !== head.id) {
                     // Someone navigated by hand, or the queue is stale. Acting
                     // here would spend material on an item nobody asked for.
                     finish(`the page shows item ${onPage}, the queue expects ${head.id}. Stopped without spending anything.`);
                     return;
                 }
-                const req = parseRequirement(document.body.innerText);
+                const req = parseRequirement(document.body.innerText, profile.maxLevel);
                 logHHAuto(`Gear: upgrading ${head.name} (slot ${head.slot}), level`
-                    + ` ${(_d = unsafeWindow.item_to_upgrade) === null || _d === void 0 ? void 0 : _d.level}. Game asks ${(_e = req.toNextLevel) !== null && _e !== void 0 ? _e : '?'}`
-                    + ` material for the next level, ${(_f = req.toMaxLevel) !== null && _f !== void 0 ? _f : '?'} to reach the cap.`);
+                    + ` ${(_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.level}. Game asks ${(_b = req.toNextLevel) !== null && _b !== void 0 ? _b : '?'}`
+                    + ` material for the next level, ${(_c = req.toMaxLevel) !== null && _c !== void 0 ? _c : '?'} to reach the cap.`);
                 // `item_to_upgrade.level` is a snapshot from page load and does
                 // NOT move as levels are bought -- measured: it still read 1
                 // after nineteen successful level-ups. Counting from the load
                 // value is the only reliable level here. Over-counting a failed
                 // call only makes this stop early, which is the safe direction.
-                const startLevel = Number((_g = unsafeWindow.item_to_upgrade) === null || _g === void 0 ? void 0 : _g.level) || 0;
+                const startLevel = Number((_d = unsafeWindow.item_to_upgrade) === null || _d === void 0 ? void 0 : _d.level) || 0;
                 const rest = queue.slice(1);
+                // The money floor of Level-up gear. The money is read once and
+                // the spending counted here, like the level: whether the game
+                // refreshes Hero.currencies after each call does not matter then,
+                // and counting a failed call only stops the run early.
+                const keep = head.moneyToKeep;
+                const moneyAtLoad = HeroHelper.getMoney();
+                let spent = 0;
+                const nextCost = () => Number($('#level-up').attr('cost')) || 0;
                 /** Hand the queue on before the level that reaches the cap, not
                  *  after: the game navigates off this page the moment an item is
                  *  capped, so nothing below that click is guaranteed to run. The
@@ -27745,7 +27958,7 @@ class EquipmentGear {
                         finish(lastMsg);
                         return;
                     }
-                    setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(rest.map(r => (Object.assign(Object.assign({}, r), { startedAt: Date.now(), tries: 0 })))));
+                    setStoredValue(HHStoredVarPrefixKey + profile.queueKey, JSON.stringify(rest.map(r => (Object.assign(Object.assign({}, r), { startedAt: Date.now(), tries: 0 })))));
                     logHHAuto(`Gear: moving on to ${rest[0].name} (slot ${rest[0].slot}).`);
                 };
                 let performed = 0;
@@ -27768,9 +27981,13 @@ class EquipmentGear {
                                 ? ' scrolling; Auto Select covers the next level.'
                                 : ' scrolling; still not enough for the next level.'));
                     }
+                    const cost = nextCost();
                     const verdict = decideNextLevelUp({
                         currentLevel: startLevel + performed,
                         levelUpEnabled: EquipmentGear.levelUpEnabled(),
+                        maxLevel: profile.maxLevel,
+                        money: keep === undefined ? undefined
+                            : { available: moneyAtLoad - spent, cost, keep },
                     });
                     if (!verdict.go) {
                         logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
@@ -27781,22 +27998,23 @@ class EquipmentGear {
                         handOver('every queued item is done.');
                         break;
                     }
-                    if (startLevel + performed + 1 >= (/* inlined export .MYTHIC_MAX_LEVEL */20)) {
-                        handOver(`${head.name} reaches level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}`
+                    if (startLevel + performed + 1 >= profile.maxLevel) {
+                        handOver(`${head.name} reaches level ${profile.maxLevel}`
                             + ' with the level-up going out now.');
                     }
                     $('#level-up').trigger('click');
                     performed++;
+                    spent += cost;
                     yield new Promise(r => setTimeout(r, randomInterval(1500, 2500)));
                     logHHAuto(`Gear: ${head.name} is now level ${startLevel + performed}`
                         + ` (${performed} level(s) this run).`);
                 }
                 if (rest.length === 0)
                     return;
-                EquipmentGear.gotoUpgradePage(rest[0].id);
+                EquipmentGear.gotoUpgradePage(profile, rest[0].id);
             }
             catch (err) {
-                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+                setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
                 EquipmentGear.releaseAutoLoop();
                 logHHAuto('Gear: upgrade run aborted: ' + err);
             }
@@ -27874,6 +28092,7 @@ EquipmentGear.running = false;
  *  without this the retry budget would be spent waiting for the browser. */
 EquipmentGear.resumeNavigating = false;
 EquipmentGear.tabWatcherBound = false;
+EquipmentGear.previewStylesAdded = false;
 EquipmentGear.upgradeObserver = null;
 EquipmentGear.upgradeMarksLogged = false;
 /** Same markup hhButton produces, built here so this module does not have to
@@ -30554,6 +30773,8 @@ function autoLoopHolder() {
 // The right-hand column holds Unequip All and Stuff Team, each with the state
 // it acts on: the gear on the team, and whether the hexagons match the saved
 // team (Stuff Team equips the hexagons, the league fights the saved team).
+// Below them Level-up gear, which levels the hexagon girls' worn mythics;
+// leveling does not depend on the saved team, so it asks nothing.
 //
 // The actions that live in TeamModule are handed in, so this file does not
 // import TeamModule (which opens it).
@@ -30666,6 +30887,9 @@ class TeamSelectionPopup {
                     <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
                     <div class="tsState" id="hhTsSavedState"></div>
                 </div>
+                <div>
+                    <label class="myButton" id="hhTsLevelUpGear" title="${getTextForUI('HHGirlGearLevelUp', 'tooltip')}">${getTextForUI('HHGirlGearLevelUp', 'elementText')}</label>
+                </div>
             </div>
         </div>`;
     }
@@ -30685,6 +30909,7 @@ class TeamSelectionPopup {
                 return;
             a.stuffTeam();
         });
+        $('#hhTsLevelUpGear').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.levelUpGear(); });
     }
     static hexagonsMatchSaved() {
         const a = TeamSelectionPopup.actions;
@@ -31195,12 +31420,14 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 //
 // Puts the "Team selection" button on the page and hands the team selection
 // popup its actions: read the hexagons and the saved team, save a team in
-// place, unequip and equip the girls' gear, and Stuff Team (skill scrolls).
+// place, unequip and equip the girls' gear, Stuff Team (skill scrolls), and
+// Level-up gear (the girls' worn mythics, run by EquipmentGear).
 // setTopTeam and assignTopTeam, the team workflow before the popup, have no
 // caller any more.
 //
 // Used by: AutoLoopPageHandlers.ts (team building on the fight pages)
 //
+
 
 
 
@@ -31700,7 +31927,25 @@ class TeamModule {
             }),
             unequipAll: () => TeamModule.unequipAllGirls(),
             stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
+            levelUpGear: () => TeamModule.levelUpTeamGear(),
         });
+    }
+    /**
+     * Level-up gear: the hexagon girls in team order, leader first, with the
+     * armor the edit page loaded (availableGirls carries it, measured).
+     */
+    static levelUpTeamGear() {
+        const available = getHHVars('availableGirls', false);
+        if (!Array.isArray(available)) {
+            logHHAuto('Error: availableGirls not found on the edit team page, cancel action');
+            return;
+        }
+        const girls = TeamModule.getEditTeamGirlIds().map(id => {
+            var _a;
+            const g = available.find((a) => Number(a.id_girl) === id);
+            return { id_girl: id, name: String((_a = g === null || g === void 0 ? void 0 : g.name) !== null && _a !== void 0 ? _a : id), armor: Array.isArray(g === null || g === void 0 ? void 0 : g.armor) ? g.armor : [] };
+        });
+        EquipmentGear.previewGirlUpgrade(girls);
     }
     static assignTopTeam() {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
@@ -32703,10 +32948,10 @@ let seasonArenaPreviewShown = false;
 let opponentSnapshotTaken = false;
 function handlePageSpecific(ctx) {
     return AutoLoopPageHandlers_awaiter(this, void 0, void 0, function* () {
-        // The mythic upgrade page carries no `page` attribute, so it never
-        // reaches the switch below -- it is matched on its path instead. The run
-        // is a no-op unless "Upgrade Gear" filled the queue, so this cannot fire
-        // on its own.
+        // The upgrade pages are matched on their path: the mythic one carries no
+        // `page` attribute, so it never reaches the switch below. The run is a
+        // no-op unless "Upgrade Gear" or "Level-up gear" filled a queue, so this
+        // cannot fire on its own.
         if (EquipmentGear.isUpgradePage()) {
             // Marks first: this is the page where material is picked by hand, so
             // the stars have to be there whether or not a queued run follows.
@@ -32861,6 +33106,9 @@ function handlePageSpecific(ctx) {
                 ctx.busy = yield Harem.run();
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDGirlPage"):
+                // Where the game lands after a girl item reached level 10; a
+                // no-op unless Level-up gear left a queue.
+                EquipmentGear.resumeGirlUpgradeQueue();
                 HaremGirl.moduleHaremGirl = callItOnce(HaremGirl.moduleHaremGirl);
                 HaremGirl.moduleHaremGirl();
                 HaremGirl.showSkillButtons();

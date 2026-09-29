@@ -2,7 +2,8 @@
 //
 // Puts the "Team selection" button on the page and hands the team selection
 // popup its actions: read the hexagons and the saved team, save a team in
-// place, unequip and equip the girls' gear, and Stuff Team (skill scrolls).
+// place, unequip and equip the girls' gear, Stuff Team (skill scrolls), and
+// Level-up gear (the girls' worn mythics, run by EquipmentGear).
 // setTopTeam and assignTopTeam, the team workflow before the popup, have no
 // caller any more.
 //
@@ -21,6 +22,7 @@ import { themeFromElementCounts } from '../Service/EquipmentOptimizerService';
 import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuilderService';
 import { TeamEvaluationService } from '../Service/TeamEvaluationService';
 import { TeamSelectionPopup } from './TeamSelectionPopup';
+import { EquipmentGear } from './EquipmentGear';
 import { GirlData, ElementType, RarityType, PlayerClass } from '../Service/TeamScoringService';
 import { TraitMappings } from '../Service/TraitMappings';
 import { fillHHPopUp } from "../Utils/HHPopup";
@@ -544,7 +546,25 @@ export class TeamModule {
             }),
             unequipAll: () => TeamModule.unequipAllGirls(),
             stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
+            levelUpGear: () => TeamModule.levelUpTeamGear(),
         });
+    }
+
+    /**
+     * Level-up gear: the hexagon girls in team order, leader first, with the
+     * armor the edit page loaded (availableGirls carries it, measured).
+     */
+    static levelUpTeamGear() {
+        const available = getHHVars('availableGirls', false);
+        if (!Array.isArray(available)) {
+            logHHAuto('Error: availableGirls not found on the edit team page, cancel action');
+            return;
+        }
+        const girls = TeamModule.getEditTeamGirlIds().map(id => {
+            const g = available.find((a: { id_girl?: unknown }) => Number(a.id_girl) === id);
+            return { id_girl: id, name: String(g?.name ?? id), armor: Array.isArray(g?.armor) ? g.armor : [] };
+        });
+        EquipmentGear.previewGirlUpgrade(girls);
     }
 
     static assignTopTeam() {

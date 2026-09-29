@@ -1,6 +1,7 @@
 // EquipmentGear.ts -- The gear menu on the market page: pick the best armor
 // for the hero's six slots and put it on, level the worn mythics, and mark
-// the mythics worth keeping.
+// the mythics worth keeping. Also "Level-up gear" from the team page, which
+// levels the team girls' worn mythics on the same machinery.
 //
 // One button opens a menu with four actions: Current Best Gear, Possible
 // Best Gear, Upgrade Gear and Mark Keepers. The two "best" actions follow
@@ -14,8 +15,8 @@
 // Background, data model and the measurement traps:
 // docs/reference/equipment-resonance.md.
 //
-// Used by: Service/AutoLoopPageHandlers.ts (market page, and the upgrade
-// page the Level-up button navigates to)
+// Used by: Service/AutoLoopPageHandlers.ts (market page, girl page, and the
+// two upgrade pages), Module/TeamModule.ts (Level-up gear)
 
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { keepKey, keepKeyFromRaw, pickKeepers } from "../Service/EquipmentKeepService";
@@ -38,11 +39,17 @@ import {
     themeFromTeamData,
 } from "../Service/EquipmentOptimizerService";
 import {
+    GIRL_GEAR_MAX_LEVEL,
+    GIRL_UPGRADE_PATH,
+    type GirlUpgradeTarget,
+    type RawGirlArmor,
     UPGRADE_PATH,
     UpgradeTarget,
     countMaterialStock,
     decideNextLevelUp,
+    girlUpgradePageUrl,
     parseRequirement,
+    pickGirlUpgradeTargets,
     pickUpgradeTargets,
     summariseNoTargets,
     type NoUpgradeSummary,
@@ -72,7 +79,53 @@ interface UpgradeQueueEntry {
     slot: number;
     startedAt?: number;
     tries?: number;
+    /** Level-up gear only: the money the run must leave. */
+    moneyToKeep?: number;
 }
+
+/**
+ * What differs between the two upgrade pages. The page code is the same game
+ * bundle; the run differs in where it starts, where the game drops it after a
+ * capped item, and the cap.
+ *
+ *   hero: /mythic-equipment-upgrade.html, cap 20; after the cap the game goes
+ *         to the market, which hands the queue on.
+ *   girl: /girl-equipment-upgrade.html, cap 10; after the cap the game goes
+ *         to /girl/<id>?resource=equipment (measured in mythic_equipment.js),
+ *         so the girl page hands the queue on.
+ *
+ * Two queue keys, so neither hand-off page picks up the other run's queue and
+ * sends it to a page that would bounce it.
+ */
+interface UpgradeProfile {
+    queueKey: string;
+    maxLevel: number;
+    path: string;
+    url: (id: number) => string;
+    idOnPage: () => number;
+}
+
+const HERO_UPGRADE: UpgradeProfile = {
+    queueKey: TK.gearUpgradeQueue,
+    maxLevel: MYTHIC_MAX_LEVEL,
+    path: UPGRADE_PATH,
+    url: id => upgradePageUrl({ id_member_armor: id }),
+    // A worn item reports its id under id_member_armor_equipped, and the
+    // game sends it back as a string.
+    idOnPage: () => Number(unsafeWindow.item_to_upgrade?.id_member_armor_equipped
+        ?? unsafeWindow.item_to_upgrade?.id_member_armor),
+};
+
+const GIRL_UPGRADE: UpgradeProfile = {
+    queueKey: TK.girlGearUpgradeQueue,
+    maxLevel: GIRL_GEAR_MAX_LEVEL,
+    path: GIRL_UPGRADE_PATH,
+    url: girlUpgradePageUrl,
+    idOnPage: () => Number(unsafeWindow.item_to_upgrade?.id_girl_armor_equipped),
+};
+
+/** Stuff Team's default, so the two team buttons start from the same floor. */
+const DEFAULT_MONEY_TO_KEEP = 500_000_000;
 
 /** How long a queue may sit untouched before the market page forgets it.
  *  Long enough to survive the navigation the Start button triggers. */
@@ -136,7 +189,7 @@ export class EquipmentGear {
     static moduleGearActions(): void {
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDShop")) return;
 
-        EquipmentGear.resumeUpgradeQueue();
+        EquipmentGear.resumeUpgradeQueue(HERO_UPGRADE);
         EquipmentGear.watchTabSwitch();
 
         // The player's own inventory has its own tab strip
@@ -187,20 +240,13 @@ export class EquipmentGear {
             + '#HHGearMenuList a:hover{background:rgba(255,162,62,.18);}'
             + '#HHGearMenuList .sub{display:block;color:#444;font-weight:normal;'
             + 'font-size:11px;margin-top:2px;}'
-            // The popup sits on white (#HHAutoPopupGlobalPopup is
-            // rgb(255,255,255), measured), so everything in here is dark on
-            // light -- white borders would not show at all.
-            + '#HHGearPreview{color:#000;}'
-            + '#HHGearPreview h1,#HHGearPreview h2,#HHGearPreview h3,#HHGearPreview th{color:#000;}'
-            + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
-            + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
-            + 'border-bottom:1px solid rgba(0,0,0,0.15);}'
-            + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}'
             // The keep marker. Anchored to the slot itself so it rides along
             // when the inventory re-renders a row.
             + '#player-inventory-armor .slot{position:relative;}'
             + '.HHKeepMark{position:absolute;top:0;right:0;width:22px;height:22px;z-index:5;'
             + 'pointer-events:none;background-repeat:no-repeat;background-size:22px 22px;}');
+
+        EquipmentGear.addPreviewStyles();
 
         // One button, not four. Measured on the live page: between the game's
         // own Level-up/Equip buttons and the right edge of .bottom-container
@@ -223,9 +269,10 @@ export class EquipmentGear {
     }
 
     /**
-     * Carry an upgrade run on from the market page, or forget it.
+     * Carry an upgrade run on from the page the game lands on, or forget it.
      *
-     * The market is where a run both starts and lands: at the cap the game
+     * For the hero that is the market, for the girls the girl page (see
+     * UpgradeProfile). The market is where a hero run both starts and lands: at the cap the game
      * navigates off the upgrade page by itself, so the hand-off to the next
      * item cannot happen there -- the upgrade page writes the remaining queue
      * before it triggers that redirect, and this opens whatever it left. The
@@ -236,14 +283,14 @@ export class EquipmentGear {
      * is over one way or another. The age check is what keeps that from
      * eating the queue the Start button just wrote, one navigation earlier.
      */
-    private static resumeUpgradeQueue(): void {
+    private static resumeUpgradeQueue(profile: UpgradeProfile): void {
         if (EquipmentGear.resumeNavigating) return;
-        const queue = getStoredJSON<UpgradeQueueEntry[]>(HHStoredVarPrefixKey + TK.gearUpgradeQueue, []);
+        const queue = getStoredJSON<UpgradeQueueEntry[]>(HHStoredVarPrefixKey + profile.queueKey, []);
         if (!Array.isArray(queue) || queue.length === 0) return;
 
         const startedAt = Number(queue[0]?.startedAt) || 0;
         if (Date.now() - startedAt >= STALE_QUEUE_MS) {
-            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+            setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
             EquipmentGear.releaseAutoLoop();
             logHHAuto(`Gear: dropping a stale upgrade queue (${queue.length} item(s) left);`
                 + ' the run is no longer on the upgrade page.');
@@ -261,24 +308,30 @@ export class EquipmentGear {
                 + ` ${MAX_QUEUE_HEAD_TRIES} attempt(s); skipping it,`
                 + ` ${rest.length} item(s) left.`);
             if (rest.length === 0) {
-                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+                setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
                 EquipmentGear.releaseAutoLoop();
                 logHHAuto('Gear: upgrade run finished -- nothing left to open.');
                 return;
             }
-            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue,
+            setStoredValue(HHStoredVarPrefixKey + profile.queueKey,
                 JSON.stringify(rest.map(r => ({ ...r, startedAt: Date.now(), tries: 0 }))));
             EquipmentGear.resumeNavigating = true;
-            EquipmentGear.gotoUpgradePage(rest[0].id);
+            EquipmentGear.gotoUpgradePage(profile, rest[0].id);
             return;
         }
 
-        setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue,
+        setStoredValue(HHStoredVarPrefixKey + profile.queueKey,
             JSON.stringify([{ ...head, tries }, ...queue.slice(1)]));
         logHHAuto(`Gear: upgrade run continues with ${head.name} (slot ${head.slot});`
             + ` ${queue.length} item(s) left.`);
         EquipmentGear.resumeNavigating = true;
-        EquipmentGear.gotoUpgradePage(head.id);
+        EquipmentGear.gotoUpgradePage(profile, head.id);
+    }
+
+    /** The girl page's half of Level-up gear: the game lands here after every
+     *  item that reached level 10. A no-op without a queue. */
+    static resumeGirlUpgradeQueue(): void {
+        EquipmentGear.resumeUpgradeQueue(GIRL_UPGRADE);
     }
 
     /** One navigation per page load. The market handler runs on every autoloop
@@ -287,6 +340,24 @@ export class EquipmentGear {
     private static resumeNavigating = false;
 
     private static tabWatcherBound = false;
+
+    private static previewStylesAdded = false;
+
+    /** The popup's styles, apart from the market button's: Level-up gear
+     *  opens the same popup on the team page. */
+    private static addPreviewStyles(): void {
+        if (EquipmentGear.previewStylesAdded) return;
+        EquipmentGear.previewStylesAdded = true;
+        // The popup sits on white (#HHAutoPopupGlobalPopup is
+        // rgb(255,255,255), measured), so everything in here is dark on
+        // light -- white borders would not show at all.
+        GM_addStyle('#HHGearPreview{color:#000;}'
+            + '#HHGearPreview h1,#HHGearPreview h2,#HHGearPreview h3,#HHGearPreview th{color:#000;}'
+            + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
+            + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
+            + 'border-bottom:1px solid rgba(0,0,0,0.15);}'
+            + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}');
+    }
 
     /** Re-run the injection after a tab switch. The market swaps tabs without
      *  a page load, and it opens on Boosters -- so a one-shot injection from
@@ -901,7 +972,75 @@ export class EquipmentGear {
             }));
             setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(queue));
             logHHAuto(`Gear: queued ${queue.length} item(s) for upgrade; going to the upgrade page.`);
-            EquipmentGear.gotoUpgradePage(queue[0].id);
+            EquipmentGear.gotoUpgradePage(HERO_UPGRADE, queue[0].id);
+        });
+    }
+
+    /**
+     * "Level-up gear" on the team page: list the team's worn mythics below
+     * level 10 and, on Start, level them one after the other.
+     *
+     * `girls` in team order, leader first, each with the armor the page
+     * loaded with (availableGirls). The run stops for good at the first item
+     * the material cannot take one level further -- a disabled Level-up after
+     * Auto Select and a full scroll of the list -- because every later item
+     * would find the same empty stock. The item it stops on keeps the levels
+     * it got. It also stops before a level whose price would take the money
+     * below the floor.
+     */
+    static previewGirlUpgrade(girls: { id_girl: number; name: string; armor: RawGirlArmor[] }[]): void {
+        EquipmentGear.addPreviewStyles();
+        const t = (key: string) => EquipmentGear.gearText(key);
+        const title = EquipmentGear.gearTitle('HHGirlGearLevelUp');
+        const targets = pickGirlUpgradeTargets(girls);
+        logHHAuto(`Gear [Level-up gear]: ${targets.length} worn mythic(s) below level ${GIRL_GEAR_MAX_LEVEL}`
+            + ` on ${girls.length} team girl(s).`);
+        if (targets.length === 0) {
+            EquipmentGear.showMessage(title, `<p>${t('HHGirlGearNone')}</p>`);
+            return;
+        }
+        const nameOf = (target: GirlUpgradeTarget) => girls[target.position]?.name ?? String(target.girlId);
+        const rows = targets.map(target => {
+            logHHAuto(`  ${target.position + 1}. ${nameOf(target)}, slot ${target.slot}: ${target.name} at level ${target.level}`);
+            return `<tr><td class="num">${target.position + 1}</td><td>${esc(nameOf(target))}</td>`
+                + `<td>${target.slot} ${t(SLOT_KEYS[target.slot])}</td><td>${esc(target.name)}</td>`
+                + `<td class="num">lvl ${target.level}</td></tr>`;
+        }).join('');
+
+        fillHHPopUp('HHGearPreview', title, `
+        <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
+            <p>${t('HHGirlGearIntro')}</p>
+            <table>
+                <tr><th>#</th><th>${t('HHGirlGearColGirl')}</th><th>${t('HHGearColSlot')}</th>`
+                + `<th>${t('HHGearColItem')}</th><th>${t('HHGearColLevel')}</th></tr>
+                ${rows}
+            </table>
+            <div class="rowLine" style="display:flex;align-items:center;">
+                <span class="hudSC_mix_icn"></span>
+                <div style="padding:10px;" class="tooltipHH">
+                    <span class="tooltipHHtext">${getTextForUI('StuffTeamMoney', 'tooltip')}</span>
+                    <label for="HHGirlGearMoneyToKeep">${t('StuffTeamMoney')}</label>
+                    <input id="HHGirlGearMoneyToKeep" class="maxMoneyInputField" style="width:150px;height:20px"
+                        required pattern="[0-9 ]+" type="text" value="${DEFAULT_MONEY_TO_KEEP}">
+                </div>
+            </div>
+            <p style="color:#aaa;font-size:11px;">${t('HHGirlGearFootnote')}</p>
+            <label class="myButton" id="HHGirlGearStart" style="font-size:14px;width:100%;text-align:center;">
+                ${t('HHGirlGearStart')} (${targets.length})</label>
+        </div>`);
+
+        $('#HHGirlGearStart').on('click', function () {
+            const keep = Number(String($('#HHGirlGearMoneyToKeep').val()).replace(/\s/g, ''));
+            if (!Number.isFinite(keep) || keep < 0) return;
+            $(this).attr('disabled', 'disabled').css('opacity', '0.5');
+            const queue: UpgradeQueueEntry[] = targets.map(target => ({
+                id: target.id, name: `${nameOf(target)} / ${target.name}`, slot: target.slot,
+                startedAt: Date.now(), moneyToKeep: keep,
+            }));
+            setStoredValue(HHStoredVarPrefixKey + GIRL_UPGRADE.queueKey, JSON.stringify(queue));
+            logHHAuto(`Gear: queued ${queue.length} girl item(s) for level-up, keeping ${keep} money;`
+                + ' going to the upgrade page.');
+            EquipmentGear.gotoUpgradePage(GIRL_UPGRADE, queue[0].id);
         });
     }
 
@@ -915,8 +1054,8 @@ export class EquipmentGear {
      * ended up back on the market with nothing done. gotoPage() sets the
      * same flag for the same reason.
      */
-    private static gotoUpgradePage(id: number): void {
-        const target = addNutakuSession(upgradePageUrl({ id_member_armor: id })) as string;
+    private static gotoUpgradePage(profile: UpgradeProfile, id: number): void {
+        const target = addNutakuSession(profile.url(id)) as string;
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         logHHAuto('Gear: navigating to ' + target);
         window.location.href = target;
@@ -929,11 +1068,19 @@ export class EquipmentGear {
 
     // --------------------------------------------------- the upgrade page
 
-    /** True on /mythic-equipment-upgrade.html. That page carries no `page`
-     *  attribute, so getPage() cannot identify it -- the path is the only
-     *  handle. */
+    /** The profile of the upgrade page open now, or null elsewhere. Matched
+     *  on the path: /mythic-equipment-upgrade.html carries no `page`
+     *  attribute, so getPage() cannot identify it. */
+    private static currentUpgradeProfile(): UpgradeProfile | null {
+        const path = window.location.pathname;
+        if (path.indexOf(UPGRADE_PATH) !== -1) return HERO_UPGRADE;
+        if (path.indexOf(GIRL_UPGRADE_PATH) !== -1) return GIRL_UPGRADE;
+        return null;
+    }
+
+    /** True on either upgrade page. */
     static isUpgradePage(): boolean {
-        return window.location.pathname.indexOf(UPGRADE_PATH) !== -1;
+        return EquipmentGear.currentUpgradeProfile() !== null;
     }
 
     /** The game's own verdict on whether the picked material covers the next
@@ -1038,25 +1185,23 @@ export class EquipmentGear {
      * unless the player pressed the button.
      */
     static async runUpgradePage(): Promise<void> {
-        if (!EquipmentGear.isUpgradePage()) return;
+        const profile = EquipmentGear.currentUpgradeProfile();
+        if (profile === null) return;
         const queue = getStoredJSON<UpgradeQueueEntry[]>(
-            HHStoredVarPrefixKey + TK.gearUpgradeQueue, []);
+            HHStoredVarPrefixKey + profile.queueKey, []);
         if (!Array.isArray(queue) || queue.length === 0) return;
         if (EquipmentGear.running) return;
         EquipmentGear.running = true;
 
         const finish = (msg: string) => {
-            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+            setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
             EquipmentGear.releaseAutoLoop();
             logHHAuto('Gear: upgrade run finished -- ' + msg);
         };
 
         try {
             const head = queue[0];
-            // A worn item reports its id under id_member_armor_equipped, and
-            // the game sends it back as a string.
-            const onPage = Number(unsafeWindow.item_to_upgrade?.id_member_armor_equipped
-                ?? unsafeWindow.item_to_upgrade?.id_member_armor);
+            const onPage = profile.idOnPage();
             if (onPage !== head.id) {
                 // Someone navigated by hand, or the queue is stale. Acting
                 // here would spend material on an item nobody asked for.
@@ -1064,7 +1209,7 @@ export class EquipmentGear {
                 return;
             }
 
-            const req = parseRequirement(document.body.innerText);
+            const req = parseRequirement(document.body.innerText, profile.maxLevel);
             logHHAuto(`Gear: upgrading ${head.name} (slot ${head.slot}), level`
                 + ` ${unsafeWindow.item_to_upgrade?.level}. Game asks ${req.toNextLevel ?? '?'}`
                 + ` material for the next level, ${req.toMaxLevel ?? '?'} to reach the cap.`);
@@ -1076,6 +1221,15 @@ export class EquipmentGear {
             // call only makes this stop early, which is the safe direction.
             const startLevel = Number(unsafeWindow.item_to_upgrade?.level) || 0;
             const rest = queue.slice(1);
+
+            // The money floor of Level-up gear. The money is read once and
+            // the spending counted here, like the level: whether the game
+            // refreshes Hero.currencies after each call does not matter then,
+            // and counting a failed call only stops the run early.
+            const keep = head.moneyToKeep;
+            const moneyAtLoad = HeroHelper.getMoney();
+            let spent = 0;
+            const nextCost = () => Number($('#level-up').attr('cost')) || 0;
 
             /** Hand the queue on before the level that reaches the cap, not
              *  after: the game navigates off this page the moment an item is
@@ -1091,7 +1245,7 @@ export class EquipmentGear {
                     finish(lastMsg);
                     return;
                 }
-                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue,
+                setStoredValue(HHStoredVarPrefixKey + profile.queueKey,
                     JSON.stringify(rest.map(r => ({ ...r, startedAt: Date.now(), tries: 0 }))));
                 logHHAuto(`Gear: moving on to ${rest[0].name} (slot ${rest[0].slot}).`);
             };
@@ -1118,9 +1272,13 @@ export class EquipmentGear {
                             : ' scrolling; still not enough for the next level.'));
                 }
 
+                const cost = nextCost();
                 const verdict = decideNextLevelUp({
                     currentLevel: startLevel + performed,
                     levelUpEnabled: EquipmentGear.levelUpEnabled(),
+                    maxLevel: profile.maxLevel,
+                    money: keep === undefined ? undefined
+                        : { available: moneyAtLoad - spent, cost, keep },
                 });
                 if (!verdict.go) {
                     logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
@@ -1129,21 +1287,22 @@ export class EquipmentGear {
                     break;
                 }
 
-                if (startLevel + performed + 1 >= MYTHIC_MAX_LEVEL) {
-                    handOver(`${head.name} reaches level ${MYTHIC_MAX_LEVEL}`
+                if (startLevel + performed + 1 >= profile.maxLevel) {
+                    handOver(`${head.name} reaches level ${profile.maxLevel}`
                         + ' with the level-up going out now.');
                 }
                 $('#level-up').trigger('click');
                 performed++;
+                spent += cost;
                 await new Promise(r => setTimeout(r, randomInterval(1500, 2500)));
                 logHHAuto(`Gear: ${head.name} is now level ${startLevel + performed}`
                     + ` (${performed} level(s) this run).`);
             }
 
             if (rest.length === 0) return;
-            EquipmentGear.gotoUpgradePage(rest[0].id);
+            EquipmentGear.gotoUpgradePage(profile, rest[0].id);
         } catch (err) {
-            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+            setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
             EquipmentGear.releaseAutoLoop();
             logHHAuto('Gear: upgrade run aborted: ' + err);
         } finally {
