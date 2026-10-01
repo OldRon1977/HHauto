@@ -547,5 +547,5 @@ HHAuto_ToolTips.es['teamSelNextStats'] = { version: "8.14.0", elementText: "Pró
 HHAuto_ToolTips.es['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mejor posible la próxima semana - según estadísticas y bendiciones", tooltip: ""};
 HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.17.0", elementText: "El cálculo puede tardar un rato. La automatización espera mientras tanto.", tooltip: ""};
 HHAuto_ToolTips.es['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Mientras trabajas en el equipo -- Calcular, Aplicar, Equipo de las chicas, Subir equipo, Preparar equipo -- la automatización se pausa, también a través de cada recarga. Un aviso arriba en la página lo indica, con el botón «Reanudar la automatización». Se reanuda sola cuando sales de la página del equipo o tras 15 minutos sin actividad en ella.", tooltip: ""};
-HHAuto_ToolTips.es['workPause'] = { version: "8.17.0", elementText: "Optimización de equipo: automatización en pausa (quedan {minutes} min sin actividad)", tooltip: ""};
+HHAuto_ToolTips.es['workPause'] = { version: "8.18.0", elementText: "{what}: automatización en pausa (quedan {minutes} min sin actividad)", tooltip: ""};
 HHAuto_ToolTips.es['workPauseResume'] = { version: "8.17.0", elementText: "Reanudar la automatización", tooltip: ""};

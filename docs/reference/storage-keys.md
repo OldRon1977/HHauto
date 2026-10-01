@@ -654,7 +654,7 @@ shown in the info panel as "Auto-Mystery").
 | Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
 | `mouseLastActivity` | `Temp_mouseLastActivity` | `sessionStorage` | `Temp` | the timestamp of the last mouse activity (`MouseService`) |
-| `workPause` | `Temp_workPause` | `sessionStorage` | `Temp` | the player is working on the team: start, last sign of work, the edit-team URL, and whether a finished run is on its way back (`WorkPause`) |
+| `workPause` | `Temp_workPause` | `sessionStorage` | `Temp` | the player is working on a team or on the hero's gear: start, last sign of work, the zone (`team` or `gear`) and its page URL, and whether a finished run is on its way back (`WorkPause`) |
 
 ### Pipeline scheduler
 

@@ -548,5 +548,5 @@ HHAuto_ToolTips.fr['teamSelNextStats'] = { version: "8.14.0", elementText: "Sema
 HHAuto_ToolTips.fr['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Meilleure possible semaine prochaine - selon stats et bénédictions", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelSlowHint'] = { version: "8.17.0", elementText: "Le calcul peut prendre un moment. L'automatisation attend pendant ce temps.", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Tant que vous travaillez sur l'équipe -- Calculer, Appliquer, Équipement de l'équipe, Monter l'équipement, Équiper l'équipe -- l'automatisation fait une pause, à travers chaque rechargement. Un avis en haut de la page l'indique, avec le bouton « Reprendre l'automatisation ». Elle reprend d'elle-même quand vous quittez la page de l'équipe, ou après 15 minutes sans activité sur celle-ci.", tooltip: ""};
-HHAuto_ToolTips.fr['workPause'] = { version: "8.17.0", elementText: "Optimisation d'équipe : automatisation en pause (encore {minutes} min sans activité)", tooltip: ""};
+HHAuto_ToolTips.fr['workPause'] = { version: "8.18.0", elementText: "{what} : automatisation en pause (encore {minutes} min sans activité)", tooltip: ""};
 HHAuto_ToolTips.fr['workPauseResume'] = { version: "8.17.0", elementText: "Reprendre l'automatisation", tooltip: ""};

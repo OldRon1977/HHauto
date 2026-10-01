@@ -265,7 +265,7 @@ export class TeamModule {
             setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
             setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
             setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
-            startWorkPause();
+            startWorkPause('team');
 
             if(teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
@@ -450,7 +450,7 @@ export class TeamModule {
     static openTeamSelection() {
         // From here on the player works on the team; the pipeline waits
         // until they leave or stop (WorkPause.ts).
-        startWorkPause();
+        startWorkPause('team');
         TeamSelectionPopup.open({
             mapGirl: raw => TeamModule.mapAvailableGirl(raw),
             getHexagonIds: () => TeamModule.getEditTeamGirlIds(),

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.17.0
+// @version      8.18.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -847,7 +847,7 @@ HHAuto_ToolTips.en['teamSelNextStats'] = { version: "8.14.0", elementText: "Next
 HHAuto_ToolTips.en['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Next week's possibly best - by stats and blessings", tooltip: "" };
 HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.17.0", elementText: "This might take a while to calculate. The automation waits meanwhile.", tooltip: "" };
 HHAuto_ToolTips.en['teamSelSlowInfo'] = { version: "8.17.0", elementText: "While you work on the team -- Calculate, Apply, Team gear, Level-up gear, Stuff Team -- the automation pauses, across every reload. A notice at the top of the page shows it, with a Resume automation button. It resumes by itself when you leave the team page, or after 15 minutes without anything happening on it.", tooltip: "" };
-HHAuto_ToolTips.en['workPause'] = { version: "8.17.0", elementText: "Team optimization: automation paused ({minutes} min left without activity)", tooltip: "" };
+HHAuto_ToolTips.en['workPause'] = { version: "8.18.0", elementText: "{what}: automation paused ({minutes} min left without activity)", tooltip: "" };
 HHAuto_ToolTips.en['workPauseResume'] = { version: "8.17.0", elementText: "Resume automation", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
@@ -1398,7 +1398,7 @@ HHAuto_ToolTips.fr['teamSelNextStats'] = { version: "8.14.0", elementText: "Sema
 HHAuto_ToolTips.fr['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Meilleure possible semaine prochaine - selon stats et bénédictions", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelSlowHint'] = { version: "8.17.0", elementText: "Le calcul peut prendre un moment. L'automatisation attend pendant ce temps.", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Tant que vous travaillez sur l'équipe -- Calculer, Appliquer, Équipement de l'équipe, Monter l'équipement, Équiper l'équipe -- l'automatisation fait une pause, à travers chaque rechargement. Un avis en haut de la page l'indique, avec le bouton « Reprendre l'automatisation ». Elle reprend d'elle-même quand vous quittez la page de l'équipe, ou après 15 minutes sans activité sur celle-ci.", tooltip: "" };
-HHAuto_ToolTips.fr['workPause'] = { version: "8.17.0", elementText: "Optimisation d'équipe : automatisation en pause (encore {minutes} min sans activité)", tooltip: "" };
+HHAuto_ToolTips.fr['workPause'] = { version: "8.18.0", elementText: "{what} : automatisation en pause (encore {minutes} min sans activité)", tooltip: "" };
 HHAuto_ToolTips.fr['workPauseResume'] = { version: "8.17.0", elementText: "Reprendre l'automatisation", tooltip: "" };
 
 ;// ./src/i18n/de.ts
@@ -1950,7 +1950,7 @@ HHAuto_ToolTips.de['teamSelNextStats'] = { version: "8.14.0", elementText: "Näc
 HHAuto_ToolTips.de['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mögliches Bestes nächste Woche - nach Werten und Blessings", tooltip: "" };
 HHAuto_ToolTips.de['teamSelSlowHint'] = { version: "8.17.0", elementText: "Die Berechnung kann eine Weile dauern. Die Automatik wartet so lange.", tooltip: "" };
 HHAuto_ToolTips.de['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Solange du am Team arbeitest -- Berechnen, Übernehmen, Team-Ausrüstung, Ausrüstung leveln, Team bestücken -- pausiert die Automatik, auch über jedes Neuladen hinweg. Ein Hinweis oben auf der Seite zeigt das, mit dem Knopf „Automatik fortsetzen“. Sie läuft von selbst weiter, wenn du die Team-Seite verlässt oder dort 15 Minuten lang nichts passiert.", tooltip: "" };
-HHAuto_ToolTips.de['workPause'] = { version: "8.17.0", elementText: "Teamoptimierung: Automatik pausiert (noch {minutes} min ohne Bedienung)", tooltip: "" };
+HHAuto_ToolTips.de['workPause'] = { version: "8.18.0", elementText: "{what}: Automatik pausiert (noch {minutes} min ohne Bedienung)", tooltip: "" };
 HHAuto_ToolTips.de['workPauseResume'] = { version: "8.17.0", elementText: "Automatik fortsetzen", tooltip: "" };
 
 ;// ./src/i18n/es.ts
@@ -2501,7 +2501,7 @@ HHAuto_ToolTips.es['teamSelNextStats'] = { version: "8.14.0", elementText: "Pró
 HHAuto_ToolTips.es['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mejor posible la próxima semana - según estadísticas y bendiciones", tooltip: "" };
 HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.17.0", elementText: "El cálculo puede tardar un rato. La automatización espera mientras tanto.", tooltip: "" };
 HHAuto_ToolTips.es['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Mientras trabajas en el equipo -- Calcular, Aplicar, Equipo de las chicas, Subir equipo, Preparar equipo -- la automatización se pausa, también a través de cada recarga. Un aviso arriba en la página lo indica, con el botón «Reanudar la automatización». Se reanuda sola cuando sales de la página del equipo o tras 15 minutos sin actividad en ella.", tooltip: "" };
-HHAuto_ToolTips.es['workPause'] = { version: "8.17.0", elementText: "Optimización de equipo: automatización en pausa (quedan {minutes} min sin actividad)", tooltip: "" };
+HHAuto_ToolTips.es['workPause'] = { version: "8.18.0", elementText: "{what}: automatización en pausa (quedan {minutes} min sin actividad)", tooltip: "" };
 HHAuto_ToolTips.es['workPauseResume'] = { version: "8.17.0", elementText: "Reanudar la automatización", tooltip: "" };
 
 ;// ./src/Helper/LanguageHelper.ts
@@ -3112,7 +3112,7 @@ const TK = {
     featurePopupDismissCount: "Temp_featurePopupDismissCount",
     // Mouse pause activity (issue #1774)
     mouseLastActivity: "Temp_mouseLastActivity",
-    // The player is working on the team: the pipeline waits (WorkPause.ts)
+    // The player is working on a team or the hero's gear: the pipeline waits (WorkPause.ts)
     workPause: "Temp_workPause",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
@@ -6072,9 +6072,9 @@ HHStoredVars[HHStoredVarPrefixKey + TK.mouseLastActivity] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
-// The work pause of the team popup (WorkPause.ts). sessionStorage: it has to
-// survive the reloads of Apply and Team gear, and belongs to the tab the
-// player works in.
+// The work pause of the team popup and the HH Gear menu (WorkPause.ts).
+// sessionStorage: it has to survive the reloads of Apply, Team gear and the
+// gear equip, and belongs to the tab the player works in.
 HHStoredVars[HHStoredVarPrefixKey + TK.workPause] =
     {
         storage: "sessionStorage",
@@ -9883,12 +9883,12 @@ class HaremGirl {
                         // Back to edit-team, where the work on the team goes on:
                         // the work pause (Service/WorkPause.ts) takes the run there
                         // on its next tick. Written here rather than through its
-                        // workPauseReturnToTeam(), because importing WorkPause from
+                        // workPauseReturnToZone(), because importing WorkPause from
                         // this file closes three new import cycles through
                         // HHEnvVariables -> Harem (measured with deps:circular:check).
                         logHHAuto("No more girls, back to the team page");
                         const pause = getStoredJSON(HHStoredVarPrefixKey + TK.workPause, {});
-                        setStoredValue(HHStoredVarPrefixKey + TK.workPause, JSON.stringify(Object.assign(Object.assign({}, pause), { lastActivity: Date.now(), returnToTeam: true })));
+                        setStoredValue(HHStoredVarPrefixKey + TK.workPause, JSON.stringify(Object.assign(Object.assign({}, pause), { lastActivity: Date.now(), returnToZone: true })));
                         Harem.clearHaremToolVariables();
                     }
                     else {
@@ -26939,8 +26939,9 @@ function decideNextLevelUp(state) {
 }
 
 ;// ./src/Service/WorkPause.pure.ts
-// WorkPause.pure.ts -- Whether the player's work on the team holds the
-// pipeline: the decision, without storage, DOM or clock.
+// WorkPause.pure.ts -- Whether the player's work -- on a team or on the
+// hero's gear -- holds the pipeline: the decision, without storage, DOM or
+// clock.
 //
 // The impure half (WorkPause.ts) gathers the input every tick and acts on the
 // answer. Why the pause exists and why it is shaped this way is told there.
@@ -26956,11 +26957,11 @@ const WORK_PAUSE_IDLE_MS = 15 * 60000;
  * never comes -- must not keep the script parked for good. Every step of
  * a run counts as work, so a run that moves never reaches the limit.
  *
- * Off the team pages, with no run going and none on its way back, the
+ * Off the zone's pages, with no run going and none on its way back, the
  * player has left by their own hand: the pause ends.
  */
 function decideWorkPause(input) {
-    const { state, now, onTeamPage, runActive, idleMs } = input;
+    const { state, now, onZonePage, runActive, idleMs } = input;
     if (state === null)
         return { kind: 'none' };
     const idle = Math.max(0, now - state.lastActivity);
@@ -26968,17 +26969,18 @@ function decideWorkPause(input) {
         return { kind: 'end', reason: 'idle' };
     const remainingMs = idleMs - idle;
     if (runActive)
-        return { kind: 'hold', remainingMs, goToTeam: false, arrived: false };
-    if (state.returnToTeam) {
-        return { kind: 'hold', remainingMs, goToTeam: !onTeamPage, arrived: onTeamPage };
+        return { kind: 'hold', remainingMs, goToZone: false, arrived: false };
+    if (state.returnToZone) {
+        return { kind: 'hold', remainingMs, goToZone: !onZonePage, arrived: onZonePage };
     }
-    if (onTeamPage)
-        return { kind: 'hold', remainingMs, goToTeam: false, arrived: false };
+    if (onZonePage)
+        return { kind: 'hold', remainingMs, goToZone: false, arrived: false };
     return { kind: 'end', reason: 'left' };
 }
 
 ;// ./src/Service/WorkPause.ts
-// WorkPause.ts -- Keep the pipeline out while the player works on the team.
+// WorkPause.ts -- Keep the pipeline out while the player works on a team or
+// on the hero's gear.
 //
 // Working on a team is a sequence, not one click: calculate, Apply (the page
 // reloads), Team gear (it reloads again), Level-up gear or Stuff Team (they
@@ -26992,19 +26994,23 @@ function decideWorkPause(input) {
 // cover this.
 //
 // The pause therefore lives in sessionStorage (Temp_workPause) and is asked
-// every tick before the pipeline, the first tick after a reload included. It
-// starts when the team popup opens, and holds
-//   - on edit-team and the team list,
+// every tick before the pipeline, the first tick after a reload included.
+//
+// It has a zone: the team pages (edit-team and the team list), started by the
+// team popup, or the market, started by the HH Gear menu -- the gear work on
+// the market is the same kind of sequence: preview, Equip (the page reloads),
+// Upgrade Gear over the upgrade pages and back. The pause holds
+//   - on the pages of its zone,
 //   - on every page of a running Stuff Team, Level-up gear or Upgrade Gear,
-//   - on the way back to edit-team after such a run finished.
-// It ends when the player leaves the team pages by their own hand, presses
+//   - on the way back to the zone after such a run finished.
+// It ends when the player leaves the zone by their own hand, presses
 // "Resume automation" on the notice every held page shows, after
 // WORK_PAUSE_IDLE_MS without any sign of work, or when a run gives up -- the
 // run then sends the player home.
 //
 // The decision is WorkPause.pure.ts; this file reads its input and acts.
 //
-// Stuff Team's end sets returnToTeam on the stored state itself, in the
+// Stuff Team's end sets returnToZone on the stored state itself, in the
 // harem girl module: importing this file there would close new import cycles.
 //
 // Used by: AutoLoop.ts (asks it every tick), TeamModule.ts,
@@ -27031,24 +27037,36 @@ function stateKey() {
 const TOUCH_THROTTLE_MS = 2000;
 /** The tick runs every second; the log hears from the pause once a minute. */
 const HOLD_LOG_EVERY_MS = 60000;
-const GO_TO_TEAM_RETRY_MS = 10000;
+const GO_TO_ZONE_RETRY_MS = 10000;
 let lastTouch = 0;
 let lastHoldLog = 0;
 /** When the way back was last asked for; gotoPage refuses while another
  *  navigation is in flight, so the next tick may have to ask again. */
-let goToTeamAt = 0;
+let goToZoneAt = 0;
 let activityBound = false;
 let stylesAdded = false;
 function readState() {
     const state = getStoredJSON(stateKey(), null);
-    return state && typeof state.lastActivity === 'number' ? state : null;
+    if (!state || typeof state.lastActivity !== 'number')
+        return null;
+    if (state.zone)
+        return state;
+    // A pause 8.17.0 left in a tab knew only the team zone, under other names.
+    const old = state;
+    return { since: old.since, lastActivity: old.lastActivity, zone: 'team', zoneUrl: old.teamUrl, returnToZone: old.returnToTeam };
 }
 function writeState(state) {
     setStoredValue(stateKey(), JSON.stringify(state));
 }
-function isTeamPage(page) {
-    return page === ConfigHelper.getHHScriptVars('pagesIDEditTeam')
-        || page === ConfigHelper.getHHScriptVars('pagesIDBattleTeams');
+function isZonePage(zone, page) {
+    const cfg = (key) => ConfigHelper.getHHScriptVars(key);
+    if (zone === 'gear')
+        return page === cfg('pagesIDShop');
+    return page === cfg('pagesIDEditTeam') || page === cfg('pagesIDBattleTeams');
+}
+/** The zone's own name for the notice: the label of the button that opened it. */
+function zoneLabel(zone) {
+    return getTextForUI(zone === 'gear' ? 'HHGearMenu' : 'teamSelOpen', 'elementText');
 }
 function queued(key) {
     const queue = getStoredJSON(HHStoredVarPrefixKey + key, []);
@@ -27074,16 +27092,18 @@ function runActive(page) {
         return true;
     return false;
 }
-/** Begin the pause, or keep the one already running and count this as work. */
-function startWorkPause() {
-    var _a;
+/** Begin the pause for a zone, or keep the one already running there and
+ *  count this as work. Work in the other zone replaces it. */
+function startWorkPause(zone) {
     const now = Date.now();
     const state = readState();
-    const teamUrl = isTeamPage(getPage()) ? window.location.pathname + window.location.search : state === null || state === void 0 ? void 0 : state.teamUrl;
-    writeState({ since: (_a = state === null || state === void 0 ? void 0 : state.since) !== null && _a !== void 0 ? _a : now, lastActivity: now, teamUrl, returnToTeam: false });
+    const same = state !== null && state.zone === zone;
+    const zoneUrl = isZonePage(zone, getPage()) ? window.location.pathname + window.location.search
+        : (same ? state.zoneUrl : undefined);
+    writeState({ since: same ? state.since : now, lastActivity: now, zone, zoneUrl, returnToZone: false });
     lastTouch = now;
-    if (state === null)
-        logHHAuto('Work pause: started -- the automation waits while the team is being worked on.');
+    if (!same)
+        logHHAuto(`Work pause: started (${zone}) -- the automation waits while the player works.`);
 }
 /** A sign of work: the idle limit counts from here. No-op without a pause. */
 function touchWorkPause() {
@@ -27096,13 +27116,13 @@ function touchWorkPause() {
     lastTouch = now;
     writeState(Object.assign(Object.assign({}, state), { lastActivity: now }));
 }
-/** A run finished: hold on until the player is back on the team page.
+/** A run finished: hold on until the player is back in the zone.
  *  Stuff Team's end writes the same field directly (see the file head). */
-function workPauseReturnToTeam() {
+function workPauseReturnToZone() {
     const state = readState();
     if (state === null)
         return;
-    writeState(Object.assign(Object.assign({}, state), { lastActivity: Date.now(), returnToTeam: true }));
+    writeState(Object.assign(Object.assign({}, state), { lastActivity: Date.now(), returnToZone: true }));
 }
 /** Whether a pause is stored -- a run asks before it decides where to end. */
 function isWorkPauseActive() {
@@ -27118,8 +27138,8 @@ function endWorkPause(reason) {
 }
 /**
  * Asked by every tick, before the pipeline. True while the pipeline has to
- * wait. Also keeps the notice up to date, sends a finished run back to the
- * team page, and ends the pause when the decision says so.
+ * wait. Also keeps the notice up to date, sends a finished run back to its
+ * zone, and ends the pause when the decision says so.
  */
 function workPauseHolds(page) {
     // A calculation holds the loop in memory; its minutes are work too.
@@ -27131,37 +27151,37 @@ function workPauseHolds(page) {
         return false;
     }
     const now = Date.now();
-    const onTeamPage = isTeamPage(page);
+    const onZonePage = isZonePage(state.zone, page);
     const active = runActive(page);
-    const decision = decideWorkPause({ state, now, onTeamPage, runActive: active, idleMs: (/* inlined export .WORK_PAUSE_IDLE_MS */900000) });
+    const decision = decideWorkPause({ state, now, onZonePage, runActive: active, idleMs: (/* inlined export .WORK_PAUSE_IDLE_MS */900000) });
     if (decision.kind === 'none')
         return false;
     if (decision.kind === 'end') {
         endWorkPause(decision.reason === 'idle'
-            ? `${(/* inlined export .WORK_PAUSE_IDLE_MS */900000) / 60000} minutes without work on the team`
-            : 'the team page was left and no run is going');
+            ? `${(/* inlined export .WORK_PAUSE_IDLE_MS */900000) / 60000} minutes without work (${state.zone})`
+            : `the ${state.zone} page was left and no run is going`);
         return false;
     }
     if (active)
         touchWorkPause();
     if (decision.arrived)
-        writeState(Object.assign(Object.assign({}, state), { lastActivity: now, returnToTeam: false }));
-    if (decision.goToTeam && now - goToTeamAt >= GO_TO_TEAM_RETRY_MS) {
-        goToTeamAt = now;
-        logHHAuto('Work pause: the run is done, back to the team page.');
-        goToTeamPage(state.teamUrl);
+        writeState(Object.assign(Object.assign({}, state), { lastActivity: now, returnToZone: false }));
+    if (decision.goToZone && now - goToZoneAt >= GO_TO_ZONE_RETRY_MS) {
+        goToZoneAt = now;
+        logHHAuto(`Work pause: the run is done, back to the ${state.zone} page.`);
+        goToZonePage(state.zone, state.zoneUrl);
     }
-    if (onTeamPage)
+    if (onZonePage)
         bindActivity();
     if (now - lastHoldLog >= HOLD_LOG_EVERY_MS) {
         lastHoldLog = now;
         logHHAuto(`Work pause: holding the automation, ${Math.ceil(decision.remainingMs / 60000)} min left without work.`);
     }
-    showNotice(decision.remainingMs);
+    showNotice(state.zone, decision.remainingMs);
     return true;
 }
 /**
- * On the team pages, the player's hand is the sign of work. Listeners of
+ * On the zone's pages, the player's hand is the sign of work. Listeners of
  * their own, in the capture phase: MouseService owns document.onmousemove,
  * and the popup's buttons stop nothing from reaching the document this way.
  */
@@ -27174,25 +27194,26 @@ function bindActivity() {
     }
 }
 /**
- * Back to the edit-team page the work started on. gotoPage takes a page id,
- * not a path -- measured: '/edit-team.html?battle_type=leagues' came back
+ * Back to the page of the zone the work started on. gotoPage takes a page
+ * id, not a path -- measured: '/edit-team.html?battle_type=leagues' came back
  * as "Unknown goto page request" and the run stayed on the last girl page --
  * so the query of the stored URL goes in as arguments, which keeps the team
  * slot the player had open.
  */
-function goToTeamPage(teamUrl) {
+function goToZonePage(zone, zoneUrl) {
     var _a;
     const args = {};
-    if (teamUrl) {
+    if (zoneUrl) {
         // `sess` is Nutaku's session parameter; gotoPage adds its own.
-        new URLSearchParams((_a = teamUrl.split('?')[1]) !== null && _a !== void 0 ? _a : '').forEach((value, key) => { if (key !== 'sess')
+        new URLSearchParams((_a = zoneUrl.split('?')[1]) !== null && _a !== void 0 ? _a : '').forEach((value, key) => { if (key !== 'sess')
             args[key] = value; });
     }
-    gotoPage(ConfigHelper.getHHScriptVars('pagesIDEditTeam'), args);
+    gotoPage(ConfigHelper.getHHScriptVars(zone === 'gear' ? 'pagesIDShop' : 'pagesIDEditTeam'), args);
 }
-function showNotice(remainingMs) {
+function showNotice(zone, remainingMs) {
     const minutes = Math.max(1, Math.ceil(remainingMs / 60000));
-    const text = getTextForUI('workPause', 'elementText').replace('{minutes}', String(minutes));
+    const text = getTextForUI('workPause', 'elementText')
+        .replace('{what}', zoneLabel(zone)).replace('{minutes}', String(minutes));
     if (document.getElementById('hhWorkPause') === null) {
         if (!stylesAdded) {
             stylesAdded = true;
@@ -27237,8 +27258,9 @@ function showNotice(remainingMs) {
 // Background, data model and the measurement traps:
 // docs/reference/equipment-resonance.md.
 //
-// A run of Upgrade Gear or Level-up gear stands under the work pause
-// (WorkPause.ts) on every page it passes, so no pipeline block takes it off
+// Opening the HH Gear menu starts the work pause for the market (WorkPause.ts),
+// and a run of Upgrade Gear or Level-up gear stands under it on every page it
+// passes, so no pipeline block takes the player off the market or the run off
 // the upgrade page. A run that cannot go on -- not enough material or money
 // for the next level -- ends the pause and goes home (abortRun).
 //
@@ -27284,7 +27306,6 @@ const HERO_UPGRADE = {
         var _a, _b, _c;
         return Number((_b = (_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_member_armor_equipped) !== null && _b !== void 0 ? _b : (_c = unsafeWindow.item_to_upgrade) === null || _c === void 0 ? void 0 : _c.id_member_armor);
     },
-    returnsToTeam: false,
 };
 const GIRL_UPGRADE = {
     queueKey: TK.girlGearUpgradeQueue,
@@ -27292,7 +27313,6 @@ const GIRL_UPGRADE = {
     path: GIRL_UPGRADE_PATH,
     url: girlUpgradePageUrl,
     idOnPage: () => { var _a; return Number((_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_girl_armor_equipped); },
-    returnsToTeam: true,
 };
 /** Stuff Team's default, so the two team buttons start from the same floor. */
 const DEFAULT_MONEY_TO_KEEP = 500000000;
@@ -27410,7 +27430,10 @@ class EquipmentGear {
         // actions moved into a menu, which also means the next one costs no
         // space at all.
         host.append('<div id="HHGearButtons">' + gearButton('HHGearMenu') + '</div>');
-        $("#HHGearMenu").on("click", () => { EquipmentGear.showMenu(); });
+        // The gear work on the market is a sequence like the team's: preview,
+        // Equip (a reload), Upgrade Gear over the upgrade pages. The pipeline
+        // waits from the first click (WorkPause.ts).
+        $("#HHGearMenu").on("click", () => { startWorkPause('gear'); EquipmentGear.showMenu(); });
         // Delegated: the entries live in the popup, which is rebuilt each time.
         $(document).off('click.hhgear').on('click.hhgear', '#HHGearPreview [data-gear-action]', function () {
             const action = this.dataset.gearAction;
@@ -28089,7 +28112,7 @@ class EquipmentGear {
                 id: t.id_member_armor, name: t.name, slot: t.slot, startedAt: Date.now(),
             }));
             setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(queue));
-            startWorkPause();
+            startWorkPause('gear');
             logHHAuto(`Gear: queued ${queue.length} item(s) for upgrade; going to the upgrade page.`);
             EquipmentGear.gotoUpgradePage(HERO_UPGRADE, queue[0].id);
         });
@@ -28155,7 +28178,7 @@ class EquipmentGear {
                 startedAt: Date.now(), moneyToKeep: keep,
             }));
             setStoredValue(HHStoredVarPrefixKey + GIRL_UPGRADE.queueKey, JSON.stringify(queue));
-            startWorkPause();
+            startWorkPause('team');
             logHHAuto(`Gear: queued ${queue.length} girl item(s) for level-up, keeping ${keep} money;`
                 + ' going to the upgrade page.');
             EquipmentGear.gotoUpgradePage(GIRL_UPGRADE, queue[0].id);
@@ -28181,14 +28204,13 @@ class EquipmentGear {
     static releaseAutoLoop() {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
     }
-    /** The regular end: every queued item is done or skipped. Level-up gear
-     *  goes back to edit-team under the work pause; Upgrade Gear stays on the
-     *  market it started from, where the pause ends by itself. */
+    /** The regular end: every queued item is done or skipped. The run goes
+     *  back where it started under the work pause -- Level-up gear to
+     *  edit-team, Upgrade Gear to the market. */
     static finishRun(profile, msg) {
         setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
         EquipmentGear.releaseAutoLoop();
-        if (profile.returnsToTeam)
-            workPauseReturnToTeam();
+        workPauseReturnToZone();
         logHHAuto('Gear: upgrade run finished -- ' + msg);
     }
     /**
@@ -32650,7 +32672,7 @@ class TeamModule {
             setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
             setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
             setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
-            startWorkPause();
+            startWorkPause('team');
             if (teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
             }
@@ -32829,7 +32851,7 @@ class TeamModule {
     static openTeamSelection() {
         // From here on the player works on the team; the pipeline waits
         // until they leave or stop (WorkPause.ts).
-        startWorkPause();
+        startWorkPause('team');
         TeamSelectionPopup.open({
             mapGirl: raw => TeamModule.mapAvailableGirl(raw),
             getHexagonIds: () => TeamModule.getEditTeamGirlIds(),
