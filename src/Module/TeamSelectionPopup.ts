@@ -44,7 +44,7 @@
 // import TeamModule (which opens it).
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
-//   BlessingForecast.ts, LeagueOpponentSnapshot.ts, AutoLoopHold.ts
+//   BlessingForecast.ts, LeagueOpponentSnapshot.ts, AutoLoopHold.ts, WorkPause.ts
 // Used by: TeamModule.ts
 
 import { getHHVars } from '../Helper/HHHelper';
@@ -58,6 +58,7 @@ import { ElementType, GirlData, PlayerClass, TeamScoringService } from '../Servi
 import { TeamSelectionService } from '../Service/TeamSelectionService';
 import { kickAutoLoop } from '../Service/AutoLoopKick';
 import { holdAutoLoop, releaseAutoLoopHold } from '../Service/AutoLoopHold';
+import { touchWorkPause } from '../Service/WorkPause';
 import { getStoredValue, setStoredValue } from '../Helper/StorageHelper';
 import { HHStoredVarPrefixKey } from '../config/HHStoredVars';
 import { TK } from '../config/StorageKeys';
@@ -432,6 +433,10 @@ export class TeamSelectionPopup {
             TeamSelectionPopup.busy = false;
             $('#hhTeamSel .tsCalc').removeClass('tsDisabled');
             releaseAutoLoopHold();
+            // The work pause outlives the hold: the result has yet to be read
+            // and applied, and a calculation of many minutes must not have
+            // used up the pause's idle time by the time it ends.
+            touchWorkPause();
             if (loopWasOn) {
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                 kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);

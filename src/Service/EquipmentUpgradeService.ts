@@ -21,7 +21,7 @@
 // the automation reads that number and presses that button instead of
 // re-deriving either.
 //
-// Used by: Module/EquipmentGear.ts
+// Used by: Module/EquipmentGear.ts, Service/WorkPause.ts (the two upgrade paths)
 
 import { ArmorItem, GearTheme, MYTHIC_MAX_LEVEL, gearTier } from './EquipmentOptimizerService';
 import type { PlayerClass } from './TeamScoringService';

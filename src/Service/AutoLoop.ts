@@ -5,7 +5,8 @@
 //
 // Each iteration:
 //   1. Checks if "burst" mode is active (master switch on, not in
-//      paranoia rest, menu not open), no user pause and no hold
+//      paranoia rest, menu not open), no user pause, no hold and no work
+//      pause (WorkPause.ts)
 //   2. If active, reads the events on the page and hands the tick to the
 //      block scheduler (the pipeline in Pipeline.config.ts), which runs at
 //      most one block's step -- skipped while a POST is in flight
@@ -46,6 +47,7 @@ import { AutoLoopContext } from './AutoLoopContext';
 import { decideBurst } from './AutoLoop.pure';
 import { handlePageSpecific } from './AutoLoopPageHandlers';
 import { autoLoopHolder } from './AutoLoopHold';
+import { workPauseHolds } from './WorkPause';
 
 
 export function getBurst()
@@ -196,7 +198,11 @@ export async function autoLoop()
         lastMousePauseLog = Date.now();
         logHHAuto("Automation held by " + heldBy + ".");
     }
-    if (burst && !userPaused && !heldBy)
+    // The player is working on the team: a pause that outlives the reloads of
+    // that work (WorkPause.ts). Asked on every tick, acting or not, so its
+    // notice stays current and it can end itself.
+    const workPaused = workPauseHolds(ctx.currentPage);
+    if (burst && !userPaused && !heldBy && !workPaused)
     {
 
         if (!checkTimer("paranoiaSwitch") )
@@ -242,7 +248,7 @@ export async function autoLoop()
     // --- Page-specific UI handlers ---
     await handlePageSpecific(ctx);
 
-    if (ctx.busy === false && !isUserPauseActive() && !autoLoopHolder() && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
+    if (ctx.busy === false && !isUserPauseActive() && !autoLoopHolder() && !workPaused && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
         if (checkTimer("paranoiaSwitch")) {
             ParanoiaService.flipParanoia();
         }
