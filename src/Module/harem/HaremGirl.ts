@@ -726,13 +726,13 @@ export class HaremGirl {
                     // Back to edit-team, where the work on the team goes on:
                     // the work pause (Service/WorkPause.ts) takes the run there
                     // on its next tick. Written here rather than through its
-                    // workPauseReturnToTeam(), because importing WorkPause from
+                    // workPauseReturnToZone(), because importing WorkPause from
                     // this file closes three new import cycles through
                     // HHEnvVariables -> Harem (measured with deps:circular:check).
                     logHHAuto("No more girls, back to the team page");
                     const pause = getStoredJSON<object>(HHStoredVarPrefixKey + TK.workPause, {});
                     setStoredValue(HHStoredVarPrefixKey + TK.workPause,
-                        JSON.stringify({ ...pause, lastActivity: Date.now(), returnToTeam: true }));
+                        JSON.stringify({ ...pause, lastActivity: Date.now(), returnToZone: true }));
                     Harem.clearHaremToolVariables();
                 } else {
                     logHHAuto("No more girls, go back to harem list");

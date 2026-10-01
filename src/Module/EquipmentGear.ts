@@ -15,8 +15,9 @@
 // Background, data model and the measurement traps:
 // docs/reference/equipment-resonance.md.
 //
-// A run of Upgrade Gear or Level-up gear stands under the work pause
-// (WorkPause.ts) on every page it passes, so no pipeline block takes it off
+// Opening the HH Gear menu starts the work pause for the market (WorkPause.ts),
+// and a run of Upgrade Gear or Level-up gear stands under it on every page it
+// passes, so no pipeline block takes the player off the market or the run off
 // the upgrade page. A run that cannot go on -- not enough material or money
 // for the next level -- ends the pause and goes home (abortRun).
 //
@@ -31,7 +32,7 @@ import { getPage } from "../Helper/PageHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
 import { addNutakuSession, gotoPage } from "../Service/PageNavigationService";
-import { endWorkPause, isWorkPauseActive, startWorkPause, workPauseReturnToTeam } from "../Service/WorkPause";
+import { endWorkPause, isWorkPauseActive, startWorkPause, workPauseReturnToZone } from "../Service/WorkPause";
 import {
     ArmorItem,
     GearPlan,
@@ -109,8 +110,6 @@ interface UpgradeProfile {
     path: string;
     url: (id: number) => string;
     idOnPage: () => number;
-    /** Level-up gear starts on edit-team and goes back there when done. */
-    returnsToTeam: boolean;
 }
 
 const HERO_UPGRADE: UpgradeProfile = {
@@ -122,7 +121,6 @@ const HERO_UPGRADE: UpgradeProfile = {
     // game sends it back as a string.
     idOnPage: () => Number(unsafeWindow.item_to_upgrade?.id_member_armor_equipped
         ?? unsafeWindow.item_to_upgrade?.id_member_armor),
-    returnsToTeam: false,
 };
 
 const GIRL_UPGRADE: UpgradeProfile = {
@@ -131,7 +129,6 @@ const GIRL_UPGRADE: UpgradeProfile = {
     path: GIRL_UPGRADE_PATH,
     url: girlUpgradePageUrl,
     idOnPage: () => Number(unsafeWindow.item_to_upgrade?.id_girl_armor_equipped),
-    returnsToTeam: true,
 };
 
 /** Stuff Team's default, so the two team buttons start from the same floor. */
@@ -266,7 +263,10 @@ export class EquipmentGear {
         // actions moved into a menu, which also means the next one costs no
         // space at all.
         host.append('<div id="HHGearButtons">' + gearButton('HHGearMenu') + '</div>');
-        $("#HHGearMenu").on("click", () => { EquipmentGear.showMenu(); });
+        // The gear work on the market is a sequence like the team's: preview,
+        // Equip (a reload), Upgrade Gear over the upgrade pages. The pipeline
+        // waits from the first click (WorkPause.ts).
+        $("#HHGearMenu").on("click", () => { startWorkPause('gear'); EquipmentGear.showMenu(); });
 
         // Delegated: the entries live in the popup, which is rebuilt each time.
         $(document).off('click.hhgear').on('click.hhgear', '#HHGearPreview [data-gear-action]', function () {
@@ -978,7 +978,7 @@ export class EquipmentGear {
                 id: t.id_member_armor, name: t.name, slot: t.slot, startedAt: Date.now(),
             }));
             setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(queue));
-            startWorkPause();
+            startWorkPause('gear');
             logHHAuto(`Gear: queued ${queue.length} item(s) for upgrade; going to the upgrade page.`);
             EquipmentGear.gotoUpgradePage(HERO_UPGRADE, queue[0].id);
         });
@@ -1046,7 +1046,7 @@ export class EquipmentGear {
                 startedAt: Date.now(), moneyToKeep: keep,
             }));
             setStoredValue(HHStoredVarPrefixKey + GIRL_UPGRADE.queueKey, JSON.stringify(queue));
-            startWorkPause();
+            startWorkPause('team');
             logHHAuto(`Gear: queued ${queue.length} girl item(s) for level-up, keeping ${keep} money;`
                 + ' going to the upgrade page.');
             EquipmentGear.gotoUpgradePage(GIRL_UPGRADE, queue[0].id);
@@ -1075,13 +1075,13 @@ export class EquipmentGear {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
     }
 
-    /** The regular end: every queued item is done or skipped. Level-up gear
-     *  goes back to edit-team under the work pause; Upgrade Gear stays on the
-     *  market it started from, where the pause ends by itself. */
+    /** The regular end: every queued item is done or skipped. The run goes
+     *  back where it started under the work pause -- Level-up gear to
+     *  edit-team, Upgrade Gear to the market. */
     private static finishRun(profile: UpgradeProfile, msg: string): void {
         setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
         EquipmentGear.releaseAutoLoop();
-        if (profile.returnsToTeam) workPauseReturnToTeam();
+        workPauseReturnToZone();
         logHHAuto('Gear: upgrade run finished -- ' + msg);
     }
 

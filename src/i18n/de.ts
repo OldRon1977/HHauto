@@ -550,5 +550,5 @@ HHAuto_ToolTips.de['teamSelNextStats'] = { version: "8.14.0", elementText: "Näc
 HHAuto_ToolTips.de['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mögliches Bestes nächste Woche - nach Werten und Blessings", tooltip: ""};
 HHAuto_ToolTips.de['teamSelSlowHint'] = { version: "8.17.0", elementText: "Die Berechnung kann eine Weile dauern. Die Automatik wartet so lange.", tooltip: ""};
 HHAuto_ToolTips.de['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Solange du am Team arbeitest -- Berechnen, Übernehmen, Team-Ausrüstung, Ausrüstung leveln, Team bestücken -- pausiert die Automatik, auch über jedes Neuladen hinweg. Ein Hinweis oben auf der Seite zeigt das, mit dem Knopf „Automatik fortsetzen“. Sie läuft von selbst weiter, wenn du die Team-Seite verlässt oder dort 15 Minuten lang nichts passiert.", tooltip: ""};
-HHAuto_ToolTips.de['workPause'] = { version: "8.17.0", elementText: "Teamoptimierung: Automatik pausiert (noch {minutes} min ohne Bedienung)", tooltip: ""};
+HHAuto_ToolTips.de['workPause'] = { version: "8.18.0", elementText: "{what}: Automatik pausiert (noch {minutes} min ohne Bedienung)", tooltip: ""};
 HHAuto_ToolTips.de['workPauseResume'] = { version: "8.17.0", elementText: "Automatik fortsetzen", tooltip: ""};

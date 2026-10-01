@@ -2763,9 +2763,9 @@ HHStoredVars[HHStoredVarPrefixKey + TK.mouseLastActivity] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
-// The work pause of the team popup (WorkPause.ts). sessionStorage: it has to
-// survive the reloads of Apply and Team gear, and belongs to the tab the
-// player works in.
+// The work pause of the team popup and the HH Gear menu (WorkPause.ts).
+// sessionStorage: it has to survive the reloads of Apply, Team gear and the
+// gear equip, and belongs to the tab the player works in.
 HHStoredVars[HHStoredVarPrefixKey + TK.workPause] =
     {
     storage:"sessionStorage",

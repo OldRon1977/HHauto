@@ -7,6 +7,16 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.18.0 - The automation waits while you work on your gear
+
+- **HH Gear** on the market (#1888): opening the HH Gear menu now pauses the
+  automation the same way Team optimization does. The pause holds on the
+  market through the reload after Equip, and through Upgrade Gear on the
+  upgrade pages; it ends when you leave the market yourself, press
+  **Resume automation**, or after 15 minutes without activity.
+- **Upgrade Gear** now ends back on the market, where the gear work goes on.
+- The notice names the work it is paused for: Team optimization or HH Gear.
+
 ### v8.17.0 - The automation waits while you work on the team
 
 - **Work pause** (#1888): opening Team optimization on the edit-team page
