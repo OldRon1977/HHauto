@@ -36,9 +36,12 @@ refactoring with a long run of feature work:
   that plans the whole team's gear, best now or best after levelling, and
   levels the worn mythics to level 10; auto-equip boosters and smarter
   Sandalwood handling.
-- **Gear for your hero** — three buttons on the market page pick the best
-  armor for your six slots, put on the items worth developing, and level them
-  with legendary and epic material.
+- **Gear for your hero** — the HH Gear menu on the market page picks the best
+  armor for your six slots, now or after levelling, levels the worn mythics
+  with legendary and epic material, and marks the mythics worth keeping.
+- **No interruptions while you work** — opening Team optimization or the HH
+  Gear menu pauses the automation until you are done, through every reload of
+  that work; a red notice at the top shows it, with a button to resume.
 - **More fight control** — independent Troll / Event / Raid clusters and a
   "+Raid Stars" grade filter.
 - **Quality of life** — reorderable function blocks, Season Max Tier, a snappier
