@@ -27021,7 +27021,11 @@ function decideWorkPause(input) {
 
 
 
-const STATE_KEY = HHStoredVarPrefixKey + TK.workPause;
+/** Built at call time: a top-level read of HHStoredVarPrefixKey can hit the
+ *  temporal dead zone inside an import cycle (deps:toplevel-key). */
+function stateKey() {
+    return HHStoredVarPrefixKey + TK.workPause;
+}
 /** mousemove fires constantly; one storage write per this many ms is plenty
  *  against a limit counted in minutes. */
 const TOUCH_THROTTLE_MS = 2000;
@@ -27036,11 +27040,11 @@ let goToTeamAt = 0;
 let activityBound = false;
 let stylesAdded = false;
 function readState() {
-    const state = getStoredJSON(STATE_KEY, null);
+    const state = getStoredJSON(stateKey(), null);
     return state && typeof state.lastActivity === 'number' ? state : null;
 }
 function writeState(state) {
-    setStoredValue(STATE_KEY, JSON.stringify(state));
+    setStoredValue(stateKey(), JSON.stringify(state));
 }
 function isTeamPage(page) {
     return page === ConfigHelper.getHHScriptVars('pagesIDEditTeam')
@@ -27108,7 +27112,7 @@ function isWorkPauseActive() {
 function endWorkPause(reason) {
     if (readState() === null)
         return;
-    deleteStoredValue(STATE_KEY);
+    deleteStoredValue(stateKey());
     $('#hhWorkPause').remove();
     logHHAuto('Work pause: ended -- ' + reason + '.');
 }
