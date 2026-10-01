@@ -59,9 +59,10 @@ GM_addStyle('@font-face {font-family:"IBM Plex Sans"; font-style:normal; font-we
 // own, which beats inheritance), every script button, the tooltips, the info
 // overlay, the gear controls on the market page, the league score labels and
 // the small marks and panels on the team and harem pages, and the rewards
-// recap on the reward paths. The game's own elements are left alone.
+// recap on the reward paths, and the work pause notice at the top of every
+// held page. The game's own elements are left alone.
 GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoPopupGlobal h2, #HHAutoTooltip,'
-            + ' .myButton, .tooltipHHtext, .HHAutoOverlay, .HHpopup_message, .hhScrollTooltip, .hhTeamSynergyInfo,'
+            + ' .myButton, .tooltipHHtext, .HHAutoOverlay, .HHpopup_message, .hhScrollTooltip, .hhTeamSynergyInfo, #hhWorkPause,'
             + ' .topNumber, .HHKeepMark, #hhTeamWorkflow, #HHGearButtons, #HHGearMenuList, #HHGearPreview, #HHGearStatus,'
             + ' #HHPowerCalcScore, #HHPowerCalcPoints, .HHRewardNotCollected, .HHRewardNotCollected h1'
             + ' {font-family:"IBM Plex Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;}');

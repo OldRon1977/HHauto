@@ -214,11 +214,14 @@ function showNotice(remainingMs: number): void {
     if (document.getElementById('hhWorkPause') === null) {
         if (!stylesAdded) {
             stylesAdded = true;
+            // Red, so it is seen over any page: the same red the team popup
+            // uses for a warning, with white text (contrast about 6.5:1).
             GM_addStyle('#hhWorkPause{position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:6000;'
                 + 'display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;'
-                + 'max-width:calc(100vw - 32px);box-sizing:border-box;padding:4px 10px;border-radius:6px;'
-                + 'background:rgba(0,0,0,0.85);border:1px solid #ffb827;color:#ffb827;font-size:13px;}'
-                + '#hhWorkPause .myButton{margin:0;padding:2px 10px;font-size:12px;}');
+                + 'max-width:calc(100vw - 32px);box-sizing:border-box;padding:5px 12px;border-radius:6px;'
+                + 'background:#b3261e;border:1px solid #ffd2cc;box-shadow:0 2px 8px rgba(0,0,0,0.5);'
+                + 'color:#fff;font-size:13px;font-weight:600;}'
+                + '#hhWorkPause .myButton{margin:0;padding:2px 10px;font-size:12px;font-weight:normal;}');
         }
         $('body').append(`<div id="hhWorkPause"><span class="hhWorkPauseText"></span>`
             + `<label class="myButton" id="hhWorkPauseResume">${getTextForUI('workPauseResume', 'elementText')}</label></div>`);
