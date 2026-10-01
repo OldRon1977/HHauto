@@ -15,6 +15,11 @@
 // Background, data model and the measurement traps:
 // docs/reference/equipment-resonance.md.
 //
+// A run of Upgrade Gear or Level-up gear stands under the work pause
+// (WorkPause.ts) on every page it passes, so no pipeline block takes it off
+// the upgrade page. A run that cannot go on -- not enough material or money
+// for the next level -- ends the pause and goes home (abortRun).
+//
 // Used by: Service/AutoLoopPageHandlers.ts (market page, girl page, and the
 // two upgrade pages), Module/TeamModule.ts (Level-up gear)
 
@@ -25,7 +30,8 @@ import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
-import { addNutakuSession } from "../Service/PageNavigationService";
+import { addNutakuSession, gotoPage } from "../Service/PageNavigationService";
+import { endWorkPause, isWorkPauseActive, startWorkPause, workPauseReturnToTeam } from "../Service/WorkPause";
 import {
     ArmorItem,
     GearPlan,
@@ -103,6 +109,8 @@ interface UpgradeProfile {
     path: string;
     url: (id: number) => string;
     idOnPage: () => number;
+    /** Level-up gear starts on edit-team and goes back there when done. */
+    returnsToTeam: boolean;
 }
 
 const HERO_UPGRADE: UpgradeProfile = {
@@ -114,6 +122,7 @@ const HERO_UPGRADE: UpgradeProfile = {
     // game sends it back as a string.
     idOnPage: () => Number(unsafeWindow.item_to_upgrade?.id_member_armor_equipped
         ?? unsafeWindow.item_to_upgrade?.id_member_armor),
+    returnsToTeam: false,
 };
 
 const GIRL_UPGRADE: UpgradeProfile = {
@@ -122,6 +131,7 @@ const GIRL_UPGRADE: UpgradeProfile = {
     path: GIRL_UPGRADE_PATH,
     url: girlUpgradePageUrl,
     idOnPage: () => Number(unsafeWindow.item_to_upgrade?.id_girl_armor_equipped),
+    returnsToTeam: true,
 };
 
 /** Stuff Team's default, so the two team buttons start from the same floor. */
@@ -290,9 +300,8 @@ export class EquipmentGear {
 
         const startedAt = Number(queue[0]?.startedAt) || 0;
         if (Date.now() - startedAt >= STALE_QUEUE_MS) {
-            setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
-            EquipmentGear.releaseAutoLoop();
-            logHHAuto(`Gear: dropping a stale upgrade queue (${queue.length} item(s) left);`
+            EquipmentGear.resumeNavigating = true;
+            EquipmentGear.abortRun(profile, `dropping a stale upgrade queue (${queue.length} item(s) left);`
                 + ' the run is no longer on the upgrade page.');
             return;
         }
@@ -308,9 +317,7 @@ export class EquipmentGear {
                 + ` ${MAX_QUEUE_HEAD_TRIES} attempt(s); skipping it,`
                 + ` ${rest.length} item(s) left.`);
             if (rest.length === 0) {
-                setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
-                EquipmentGear.releaseAutoLoop();
-                logHHAuto('Gear: upgrade run finished -- nothing left to open.');
+                EquipmentGear.finishRun(profile, 'nothing left to open.');
                 return;
             }
             setStoredValue(HHStoredVarPrefixKey + profile.queueKey,
@@ -971,6 +978,7 @@ export class EquipmentGear {
                 id: t.id_member_armor, name: t.name, slot: t.slot, startedAt: Date.now(),
             }));
             setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(queue));
+            startWorkPause();
             logHHAuto(`Gear: queued ${queue.length} item(s) for upgrade; going to the upgrade page.`);
             EquipmentGear.gotoUpgradePage(HERO_UPGRADE, queue[0].id);
         });
@@ -1038,6 +1046,7 @@ export class EquipmentGear {
                 startedAt: Date.now(), moneyToKeep: keep,
             }));
             setStoredValue(HHStoredVarPrefixKey + GIRL_UPGRADE.queueKey, JSON.stringify(queue));
+            startWorkPause();
             logHHAuto(`Gear: queued ${queue.length} girl item(s) for level-up, keeping ${keep} money;`
                 + ' going to the upgrade page.');
             EquipmentGear.gotoUpgradePage(GIRL_UPGRADE, queue[0].id);
@@ -1064,6 +1073,43 @@ export class EquipmentGear {
     /** Let the autoloop run again once the upgrade work is over. */
     private static releaseAutoLoop(): void {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+    }
+
+    /** The regular end: every queued item is done or skipped. Level-up gear
+     *  goes back to edit-team under the work pause; Upgrade Gear stays on the
+     *  market it started from, where the pause ends by itself. */
+    private static finishRun(profile: UpgradeProfile, msg: string): void {
+        setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
+        EquipmentGear.releaseAutoLoop();
+        if (profile.returnsToTeam) workPauseReturnToTeam();
+        logHHAuto('Gear: upgrade run finished -- ' + msg);
+    }
+
+    /**
+     * A run that cannot go on: not enough material or money for the next
+     * level, an item that is not the one queued, an error. The queue goes,
+     * and a live run -- one the work pause still stands for -- ends the pause
+     * and goes home, where the pipeline takes over (#1888). Left on the
+     * upgrade page, the player found the automation standing still.
+     *
+     * A queue found stale with no pause standing belongs to a run that ended
+     * long ago; dropping it is all, the player is on a page of their choice.
+     * The same with `goHome` false: the player opened another item by hand.
+     */
+    private static abortRun(profile: UpgradeProfile, msg: string, goHome = true): void {
+        setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
+        EquipmentGear.releaseAutoLoop();
+        if (!isWorkPauseActive()) {
+            logHHAuto('Gear: upgrade run stopped -- ' + msg);
+            return;
+        }
+        endWorkPause('an upgrade run stopped');
+        if (!goHome) {
+            logHHAuto('Gear: upgrade run stopped -- ' + msg);
+            return;
+        }
+        logHHAuto('Gear: upgrade run stopped -- ' + msg + ' Going home.');
+        gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
     }
 
     // --------------------------------------------------- the upgrade page
@@ -1193,11 +1239,8 @@ export class EquipmentGear {
         if (EquipmentGear.running) return;
         EquipmentGear.running = true;
 
-        const finish = (msg: string) => {
-            setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
-            EquipmentGear.releaseAutoLoop();
-            logHHAuto('Gear: upgrade run finished -- ' + msg);
-        };
+        const finish = (msg: string) => EquipmentGear.finishRun(profile, msg);
+        const abort = (msg: string, goHome = true) => EquipmentGear.abortRun(profile, msg, goHome);
 
         try {
             const head = queue[0];
@@ -1205,7 +1248,7 @@ export class EquipmentGear {
             if (onPage !== head.id) {
                 // Someone navigated by hand, or the queue is stale. Acting
                 // here would spend material on an item nobody asked for.
-                finish(`the page shows item ${onPage}, the queue expects ${head.id}. Stopped without spending anything.`);
+                abort(`the page shows item ${onPage}, the queue expects ${head.id}. Stopped without spending anything.`, false);
                 return;
             }
 
@@ -1282,7 +1325,7 @@ export class EquipmentGear {
                 });
                 if (!verdict.go) {
                     logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
-                    if (!verdict.done) { finish(verdict.reason); return; }
+                    if (!verdict.done) { abort(verdict.reason + '.'); return; }
                     handOver('every queued item is done.');
                     break;
                 }
@@ -1302,9 +1345,7 @@ export class EquipmentGear {
             if (rest.length === 0) return;
             EquipmentGear.gotoUpgradePage(profile, rest[0].id);
         } catch (err) {
-            setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
-            EquipmentGear.releaseAutoLoop();
-            logHHAuto('Gear: upgrade run aborted: ' + err);
+            abort('error: ' + err);
         } finally {
             EquipmentGear.running = false;
         }

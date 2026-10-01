@@ -15,8 +15,12 @@
 // This file imports nothing, for the reason AutoLoopKick.ts gives: a leaf
 // cannot join an import cycle.
 //
-// Used by: AutoLoop.ts (reads it), TeamSelectionPopup.ts and TeamGear.ts
-// (hold it)
+// The hold ends with the calculation. What has to outlive it -- reading and
+// applying the result, the reloads of Apply and Team gear, the runs over
+// other pages -- is WorkPause.ts.
+//
+// Used by: AutoLoop.ts and WorkPause.ts (read it), TeamSelectionPopup.ts and
+// TeamGear.ts (hold it)
 
 let holder: string | null = null;
 

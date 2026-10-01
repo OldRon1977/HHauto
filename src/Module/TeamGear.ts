@@ -22,6 +22,7 @@ import { getStoredValue, setStoredValue } from '../Helper/StorageHelper';
 import { getTextForUI } from '../Helper/LanguageHelper';
 import { TimeHelper, randomInterval } from '../Helper/TimeHelper';
 import { holdAutoLoop, releaseAutoLoopHold } from '../Service/AutoLoopHold';
+import { touchWorkPause } from '../Service/WorkPause';
 import { kickAutoLoop } from '../Service/AutoLoopKick';
 import { safeReload } from '../Service/PageNavigationService';
 import {
@@ -300,6 +301,7 @@ export class TeamGear {
             return await work();
         } finally {
             releaseAutoLoopHold();
+            touchWorkPause();
             if (loopWasOn) {
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                 kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);

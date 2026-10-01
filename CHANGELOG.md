@@ -7,6 +7,28 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.17.0 - The automation waits while you work on the team
+
+- **Work pause** (#1888): opening Team optimization on the edit-team page
+  pauses the automation until you are done with the team. The pause holds
+  through every reload of that work -- Apply, Team gear, Unequip All -- and
+  through the runs that leave the page: Stuff Team, Level-up gear, and
+  Upgrade Gear on the market. Until now only a running calculation held the
+  automation: one second after it ended, a due League fight left the page,
+  and an Apply pressed a moment later saved the team while the page was
+  already going, so the team fought without gear and skills.
+  - A notice at the top of every page shows the pause and the minutes left,
+    with a **Resume automation** button.
+  - The pause ends when you leave the team page yourself, press Resume, or
+    after 15 minutes without activity -- mouse, keys, a running calculation
+    or a step of a run all count.
+  - Stuff Team and Level-up gear now end on the edit-team page instead of
+    the harem or the girl page.
+- **Level-up gear** and **Upgrade Gear**: when the material or the money is
+  not enough for the next level, the run now goes home and hands the
+  automation back, instead of staying on the upgrade page.
+- The team popup no longer asks to turn the script off while it calculates.
+
 ### v8.16.0 - Team gear
 
 - **Team gear** (Team optimization popup on the edit-team page, a new block

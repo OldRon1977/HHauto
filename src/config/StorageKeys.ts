@@ -421,6 +421,8 @@ export const TK = {
 
     // Mouse pause activity (issue #1774)
     mouseLastActivity: "Temp_mouseLastActivity",
+    // The player is working on the team: the pipeline waits (WorkPause.ts)
+    workPause: "Temp_workPause",
 
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",

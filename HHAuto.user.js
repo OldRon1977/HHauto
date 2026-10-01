@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.16.0
+// @version      8.17.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -844,8 +844,10 @@ HHAuto_ToolTips.en['teamSelThisLeague'] = { version: "8.14.0", elementText: "Thi
 HHAuto_ToolTips.en['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "This week's possibly best - against League opponents", tooltip: "" };
 HHAuto_ToolTips.en['teamSelNextStats'] = { version: "8.14.0", elementText: "Next week - by stats and blessings", tooltip: "" };
 HHAuto_ToolTips.en['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Next week's possibly best - by stats and blessings", tooltip: "" };
-HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.14.0", elementText: "This might take a while to calculate. Turn off the script while simulating.", tooltip: "" };
-HHAuto_ToolTips.en['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Otherwise the script may interrupt the simulation run -- for example by moving to another page -- and you have to start the calculation again from the beginning.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.17.0", elementText: "This might take a while to calculate. The automation waits meanwhile.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSlowInfo'] = { version: "8.17.0", elementText: "While you work on the team -- calculating, Apply, Team gear, Level-up gear, Stuff Team -- the automation pauses, across every reload. A notice at the top of the page shows it, with a button to resume. It resumes by itself when you leave the team page, or after 15 minutes without anything happening on it.", tooltip: "" };
+HHAuto_ToolTips.en['workPause'] = { version: "8.17.0", elementText: "Team optimization: automation paused ({minutes} min left without activity)", tooltip: "" };
+HHAuto_ToolTips.en['workPauseResume'] = { version: "8.17.0", elementText: "Resume automation", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
 
@@ -1393,8 +1395,10 @@ HHAuto_ToolTips.fr['teamSelThisLeague'] = { version: "8.14.0", elementText: "Cet
 HHAuto_ToolTips.fr['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Meilleure possible cette semaine - contre les adversaires de ligue", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelNextStats'] = { version: "8.14.0", elementText: "Semaine prochaine - selon stats et bénédictions", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Meilleure possible semaine prochaine - selon stats et bénédictions", tooltip: "" };
-HHAuto_ToolTips.fr['teamSelSlowHint'] = { version: "8.14.0", elementText: "Le calcul peut prendre un moment. Désactivez le script pendant la simulation.", tooltip: "" };
-HHAuto_ToolTips.fr['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Sinon, le script peut interrompre la simulation -- par exemple en changeant de page -- et le calcul doit reprendre depuis le début.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSlowHint'] = { version: "8.17.0", elementText: "Le calcul peut prendre un moment. L'automatisation attend pendant ce temps.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Tant que vous travaillez sur l'équipe -- calcul, Apply, Team gear, Level-up gear, Stuff Team -- l'automatisation fait une pause, à travers chaque rechargement. Un avis en haut de la page l'indique, avec un bouton pour reprendre. Elle reprend d'elle-même quand vous quittez la page d'équipe, ou après 15 minutes sans activité sur celle-ci.", tooltip: "" };
+HHAuto_ToolTips.fr['workPause'] = { version: "8.17.0", elementText: "Optimisation d'équipe : automatisation en pause (encore {minutes} min sans activité)", tooltip: "" };
+HHAuto_ToolTips.fr['workPauseResume'] = { version: "8.17.0", elementText: "Reprendre l'automatisation", tooltip: "" };
 
 ;// ./src/i18n/de.ts
 
@@ -1943,8 +1947,10 @@ HHAuto_ToolTips.de['teamSelThisLeague'] = { version: "8.14.0", elementText: "Die
 HHAuto_ToolTips.de['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Mögliches Bestes diese Woche - gegen Liga-Gegner", tooltip: "" };
 HHAuto_ToolTips.de['teamSelNextStats'] = { version: "8.14.0", elementText: "Nächste Woche - nach Werten und Blessings", tooltip: "" };
 HHAuto_ToolTips.de['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mögliches Bestes nächste Woche - nach Werten und Blessings", tooltip: "" };
-HHAuto_ToolTips.de['teamSelSlowHint'] = { version: "8.14.0", elementText: "Die Berechnung kann eine Weile dauern. Schalte das Skript während der Simulation aus.", tooltip: "" };
-HHAuto_ToolTips.de['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Sonst kann das Skript den Simulationslauf unterbrechen -- etwa indem es auf eine andere Seite wechselt -- und die Berechnung muss von vorne beginnen.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSlowHint'] = { version: "8.17.0", elementText: "Die Berechnung kann eine Weile dauern. Die Automatik wartet so lange.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Solange du am Team arbeitest -- Berechnen, Apply, Team gear, Level-up gear, Stuff Team -- pausiert die Automatik, auch über jedes Neuladen hinweg. Ein Hinweis oben auf der Seite zeigt das, mit einem Knopf zum Fortsetzen. Sie läuft von selbst weiter, wenn du die Team-Seite verlässt oder dort 15 Minuten lang nichts passiert.", tooltip: "" };
+HHAuto_ToolTips.de['workPause'] = { version: "8.17.0", elementText: "Teamoptimierung: Automatik pausiert (noch {minutes} min ohne Bedienung)", tooltip: "" };
+HHAuto_ToolTips.de['workPauseResume'] = { version: "8.17.0", elementText: "Automatik fortsetzen", tooltip: "" };
 
 ;// ./src/i18n/es.ts
 
@@ -2492,8 +2498,10 @@ HHAuto_ToolTips.es['teamSelThisLeague'] = { version: "8.14.0", elementText: "Est
 HHAuto_ToolTips.es['teamSelThisLeaguePossible'] = { version: "8.14.0", elementText: "Mejor posible esta semana - contra rivales de liga", tooltip: "" };
 HHAuto_ToolTips.es['teamSelNextStats'] = { version: "8.14.0", elementText: "Próxima semana - según estadísticas y bendiciones", tooltip: "" };
 HHAuto_ToolTips.es['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mejor posible la próxima semana - según estadísticas y bendiciones", tooltip: "" };
-HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.14.0", elementText: "El cálculo puede tardar un rato. Desactiva el script durante la simulación.", tooltip: "" };
-HHAuto_ToolTips.es['teamSelSlowInfo'] = { version: "8.14.0", elementText: "Si no, el script puede interrumpir la simulación -- por ejemplo al cambiar de página -- y el cálculo tiene que empezar de nuevo.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.17.0", elementText: "El cálculo puede tardar un rato. La automatización espera mientras tanto.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Mientras trabajas en el equipo -- calcular, Apply, Team gear, Level-up gear, Stuff Team -- la automatización se pausa, también a través de cada recarga. Un aviso arriba en la página lo indica, con un botón para reanudar. Se reanuda sola cuando sales de la página del equipo o tras 15 minutos sin actividad en ella.", tooltip: "" };
+HHAuto_ToolTips.es['workPause'] = { version: "8.17.0", elementText: "Optimización de equipo: automatización en pausa (quedan {minutes} min sin actividad)", tooltip: "" };
+HHAuto_ToolTips.es['workPauseResume'] = { version: "8.17.0", elementText: "Reanudar la automatización", tooltip: "" };
 
 ;// ./src/Helper/LanguageHelper.ts
 // LanguageHelper.ts
@@ -3103,6 +3111,8 @@ const TK = {
     featurePopupDismissCount: "Temp_featurePopupDismissCount",
     // Mouse pause activity (issue #1774)
     mouseLastActivity: "Temp_mouseLastActivity",
+    // The player is working on the team: the pipeline waits (WorkPause.ts)
+    workPause: "Temp_workPause",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
     // Pipeline-block architecture
@@ -6057,6 +6067,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.featurePopupDismissCount] =
         HHType: "Temp"
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.mouseLastActivity] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// The work pause of the team popup (WorkPause.ts). sessionStorage: it has to
+// survive the reloads of Apply and Team gear, and belongs to the tab the
+// player works in.
+HHStoredVars[HHStoredVarPrefixKey + TK.workPause] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -9860,8 +9878,19 @@ class HaremGirl {
                         gotoPage('/girl/' + nextGirlId, { resource: (HaremGirl.EXPERIENCE_TYPE) }, randomInterval(1500, 2500));
                         return true;
                     }
+                    else if (getStoredJSON(HHStoredVarPrefixKey + TK.workPause, null) !== null) {
+                        // Back to edit-team, where the work on the team goes on:
+                        // the work pause (Service/WorkPause.ts) takes the run there
+                        // on its next tick. Written here rather than through its
+                        // workPauseReturnToTeam(), because importing WorkPause from
+                        // this file closes three new import cycles through
+                        // HHEnvVariables -> Harem (measured with deps:circular:check).
+                        logHHAuto("No more girls, back to the team page");
+                        const pause = getStoredJSON(HHStoredVarPrefixKey + TK.workPause, {});
+                        setStoredValue(HHStoredVarPrefixKey + TK.workPause, JSON.stringify(Object.assign(Object.assign({}, pause), { lastActivity: Date.now(), returnToTeam: true })));
+                        Harem.clearHaremToolVariables();
+                    }
                     else {
-                        // Todo end team.
                         logHHAuto("No more girls, go back to harem list");
                         gotoPage('/characters/' + girl.id_girl, {}, randomInterval(1500, 2500));
                         Harem.clearHaremToolVariables();
@@ -12200,7 +12229,7 @@ function getGoToClubChampionButton() {
 // caller's to pass.
 //
 // Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts, TeamSelectionPopup.ts,
-//   TeamGear.ts, DoublePenetration.ts, PathOfAttraction.ts; wired in index.ts
+//   TeamGear.ts, DoublePenetration.ts, PathOfAttraction.ts, WorkPause.ts; wired in index.ts
 let kick = () => { };
 /** Wired once from the boot path with the real autoLoop. */
 function setAutoLoopKick(fn) {
@@ -26186,6 +26215,44 @@ function pickKeepers(items, playerClass) {
     return { keep, groups: report };
 }
 
+;// ./src/Service/AutoLoopHold.ts
+// AutoLoopHold.ts -- Keep the auto-loop's actions out of a long calculation.
+//
+// Setting `Temp_autoLoop` to "false" stops the loop from scheduling its next
+// tick, and nothing more: autoLoop() reads the flag only at its end. The tick
+// that was already scheduled when a player clicked, and every tick a module
+// starts through kickAutoLoop, still runs the action pipeline -- and an
+// action that navigates takes a running team calculation with it. Players
+// reported exactly that: the team selection interrupted again and again, the
+// last time shortly before it finished.
+//
+// A holder takes the hold for the length of its work; while it is held,
+// autoLoop() skips the action pipeline and the paranoia switch. It lives in
+// memory only, so a reload -- the page is gone anyway -- ends it.
+//
+// This file imports nothing, for the reason AutoLoopKick.ts gives: a leaf
+// cannot join an import cycle.
+//
+// The hold ends with the calculation. What has to outlive it -- reading and
+// applying the result, the reloads of Apply and Team gear, the runs over
+// other pages -- is WorkPause.ts.
+//
+// Used by: AutoLoop.ts and WorkPause.ts (read it), TeamSelectionPopup.ts and
+// TeamGear.ts (hold it)
+let holder = null;
+/** Take the hold. */
+function holdAutoLoop(name) {
+    holder = name;
+}
+/** Give the hold back. */
+function releaseAutoLoopHold() {
+    holder = null;
+}
+/** Who holds the loop's actions, or null. */
+function autoLoopHolder() {
+    return holder;
+}
+
 ;// ./src/Service/EquipmentOptimizerService.ts
 // EquipmentOptimizerService.ts -- Pure ranking logic for the player's own
 // equipment (the six armor slots of the hero, not girl equipment).
@@ -26668,7 +26735,7 @@ function parseArmorItem(raw, isEquipped = false) {
 // the automation reads that number and presses that button instead of
 // re-deriving either.
 //
-// Used by: Module/EquipmentGear.ts
+// Used by: Module/EquipmentGear.ts, Service/WorkPause.ts (the two upgrade paths)
 
 /** The upgrade flow lives on its own page. Which query parameter it wants
  *  depends on where the item sits (measured):
@@ -26870,6 +26937,280 @@ function decideNextLevelUp(state) {
     return { go: true };
 }
 
+;// ./src/Service/WorkPause.pure.ts
+// WorkPause.pure.ts -- Whether the player's work on the team holds the
+// pipeline: the decision, without storage, DOM or clock.
+//
+// The impure half (WorkPause.ts) gathers the input every tick and acts on the
+// answer. Why the pause exists and why it is shaped this way is told there.
+//
+// Used by: WorkPause.ts
+/** How long the pause outlives the last sign of work. */
+const WORK_PAUSE_IDLE_MS = 15 * 60000;
+/**
+ * Hold, end, or there is no pause at all.
+ *
+ * The idle limit comes first and applies to runs too: a run that stops
+ * making progress -- a queue left behind by a closed tab, a step that
+ * never comes -- must not keep the script parked for good. Every step of
+ * a run counts as work, so a run that moves never reaches the limit.
+ *
+ * Off the team pages, with no run going and none on its way back, the
+ * player has left by their own hand: the pause ends.
+ */
+function decideWorkPause(input) {
+    const { state, now, onTeamPage, runActive, idleMs } = input;
+    if (state === null)
+        return { kind: 'none' };
+    const idle = Math.max(0, now - state.lastActivity);
+    if (idle >= idleMs)
+        return { kind: 'end', reason: 'idle' };
+    const remainingMs = idleMs - idle;
+    if (runActive)
+        return { kind: 'hold', remainingMs, goToTeam: false, arrived: false };
+    if (state.returnToTeam) {
+        return { kind: 'hold', remainingMs, goToTeam: !onTeamPage, arrived: onTeamPage };
+    }
+    if (onTeamPage)
+        return { kind: 'hold', remainingMs, goToTeam: false, arrived: false };
+    return { kind: 'end', reason: 'left' };
+}
+
+;// ./src/Service/WorkPause.ts
+// WorkPause.ts -- Keep the pipeline out while the player works on the team.
+//
+// Working on a team is a sequence, not one click: calculate, Apply (the page
+// reloads), Team gear (it reloads again), Level-up gear or Stuff Team (they
+// leave for the upgrade, harem and girl pages and come back). Measured on a
+// live account (#1888): the in-memory hold of AutoLoopHold.ts covered the
+// calculation itself, but one second after it ended a due League block left
+// edit-team, and Apply pressed a second later saved the team while the page
+// was already going -- the team fought without gear and skills. After every
+// reload the first tick runs the pipeline before HHauto's own button is even
+// on the page again, so nothing that lives in memory or in the popup can
+// cover this.
+//
+// The pause therefore lives in sessionStorage (Temp_workPause) and is asked
+// every tick before the pipeline, the first tick after a reload included. It
+// starts when the team popup opens, and holds
+//   - on edit-team and the team list,
+//   - on every page of a running Stuff Team, Level-up gear or Upgrade Gear,
+//   - on the way back to edit-team after such a run finished.
+// It ends when the player leaves the team pages by their own hand, presses
+// "Resume automation" on the notice every held page shows, after
+// WORK_PAUSE_IDLE_MS without any sign of work, or when a run gives up -- the
+// run then sends the player home.
+//
+// The decision is WorkPause.pure.ts; this file reads its input and acts.
+//
+// Stuff Team's end sets returnToTeam on the stored state itself, in the
+// harem girl module: importing this file there would close new import cycles.
+//
+// Used by: AutoLoop.ts (asks it every tick), TeamModule.ts,
+//   TeamSelectionPopup.ts, TeamGear.ts, EquipmentGear.ts
+
+
+
+
+
+
+
+
+
+
+
+
+const STATE_KEY = HHStoredVarPrefixKey + TK.workPause;
+/** mousemove fires constantly; one storage write per this many ms is plenty
+ *  against a limit counted in minutes. */
+const TOUCH_THROTTLE_MS = 2000;
+/** The tick runs every second; the log hears from the pause once a minute. */
+const HOLD_LOG_EVERY_MS = 60000;
+const GO_TO_TEAM_RETRY_MS = 10000;
+let lastTouch = 0;
+let lastHoldLog = 0;
+/** When the way back was last asked for; gotoPage refuses while another
+ *  navigation is in flight, so the next tick may have to ask again. */
+let goToTeamAt = 0;
+let activityBound = false;
+let stylesAdded = false;
+function readState() {
+    const state = getStoredJSON(STATE_KEY, null);
+    return state && typeof state.lastActivity === 'number' ? state : null;
+}
+function writeState(state) {
+    setStoredValue(STATE_KEY, JSON.stringify(state));
+}
+function isTeamPage(page) {
+    return page === ConfigHelper.getHHScriptVars('pagesIDEditTeam')
+        || page === ConfigHelper.getHHScriptVars('pagesIDBattleTeams');
+}
+function queued(key) {
+    const queue = getStoredJSON(HHStoredVarPrefixKey + key, []);
+    return Array.isArray(queue) && queue.length > 0;
+}
+/**
+ * A run has work stored AND the page is one of its own. Both, because the
+ * stored work outlives the run when the player walks away from it; on a
+ * page of their choosing the pause must not hold for a run that is not
+ * running.
+ */
+function runActive(page) {
+    const cfg = (key) => ConfigHelper.getHHScriptVars(key);
+    const path = window.location.pathname;
+    const onUpgradePage = path.indexOf(UPGRADE_PATH) !== -1 || path.indexOf(GIRL_UPGRADE_PATH) !== -1;
+    if (getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode) === 'team'
+        && (page === cfg('pagesIDWaifu') || page === cfg('pagesIDHarem') || page === cfg('pagesIDGirlPage'))) {
+        return true;
+    }
+    if (queued(TK.girlGearUpgradeQueue) && (onUpgradePage || page === cfg('pagesIDGirlPage')))
+        return true;
+    if (queued(TK.gearUpgradeQueue) && (onUpgradePage || page === cfg('pagesIDShop')))
+        return true;
+    return false;
+}
+/** Begin the pause, or keep the one already running and count this as work. */
+function startWorkPause() {
+    var _a;
+    const now = Date.now();
+    const state = readState();
+    const teamUrl = isTeamPage(getPage()) ? window.location.pathname + window.location.search : state === null || state === void 0 ? void 0 : state.teamUrl;
+    writeState({ since: (_a = state === null || state === void 0 ? void 0 : state.since) !== null && _a !== void 0 ? _a : now, lastActivity: now, teamUrl, returnToTeam: false });
+    lastTouch = now;
+    if (state === null)
+        logHHAuto('Work pause: started -- the automation waits while the team is being worked on.');
+}
+/** A sign of work: the idle limit counts from here. No-op without a pause. */
+function touchWorkPause() {
+    const now = Date.now();
+    if (now - lastTouch < TOUCH_THROTTLE_MS)
+        return;
+    const state = readState();
+    if (state === null)
+        return;
+    lastTouch = now;
+    writeState(Object.assign(Object.assign({}, state), { lastActivity: now }));
+}
+/** A run finished: hold on until the player is back on the team page.
+ *  Stuff Team's end writes the same field directly (see the file head). */
+function workPauseReturnToTeam() {
+    const state = readState();
+    if (state === null)
+        return;
+    writeState(Object.assign(Object.assign({}, state), { lastActivity: Date.now(), returnToTeam: true }));
+}
+/** Whether a pause is stored -- a run asks before it decides where to end. */
+function isWorkPauseActive() {
+    return readState() !== null;
+}
+/** End the pause and take the notice away. */
+function endWorkPause(reason) {
+    if (readState() === null)
+        return;
+    deleteStoredValue(STATE_KEY);
+    $('#hhWorkPause').remove();
+    logHHAuto('Work pause: ended -- ' + reason + '.');
+}
+/**
+ * Asked by every tick, before the pipeline. True while the pipeline has to
+ * wait. Also keeps the notice up to date, sends a finished run back to the
+ * team page, and ends the pause when the decision says so.
+ */
+function workPauseHolds(page) {
+    // A calculation holds the loop in memory; its minutes are work too.
+    if (autoLoopHolder() !== null)
+        touchWorkPause();
+    const state = readState();
+    if (state === null) {
+        $('#hhWorkPause').remove();
+        return false;
+    }
+    const now = Date.now();
+    const onTeamPage = isTeamPage(page);
+    const active = runActive(page);
+    const decision = decideWorkPause({ state, now, onTeamPage, runActive: active, idleMs: (/* inlined export .WORK_PAUSE_IDLE_MS */900000) });
+    if (decision.kind === 'none')
+        return false;
+    if (decision.kind === 'end') {
+        endWorkPause(decision.reason === 'idle'
+            ? `${(/* inlined export .WORK_PAUSE_IDLE_MS */900000) / 60000} minutes without work on the team`
+            : 'the team page was left and no run is going');
+        return false;
+    }
+    if (active)
+        touchWorkPause();
+    if (decision.arrived)
+        writeState(Object.assign(Object.assign({}, state), { lastActivity: now, returnToTeam: false }));
+    if (decision.goToTeam && now - goToTeamAt >= GO_TO_TEAM_RETRY_MS) {
+        goToTeamAt = now;
+        logHHAuto('Work pause: the run is done, back to the team page.');
+        goToTeamPage(state.teamUrl);
+    }
+    if (onTeamPage)
+        bindActivity();
+    if (now - lastHoldLog >= HOLD_LOG_EVERY_MS) {
+        lastHoldLog = now;
+        logHHAuto(`Work pause: holding the automation, ${Math.ceil(decision.remainingMs / 60000)} min left without work.`);
+    }
+    showNotice(decision.remainingMs);
+    return true;
+}
+/**
+ * On the team pages, the player's hand is the sign of work. Listeners of
+ * their own, in the capture phase: MouseService owns document.onmousemove,
+ * and the popup's buttons stop nothing from reaching the document this way.
+ */
+function bindActivity() {
+    if (activityBound)
+        return;
+    activityBound = true;
+    for (const type of ['mousemove', 'mouseup', 'keydown', 'scroll', 'touchstart']) {
+        document.addEventListener(type, () => touchWorkPause(), { capture: true, passive: true });
+    }
+}
+/**
+ * Back to the edit-team page the work started on. gotoPage takes a page id,
+ * not a path -- measured: '/edit-team.html?battle_type=leagues' came back
+ * as "Unknown goto page request" and the run stayed on the last girl page --
+ * so the query of the stored URL goes in as arguments, which keeps the team
+ * slot the player had open.
+ */
+function goToTeamPage(teamUrl) {
+    var _a;
+    const args = {};
+    if (teamUrl) {
+        // `sess` is Nutaku's session parameter; gotoPage adds its own.
+        new URLSearchParams((_a = teamUrl.split('?')[1]) !== null && _a !== void 0 ? _a : '').forEach((value, key) => { if (key !== 'sess')
+            args[key] = value; });
+    }
+    gotoPage(ConfigHelper.getHHScriptVars('pagesIDEditTeam'), args);
+}
+function showNotice(remainingMs) {
+    const minutes = Math.max(1, Math.ceil(remainingMs / 60000));
+    const text = getTextForUI('workPause', 'elementText').replace('{minutes}', String(minutes));
+    if (document.getElementById('hhWorkPause') === null) {
+        if (!stylesAdded) {
+            stylesAdded = true;
+            GM_addStyle('#hhWorkPause{position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:6000;'
+                + 'display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;'
+                + 'max-width:calc(100vw - 32px);box-sizing:border-box;padding:4px 10px;border-radius:6px;'
+                + 'background:rgba(0,0,0,0.85);border:1px solid #ffb827;color:#ffb827;font-size:13px;}'
+                + '#hhWorkPause .myButton{margin:0;padding:2px 10px;font-size:12px;}');
+        }
+        $('body').append(`<div id="hhWorkPause"><span class="hhWorkPauseText"></span>`
+            + `<label class="myButton" id="hhWorkPauseResume">${getTextForUI('workPauseResume', 'elementText')}</label></div>`);
+        $('#hhWorkPauseResume').on('click', () => {
+            endWorkPause('resumed by the player');
+            // A run switches the loop flag off for its own pages; then no
+            // tick is scheduled and one has to be started. With the flag on
+            // a tick is coming anyway, and a kick would start a second chain.
+            if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+                kickAutoLoop(500);
+        });
+    }
+    $('#hhWorkPause .hhWorkPauseText').text(text);
+}
+
 ;// ./src/Module/EquipmentGear.ts
 // EquipmentGear.ts -- The gear menu on the market page: pick the best armor
 // for the hero's six slots and put it on, level the worn mythics, and mark
@@ -26888,6 +27229,11 @@ function decideNextLevelUp(state) {
 // Background, data model and the measurement traps:
 // docs/reference/equipment-resonance.md.
 //
+// A run of Upgrade Gear or Level-up gear stands under the work pause
+// (WorkPause.ts) on every page it passes, so no pipeline block takes it off
+// the upgrade page. A run that cannot go on -- not enough material or money
+// for the next level -- ends the pause and goes home (abortRun).
+//
 // Used by: Service/AutoLoopPageHandlers.ts (market page, girl page, and the
 // two upgrade pages), Module/TeamModule.ts (Level-up gear)
 var EquipmentGear_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -26899,6 +27245,7 @@ var EquipmentGear_awaiter = (undefined && undefined.__awaiter) || function (this
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 
 
 
@@ -26929,6 +27276,7 @@ const HERO_UPGRADE = {
         var _a, _b, _c;
         return Number((_b = (_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_member_armor_equipped) !== null && _b !== void 0 ? _b : (_c = unsafeWindow.item_to_upgrade) === null || _c === void 0 ? void 0 : _c.id_member_armor);
     },
+    returnsToTeam: false,
 };
 const GIRL_UPGRADE = {
     queueKey: TK.girlGearUpgradeQueue,
@@ -26936,6 +27284,7 @@ const GIRL_UPGRADE = {
     path: GIRL_UPGRADE_PATH,
     url: girlUpgradePageUrl,
     idOnPage: () => { var _a; return Number((_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_girl_armor_equipped); },
+    returnsToTeam: true,
 };
 /** Stuff Team's default, so the two team buttons start from the same floor. */
 const DEFAULT_MONEY_TO_KEEP = 500000000;
@@ -27091,9 +27440,8 @@ class EquipmentGear {
             return;
         const startedAt = Number((_a = queue[0]) === null || _a === void 0 ? void 0 : _a.startedAt) || 0;
         if (Date.now() - startedAt >= STALE_QUEUE_MS) {
-            setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
-            EquipmentGear.releaseAutoLoop();
-            logHHAuto(`Gear: dropping a stale upgrade queue (${queue.length} item(s) left);`
+            EquipmentGear.resumeNavigating = true;
+            EquipmentGear.abortRun(profile, `dropping a stale upgrade queue (${queue.length} item(s) left);`
                 + ' the run is no longer on the upgrade page.');
             return;
         }
@@ -27108,9 +27456,7 @@ class EquipmentGear {
                 + ` ${MAX_QUEUE_HEAD_TRIES} attempt(s); skipping it,`
                 + ` ${rest.length} item(s) left.`);
             if (rest.length === 0) {
-                setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
-                EquipmentGear.releaseAutoLoop();
-                logHHAuto('Gear: upgrade run finished -- nothing left to open.');
+                EquipmentGear.finishRun(profile, 'nothing left to open.');
                 return;
             }
             setStoredValue(HHStoredVarPrefixKey + profile.queueKey, JSON.stringify(rest.map(r => (Object.assign(Object.assign({}, r), { startedAt: Date.now(), tries: 0 })))));
@@ -27735,6 +28081,7 @@ class EquipmentGear {
                 id: t.id_member_armor, name: t.name, slot: t.slot, startedAt: Date.now(),
             }));
             setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(queue));
+            startWorkPause();
             logHHAuto(`Gear: queued ${queue.length} item(s) for upgrade; going to the upgrade page.`);
             EquipmentGear.gotoUpgradePage(HERO_UPGRADE, queue[0].id);
         });
@@ -27800,6 +28147,7 @@ class EquipmentGear {
                 startedAt: Date.now(), moneyToKeep: keep,
             }));
             setStoredValue(HHStoredVarPrefixKey + GIRL_UPGRADE.queueKey, JSON.stringify(queue));
+            startWorkPause();
             logHHAuto(`Gear: queued ${queue.length} girl item(s) for level-up, keeping ${keep} money;`
                 + ' going to the upgrade page.');
             EquipmentGear.gotoUpgradePage(GIRL_UPGRADE, queue[0].id);
@@ -27824,6 +28172,42 @@ class EquipmentGear {
     /** Let the autoloop run again once the upgrade work is over. */
     static releaseAutoLoop() {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+    }
+    /** The regular end: every queued item is done or skipped. Level-up gear
+     *  goes back to edit-team under the work pause; Upgrade Gear stays on the
+     *  market it started from, where the pause ends by itself. */
+    static finishRun(profile, msg) {
+        setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
+        EquipmentGear.releaseAutoLoop();
+        if (profile.returnsToTeam)
+            workPauseReturnToTeam();
+        logHHAuto('Gear: upgrade run finished -- ' + msg);
+    }
+    /**
+     * A run that cannot go on: not enough material or money for the next
+     * level, an item that is not the one queued, an error. The queue goes,
+     * and a live run -- one the work pause still stands for -- ends the pause
+     * and goes home, where the pipeline takes over (#1888). Left on the
+     * upgrade page, the player found the automation standing still.
+     *
+     * A queue found stale with no pause standing belongs to a run that ended
+     * long ago; dropping it is all, the player is on a page of their choice.
+     * The same with `goHome` false: the player opened another item by hand.
+     */
+    static abortRun(profile, msg, goHome = true) {
+        setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
+        EquipmentGear.releaseAutoLoop();
+        if (!isWorkPauseActive()) {
+            logHHAuto('Gear: upgrade run stopped -- ' + msg);
+            return;
+        }
+        endWorkPause('an upgrade run stopped');
+        if (!goHome) {
+            logHHAuto('Gear: upgrade run stopped -- ' + msg);
+            return;
+        }
+        logHHAuto('Gear: upgrade run stopped -- ' + msg + ' Going home.');
+        gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
     }
     // --------------------------------------------------- the upgrade page
     /** The profile of the upgrade page open now, or null elsewhere. Matched
@@ -27954,18 +28338,15 @@ class EquipmentGear {
             if (EquipmentGear.running)
                 return;
             EquipmentGear.running = true;
-            const finish = (msg) => {
-                setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
-                EquipmentGear.releaseAutoLoop();
-                logHHAuto('Gear: upgrade run finished -- ' + msg);
-            };
+            const finish = (msg) => EquipmentGear.finishRun(profile, msg);
+            const abort = (msg, goHome = true) => EquipmentGear.abortRun(profile, msg, goHome);
             try {
                 const head = queue[0];
                 const onPage = profile.idOnPage();
                 if (onPage !== head.id) {
                     // Someone navigated by hand, or the queue is stale. Acting
                     // here would spend material on an item nobody asked for.
-                    finish(`the page shows item ${onPage}, the queue expects ${head.id}. Stopped without spending anything.`);
+                    abort(`the page shows item ${onPage}, the queue expects ${head.id}. Stopped without spending anything.`, false);
                     return;
                 }
                 const req = parseRequirement(document.body.innerText, profile.maxLevel);
@@ -28036,7 +28417,7 @@ class EquipmentGear {
                     if (!verdict.go) {
                         logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
                         if (!verdict.done) {
-                            finish(verdict.reason);
+                            abort(verdict.reason + '.');
                             return;
                         }
                         handOver('every queued item is done.');
@@ -28058,9 +28439,7 @@ class EquipmentGear {
                 EquipmentGear.gotoUpgradePage(profile, rest[0].id);
             }
             catch (err) {
-                setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
-                EquipmentGear.releaseAutoLoop();
-                logHHAuto('Gear: upgrade run aborted: ' + err);
+                abort('error: ' + err);
             }
             finally {
                 EquipmentGear.running = false;
@@ -30749,40 +31128,6 @@ class BlessingForecast {
     }
 }
 
-;// ./src/Service/AutoLoopHold.ts
-// AutoLoopHold.ts -- Keep the auto-loop's actions out of a long calculation.
-//
-// Setting `Temp_autoLoop` to "false" stops the loop from scheduling its next
-// tick, and nothing more: autoLoop() reads the flag only at its end. The tick
-// that was already scheduled when a player clicked, and every tick a module
-// starts through kickAutoLoop, still runs the action pipeline -- and an
-// action that navigates takes a running team calculation with it. Players
-// reported exactly that: the team selection interrupted again and again, the
-// last time shortly before it finished.
-//
-// A holder takes the hold for the length of its work; while it is held,
-// autoLoop() skips the action pipeline and the paranoia switch. It lives in
-// memory only, so a reload -- the page is gone anyway -- ends it.
-//
-// This file imports nothing, for the reason AutoLoopKick.ts gives: a leaf
-// cannot join an import cycle.
-//
-// Used by: AutoLoop.ts (reads it), TeamSelectionPopup.ts and TeamGear.ts
-// (hold it)
-let holder = null;
-/** Take the hold. */
-function holdAutoLoop(name) {
-    holder = name;
-}
-/** Give the hold back. */
-function releaseAutoLoopHold() {
-    holder = null;
-}
-/** Who holds the loop's actions, or null. */
-function autoLoopHolder() {
-    return holder;
-}
-
 ;// ./src/Module/TeamSelectionPopup.ts
 // TeamSelectionPopup.ts -- The "Team optimization" popup on the edit-team
 // page: the team selection rubrics, and the team's gear.
@@ -30830,7 +31175,7 @@ function autoLoopHolder() {
 // import TeamModule (which opens it).
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
-//   BlessingForecast.ts, LeagueOpponentSnapshot.ts, AutoLoopHold.ts
+//   BlessingForecast.ts, LeagueOpponentSnapshot.ts, AutoLoopHold.ts, WorkPause.ts
 // Used by: TeamModule.ts
 var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -30841,6 +31186,7 @@ var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 
 
 
@@ -31180,6 +31526,10 @@ class TeamSelectionPopup {
                 TeamSelectionPopup.busy = false;
                 $('#hhTeamSel .tsCalc').removeClass('tsDisabled');
                 releaseAutoLoopHold();
+                // The work pause outlives the hold: the result has yet to be read
+                // and applied, and a calculation of many minutes must not have
+                // used up the pause's idle time by the time it ends.
+                touchWorkPause();
                 if (loopWasOn) {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                     kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
@@ -31569,6 +31919,7 @@ var TeamGear_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+
 /** Pages per slot before giving up. A cap this side of infinity keeps a
  *  changed response shape from paging forever; the page size is not known
  *  (the test account's whole inventory fit on the first page). */
@@ -31829,6 +32180,7 @@ class TeamGear {
             }
             finally {
                 releaseAutoLoopHold();
+                touchWorkPause();
                 if (loopWasOn) {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                     kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
@@ -32087,6 +32439,7 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
+
 class TeamModule {
     static resetTeam() {
         $('#clear-team').trigger('click');
@@ -32289,6 +32642,7 @@ class TeamModule {
             setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
             setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
             setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+            startWorkPause();
             if (teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
             }
@@ -32465,6 +32819,9 @@ class TeamModule {
      * actually fight.
      */
     static openTeamSelection() {
+        // From here on the player works on the team; the pipeline waits
+        // until they leave or stop (WorkPause.ts).
+        startWorkPause();
         TeamSelectionPopup.open({
             mapGirl: raw => TeamModule.mapAvailableGirl(raw),
             getHexagonIds: () => TeamModule.getEditTeamGirlIds(),
@@ -33805,7 +34162,8 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 //
 // Each iteration:
 //   1. Checks if "burst" mode is active (master switch on, not in
-//      paranoia rest, menu not open), no user pause and no hold
+//      paranoia rest, menu not open), no user pause, no hold and no work
+//      pause (WorkPause.ts)
 //   2. If active, reads the events on the page and hands the tick to the
 //      block scheduler (the pipeline in Pipeline.config.ts), which runs at
 //      most one block's step -- skipped while a POST is in flight
@@ -33818,6 +34176,7 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 // corresponding cooldown timer.
 //
 // Used by: StartService (initial call), self (recursive setTimeout)
+
 
 
 
@@ -33959,7 +34318,11 @@ function autoLoop() {
             lastMousePauseLog = Date.now();
             logHHAuto("Automation held by " + heldBy + ".");
         }
-        if (burst && !userPaused && !heldBy) {
+        // The player is working on the team: a pause that outlives the reloads of
+        // that work (WorkPause.ts). Asked on every tick, acting or not, so its
+        // notice stays current and it can end itself.
+        const workPaused = workPauseHolds(ctx.currentPage);
+        if (burst && !userPaused && !heldBy && !workPaused) {
             if (!checkTimer("paranoiaSwitch")) {
                 ParanoiaService.clearParanoiaSpendings();
             }
@@ -33999,7 +34362,7 @@ function autoLoop() {
         }
         // --- Page-specific UI handlers ---
         yield handlePageSpecific(ctx);
-        if (ctx.busy === false && !isUserPauseActive() && !autoLoopHolder() && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
+        if (ctx.busy === false && !isUserPauseActive() && !autoLoopHolder() && !workPaused && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
             if (checkTimer("paranoiaSwitch")) {
                 ParanoiaService.flipParanoia();
             }

@@ -26,6 +26,7 @@ import { themeFromElementCounts } from '../Service/EquipmentOptimizerService';
 import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuilderService';
 import { TeamEvaluationService } from '../Service/TeamEvaluationService';
 import { TeamSelectionPopup } from './TeamSelectionPopup';
+import { startWorkPause } from '../Service/WorkPause';
 import { EquipmentGear } from './EquipmentGear';
 import { TeamGear } from './TeamGear';
 import type { TeamGearGirl } from '../Service/TeamGearService';
@@ -264,7 +265,8 @@ export class TeamModule {
             setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
             setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
             setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
-            
+            startWorkPause();
+
             if(teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
             } else {
@@ -446,6 +448,9 @@ export class TeamModule {
      * actually fight.
      */
     static openTeamSelection() {
+        // From here on the player works on the team; the pipeline waits
+        // until they leave or stop (WorkPause.ts).
+        startWorkPause();
         TeamSelectionPopup.open({
             mapGirl: raw => TeamModule.mapAvailableGirl(raw),
             getHexagonIds: () => TeamModule.getEditTeamGirlIds(),
