@@ -8,8 +8,6 @@ body:
       value: |
         One bug per issue, please.
 
-        Before you start: check the [latest release](https://github.com/OldRon1977/HHauto/releases) — a good part of what gets reported is already fixed there.
-
         **A bug report needs the debug log.** It carries the script version, the game, your browser and every setting, which is what makes a report answerable. Without it there is nothing to go on.
 
   - type: textarea
