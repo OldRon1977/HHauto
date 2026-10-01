@@ -41,12 +41,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
 // ===, so a mismatch means the popup silently never appears, and adding a
 // paragraph without moving this number changes nothing on screen. If the
 // release number changes, change it here and in the title too.
-const FEATURE_POPUP_VERSION: string = "8.17.0";
+const FEATURE_POPUP_VERSION: string = "8.18.0";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.17.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.18.0";
 
 /**
  * HTML content for the feature popup.
@@ -55,13 +55,14 @@ const FEATURE_POPUP_TITLE = "HHAuto v8.17.0";
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">The automation waits while you work on a team</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">The automation waits while you work on a team or on your gear</p>
     <p style="margin:0 0 10px 0;">As soon as you open <b>Team optimization</b> on the edit-team page, the automation pauses &mdash; through every reload while you work: calculating, <b>Apply</b>, <b>Team gear</b>, <b>Unequip All</b>, <b>Level-up gear</b> and <b>Stuff Team</b>. Level-up gear and Stuff Team now end back on the edit-team page. You no longer need to switch the script off while a team is calculated.</p>
+    <p style="margin:0 0 10px 0;">The <b>HH Gear</b> menu on the market does the same: opening it pauses the automation through the reload after <b>Equip</b> and through <b>Upgrade Gear</b>, which now ends back on the market.</p>
 
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">How you see it, and how it ends</p>
     <ul style="margin:0 0 10px 18px; padding:0;">
       <li style="margin-bottom:6px;">A notice at the top of every page shows the pause and the minutes left, with a <b>Resume automation</b> button.</li>
-      <li style="margin-bottom:6px;">It ends by itself when you leave the team page, or after 15 minutes without activity.</li>
+      <li style="margin-bottom:6px;">It ends by itself when you leave the team page or the market, or after 15 minutes without activity.</li>
       <li><b>Level-up gear</b> and <b>Upgrade Gear</b>: when the material or the money is not enough for the next level, the run stops, goes to the home page and the automation carries on.</li>
     </ul>
 
