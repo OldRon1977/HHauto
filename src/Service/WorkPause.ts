@@ -43,7 +43,11 @@ import { GIRL_UPGRADE_PATH, UPGRADE_PATH } from "./EquipmentUpgradeService";
 import { gotoPage } from "./PageNavigationService";
 import { WORK_PAUSE_IDLE_MS, WorkPauseState, decideWorkPause } from "./WorkPause.pure";
 
-const STATE_KEY = HHStoredVarPrefixKey + TK.workPause;
+/** Built at call time: a top-level read of HHStoredVarPrefixKey can hit the
+ *  temporal dead zone inside an import cycle (deps:toplevel-key). */
+function stateKey(): string {
+    return HHStoredVarPrefixKey + TK.workPause;
+}
 
 /** mousemove fires constantly; one storage write per this many ms is plenty
  *  against a limit counted in minutes. */
@@ -61,12 +65,12 @@ let activityBound = false;
 let stylesAdded = false;
 
 function readState(): WorkPauseState | null {
-    const state = getStoredJSON<WorkPauseState | null>(STATE_KEY, null);
+    const state = getStoredJSON<WorkPauseState | null>(stateKey(), null);
     return state && typeof state.lastActivity === 'number' ? state : null;
 }
 
 function writeState(state: WorkPauseState): void {
-    setStoredValue(STATE_KEY, JSON.stringify(state));
+    setStoredValue(stateKey(), JSON.stringify(state));
 }
 
 function isTeamPage(page: string): boolean {
@@ -134,7 +138,7 @@ export function isWorkPauseActive(): boolean {
 /** End the pause and take the notice away. */
 export function endWorkPause(reason: string): void {
     if (readState() === null) return;
-    deleteStoredValue(STATE_KEY);
+    deleteStoredValue(stateKey());
     $('#hhWorkPause').remove();
     logHHAuto('Work pause: ended -- ' + reason + '.');
 }
