@@ -59,9 +59,10 @@ GM_addStyle('@font-face {font-family:"IBM Plex Sans"; font-style:normal; font-we
 // own, which beats inheritance), every script button, the tooltips, the info
 // overlay, the gear controls on the market page, the league score labels and
 // the small marks and panels on the team and harem pages, and the rewards
-// recap on the reward paths. The game's own elements are left alone.
+// recap on the reward paths, and the work pause notice at the top of every
+// held page. The game's own elements are left alone.
 GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoPopupGlobal h2, #HHAutoTooltip,'
-            + ' .myButton, .tooltipHHtext, .HHAutoOverlay, .HHpopup_message, .hhScrollTooltip, .hhTeamSynergyInfo,'
+            + ' .myButton, .tooltipHHtext, .HHAutoOverlay, .HHpopup_message, .hhScrollTooltip, .hhTeamSynergyInfo, #hhWorkPause,'
             + ' .topNumber, .HHKeepMark, #hhTeamWorkflow, #HHGearButtons, #HHGearMenuList, #HHGearPreview, #HHGearStatus,'
             + ' #HHPowerCalcScore, #HHPowerCalcPoints, .HHRewardNotCollected, .HHRewardNotCollected h1'
             + ' {font-family:"IBM Plex Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;}');
@@ -845,7 +846,7 @@ HHAuto_ToolTips.en['teamSelThisLeaguePossible'] = { version: "8.14.0", elementTe
 HHAuto_ToolTips.en['teamSelNextStats'] = { version: "8.14.0", elementText: "Next week - by stats and blessings", tooltip: "" };
 HHAuto_ToolTips.en['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Next week's possibly best - by stats and blessings", tooltip: "" };
 HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.17.0", elementText: "This might take a while to calculate. The automation waits meanwhile.", tooltip: "" };
-HHAuto_ToolTips.en['teamSelSlowInfo'] = { version: "8.17.0", elementText: "While you work on the team -- calculating, Apply, Team gear, Level-up gear, Stuff Team -- the automation pauses, across every reload. A notice at the top of the page shows it, with a button to resume. It resumes by itself when you leave the team page, or after 15 minutes without anything happening on it.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSlowInfo'] = { version: "8.17.0", elementText: "While you work on the team -- Calculate, Apply, Team gear, Level-up gear, Stuff Team -- the automation pauses, across every reload. A notice at the top of the page shows it, with a Resume automation button. It resumes by itself when you leave the team page, or after 15 minutes without anything happening on it.", tooltip: "" };
 HHAuto_ToolTips.en['workPause'] = { version: "8.17.0", elementText: "Team optimization: automation paused ({minutes} min left without activity)", tooltip: "" };
 HHAuto_ToolTips.en['workPauseResume'] = { version: "8.17.0", elementText: "Resume automation", tooltip: "" };
 
@@ -1396,7 +1397,7 @@ HHAuto_ToolTips.fr['teamSelThisLeaguePossible'] = { version: "8.14.0", elementTe
 HHAuto_ToolTips.fr['teamSelNextStats'] = { version: "8.14.0", elementText: "Semaine prochaine - selon stats et bénédictions", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Meilleure possible semaine prochaine - selon stats et bénédictions", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelSlowHint'] = { version: "8.17.0", elementText: "Le calcul peut prendre un moment. L'automatisation attend pendant ce temps.", tooltip: "" };
-HHAuto_ToolTips.fr['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Tant que vous travaillez sur l'équipe -- calcul, Apply, Team gear, Level-up gear, Stuff Team -- l'automatisation fait une pause, à travers chaque rechargement. Un avis en haut de la page l'indique, avec un bouton pour reprendre. Elle reprend d'elle-même quand vous quittez la page d'équipe, ou après 15 minutes sans activité sur celle-ci.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Tant que vous travaillez sur l'équipe -- Calculer, Appliquer, Équipement de l'équipe, Monter l'équipement, Équiper l'équipe -- l'automatisation fait une pause, à travers chaque rechargement. Un avis en haut de la page l'indique, avec le bouton « Reprendre l'automatisation ». Elle reprend d'elle-même quand vous quittez la page de l'équipe, ou après 15 minutes sans activité sur celle-ci.", tooltip: "" };
 HHAuto_ToolTips.fr['workPause'] = { version: "8.17.0", elementText: "Optimisation d'équipe : automatisation en pause (encore {minutes} min sans activité)", tooltip: "" };
 HHAuto_ToolTips.fr['workPauseResume'] = { version: "8.17.0", elementText: "Reprendre l'automatisation", tooltip: "" };
 
@@ -1948,7 +1949,7 @@ HHAuto_ToolTips.de['teamSelThisLeaguePossible'] = { version: "8.14.0", elementTe
 HHAuto_ToolTips.de['teamSelNextStats'] = { version: "8.14.0", elementText: "Nächste Woche - nach Werten und Blessings", tooltip: "" };
 HHAuto_ToolTips.de['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mögliches Bestes nächste Woche - nach Werten und Blessings", tooltip: "" };
 HHAuto_ToolTips.de['teamSelSlowHint'] = { version: "8.17.0", elementText: "Die Berechnung kann eine Weile dauern. Die Automatik wartet so lange.", tooltip: "" };
-HHAuto_ToolTips.de['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Solange du am Team arbeitest -- Berechnen, Apply, Team gear, Level-up gear, Stuff Team -- pausiert die Automatik, auch über jedes Neuladen hinweg. Ein Hinweis oben auf der Seite zeigt das, mit einem Knopf zum Fortsetzen. Sie läuft von selbst weiter, wenn du die Team-Seite verlässt oder dort 15 Minuten lang nichts passiert.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Solange du am Team arbeitest -- Berechnen, Übernehmen, Team-Ausrüstung, Ausrüstung leveln, Team bestücken -- pausiert die Automatik, auch über jedes Neuladen hinweg. Ein Hinweis oben auf der Seite zeigt das, mit dem Knopf „Automatik fortsetzen“. Sie läuft von selbst weiter, wenn du die Team-Seite verlässt oder dort 15 Minuten lang nichts passiert.", tooltip: "" };
 HHAuto_ToolTips.de['workPause'] = { version: "8.17.0", elementText: "Teamoptimierung: Automatik pausiert (noch {minutes} min ohne Bedienung)", tooltip: "" };
 HHAuto_ToolTips.de['workPauseResume'] = { version: "8.17.0", elementText: "Automatik fortsetzen", tooltip: "" };
 
@@ -2499,7 +2500,7 @@ HHAuto_ToolTips.es['teamSelThisLeaguePossible'] = { version: "8.14.0", elementTe
 HHAuto_ToolTips.es['teamSelNextStats'] = { version: "8.14.0", elementText: "Próxima semana - según estadísticas y bendiciones", tooltip: "" };
 HHAuto_ToolTips.es['teamSelNextStatsPossible'] = { version: "8.14.0", elementText: "Mejor posible la próxima semana - según estadísticas y bendiciones", tooltip: "" };
 HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.17.0", elementText: "El cálculo puede tardar un rato. La automatización espera mientras tanto.", tooltip: "" };
-HHAuto_ToolTips.es['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Mientras trabajas en el equipo -- calcular, Apply, Team gear, Level-up gear, Stuff Team -- la automatización se pausa, también a través de cada recarga. Un aviso arriba en la página lo indica, con un botón para reanudar. Se reanuda sola cuando sales de la página del equipo o tras 15 minutos sin actividad en ella.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Mientras trabajas en el equipo -- Calcular, Aplicar, Equipo de las chicas, Subir equipo, Preparar equipo -- la automatización se pausa, también a través de cada recarga. Un aviso arriba en la página lo indica, con el botón «Reanudar la automatización». Se reanuda sola cuando sales de la página del equipo o tras 15 minutos sin actividad en ella.", tooltip: "" };
 HHAuto_ToolTips.es['workPause'] = { version: "8.17.0", elementText: "Optimización de equipo: automatización en pausa (quedan {minutes} min sin actividad)", tooltip: "" };
 HHAuto_ToolTips.es['workPauseResume'] = { version: "8.17.0", elementText: "Reanudar la automatización", tooltip: "" };
 
@@ -27191,11 +27192,14 @@ function showNotice(remainingMs) {
     if (document.getElementById('hhWorkPause') === null) {
         if (!stylesAdded) {
             stylesAdded = true;
+            // Red, so it is seen over any page: the same red the team popup
+            // uses for a warning, with white text (contrast about 6.5:1).
             GM_addStyle('#hhWorkPause{position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:6000;'
                 + 'display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;'
-                + 'max-width:calc(100vw - 32px);box-sizing:border-box;padding:4px 10px;border-radius:6px;'
-                + 'background:rgba(0,0,0,0.85);border:1px solid #ffb827;color:#ffb827;font-size:13px;}'
-                + '#hhWorkPause .myButton{margin:0;padding:2px 10px;font-size:12px;}');
+                + 'max-width:calc(100vw - 32px);box-sizing:border-box;padding:5px 12px;border-radius:6px;'
+                + 'background:#b3261e;border:1px solid #ffd2cc;box-shadow:0 2px 8px rgba(0,0,0,0.5);'
+                + 'color:#fff;font-size:13px;font-weight:600;}'
+                + '#hhWorkPause .myButton{margin:0;padding:2px 10px;font-size:12px;font-weight:normal;}');
         }
         $('body').append(`<div id="hhWorkPause"><span class="hhWorkPauseText"></span>`
             + `<label class="myButton" id="hhWorkPauseResume">${getTextForUI('workPauseResume', 'elementText')}</label></div>`);
