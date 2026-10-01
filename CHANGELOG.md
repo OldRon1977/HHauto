@@ -16,6 +16,10 @@ Older entries below were migrated 1:1 from `README.md`.
   **Resume automation**, or after 15 minutes without activity.
 - **Upgrade Gear** now ends back on the market, where the gear work goes on.
 - The notice names the work it is paused for: Team optimization or HH Gear.
+- The 15 minutes count only your own hand: a mouse that really moves, a
+  click, a key, the wheel, a touch. Events the page or a script sends by
+  itself no longer reset them. When something resets them after a quiet
+  minute, the log says what it was.
 
 ### v8.17.0 - The automation waits while you work on the team
 

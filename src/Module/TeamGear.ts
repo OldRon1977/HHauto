@@ -301,7 +301,7 @@ export class TeamGear {
             return await work();
         } finally {
             releaseAutoLoopHold();
-            touchWorkPause();
+            touchWorkPause('team gear');
             if (loopWasOn) {
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                 kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);

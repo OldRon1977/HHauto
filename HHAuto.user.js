@@ -27038,6 +27038,10 @@ const TOUCH_THROTTLE_MS = 2000;
 /** The tick runs every second; the log hears from the pause once a minute. */
 const HOLD_LOG_EVERY_MS = 60000;
 const GO_TO_ZONE_RETRY_MS = 10000;
+/** Below this, a sign of work is not worth a log line. */
+const QUIET_LOG_MS = 60000;
+/** A mousemove counts only when the pointer really moved this far. */
+const POINTER_MOVE_MIN_PX = 3;
 let lastTouch = 0;
 let lastHoldLog = 0;
 /** When the way back was last asked for; gotoPage refuses while another
@@ -27105,8 +27109,15 @@ function startWorkPause(zone) {
     if (!same)
         logHHAuto(`Work pause: started (${zone}) -- the automation waits while the player works.`);
 }
-/** A sign of work: the idle limit counts from here. No-op without a pause. */
-function touchWorkPause() {
+/**
+ * A sign of work: the idle limit counts from here. No-op without a pause.
+ *
+ * `source` says what it was. After a quiet minute or more the log names it:
+ * a player reported the minutes falling and then jumping back to 15 with
+ * nobody at the page, and Chromium, measured, sends nothing of the kind --
+ * the line is what tells the cause in the browser where it happens.
+ */
+function touchWorkPause(source = 'work') {
     const now = Date.now();
     if (now - lastTouch < TOUCH_THROTTLE_MS)
         return;
@@ -27114,6 +27125,10 @@ function touchWorkPause() {
     if (state === null)
         return;
     lastTouch = now;
+    const quietMs = now - state.lastActivity;
+    if (quietMs >= QUIET_LOG_MS) {
+        logHHAuto(`Work pause: activity after ${Math.round(quietMs / 1000)} s quiet -- ${source}; back to ${(/* inlined export .WORK_PAUSE_IDLE_MS */900000) / 60000} min.`);
+    }
     writeState(Object.assign(Object.assign({}, state), { lastActivity: now }));
 }
 /** A run finished: hold on until the player is back in the zone.
@@ -27143,8 +27158,9 @@ function endWorkPause(reason) {
  */
 function workPauseHolds(page) {
     // A calculation holds the loop in memory; its minutes are work too.
-    if (autoLoopHolder() !== null)
-        touchWorkPause();
+    const holder = autoLoopHolder();
+    if (holder !== null)
+        touchWorkPause(holder);
     const state = readState();
     if (state === null) {
         $('#hhWorkPause').remove();
@@ -27163,7 +27179,7 @@ function workPauseHolds(page) {
         return false;
     }
     if (active)
-        touchWorkPause();
+        touchWorkPause('a step of a run');
     if (decision.arrived)
         writeState(Object.assign(Object.assign({}, state), { lastActivity: now, returnToZone: false }));
     if (decision.goToZone && now - goToZoneAt >= GO_TO_ZONE_RETRY_MS) {
@@ -27184,13 +27200,37 @@ function workPauseHolds(page) {
  * On the zone's pages, the player's hand is the sign of work. Listeners of
  * their own, in the capture phase: MouseService owns document.onmousemove,
  * and the popup's buttons stop nothing from reaching the document this way.
+ *
+ * Only the hand: an event a script dispatched (isTrusted false) does not
+ * count, a mousemove counts only when the pointer moved -- browsers send
+ * mousemove without movement when the page changes under a resting pointer
+ * -- and the wheel stands for scrolling, because a scroll event fires for
+ * every element the page scrolls by itself.
  */
 function bindActivity() {
     if (activityBound)
         return;
     activityBound = true;
-    for (const type of ['mousemove', 'mouseup', 'keydown', 'scroll', 'touchstart']) {
-        document.addEventListener(type, () => touchWorkPause(), { capture: true, passive: true });
+    let lastX = null;
+    let lastY = 0;
+    const describe = (e) => {
+        const t = e.target;
+        const name = t && t.nodeType === 1 ? t.tagName.toLowerCase() + (t.id ? '#' + t.id : '') : 'document';
+        return `${e.type} on ${name}`;
+    };
+    document.addEventListener('mousemove', (e) => {
+        if (!e.isTrusted)
+            return;
+        const moved = lastX === null ? Infinity : Math.max(Math.abs(e.screenX - lastX), Math.abs(e.screenY - lastY));
+        if (moved < POINTER_MOVE_MIN_PX)
+            return;
+        lastX = e.screenX;
+        lastY = e.screenY;
+        touchWorkPause(`${describe(e)}, moved ${moved === Infinity ? 'in' : moved + ' px'}`);
+    }, { capture: true, passive: true });
+    for (const type of ['mousedown', 'keydown', 'wheel', 'touchstart']) {
+        document.addEventListener(type, (e) => { if (e.isTrusted)
+            touchWorkPause(describe(e)); }, { capture: true, passive: true });
     }
 }
 /**
@@ -31559,7 +31599,7 @@ class TeamSelectionPopup {
                 // The work pause outlives the hold: the result has yet to be read
                 // and applied, and a calculation of many minutes must not have
                 // used up the pause's idle time by the time it ends.
-                touchWorkPause();
+                touchWorkPause('a calculation ended');
                 if (loopWasOn) {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                     kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
@@ -32210,7 +32250,7 @@ class TeamGear {
             }
             finally {
                 releaseAutoLoopHold();
-                touchWorkPause();
+                touchWorkPause('team gear');
                 if (loopWasOn) {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                     kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
