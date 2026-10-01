@@ -41,12 +41,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
 // ===, so a mismatch means the popup silently never appears, and adding a
 // paragraph without moving this number changes nothing on screen. If the
 // release number changes, change it here and in the title too.
-const FEATURE_POPUP_VERSION: string = "8.16.0";
+const FEATURE_POPUP_VERSION: string = "8.17.0";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.16.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.17.0";
 
 /**
  * HTML content for the feature popup.
@@ -55,14 +55,14 @@ const FEATURE_POPUP_TITLE = "HHAuto v8.16.0";
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">The team buttons moved</p>
-    <p style="margin:0 0 10px 0;">The team list (Team Leagues and the other team pages) no longer has <i>Unequip All</i>, <i>Equip Teams</i> and <i>Stuff Team</i>. Open a team with <b>Edit</b> and click <b>Team optimization</b> (formerly <i>Team selection</i>): Unequip All and Stuff Team are there, and <b>Best gear</b> replaces Equip Teams. Stuff Team now does the skills only.</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">The automation waits while you work on a team</p>
+    <p style="margin:0 0 10px 0;">As soon as you open <b>Team optimization</b> on the edit-team page, the automation pauses &mdash; through every reload while you work: calculating, <b>Apply</b>, <b>Team gear</b>, <b>Unequip All</b>, <b>Level-up gear</b> and <b>Stuff Team</b>. Level-up gear and Stuff Team now end back on the edit-team page. You no longer need to switch the script off while a team is calculated.</p>
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">New: Team gear</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">How you see it, and how it ends</p>
     <ul style="margin:0 0 10px 18px; padding:0;">
-      <li style="margin-bottom:6px;"><b>Best gear:</b> plans the gear of the whole team from your inventory and what the team wears. The first girls get the L10 mythics; among equal items the team gets the most resonance. You see the plan first &mdash; nothing is equipped before you press <b>Equip</b>.</li>
-      <li style="margin-bottom:6px;"><b>Possibly best gear:</b> the same, with mythics counted at level 10.</li>
-      <li><b>Level-up gear:</b> levels the mythics your team wears to level 10, leader first, with every item except mythics as material. It stops when the material runs out, and before your money drops below <i>Money to keep</i>.</li>
+      <li style="margin-bottom:6px;">A notice at the top of every page shows the pause and the minutes left, with a <b>Resume automation</b> button.</li>
+      <li style="margin-bottom:6px;">It ends by itself when you leave the team page, or after 15 minutes without activity.</li>
+      <li><b>Level-up gear</b> and <b>Upgrade Gear</b>: when the material or the money is not enough for the next level, the run stops, goes to the home page and the automation carries on.</li>
     </ul>
 
     <p style="margin-bottom:0; font-size:11px; color:#888;">Full details in the <a href="https://github.com/OldRon1977/HHauto/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG</a>.</p>
