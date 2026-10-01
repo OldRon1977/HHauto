@@ -60,6 +60,10 @@ const TOUCH_THROTTLE_MS = 2000;
 /** The tick runs every second; the log hears from the pause once a minute. */
 const HOLD_LOG_EVERY_MS = 60_000;
 const GO_TO_ZONE_RETRY_MS = 10_000;
+/** Below this, a sign of work is not worth a log line. */
+const QUIET_LOG_MS = 60_000;
+/** A mousemove counts only when the pointer really moved this far. */
+const POINTER_MOVE_MIN_PX = 3;
 
 let lastTouch = 0;
 let lastHoldLog = 0;
@@ -130,13 +134,24 @@ export function startWorkPause(zone: WorkZone): void {
     if (!same) logHHAuto(`Work pause: started (${zone}) -- the automation waits while the player works.`);
 }
 
-/** A sign of work: the idle limit counts from here. No-op without a pause. */
-export function touchWorkPause(): void {
+/**
+ * A sign of work: the idle limit counts from here. No-op without a pause.
+ *
+ * `source` says what it was. After a quiet minute or more the log names it:
+ * a player reported the minutes falling and then jumping back to 15 with
+ * nobody at the page, and Chromium, measured, sends nothing of the kind --
+ * the line is what tells the cause in the browser where it happens.
+ */
+export function touchWorkPause(source = 'work'): void {
     const now = Date.now();
     if (now - lastTouch < TOUCH_THROTTLE_MS) return;
     const state = readState();
     if (state === null) return;
     lastTouch = now;
+    const quietMs = now - state.lastActivity;
+    if (quietMs >= QUIET_LOG_MS) {
+        logHHAuto(`Work pause: activity after ${Math.round(quietMs / 1000)} s quiet -- ${source}; back to ${WORK_PAUSE_IDLE_MS / 60_000} min.`);
+    }
     writeState({ ...state, lastActivity: now });
 }
 
@@ -168,7 +183,8 @@ export function endWorkPause(reason: string): void {
  */
 export function workPauseHolds(page: string): boolean {
     // A calculation holds the loop in memory; its minutes are work too.
-    if (autoLoopHolder() !== null) touchWorkPause();
+    const holder = autoLoopHolder();
+    if (holder !== null) touchWorkPause(holder);
     const state = readState();
     if (state === null) {
         $('#hhWorkPause').remove();
@@ -185,7 +201,7 @@ export function workPauseHolds(page: string): boolean {
             : `the ${state.zone} page was left and no run is going`);
         return false;
     }
-    if (active) touchWorkPause();
+    if (active) touchWorkPause('a step of a run');
     if (decision.arrived) writeState({ ...state, lastActivity: now, returnToZone: false });
     if (decision.goToZone && now - goToZoneAt >= GO_TO_ZONE_RETRY_MS) {
         goToZoneAt = now;
@@ -205,12 +221,33 @@ export function workPauseHolds(page: string): boolean {
  * On the zone's pages, the player's hand is the sign of work. Listeners of
  * their own, in the capture phase: MouseService owns document.onmousemove,
  * and the popup's buttons stop nothing from reaching the document this way.
+ *
+ * Only the hand: an event a script dispatched (isTrusted false) does not
+ * count, a mousemove counts only when the pointer moved -- browsers send
+ * mousemove without movement when the page changes under a resting pointer
+ * -- and the wheel stands for scrolling, because a scroll event fires for
+ * every element the page scrolls by itself.
  */
 function bindActivity(): void {
     if (activityBound) return;
     activityBound = true;
-    for (const type of ['mousemove', 'mouseup', 'keydown', 'scroll', 'touchstart']) {
-        document.addEventListener(type, () => touchWorkPause(), { capture: true, passive: true });
+    let lastX: number | null = null;
+    let lastY = 0;
+    const describe = (e: Event): string => {
+        const t = e.target as Element | null;
+        const name = t && t.nodeType === 1 ? t.tagName.toLowerCase() + (t.id ? '#' + t.id : '') : 'document';
+        return `${e.type} on ${name}`;
+    };
+    document.addEventListener('mousemove', (e: MouseEvent) => {
+        if (!e.isTrusted) return;
+        const moved = lastX === null ? Infinity : Math.max(Math.abs(e.screenX - lastX), Math.abs(e.screenY - lastY));
+        if (moved < POINTER_MOVE_MIN_PX) return;
+        lastX = e.screenX;
+        lastY = e.screenY;
+        touchWorkPause(`${describe(e)}, moved ${moved === Infinity ? 'in' : moved + ' px'}`);
+    }, { capture: true, passive: true });
+    for (const type of ['mousedown', 'keydown', 'wheel', 'touchstart']) {
+        document.addEventListener(type, (e) => { if (e.isTrusted) touchWorkPause(describe(e)); }, { capture: true, passive: true });
     }
 }
 

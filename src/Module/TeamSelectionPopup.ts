@@ -436,7 +436,7 @@ export class TeamSelectionPopup {
             // The work pause outlives the hold: the result has yet to be read
             // and applied, and a calculation of many minutes must not have
             // used up the pause's idle time by the time it ends.
-            touchWorkPause();
+            touchWorkPause('a calculation ended');
             if (loopWasOn) {
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'true');
                 kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
