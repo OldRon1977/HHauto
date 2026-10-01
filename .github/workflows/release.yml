@@ -1,0 +1,131 @@
+name: Release
+
+# One GitHub release per minor version: when main reaches X.Y.0, the release
+# vX.Y.0 is created on that commit. Patches (X.Y.1, ...) get none; their
+# CHANGELOG sections go into the release of the next minor version.
+#
+# A release does not change what users get. The script's update URL points at
+# HHAuto.user.js on main, so every version reaches them on merge anyway. The
+# release marks the version, notifies whoever watches releases, and is what
+# the wiki links to under "Releases".
+#
+# Title and text come from CHANGELOG.md, nothing is written by hand:
+#   title -> "vX.Y.0 - " plus the title of the "### vX.Y.0 - ..." heading
+#   text  -> every "### v..." section newer than the previous release, up to
+#            and including X.Y.0, plus a compare link to the previous release
+# A missing "### vX.Y.0" heading fails the run instead of publishing an empty
+# release. CHANGELOG.md is in the path filter, so adding the heading later
+# runs the check again and the release follows.
+#
+# The release points at the commit the push brought, i.e. the state X.Y.0
+# arrived with. Commits that land later under the same version (a popup, a
+# README line) are not in the tag.
+#
+# GITHUB_TOKEN is enough because the release goes onto the head of main. A
+# release on an older commit whose .github/workflows differs from main's is
+# refused without the "workflows" permission, even when the tag already
+# exists -- a missed release is created by hand with a personal token that
+# carries it.
+#
+# A manual run defaults to a dry run: it prints title and text and creates
+# nothing.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - HHAuto.user.js
+      - CHANGELOG.md
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: only print the release that would be created'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # A manual run on another branch would tag that branch's head.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Create the release when main reaches a new minor version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TARGET: ${{ github.sha }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, re, subprocess, sys
+
+          def key(v):
+              return tuple(int(n) for n in v.split('.'))
+
+          with open('HHAuto.user.js', encoding='utf-8') as f:
+              version = re.search(r'^// @version\s+(\S+)', f.read(4000), re.M).group(1)
+          tag = f'v{version}'
+          if key(version)[2] != 0:
+              print(f'{version} is a patch, no release')
+              sys.exit(0)
+
+          # Only vX.Y.Z tags count; the older releases carry no "v".
+          listed = json.loads(subprocess.run(
+              ['gh', 'release', 'list', '--limit', '1000', '--json', 'tagName,isDraft'],
+              check=True, capture_output=True, text=True).stdout)
+          released = [r['tagName'][1:] for r in listed
+                      if not r['isDraft'] and re.fullmatch(r'v\d+\.\d+\.\d+', r['tagName'])]
+          if version in released:
+              print(f'{tag} is already released')
+              sys.exit(0)
+          older = [v for v in released if key(v) < key(version)]
+          prev = max(older, key=key) if older else None
+          # A newer release already out means main went back to an older
+          # version: release it, but leave "Latest" where it is.
+          latest = all(key(v) < key(version) for v in released)
+
+          with open('CHANGELOG.md', encoding='utf-8') as f:
+              parts = re.split(r'(?m)^### v(\d+\.\d+\.\d+) - (.*)$', f.read())
+          sections = {parts[i]: (parts[i + 1].strip(), parts[i + 2].strip())
+                      for i in range(1, len(parts), 3)}
+          if version not in sections:
+              print(f'::error::CHANGELOG.md has no "### {tag} - ..." heading')
+              sys.exit(1)
+
+          included = [v for v in sections
+                      if key(v) <= key(version) and (prev is None or key(v) > key(prev))]
+          notes = []
+          for v in included:  # CHANGELOG order: newest first
+              title, body = sections[v]
+              body = re.sub(r'\n-{3,}\s*$', '', body)
+              notes.append(f'### v{v} - {title}\n\n{body}\n')
+          if prev:
+              notes.append(f'**Full Changelog**: https://github.com/{os.environ["GH_REPO"]}'
+                           f'/compare/v{prev}...{tag}\n')
+          title = f'{tag} - {sections[version][0]}'
+          with open('release-notes.md', 'w', encoding='utf-8') as f:
+              f.write('\n'.join(notes))
+
+          print(f'{title}\ntarget {os.environ["TARGET"]}, previous release '
+                f'{prev and "v" + prev}, latest={latest}\n')
+          if os.environ['DRY_RUN'] == 'true':
+              print(open('release-notes.md', encoding='utf-8').read())
+              sys.exit(0)
+          subprocess.run(['gh', 'release', 'create', tag,
+                          '--target', os.environ['TARGET'],
+                          '--title', title,
+                          '--notes-file', 'release-notes.md',
+                          '--latest' if latest else '--latest=false'],
+                         check=True)
+          EOF
