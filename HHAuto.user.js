@@ -860,10 +860,10 @@ HHAuto_ToolTips.en['seasonTargetBuyNote'] = { version: "8.19.0", elementText: "O
 HHAuto_ToolTips.en['seasonTargetBuyOff'] = { version: "8.19.0", elementText: "Buying needs Spend Kobans switched on in the menu.", tooltip: "" };
 HHAuto_ToolTips.en['seasonTargetPassReds'] = { version: "8.19.0", elementText: "Pass 3 reds is on: three red opponents are replaced for kobans, as in normal season fights.", tooltip: "" };
 HHAuto_ToolTips.en['seasonTargetMasterOff'] = { version: "8.19.0", elementText: "The script is switched off. The target starts once it is switched on.", tooltip: "" };
-HHAuto_ToolTips.en['seasonTargetExplain'] = { version: "8.19.0", elementText: "The script fights in the season until the number is reached, whatever the season settings say, and nothing else runs in between. It picks the opponent with the best chance to win, and among equal chances the one worth the most mojo. The first fight starts once the Mouse Pause after your click has run out. The target ends when you leave the season pages or start a fight yourself -- noticed once the Mouse Pause is over; if you come back before that, it carries on. Cancel target always ends it.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetExplain'] = { version: "8.19.0", elementText: "The script fights in the season until the number is reached, whatever the season settings say, and nothing else runs in between. It picks the opponent with the best chance to win, and among equal chances the one worth the most mojo. The first fight starts once the Mouse Pause after your click has run out. The target ends when you leave the season pages or start a fight yourself — noticed once the Mouse Pause is over; if you come back before that, it carries on. Cancel target always ends it.", tooltip: "" };
 HHAuto_ToolTips.en['seasonTargetStart'] = { version: "8.19.0", elementText: "Start", tooltip: "" };
 HHAuto_ToolTips.en['seasonTargetCancel'] = { version: "8.19.0", elementText: "Cancel target", tooltip: "" };
-HHAuto_ToolTips.en['seasonTargetNotice'] = { version: "8.19.0", elementText: "Season target: {progress} -- other automation waits", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetNotice'] = { version: "8.19.0", elementText: "Season target: {progress} — other automation waits", tooltip: "" };
 HHAuto_ToolTips.en['seasonTargetEndReached'] = { version: "8.19.0", elementText: "Target reached.", tooltip: "" };
 HHAuto_ToolTips.en['seasonTargetEndNoKisses'] = { version: "8.19.0", elementText: "Stopped: no kiss left.", tooltip: "" };
 HHAuto_ToolTips.en['seasonTargetEndSpendOff'] = { version: "8.19.0", elementText: "Stopped: no kiss left, and Spend Kobans is switched off.", tooltip: "" };
@@ -871,6 +871,7 @@ HHAuto_ToolTips.en['seasonTargetEndReserve'] = { version: "8.19.0", elementText:
 HHAuto_ToolTips.en['seasonTargetEndNoOpponent'] = { version: "8.19.0", elementText: "Stopped: the arena offers no opponent.", tooltip: "" };
 HHAuto_ToolTips.en['seasonTargetEndUnreadable'] = { version: "8.19.0", elementText: "Stopped: the arena page could not be read.", tooltip: "" };
 HHAuto_ToolTips.en['seasonTargetOk'] = { version: "8.19.0", elementText: "OK", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetResult'] = { version: "8.19.0", elementText: "Season target: {progress}. {reason}", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
 
@@ -1433,10 +1434,10 @@ HHAuto_ToolTips.fr['seasonTargetBuyNote'] = { version: "8.19.0", elementText: "U
 HHAuto_ToolTips.fr['seasonTargetBuyOff'] = { version: "8.19.0", elementText: "Pour acheter, « Dépense Kobans » doit être activé dans le menu.", tooltip: "" };
 HHAuto_ToolTips.fr['seasonTargetPassReds'] = { version: "8.19.0", elementText: "« Passer 3 rouges » est activé : trois adversaires rouges sont remplacés contre des kobans, comme pour les combats de saison habituels.", tooltip: "" };
 HHAuto_ToolTips.fr['seasonTargetMasterOff'] = { version: "8.19.0", elementText: "Le script est désactivé. L'objectif démarre dès qu'il est activé.", tooltip: "" };
-HHAuto_ToolTips.fr['seasonTargetExplain'] = { version: "8.19.0", elementText: "Le script combat en saison jusqu'à atteindre le nombre, quels que soient les réglages de saison, et rien d'autre ne tourne entre-temps. Il choisit l'adversaire avec la meilleure chance de victoire et, à chance égale, celui qui rapporte le plus de mojo. Le premier combat commence une fois la Pause souris après votre clic écoulée. L'objectif s'arrête si vous quittez les pages de saison ou lancez vous-même un combat -- c'est constaté une fois la Pause souris terminée ; si vous revenez avant, il continue. « Annuler l'objectif » l'arrête toujours.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetExplain'] = { version: "8.19.0", elementText: "Le script combat en saison jusqu'à atteindre le nombre, quels que soient les réglages de saison, et rien d'autre ne tourne entre-temps. Il choisit l'adversaire avec la meilleure chance de victoire et, à chance égale, celui qui rapporte le plus de mojo. Le premier combat commence une fois la Pause souris après votre clic écoulée. L'objectif s'arrête si vous quittez les pages de saison ou lancez vous-même un combat — c'est constaté une fois la Pause souris terminée ; si vous revenez avant, il continue. « Annuler l'objectif » l'arrête toujours.", tooltip: "" };
 HHAuto_ToolTips.fr['seasonTargetStart'] = { version: "8.19.0", elementText: "Démarrer", tooltip: "" };
 HHAuto_ToolTips.fr['seasonTargetCancel'] = { version: "8.19.0", elementText: "Annuler l'objectif", tooltip: "" };
-HHAuto_ToolTips.fr['seasonTargetNotice'] = { version: "8.19.0", elementText: "Objectif saison : {progress} -- le reste de l'automatisation attend", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetNotice'] = { version: "8.19.0", elementText: "Objectif saison : {progress} — le reste de l'automatisation attend", tooltip: "" };
 HHAuto_ToolTips.fr['seasonTargetEndReached'] = { version: "8.19.0", elementText: "Objectif atteint.", tooltip: "" };
 HHAuto_ToolTips.fr['seasonTargetEndNoKisses'] = { version: "8.19.0", elementText: "Arrêté : plus de bisous.", tooltip: "" };
 HHAuto_ToolTips.fr['seasonTargetEndSpendOff'] = { version: "8.19.0", elementText: "Arrêté : plus de bisous, et « Dépense Kobans » est désactivé.", tooltip: "" };
@@ -1444,6 +1445,7 @@ HHAuto_ToolTips.fr['seasonTargetEndReserve'] = { version: "8.19.0", elementText:
 HHAuto_ToolTips.fr['seasonTargetEndNoOpponent'] = { version: "8.19.0", elementText: "Arrêté : l'arène ne propose aucun adversaire.", tooltip: "" };
 HHAuto_ToolTips.fr['seasonTargetEndUnreadable'] = { version: "8.19.0", elementText: "Arrêté : la page de l'arène n'a pas pu être lue.", tooltip: "" };
 HHAuto_ToolTips.fr['seasonTargetOk'] = { version: "8.19.0", elementText: "OK", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetResult'] = { version: "8.19.0", elementText: "Objectif saison : {progress}. {reason}", tooltip: "" };
 
 ;// ./src/i18n/de.ts
 
@@ -2007,10 +2009,10 @@ HHAuto_ToolTips.de['seasonTargetBuyNote'] = { version: "8.19.0", elementText: "E
 HHAuto_ToolTips.de['seasonTargetBuyOff'] = { version: "8.19.0", elementText: "Zum Kaufen muss „Kobans ausgeben“ im Menü eingeschaltet sein.", tooltip: "" };
 HHAuto_ToolTips.de['seasonTargetPassReds'] = { version: "8.19.0", elementText: "„Überspringe drei Rote“ ist an: drei rote Gegner werden gegen Kobans ersetzt, wie bei normalen Season-Kämpfen.", tooltip: "" };
 HHAuto_ToolTips.de['seasonTargetMasterOff'] = { version: "8.19.0", elementText: "Das Skript ist ausgeschaltet. Das Ziel beginnt, sobald es eingeschaltet wird.", tooltip: "" };
-HHAuto_ToolTips.de['seasonTargetExplain'] = { version: "8.19.0", elementText: "Das Skript kämpft in der Season, bis die Zahl erreicht ist, unabhängig von den Season-Einstellungen, und dazwischen läuft nichts anderes. Es wählt den Gegner mit der besten Siegchance, bei gleicher Chance den mit dem meisten Mojo. Der erste Kampf beginnt, wenn die Maus-Pause nach deinem Klick abgelaufen ist. Das Ziel endet, wenn du die Season-Seiten verlässt oder selbst einen Kampf startest -- bemerkt wird das, sobald die Maus-Pause vorbei ist; kommst du vorher zurück, läuft es weiter. „Ziel abbrechen“ beendet es immer.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetExplain'] = { version: "8.19.0", elementText: "Das Skript kämpft in der Season, bis die Zahl erreicht ist, unabhängig von den Season-Einstellungen, und dazwischen läuft nichts anderes. Es wählt den Gegner mit der besten Siegchance, bei gleicher Chance den mit dem meisten Mojo. Der erste Kampf beginnt, wenn die Maus-Pause nach deinem Klick abgelaufen ist. Das Ziel endet, wenn du die Season-Seiten verlässt oder selbst einen Kampf startest — bemerkt wird das, sobald die Maus-Pause vorbei ist; kommst du vorher zurück, läuft es weiter. „Ziel abbrechen“ beendet es immer.", tooltip: "" };
 HHAuto_ToolTips.de['seasonTargetStart'] = { version: "8.19.0", elementText: "Starten", tooltip: "" };
 HHAuto_ToolTips.de['seasonTargetCancel'] = { version: "8.19.0", elementText: "Ziel abbrechen", tooltip: "" };
-HHAuto_ToolTips.de['seasonTargetNotice'] = { version: "8.19.0", elementText: "Season-Ziel: {progress} -- andere Automatik wartet", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetNotice'] = { version: "8.19.0", elementText: "Season-Ziel: {progress} — andere Automatik wartet", tooltip: "" };
 HHAuto_ToolTips.de['seasonTargetEndReached'] = { version: "8.19.0", elementText: "Ziel erreicht.", tooltip: "" };
 HHAuto_ToolTips.de['seasonTargetEndNoKisses'] = { version: "8.19.0", elementText: "Beendet: keine Küsse mehr.", tooltip: "" };
 HHAuto_ToolTips.de['seasonTargetEndSpendOff'] = { version: "8.19.0", elementText: "Beendet: keine Küsse mehr, und „Kobans ausgeben“ ist ausgeschaltet.", tooltip: "" };
@@ -2018,6 +2020,7 @@ HHAuto_ToolTips.de['seasonTargetEndReserve'] = { version: "8.19.0", elementText:
 HHAuto_ToolTips.de['seasonTargetEndNoOpponent'] = { version: "8.19.0", elementText: "Beendet: die Arena bietet keinen Gegner an.", tooltip: "" };
 HHAuto_ToolTips.de['seasonTargetEndUnreadable'] = { version: "8.19.0", elementText: "Beendet: die Arena-Seite ließ sich nicht lesen.", tooltip: "" };
 HHAuto_ToolTips.de['seasonTargetOk'] = { version: "8.19.0", elementText: "OK", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetResult'] = { version: "8.19.0", elementText: "Season-Ziel: {progress}. {reason}", tooltip: "" };
 
 ;// ./src/i18n/es.ts
 
@@ -2580,10 +2583,10 @@ HHAuto_ToolTips.es['seasonTargetBuyNote'] = { version: "8.19.0", elementText: "U
 HHAuto_ToolTips.es['seasonTargetBuyOff'] = { version: "8.19.0", elementText: "Para comprar, «Kobans securidad» debe estar activado en el menú.", tooltip: "" };
 HHAuto_ToolTips.es['seasonTargetPassReds'] = { version: "8.19.0", elementText: "«Pasa 3 rojos» está activado: tres rivales rojos se reemplazan con kobans, como en los combates de temporada normales.", tooltip: "" };
 HHAuto_ToolTips.es['seasonTargetMasterOff'] = { version: "8.19.0", elementText: "El script está desactivado. El objetivo empieza en cuanto se active.", tooltip: "" };
-HHAuto_ToolTips.es['seasonTargetExplain'] = { version: "8.19.0", elementText: "El script combate en la temporada hasta alcanzar el número, sin importar los ajustes de temporada, y mientras tanto no se ejecuta nada más. Elige al rival con mejor probabilidad de victoria y, a igual probabilidad, el que da más mojo. El primer combate empieza cuando termina la Pausa por ratón tras tu clic. El objetivo termina si sales de las páginas de temporada o inicias tú un combate -- se detecta cuando acaba la Pausa por ratón; si vuelves antes, continúa. «Cancelar objetivo» siempre lo termina.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetExplain'] = { version: "8.19.0", elementText: "El script combate en la temporada hasta alcanzar el número, sin importar los ajustes de temporada, y mientras tanto no se ejecuta nada más. Elige al rival con mejor probabilidad de victoria y, a igual probabilidad, el que da más mojo. El primer combate empieza cuando termina la Pausa por ratón tras tu clic. El objetivo termina si sales de las páginas de temporada o inicias tú un combate — se detecta cuando acaba la Pausa por ratón; si vuelves antes, continúa. «Cancelar objetivo» siempre lo termina.", tooltip: "" };
 HHAuto_ToolTips.es['seasonTargetStart'] = { version: "8.19.0", elementText: "Iniciar", tooltip: "" };
 HHAuto_ToolTips.es['seasonTargetCancel'] = { version: "8.19.0", elementText: "Cancelar objetivo", tooltip: "" };
-HHAuto_ToolTips.es['seasonTargetNotice'] = { version: "8.19.0", elementText: "Objetivo de temporada: {progress} -- el resto de la automatización espera", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetNotice'] = { version: "8.19.0", elementText: "Objetivo de temporada: {progress} — el resto de la automatización espera", tooltip: "" };
 HHAuto_ToolTips.es['seasonTargetEndReached'] = { version: "8.19.0", elementText: "Objetivo alcanzado.", tooltip: "" };
 HHAuto_ToolTips.es['seasonTargetEndNoKisses'] = { version: "8.19.0", elementText: "Detenido: no quedan besos.", tooltip: "" };
 HHAuto_ToolTips.es['seasonTargetEndSpendOff'] = { version: "8.19.0", elementText: "Detenido: no quedan besos y «Kobans securidad» está desactivado.", tooltip: "" };
@@ -2591,6 +2594,7 @@ HHAuto_ToolTips.es['seasonTargetEndReserve'] = { version: "8.19.0", elementText:
 HHAuto_ToolTips.es['seasonTargetEndNoOpponent'] = { version: "8.19.0", elementText: "Detenido: la arena no ofrece ningún rival.", tooltip: "" };
 HHAuto_ToolTips.es['seasonTargetEndUnreadable'] = { version: "8.19.0", elementText: "Detenido: no se pudo leer la página de la arena.", tooltip: "" };
 HHAuto_ToolTips.es['seasonTargetOk'] = { version: "8.19.0", elementText: "OK", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetResult'] = { version: "8.19.0", elementText: "Objetivo de temporada: {progress}. {reason}", tooltip: "" };
 
 ;// ./src/Helper/LanguageHelper.ts
 // LanguageHelper.ts
@@ -22937,8 +22941,9 @@ class SeasonTarget {
             SeasonTarget.dismissResult();
             return;
         }
-        SeasonTarget.renderNotice('done', `${getTextForUI('seasonTarget', 'elementText')}: ${progressText(state)}. `
-            + getTextForUI((_a = END_TEXT[state.ended.reason]) !== null && _a !== void 0 ? _a : 'seasonTargetEndReached', 'elementText'));
+        SeasonTarget.renderNotice('done', getTextForUI('seasonTargetResult', 'elementText')
+            .replace('{progress}', progressText(state))
+            .replace('{reason}', getTextForUI((_a = END_TEXT[state.ended.reason]) !== null && _a !== void 0 ? _a : 'seasonTargetEndReached', 'elementText')));
     }
     static dismissResult() {
         var _a;

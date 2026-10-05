@@ -182,8 +182,9 @@ export class SeasonTarget {
             SeasonTarget.dismissResult();
             return;
         }
-        SeasonTarget.renderNotice('done', `${getTextForUI('seasonTarget', 'elementText')}: ${progressText(state)}. `
-            + getTextForUI(END_TEXT[state.ended.reason as ResultReason] ?? 'seasonTargetEndReached', 'elementText'));
+        SeasonTarget.renderNotice('done', getTextForUI('seasonTargetResult', 'elementText')
+            .replace('{progress}', progressText(state))
+            .replace('{reason}', getTextForUI(END_TEXT[state.ended.reason as ResultReason] ?? 'seasonTargetEndReached', 'elementText')));
     }
 
     private static dismissResult(): void {
