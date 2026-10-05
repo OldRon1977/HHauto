@@ -22,8 +22,11 @@ Older entries below were migrated 1:1 from `README.md`.
   Without that option the target ends with the last kiss.
 - A notice at the top shows the count, with a **Cancel target** button,
   and the info box shows it too. The target ends when you leave the season
-  pages or start a fight yourself. The master switch and the mouse pause
-  still apply; a paranoia rest that falls due waits until the target ends.
+  pages or start a fight yourself -- noticed once the Mouse Pause your own
+  clicks start has run out; come back before that and it carries on, so use
+  **Cancel target** to be sure. The first fight, too, waits for the Mouse
+  Pause after your click on **Start**. The master switch still applies; a
+  paranoia rest that falls due waits until the target ends.
 - When the target is reached, or stops for lack of kisses, a green notice
   with the result stays on every page until you press **OK** (at most 30
   minutes); the rest of the automation carries on meanwhile.
