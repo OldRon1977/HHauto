@@ -2771,6 +2771,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.workPause] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// The season target (SeasonTarget.ts). sessionStorage: it has to survive the
+// page loads of every fight, and belongs to the tab it was started in.
+HHStoredVars[HHStoredVarPrefixKey + TK.seasonTarget] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 
 HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
     {

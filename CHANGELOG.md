@@ -7,6 +7,28 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.0 - Season target: fight until a number of wins is reached
+
+- **Season target** (#1801): a new button beside **Find Opponents** on the
+  season page. Choose a number of **wins**, or of **fights won or lost**,
+  and the script fights in the season until it is reached -- whatever the
+  season settings say (thresholds, Max Tier, Season focus, Boosted only,
+  Skip low mojo). Nothing else runs in between.
+- It picks the opponent with the best chance to win, and among equal
+  chances the one worth the most mojo. **Pass 3 reds** still applies when
+  it is on, and spends kobans as usual.
+- Optionally it **buys kisses** when none are left: one at a time, as long
+  as the koban reserve stays untouched. Buying needs **Spend Kobans** on.
+  Without that option the target ends with the last kiss.
+- A notice at the top shows the count, with a **Cancel target** button,
+  and the info box shows it too. The target ends when you leave the season
+  pages or start a fight yourself. The master switch and the mouse pause
+  still apply; a paranoia rest that falls due waits until the target ends.
+- When the target is reached, or stops for lack of kisses, a green notice
+  with the result stays on every page until you press **OK** (at most 30
+  minutes); the rest of the automation carries on meanwhile.
+- Wins are counted from the season mojo before and after each fight.
+
 ### v8.18.0 - The automation waits while you work on your gear
 
 - **HH Gear** on the market (#1888): opening the HH Gear menu now pauses the

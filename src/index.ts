@@ -12,7 +12,8 @@
 // then sets up the menu, timers and auto-loop.
 
 import { hardened_start, setDefaults } from "./Service/StartService";
-import { autoLoop, setBlockTick } from "./Service/AutoLoop";
+import { autoLoop, setBlockTick, setSeasonTarget } from "./Service/AutoLoop";
+import { SeasonTargetRun } from "./Module/Events/SeasonTargetRun";
 import { getBlockScheduler, buildRegistryAndOrder } from "./Service/BlockPipeline";
 import { setPipelineRegistryProvider } from "./Service/PipelineOrderService";
 import { setPachinkoAutoLoopKick } from "./Module/Pachinko";
@@ -145,6 +146,9 @@ setSetDefaultsRef(setDefaults);
 // a static AutoLoop->BlockPipeline import) to avoid an import cycle, in which
 // a cycle can hand a module an uninitialised binding at load.
 setBlockTick((ctx) => getBlockScheduler().tick(ctx));
+// The season target, the same way (SeasonTargetRun -> Season ->
+// ParanoiaService -> AutoLoop would close a cycle).
+setSeasonTarget(SeasonTargetRun);
 // Wire the Block-Order popup's registry provider (avoids a static
 // PipelineOrderService->BlockPipeline import cycle).
 setPipelineRegistryProvider(buildRegistryAndOrder);

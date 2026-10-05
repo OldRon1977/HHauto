@@ -37,6 +37,7 @@ import { PathOfAttraction } from "../Module/Events/PathOfAttraction";
 import { PathOfGlory } from "../Module/Events/PathOfGlory";
 import { PathOfValue } from "../Module/Events/PathOfValue";
 import { Season } from "../Module/Events/Season";
+import { SeasonTarget } from "../Module/Events/SeasonTarget";
 import { SeasonalEvent } from "../Module/Events/Seasonal";
 import { Harem } from "../Module/harem/Harem";
 import { HaremGirl } from "../Module/harem/HaremGirl";
@@ -60,6 +61,8 @@ let seasonArenaPreviewShown = false;
 let opponentSnapshotTaken = false;
 
 export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
+    // The result of a season target that ended follows the player to every page.
+    SeasonTarget.showResult();
     // The upgrade pages are matched on their path: the mythic one carries no
     // `page` attribute, so it never reaches the switch below. The run is a
     // no-op unless "Upgrade Gear" or "Level-up gear" filled a queue, so this
@@ -106,6 +109,7 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
             }
             break;
         case ConfigHelper.getHHScriptVars("pagesIDSeason"):
+            SeasonTarget.addButton();
             Season.styles = callItOnce(Season.styles);
             Season.styles();
             Season.getRemainingTime = callItOnce(Season.getRemainingTime);

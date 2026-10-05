@@ -26,6 +26,7 @@ import { DailyGoals } from "../Module/DailyGoals";
 import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
 import { SeasonalEvent } from "../Module/Events/Seasonal";
 import { Season } from "../Module/Events/Season";
+import { SeasonTarget } from "../Module/Events/SeasonTarget";
 import { Labyrinth } from "../Module/Labyrinth";
 import { LeagueHelper } from "../Module/League";
 import { Pantheon } from "../Module/Pantheon";
@@ -151,6 +152,8 @@ export function updateData() {
         {
             Tegzd += Season.getPinfo();
         }
+        // A running season target shows its count whether autoSeason is on or not.
+        Tegzd += SeasonTarget.getPinfo();
         if (ConfigHelper.getHHScriptVars('isEnabledSeason',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonCollectAll) === "true" && getTimer('nextSeasonCollectAllTime') !== -1)
         {
             Tegzd += pInfoRow(getTextForUI("pinfoSeasonCollect","elementText"), getTimeLeft('nextSeasonCollectAllTime'));
