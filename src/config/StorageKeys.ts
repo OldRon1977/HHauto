@@ -423,6 +423,8 @@ export const TK = {
     mouseLastActivity: "Temp_mouseLastActivity",
     // The player is working on a team or the hero's gear: the pipeline waits (WorkPause.ts)
     workPause: "Temp_workPause",
+    // A season target runs: the pipeline waits, only season fights (SeasonTarget.ts)
+    seasonTarget: "Temp_seasonTarget",
 
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",

@@ -9,7 +9,8 @@
 //      pause (WorkPause.ts)
 //   2. If active, reads the events on the page and hands the tick to the
 //      block scheduler (the pipeline in Pipeline.config.ts), which runs at
-//      most one block's step -- skipped while a POST is in flight
+//      most one block's step -- skipped while a POST is in flight. While a
+//      season target runs (SeasonTarget.ts) it gets the tick instead.
 //   3. Runs the page handlers (AutoLoopPageHandlers) regardless of burst
 //   4. Manages paranoia flip if enabled
 //   5. Schedules the next iteration
@@ -152,6 +153,18 @@ export function setBlockTick(fn: (ctx: AutoLoopContext) => Promise<void>): void 
     blockTick = fn;
 }
 
+// The season target, injected the same way: SeasonTarget imports Season,
+// which reaches back here through ParanoiaService.
+export interface SeasonTargetPort {
+    isActive(): boolean;
+    tick(ctx: AutoLoopContext): Promise<boolean>;
+    suspendForRest(): void;
+}
+let seasonTarget: SeasonTargetPort | null = null;
+export function setSeasonTarget(port: SeasonTargetPort): void {
+    seasonTarget = port;
+}
+
 // Throttle for the mouse-pause log so the polled gate does not flood the log.
 let lastMousePauseLog = 0;
 
@@ -210,6 +223,11 @@ export async function autoLoop()
             ParanoiaService.clearParanoiaSpendings();
         }
         CheckSpentPoints();
+        if (seasonTarget?.isActive()) {
+            // A season target has the tick to itself (SeasonTarget.ts): no
+            // block, no contest timer, nothing else navigates until it ends.
+            if (!isPostInFlight()) await seasonTarget.tick(ctx);
+        } else {
         if (getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) === "true" && checkTimer('nextContestTime')) {
             Contest.setTimers = callItOnce(Contest.setTimers);
             ctx.busy = Contest.setTimers();
@@ -243,6 +261,7 @@ export async function autoLoop()
             await blockTick(ctx);
         }
         }
+        }
     }
 
     // --- Page-specific UI handlers ---
@@ -250,6 +269,9 @@ export async function autoLoop()
 
     if (ctx.busy === false && !isUserPauseActive() && !autoLoopHolder() && !workPaused && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
         if (checkTimer("paranoiaSwitch")) {
+            // Going to rest sends the script home; a season target must not
+            // read that as the player leaving the season.
+            if (burst) seasonTarget?.suspendForRest();
             ParanoiaService.flipParanoia();
         }
     }

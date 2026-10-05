@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.18.0
+// @version      8.19.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -849,6 +849,28 @@ HHAuto_ToolTips.en['teamSelSlowHint'] = { version: "8.17.0", elementText: "This 
 HHAuto_ToolTips.en['teamSelSlowInfo'] = { version: "8.17.0", elementText: "While you work on the team -- Calculate, Apply, Team gear, Level-up gear, Stuff Team -- the automation pauses, across every reload. A notice at the top of the page shows it, with a Resume automation button. It resumes by itself when you leave the team page, or after 15 minutes without anything happening on it.", tooltip: "" };
 HHAuto_ToolTips.en['workPause'] = { version: "8.18.0", elementText: "{what}: automation paused ({minutes} min left without activity)", tooltip: "" };
 HHAuto_ToolTips.en['workPauseResume'] = { version: "8.17.0", elementText: "Resume automation", tooltip: "" };
+HHAuto_ToolTips.en['seasonTarget'] = { version: "8.19.0", elementText: "Season target", tooltip: "Fight in the season until a number of wins or fights is reached, whatever the season settings say." };
+HHAuto_ToolTips.en['seasonTargetWins'] = { version: "8.19.0", elementText: "wins", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetFights'] = { version: "8.19.0", elementText: "fights", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetModeWins'] = { version: "8.19.0", elementText: "Wins", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetModeFights'] = { version: "8.19.0", elementText: "Fights, won or lost", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetCount'] = { version: "8.19.0", elementText: "Number:", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetBuy'] = { version: "8.19.0", elementText: "Buy kisses with kobans when none are left", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetBuyNote'] = { version: "8.19.0", elementText: "One kiss at a time, {price} kobans each, as long as the koban reserve of {bank} stays untouched.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetBuyOff'] = { version: "8.19.0", elementText: "Buying needs Spend Kobans switched on in the menu.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetPassReds'] = { version: "8.19.0", elementText: "Pass 3 reds is on: three red opponents are replaced for kobans, as in normal season fights.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetMasterOff'] = { version: "8.19.0", elementText: "The script is switched off. The target starts once it is switched on.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetExplain'] = { version: "8.19.0", elementText: "The script fights in the season until the number is reached, whatever the season settings say, and nothing else runs in between. It picks the opponent with the best chance to win, and among equal chances the one worth the most mojo. It stops when you leave the season pages or start a fight yourself.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetStart'] = { version: "8.19.0", elementText: "Start", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetCancel'] = { version: "8.19.0", elementText: "Cancel target", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetNotice'] = { version: "8.19.0", elementText: "Season target: {progress} -- other automation waits", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetEndReached'] = { version: "8.19.0", elementText: "Target reached.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetEndNoKisses'] = { version: "8.19.0", elementText: "Stopped: no kiss left.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetEndSpendOff'] = { version: "8.19.0", elementText: "Stopped: no kiss left, and Spend Kobans is switched off.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetEndReserve'] = { version: "8.19.0", elementText: "Stopped: no kiss left, and buying one would go below the koban reserve.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetEndNoOpponent'] = { version: "8.19.0", elementText: "Stopped: the arena offers no opponent.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetEndUnreadable'] = { version: "8.19.0", elementText: "Stopped: the arena page could not be read.", tooltip: "" };
+HHAuto_ToolTips.en['seasonTargetOk'] = { version: "8.19.0", elementText: "OK", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
 
@@ -1400,6 +1422,28 @@ HHAuto_ToolTips.fr['teamSelSlowHint'] = { version: "8.17.0", elementText: "Le ca
 HHAuto_ToolTips.fr['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Tant que vous travaillez sur l'équipe -- Calculer, Appliquer, Équipement de l'équipe, Monter l'équipement, Équiper l'équipe -- l'automatisation fait une pause, à travers chaque rechargement. Un avis en haut de la page l'indique, avec le bouton « Reprendre l'automatisation ». Elle reprend d'elle-même quand vous quittez la page de l'équipe, ou après 15 minutes sans activité sur celle-ci.", tooltip: "" };
 HHAuto_ToolTips.fr['workPause'] = { version: "8.18.0", elementText: "{what} : automatisation en pause (encore {minutes} min sans activité)", tooltip: "" };
 HHAuto_ToolTips.fr['workPauseResume'] = { version: "8.17.0", elementText: "Reprendre l'automatisation", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTarget'] = { version: "8.19.0", elementText: "Objectif saison", tooltip: "Combattre en saison jusqu'à atteindre un nombre de victoires ou de combats, quels que soient les réglages de saison." };
+HHAuto_ToolTips.fr['seasonTargetWins'] = { version: "8.19.0", elementText: "victoires", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetFights'] = { version: "8.19.0", elementText: "combats", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetModeWins'] = { version: "8.19.0", elementText: "Victoires", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetModeFights'] = { version: "8.19.0", elementText: "Combats, gagnés ou perdus", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetCount'] = { version: "8.19.0", elementText: "Nombre :", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetBuy'] = { version: "8.19.0", elementText: "Acheter des bisous avec des kobans quand il n'en reste plus", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetBuyNote'] = { version: "8.19.0", elementText: "Un bisou à la fois, {price} kobans chacun, tant que la réserve de {bank} kobans reste intacte.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetBuyOff'] = { version: "8.19.0", elementText: "Pour acheter, « Dépense Kobans » doit être activé dans le menu.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetPassReds'] = { version: "8.19.0", elementText: "« Passer 3 rouges » est activé : trois adversaires rouges sont remplacés contre des kobans, comme pour les combats de saison habituels.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetMasterOff'] = { version: "8.19.0", elementText: "Le script est désactivé. L'objectif démarre dès qu'il est activé.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetExplain'] = { version: "8.19.0", elementText: "Le script combat en saison jusqu'à atteindre le nombre, quels que soient les réglages de saison, et rien d'autre ne tourne entre-temps. Il choisit l'adversaire avec la meilleure chance de victoire et, à chance égale, celui qui rapporte le plus de mojo. Il s'arrête si vous quittez les pages de saison ou lancez vous-même un combat.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetStart'] = { version: "8.19.0", elementText: "Démarrer", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetCancel'] = { version: "8.19.0", elementText: "Annuler l'objectif", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetNotice'] = { version: "8.19.0", elementText: "Objectif saison : {progress} -- le reste de l'automatisation attend", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetEndReached'] = { version: "8.19.0", elementText: "Objectif atteint.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetEndNoKisses'] = { version: "8.19.0", elementText: "Arrêté : plus de bisous.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetEndSpendOff'] = { version: "8.19.0", elementText: "Arrêté : plus de bisous, et « Dépense Kobans » est désactivé.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetEndReserve'] = { version: "8.19.0", elementText: "Arrêté : plus de bisous, et en acheter un passerait sous la réserve de kobans.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetEndNoOpponent'] = { version: "8.19.0", elementText: "Arrêté : l'arène ne propose aucun adversaire.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetEndUnreadable'] = { version: "8.19.0", elementText: "Arrêté : la page de l'arène n'a pas pu être lue.", tooltip: "" };
+HHAuto_ToolTips.fr['seasonTargetOk'] = { version: "8.19.0", elementText: "OK", tooltip: "" };
 
 ;// ./src/i18n/de.ts
 
@@ -1952,6 +1996,28 @@ HHAuto_ToolTips.de['teamSelSlowHint'] = { version: "8.17.0", elementText: "Die B
 HHAuto_ToolTips.de['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Solange du am Team arbeitest -- Berechnen, Übernehmen, Team-Ausrüstung, Ausrüstung leveln, Team bestücken -- pausiert die Automatik, auch über jedes Neuladen hinweg. Ein Hinweis oben auf der Seite zeigt das, mit dem Knopf „Automatik fortsetzen“. Sie läuft von selbst weiter, wenn du die Team-Seite verlässt oder dort 15 Minuten lang nichts passiert.", tooltip: "" };
 HHAuto_ToolTips.de['workPause'] = { version: "8.18.0", elementText: "{what}: Automatik pausiert (noch {minutes} min ohne Bedienung)", tooltip: "" };
 HHAuto_ToolTips.de['workPauseResume'] = { version: "8.17.0", elementText: "Automatik fortsetzen", tooltip: "" };
+HHAuto_ToolTips.de['seasonTarget'] = { version: "8.19.0", elementText: "Season-Ziel", tooltip: "In der Season kämpfen, bis eine Zahl an Siegen oder Kämpfen erreicht ist, unabhängig von den Season-Einstellungen." };
+HHAuto_ToolTips.de['seasonTargetWins'] = { version: "8.19.0", elementText: "Siege", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetFights'] = { version: "8.19.0", elementText: "Kämpfe", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetModeWins'] = { version: "8.19.0", elementText: "Siege", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetModeFights'] = { version: "8.19.0", elementText: "Kämpfe, gewonnen oder verloren", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetCount'] = { version: "8.19.0", elementText: "Anzahl:", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetBuy'] = { version: "8.19.0", elementText: "Küsse mit Kobans kaufen, wenn keine mehr da sind", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetBuyNote'] = { version: "8.19.0", elementText: "Ein Kuss nach dem anderen, je {price} Kobans, solange die Koban-Reserve von {bank} unangetastet bleibt.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetBuyOff'] = { version: "8.19.0", elementText: "Zum Kaufen muss „Kobans ausgeben“ im Menü eingeschaltet sein.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetPassReds'] = { version: "8.19.0", elementText: "„Überspringe drei Rote“ ist an: drei rote Gegner werden gegen Kobans ersetzt, wie bei normalen Season-Kämpfen.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetMasterOff'] = { version: "8.19.0", elementText: "Das Skript ist ausgeschaltet. Das Ziel beginnt, sobald es eingeschaltet wird.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetExplain'] = { version: "8.19.0", elementText: "Das Skript kämpft in der Season, bis die Zahl erreicht ist, unabhängig von den Season-Einstellungen, und dazwischen läuft nichts anderes. Es wählt den Gegner mit der besten Siegchance, bei gleicher Chance den mit dem meisten Mojo. Es hört auf, wenn du die Season-Seiten verlässt oder selbst einen Kampf startest.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetStart'] = { version: "8.19.0", elementText: "Starten", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetCancel'] = { version: "8.19.0", elementText: "Ziel abbrechen", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetNotice'] = { version: "8.19.0", elementText: "Season-Ziel: {progress} -- andere Automatik wartet", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetEndReached'] = { version: "8.19.0", elementText: "Ziel erreicht.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetEndNoKisses'] = { version: "8.19.0", elementText: "Beendet: keine Küsse mehr.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetEndSpendOff'] = { version: "8.19.0", elementText: "Beendet: keine Küsse mehr, und „Kobans ausgeben“ ist ausgeschaltet.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetEndReserve'] = { version: "8.19.0", elementText: "Beendet: keine Küsse mehr, und ein Kauf würde die Koban-Reserve unterschreiten.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetEndNoOpponent'] = { version: "8.19.0", elementText: "Beendet: die Arena bietet keinen Gegner an.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetEndUnreadable'] = { version: "8.19.0", elementText: "Beendet: die Arena-Seite ließ sich nicht lesen.", tooltip: "" };
+HHAuto_ToolTips.de['seasonTargetOk'] = { version: "8.19.0", elementText: "OK", tooltip: "" };
 
 ;// ./src/i18n/es.ts
 
@@ -2503,6 +2569,28 @@ HHAuto_ToolTips.es['teamSelSlowHint'] = { version: "8.17.0", elementText: "El c�
 HHAuto_ToolTips.es['teamSelSlowInfo'] = { version: "8.17.0", elementText: "Mientras trabajas en el equipo -- Calcular, Aplicar, Equipo de las chicas, Subir equipo, Preparar equipo -- la automatización se pausa, también a través de cada recarga. Un aviso arriba en la página lo indica, con el botón «Reanudar la automatización». Se reanuda sola cuando sales de la página del equipo o tras 15 minutos sin actividad en ella.", tooltip: "" };
 HHAuto_ToolTips.es['workPause'] = { version: "8.18.0", elementText: "{what}: automatización en pausa (quedan {minutes} min sin actividad)", tooltip: "" };
 HHAuto_ToolTips.es['workPauseResume'] = { version: "8.17.0", elementText: "Reanudar la automatización", tooltip: "" };
+HHAuto_ToolTips.es['seasonTarget'] = { version: "8.19.0", elementText: "Objetivo de temporada", tooltip: "Combatir en la temporada hasta alcanzar un número de victorias o de combates, sin importar los ajustes de temporada." };
+HHAuto_ToolTips.es['seasonTargetWins'] = { version: "8.19.0", elementText: "victorias", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetFights'] = { version: "8.19.0", elementText: "combates", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetModeWins'] = { version: "8.19.0", elementText: "Victorias", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetModeFights'] = { version: "8.19.0", elementText: "Combates, ganados o perdidos", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetCount'] = { version: "8.19.0", elementText: "Número:", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetBuy'] = { version: "8.19.0", elementText: "Comprar besos con kobans cuando no quede ninguno", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetBuyNote'] = { version: "8.19.0", elementText: "Un beso cada vez, {price} kobans cada uno, mientras la reserva de {bank} kobans quede intacta.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetBuyOff'] = { version: "8.19.0", elementText: "Para comprar, «Kobans securidad» debe estar activado en el menú.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetPassReds'] = { version: "8.19.0", elementText: "«Pasa 3 rojos» está activado: tres rivales rojos se reemplazan con kobans, como en los combates de temporada normales.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetMasterOff'] = { version: "8.19.0", elementText: "El script está desactivado. El objetivo empieza en cuanto se active.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetExplain'] = { version: "8.19.0", elementText: "El script combate en la temporada hasta alcanzar el número, sin importar los ajustes de temporada, y mientras tanto no se ejecuta nada más. Elige al rival con mejor probabilidad de victoria y, a igual probabilidad, el que da más mojo. Se detiene si sales de las páginas de temporada o inicias tú un combate.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetStart'] = { version: "8.19.0", elementText: "Iniciar", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetCancel'] = { version: "8.19.0", elementText: "Cancelar objetivo", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetNotice'] = { version: "8.19.0", elementText: "Objetivo de temporada: {progress} -- el resto de la automatización espera", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetEndReached'] = { version: "8.19.0", elementText: "Objetivo alcanzado.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetEndNoKisses'] = { version: "8.19.0", elementText: "Detenido: no quedan besos.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetEndSpendOff'] = { version: "8.19.0", elementText: "Detenido: no quedan besos y «Kobans securidad» está desactivado.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetEndReserve'] = { version: "8.19.0", elementText: "Detenido: no quedan besos y comprar uno bajaría de la reserva de kobans.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetEndNoOpponent'] = { version: "8.19.0", elementText: "Detenido: la arena no ofrece ningún rival.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetEndUnreadable'] = { version: "8.19.0", elementText: "Detenido: no se pudo leer la página de la arena.", tooltip: "" };
+HHAuto_ToolTips.es['seasonTargetOk'] = { version: "8.19.0", elementText: "OK", tooltip: "" };
 
 ;// ./src/Helper/LanguageHelper.ts
 // LanguageHelper.ts
@@ -3114,6 +3202,8 @@ const TK = {
     mouseLastActivity: "Temp_mouseLastActivity",
     // The player is working on a team or the hero's gear: the pipeline waits (WorkPause.ts)
     workPause: "Temp_workPause",
+    // A season target runs: the pipeline waits, only season fights (SeasonTarget.ts)
+    seasonTarget: "Temp_seasonTarget",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
     // Pipeline-block architecture
@@ -6076,6 +6166,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.mouseLastActivity] =
 // sessionStorage: it has to survive the reloads of Apply, Team gear and the
 // gear equip, and belongs to the tab the player works in.
 HHStoredVars[HHStoredVarPrefixKey + TK.workPause] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// The season target (SeasonTarget.ts). sessionStorage: it has to survive the
+// page loads of every fight, and belongs to the tab it was started in.
+HHStoredVars[HHStoredVarPrefixKey + TK.seasonTarget] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -20137,6 +20234,98 @@ function isBlockedOnlyByMissingBooster(state) {
         && state.autoEquipBoostersEnabled;
 }
 
+;// ./src/Module/Events/SeasonTarget.pure.ts
+// SeasonTarget.pure.ts -- The season target's decisions, without storage, DOM
+// or clock: which opponent, whether a fight was won, whether to buy a kiss.
+//
+// The impure half (SeasonTarget.ts) reads the page and acts on the answers.
+// Why the target exists and how it is shaped is told there.
+//
+// Used by: SeasonTarget.ts, SeasonTargetRun.ts, Season.ts
+const SEASON_TARGET_MAX = 999;
+/**
+ * What became of the pending fight, read from the arena after it.
+ *
+ * Mojo is the measure: a won season fight adds mojo, a lost one takes some
+ * away (measured: +20, +21 for wins, -7 for a loss). The fight response
+ * would say it too, but the game sends it 50 ms after DOMContentLoaded --
+ * before a userscript reliably listens -- and its `result` field reads
+ * "won" for a lost fight as well; `battle_result` is the real one.
+ *
+ * Unchanged mojo with a kiss gone is a fight of unknown outcome: it counts
+ * as a fight, not as a win, so a wins target fights once more rather than
+ * once too few. Unchanged mojo and no kiss gone means the fight never ran.
+ */
+function fightOutcome(pending, mojoNow, kissNow) {
+    if (mojoNow > pending.mojoBefore)
+        return 'won';
+    if (mojoNow < pending.mojoBefore)
+        return 'lost';
+    return kissNow < pending.kissBefore ? 'unknown' : 'none';
+}
+/** The state after counting the pending fight; `pending` is gone either way. */
+function countFight(state, outcome) {
+    const next = Object.assign({}, state);
+    delete next.pending;
+    if (outcome === 'none')
+        return next;
+    next.fights = state.fights + 1;
+    if (outcome === 'won')
+        next.wins = state.wins + 1;
+    return next;
+}
+/** The number the target counts: wins, or all fights. */
+function targetProgress(state) {
+    return state.mode === 'wins' ? state.wins : state.fights;
+}
+function isTargetReached(state) {
+    return targetProgress(state) >= state.target;
+}
+/**
+ * The opponent with the best chance to win; among equal chances, the one
+ * worth the most mojo. Chances are compared at the precision the arena shows
+ * them (two decimals of a percent), so two opponents the player sees at
+ * 100.00 % count as a tie. -1 for an empty list.
+ */
+function chooseTargetOpponent(opponents) {
+    const shown = (win) => Math.round(win * 10000);
+    let chosen = -1;
+    for (let i = 0; i < opponents.length; i++) {
+        if (chosen === -1) {
+            chosen = i;
+            continue;
+        }
+        const a = shown(opponents[i].win);
+        const b = shown(opponents[chosen].win);
+        if (a > b || (a === b && opponents[i].mojo > opponents[chosen].mojo))
+            chosen = i;
+    }
+    return chosen;
+}
+/**
+ * Fight with the kisses there are; with none left, buy one if the target
+ * may and the koban reserve stays whole -- otherwise the target ends.
+ * One kiss at a time: the target may be reached before a second is needed.
+ */
+function decideKiss(input) {
+    if (input.kisses > 0)
+        return { kind: 'fight' };
+    if (!input.buyKisses)
+        return { kind: 'end', reason: 'noKisses' };
+    if (!input.spendAllowed)
+        return { kind: 'end', reason: 'spendOff' };
+    if (input.kobans - input.price < input.kobanBank)
+        return { kind: 'end', reason: 'reserve' };
+    return { kind: 'buy' };
+}
+/** A target as typed into the popup, or null when it is not a usable number. */
+function parseTarget(value) {
+    const n = Number(String(value).trim());
+    if (!Number.isInteger(n) || n < 1 || n > SEASON_TARGET_MAX)
+        return null;
+    return n;
+}
+
 ;// ./src/Module/Events/Season.ts
 var Season_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -20159,6 +20348,7 @@ var Season_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 //             EventModule.ts (event detection)
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts and others
 //
+
 
 
 
@@ -20274,8 +20464,14 @@ class Season {
             autoEquipBoostersEnabled,
         });
     }
+    /**
+     * Simulates the three opponents, marks them on the page and returns the
+     * one to fight: an opponent id, -1 when none is chosen, -2 when three
+     * reds are to be paid away. `forTarget` picks by the season target's rule
+     * (SeasonTarget.pure.ts) instead of the season settings.
+     */
     static moduleSimSeasonBattle() {
-        return Season_awaiter(this, arguments, void 0, function* (autoRun = false) {
+        return Season_awaiter(this, arguments, void 0, function* (autoRun = false, forTarget = false) {
             var _a, _b, _c;
             const dispalyPowerCalc = getStoredValue(HHStoredVarPrefixKey + SK.seasonDisplayPowerCalc) === "true";
             const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
@@ -20318,7 +20514,9 @@ class Season {
                     }
                     yield TimeHelper.sleep(randomInterval(10, 30)); // avoid blocking UI thread and let it update with new elements
                 }
-                var { numberOfReds, chosenIndex } = Season.getBestOppo(seasonOpponents, Season.getEnergy(), Season.getEnergyMax());
+                var { numberOfReds, chosenIndex } = forTarget
+                    ? Season.getTargetOppo(seasonOpponents)
+                    : Season.getBestOppo(seasonOpponents, Season.getEnergy(), Season.getEnergyMax());
                 const chosenID = chosenIndex >= 0 ? (_c = opponentDatas[chosenIndex].player) === null || _c === void 0 ? void 0 : _c.id_fighter : chosenIndex;
                 var price = Number($("div.opponents_arena button#refresh_villains").attr('price'));
                 if (isNaN(price)) {
@@ -20344,6 +20542,35 @@ class Season {
                 logHHAuto("Catched error : Could not display season score : " + err);
                 return -1;
             }
+        });
+    }
+    /**
+     * The season target's pick: best chance to win, then most mojo. None of
+     * the season settings apply -- the target overrules them. Reds are
+     * counted the same way as in getBestOppo, so Pass 3 reds still works.
+     */
+    static getTargetOppo(seasonOpponents) {
+        const numberOfReds = seasonOpponents.filter(o => o.simu.scoreClass === 'minus').length;
+        const chosenIndex = chooseTargetOpponent(seasonOpponents.map(o => ({ win: Number(o.simu.win), mojo: Number(o.mojo) })));
+        return { numberOfReds, chosenIndex };
+    }
+    /**
+     * Pays the arena for three new opponents and reloads. Kobans: the caller
+     * checks Pass 3 reds and the koban reserve before.
+     */
+    static payForNewOpponents() {
+        const Hero = getHero();
+        const params = {
+            namespace: 'h\\Season',
+            class: 'Arena',
+            action: 'arena_reload'
+        };
+        logHHAuto("Three red opponents, paying for refresh.");
+        getHHAjax()(params, function (data) {
+            Hero.update("hard_currency", data.hard_currency, false);
+            // C1: route through safeReload so any in-flight
+            // AJAX gets to settle before the URL change.
+            safeReload();
         });
     }
     static getBestOppo(seasonOpponents, current_kisses = 1, max_kisses = 10) {
@@ -20477,7 +20704,6 @@ class Season {
         return Season_awaiter(this, void 0, void 0, function* () {
             logHHAuto("Performing auto Season.");
             // Confirm if on correct screen.
-            const Hero = getHero();
             var page = getPage();
             if (page === ConfigHelper.getHHScriptVars("pagesIDSeasonArena")) {
                 logHHAuto("On season arena page.");
@@ -20512,24 +20738,10 @@ class Season {
                 }
                 if (chosenID === -2) {
                     //change opponents and reload
-                    function refreshOpponents() {
-                        var params = {
-                            namespace: 'h\\Season',
-                            class: 'Arena',
-                            action: 'arena_reload'
-                        };
-                        logHHAuto("Three red opponents, paying for refresh.");
-                        getHHAjax()(params, function (data) {
-                            Hero.update("hard_currency", data.hard_currency, false);
-                            // C1: route through safeReload so any in-flight
-                            // AJAX gets to settle before the URL change.
-                            safeReload();
-                        });
-                    }
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     logHHAuto("setting autoloop to false");
                     setTimer('nextSeasonTime', 5);
-                    setTimeout(refreshOpponents, randomInterval(800, 1600));
+                    setTimeout(Season.payForNewOpponents, randomInterval(800, 1600));
                     return true;
                 }
                 else if (chosenID === -1) {
@@ -22555,6 +22767,318 @@ class SeasonalEvent {
 SeasonalEvent.SEASONAL_REWARD_PATH = '.mega-tier.unclaimed';
 SeasonalEvent.SEASONAL_REWARD_MEGA_PATH = '.mega-tier-container:has(.free-slot button.mega-claim-reward)';
 
+;// ./src/Module/Events/SeasonTarget.ts
+// SeasonTarget.ts -- Fight in the season until a number of wins, or of
+// fights, is reached, whatever the season settings say (#1801).
+//
+// Asked for to finish Path of Attraction and contest objectives that count
+// season wins: the season settings ration kisses by thresholds, tiers and
+// focus, and late in a season enough fights are lost that the player kept
+// counting by hand.
+//
+// The player starts it from a button beside "Find Opponents" on the season
+// page. While it runs, AutoLoop hands every tick to it instead of the
+// pipeline: no other module fights, collects or navigates in between. It
+// keeps to the master switch, the mouse pause, a work pause and paranoia --
+// a paranoia rest sends the script home, and the target marks itself
+// suspended so that the way home does not read as the player leaving; after
+// the rest it goes back to the arena.
+//
+// It ends when
+//   - the target is reached,
+//   - no kiss is left and none may be bought (the option is off, Spend
+//     Kobans is off, or a kiss would cut into the koban reserve),
+//   - the arena offers no opponent,
+//   - the player leaves the season pages, or fights a fight the target did
+//     not start,
+//   - the player presses Cancel on the notice.
+//
+// Wins are counted from the mojo on the arena page before and after each
+// fight; why not from the fight response is told in SeasonTarget.pure.ts.
+// The state lives in sessionStorage (Temp_seasonTarget) and outlives the
+// page load of every fight.
+//
+// This file holds the state and what the player sees: the button, the
+// popup, the notice and the info row. The fighting is SeasonTargetRun.ts --
+// it imports Season, which reaches AutoLoop through ParanoiaService, and the
+// page handlers and the info box must not close that cycle.
+//
+// Used by: SeasonTargetRun.ts, AutoLoopPageHandlers.ts (the button and the
+//   result notice), InfoService.ts (the progress row), index.ts
+
+
+
+
+
+
+
+
+
+
+
+let stylesAdded = false;
+/** Built at call time: a top-level read of HHStoredVarPrefixKey can hit the
+ *  temporal dead zone inside an import cycle (deps:toplevel-key). */
+function stateKey() {
+    return HHStoredVarPrefixKey + TK.seasonTarget;
+}
+/** What is stored: a running target, or the result of one that ended. */
+function readStored() {
+    const state = getStoredJSON(stateKey(), null);
+    if (!state || typeof state.target !== 'number')
+        return null;
+    return state;
+}
+/** The running target; null when none runs or the stored one has ended. */
+function readState() {
+    const state = readStored();
+    return state && !state.ended ? state : null;
+}
+function writeState(state) {
+    setStoredValue(stateKey(), JSON.stringify(state));
+}
+const page = (key) => ConfigHelper.getHHScriptVars(key);
+/**
+ * The pages the target works on. pvp-arena is not one of them: measured on
+ * 2026-10-05, season fights run on season-battle, and pvp-arena is the Lust
+ * Arena hub the season page's close button leads to -- the player leaving.
+ */
+function isTargetPage(current) {
+    return current === page('pagesIDSeason') || current === page('pagesIDSeasonArena') || current === page('pagesIDSeasonBattle');
+}
+/** What the game itself charges for one kiss in its recharge popup. */
+function kissPrice() {
+    var _a;
+    const kiss = getHHVars('Hero.energies.kiss');
+    const perMinute = Number((_a = unsafeWindow.hh_prices) === null || _a === void 0 ? void 0 : _a.kiss_cost_per_minute);
+    return Math.ceil(Number(kiss === null || kiss === void 0 ? void 0 : kiss.seconds_per_point) * (perMinute / 60));
+}
+function unitText(mode) {
+    return getTextForUI(mode === 'wins' ? 'seasonTargetWins' : 'seasonTargetFights', 'elementText');
+}
+function progressText(state) {
+    let text = `${targetProgress(state)}/${state.target} ${unitText(state.mode)}`;
+    if (state.mode === 'fights')
+        text += ` (${state.wins} ${getTextForUI('seasonTargetWins', 'elementText')})`;
+    return text;
+}
+const END_LOG = {
+    reached: 'target reached',
+    noKisses: 'no kiss left',
+    spendOff: 'no kiss left, and Spend Kobans is off',
+    reserve: 'no kiss left, and buying one would cut into the koban reserve',
+    noOpponent: 'the arena offers no opponent to choose',
+    unreadable: 'the arena page could not be read (no season mojo or no fight button)',
+    left: 'the season pages were left',
+    foreignFight: 'a fight the target did not start',
+    cancelled: 'cancelled by the player',
+};
+/** The result notice's text for an end the player did not cause. */
+const END_TEXT = {
+    reached: 'seasonTargetEndReached',
+    noKisses: 'seasonTargetEndNoKisses',
+    spendOff: 'seasonTargetEndSpendOff',
+    reserve: 'seasonTargetEndReserve',
+    noOpponent: 'seasonTargetEndNoOpponent',
+    unreadable: 'seasonTargetEndUnreadable',
+};
+/** How long a result stays up when nobody presses OK. */
+const RESULT_SHOWN_MS = 30 * 60000;
+class SeasonTarget {
+    static isActive() {
+        return readState() !== null;
+    }
+    /** Paranoia is about to flip: if it goes to rest, the way home is its own. */
+    static suspendForRest() {
+        const state = readState();
+        if (state && !state.suspended)
+            writeState(Object.assign(Object.assign({}, state), { suspended: true }));
+    }
+    static start(mode, target, buyKisses) {
+        writeState({ mode, target, buyKisses, wins: 0, fights: 0, since: Date.now() });
+        logHHAuto(`Season target: started -- ${target} ${mode}${buyKisses ? ', kisses may be bought' : ''}.`);
+        maskHHPopUp();
+        if (getStoredValue(HHStoredVarPrefixKey + SK.master) !== 'true')
+            return;
+        // A navigation switches the loop flag off; with it off no tick is
+        // scheduled, so one has to be started.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            kickAutoLoop(500);
+    }
+    /**
+     * End the target. An end the player caused -- leaving, an own fight,
+     * Cancel -- takes the notice away. Any other end leaves a result in its
+     * place: the pipeline takes over on the next tick and navigates, so a
+     * popup would be gone within a second (measured), while the result
+     * notice follows the player from page to page until OK, or for
+     * RESULT_SHOWN_MS.
+     */
+    static end(reason) {
+        const state = readState();
+        if (state === null)
+            return;
+        $('#hhSeasonTarget').remove();
+        logHHAuto(`Season target: ended -- ${END_LOG[reason]}. ${progressText(state)}, ${state.fights} fights.`);
+        if (reason === 'left' || reason === 'foreignFight' || reason === 'cancelled') {
+            deleteStoredValue(stateKey());
+            return;
+        }
+        const result = Object.assign(Object.assign({}, state), { ended: { reason, at: Date.now() } });
+        delete result.pending;
+        writeState(result);
+    }
+    /** Asked every tick: puts up the result of an ended target, or retires it. */
+    static showResult() {
+        var _a;
+        const state = readStored();
+        if (!(state === null || state === void 0 ? void 0 : state.ended))
+            return;
+        if (Date.now() - state.ended.at >= RESULT_SHOWN_MS) {
+            SeasonTarget.dismissResult();
+            return;
+        }
+        SeasonTarget.renderNotice('done', `${getTextForUI('seasonTarget', 'elementText')}: ${progressText(state)}. `
+            + getTextForUI((_a = END_TEXT[state.ended.reason]) !== null && _a !== void 0 ? _a : 'seasonTargetEndReached', 'elementText'));
+    }
+    static dismissResult() {
+        var _a;
+        if ((_a = readStored()) === null || _a === void 0 ? void 0 : _a.ended)
+            deleteStoredValue(stateKey());
+        $('#hhSeasonTarget').remove();
+    }
+    /** The progress row in the info box, or the result of the last target. */
+    static getPinfo() {
+        var _a;
+        const state = readStored();
+        if (state === null)
+            return '';
+        const value = state.ended
+            ? `${progressText(state)} -- ${getTextForUI((_a = END_TEXT[state.ended.reason]) !== null && _a !== void 0 ? _a : 'seasonTargetEndReached', 'elementText')}`
+            : progressText(state);
+        return pInfoRow(getTextForUI('seasonTarget', 'elementText'), value);
+    }
+    // ------------------------------------------------------------------ UI
+    /**
+     * The button beside "Find Opponents" on the season page. Beside, not
+     * below: measured at 1440 px, the rewards recap (#HHSeasonRewards) lies
+     * over everything under that button, and a block in the flow pushed the
+     * mojo bar down. To its right are 122 px of the controls column free.
+     * Placed from the game button's own box on every call, so a re-render
+     * of the page takes it along.
+     */
+    static addButton() {
+        const findOpponents = $('.seasons_controls_holder a[href*="season-arena"]').first();
+        const blue = findOpponents.find('.blue_button_L').get(0);
+        if (!blue)
+            return;
+        if (document.getElementById('hhSeasonTargetButton') === null) {
+            SeasonTarget.addStyles();
+            findOpponents.after(`<div class="tooltipHH" id="hhSeasonTargetButtonHolder">`
+                + `<span class="tooltipHHtext">${getTextForUI('seasonTarget', 'tooltip')}</span>`
+                + `<label class="myButton" id="hhSeasonTargetButton">${getTextForUI('seasonTarget', 'elementText')}</label></div>`);
+            $('#hhSeasonTargetButton').on('click', () => SeasonTarget.showPopup());
+        }
+        $('#hhSeasonTargetButtonHolder').css({
+            top: blue.offsetTop + 'px',
+            left: (blue.offsetLeft + blue.offsetWidth + 8) + 'px',
+            height: blue.offsetHeight + 'px',
+        });
+    }
+    static showPopup() {
+        const t = (key) => esc(getTextForUI(key, 'elementText'));
+        const state = readState();
+        let body;
+        if (state !== null) {
+            body = `<p><b>${esc(progressText(state))}</b></p>`
+                + `<p class="hhstButtons"><label class="myButton" id="hhSeasonTargetCancel">${t('seasonTargetCancel')}</label></p>`;
+        }
+        else {
+            const spendAllowed = getStoredValue(HHStoredVarPrefixKey + SK.spendKobans0) === 'true';
+            const bank = Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)) || 0;
+            const price = kissPrice();
+            const notes = [];
+            if (getStoredValue(HHStoredVarPrefixKey + SK.master) !== 'true')
+                notes.push(t('seasonTargetMasterOff'));
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonPassReds) === 'true')
+                notes.push(t('seasonTargetPassReds'));
+            body = `<p>${t('seasonTargetExplain')}</p>`
+                + `<p><label><input type="radio" name="hhstMode" value="wins" checked> ${t('seasonTargetModeWins')}</label><br>`
+                + `<label><input type="radio" name="hhstMode" value="fights"> ${t('seasonTargetModeFights')}</label></p>`
+                + `<p><label>${t('seasonTargetCount')} <input type="number" id="hhstCount" min="1" max="${(/* inlined export .SEASON_TARGET_MAX */999)}" value="10" style="width:70px;"></label></p>`
+                + `<p><label><input type="checkbox" id="hhstBuy"${spendAllowed ? '' : ' disabled'}> ${t('seasonTargetBuy')}</label><br>`
+                + `<span class="hhstNote">${spendAllowed
+                    ? esc(getTextForUI('seasonTargetBuyNote', 'elementText').replace('{price}', String(Number.isFinite(price) ? price : '?')).replace('{bank}', String(bank)))
+                    : t('seasonTargetBuyOff')}</span></p>`
+                + notes.map(n => `<p class="hhstWarn">${n}</p>`).join('')
+                + `<p class="hhstButtons"><label class="myButton" id="hhSeasonTargetStart">${t('seasonTargetStart')}</label></p>`;
+        }
+        fillHHPopUp('HHSeasonTarget', getTextForUI('seasonTarget', 'elementText'), `<div id="hhSeasonTargetPopup">${body}</div>`);
+        $('#hhSeasonTargetStart').on('click', () => {
+            const target = parseTarget(String($('#hhstCount').val()));
+            if (target === null) {
+                $('#hhstCount').css('border-color', 'red');
+                return;
+            }
+            const mode = $('input[name=hhstMode]:checked').val() === 'fights' ? 'fights' : 'wins';
+            SeasonTarget.start(mode, target, $('#hhstBuy').is(':checked'));
+        });
+        $('#hhSeasonTargetCancel').on('click', () => {
+            maskHHPopUp();
+            SeasonTarget.end('cancelled');
+        });
+    }
+    /** The notice on every page the target works on, with Cancel. */
+    static showNotice(state) {
+        SeasonTarget.renderNotice('run', getTextForUI('seasonTargetNotice', 'elementText').replace('{progress}', progressText(state)));
+    }
+    /** One notice, two kinds: a running target (Cancel) or a result (OK). */
+    static renderNotice(kind, text) {
+        SeasonTarget.addStyles();
+        const notice = $('#hhSeasonTarget');
+        if (notice.length === 0 || notice.attr('data-kind') !== kind) {
+            notice.remove();
+            const label = getTextForUI(kind === 'run' ? 'seasonTargetCancel' : 'seasonTargetOk', 'elementText');
+            $('body').append(`<div id="hhSeasonTarget" data-kind="${kind}"><span class="hhSeasonTargetText"></span>`
+                + `<label class="myButton" id="hhSeasonTargetNoticeButton">${label}</label></div>`);
+            $('#hhSeasonTargetNoticeButton').on('click', () => {
+                if (kind === 'run')
+                    SeasonTarget.end('cancelled');
+                else
+                    SeasonTarget.dismissResult();
+            });
+        }
+        $('#hhSeasonTarget .hhSeasonTargetText').text(text);
+    }
+    static addStyles() {
+        if (stylesAdded)
+            return;
+        stylesAdded = true;
+        // Blue, where the work pause is red: both stop the pipeline, but this
+        // one is working. White on #1a5fb4 is about 6.4:1.
+        GM_addStyle('#hhSeasonTarget{position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:6000;'
+            + 'display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;'
+            + 'max-width:calc(100vw - 32px);box-sizing:border-box;padding:5px 12px;border-radius:6px;'
+            + 'background:#1a5fb4;border:1px solid #cfe0ff;box-shadow:0 2px 8px rgba(0,0,0,0.5);'
+            + 'color:#fff;font-size:13px;font-weight:600;}'
+            // The result: green, white text about 5.9:1.
+            + '#hhSeasonTarget[data-kind=done]{background:#26734d;border-color:#d4f5e2;}'
+            + '#hhSeasonTarget .myButton{margin:0;padding:2px 10px;font-size:12px;font-weight:normal;}'
+            + '#hhSeasonTargetButtonHolder{position:absolute;margin:0;padding:0;z-index:5;}'
+            + '#hhSeasonTargetButtonHolder .myButton{display:flex;align-items:center;justify-content:center;'
+            + 'box-sizing:border-box;width:106px;height:100%;margin:0;padding:2px 4px;'
+            + 'font-size:11px;line-height:12px;text-align:center;}'
+            + '#hhSeasonTargetPopup{padding:10px;max-width:480px;font-size:13px;}'
+            + '#hhSeasonTargetPopup p{margin:0 0 10px 0;}'
+            + '#hhSeasonTargetPopup .hhstNote{color:#555;font-size:12px;}'
+            + '#hhSeasonTargetPopup .hhstWarn{color:#b3261e;}'
+            + '#hhSeasonTargetPopup .hhstButtons{text-align:center;margin-top:14px;}'
+            + '#hhSeasonTargetPopup .hhstButtons .myButton{font-size:14px;padding:6px 22px;}');
+    }
+}
+function esc(value) {
+    return String(value).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
 ;// ./src/Module/Labyrinth.pure.ts
 // Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline
 // and the "find better option" selector.
@@ -23369,6 +23893,7 @@ function reactivateBlock(blockId) {
 
 
 
+
 function createPInfo() {
     const pInfo = $('<div id="pInfo" ></div>');
     if (pInfo != null) {
@@ -23474,6 +23999,8 @@ function updateData() {
         if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) == "true") {
             Tegzd += Season.getPinfo();
         }
+        // A running season target shows its count whether autoSeason is on or not.
+        Tegzd += SeasonTarget.getPinfo();
         if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === "true" && getTimer('nextSeasonCollectAllTime') !== -1) {
             Tegzd += pInfoRow(getTextForUI("pinfoSeasonCollect", "elementText"), getTimeLeft('nextSeasonCollectAllTime'));
         }
@@ -27029,7 +27556,7 @@ function decideWorkPause(input) {
 
 /** Built at call time: a top-level read of HHStoredVarPrefixKey can hit the
  *  temporal dead zone inside an import cycle (deps:toplevel-key). */
-function stateKey() {
+function WorkPause_stateKey() {
     return HHStoredVarPrefixKey + TK.workPause;
 }
 /** mousemove fires constantly; one storage write per this many ms is plenty
@@ -27048,9 +27575,9 @@ let lastHoldLog = 0;
  *  navigation is in flight, so the next tick may have to ask again. */
 let goToZoneAt = 0;
 let activityBound = false;
-let stylesAdded = false;
-function readState() {
-    const state = getStoredJSON(stateKey(), null);
+let WorkPause_stylesAdded = false;
+function WorkPause_readState() {
+    const state = getStoredJSON(WorkPause_stateKey(), null);
     if (!state || typeof state.lastActivity !== 'number')
         return null;
     if (state.zone)
@@ -27059,8 +27586,8 @@ function readState() {
     const old = state;
     return { since: old.since, lastActivity: old.lastActivity, zone: 'team', zoneUrl: old.teamUrl, returnToZone: old.returnToTeam };
 }
-function writeState(state) {
-    setStoredValue(stateKey(), JSON.stringify(state));
+function WorkPause_writeState(state) {
+    setStoredValue(WorkPause_stateKey(), JSON.stringify(state));
 }
 function isZonePage(zone, page) {
     const cfg = (key) => ConfigHelper.getHHScriptVars(key);
@@ -27100,11 +27627,11 @@ function runActive(page) {
  *  count this as work. Work in the other zone replaces it. */
 function startWorkPause(zone) {
     const now = Date.now();
-    const state = readState();
+    const state = WorkPause_readState();
     const same = state !== null && state.zone === zone;
     const zoneUrl = isZonePage(zone, getPage()) ? window.location.pathname + window.location.search
         : (same ? state.zoneUrl : undefined);
-    writeState({ since: same ? state.since : now, lastActivity: now, zone, zoneUrl, returnToZone: false });
+    WorkPause_writeState({ since: same ? state.since : now, lastActivity: now, zone, zoneUrl, returnToZone: false });
     lastTouch = now;
     if (!same)
         logHHAuto(`Work pause: started (${zone}) -- the automation waits while the player works.`);
@@ -27121,7 +27648,7 @@ function touchWorkPause(source = 'work') {
     const now = Date.now();
     if (now - lastTouch < TOUCH_THROTTLE_MS)
         return;
-    const state = readState();
+    const state = WorkPause_readState();
     if (state === null)
         return;
     lastTouch = now;
@@ -27129,25 +27656,25 @@ function touchWorkPause(source = 'work') {
     if (quietMs >= QUIET_LOG_MS) {
         logHHAuto(`Work pause: activity after ${Math.round(quietMs / 1000)} s quiet -- ${source}; back to ${(/* inlined export .WORK_PAUSE_IDLE_MS */900000) / 60000} min.`);
     }
-    writeState(Object.assign(Object.assign({}, state), { lastActivity: now }));
+    WorkPause_writeState(Object.assign(Object.assign({}, state), { lastActivity: now }));
 }
 /** A run finished: hold on until the player is back in the zone.
  *  Stuff Team's end writes the same field directly (see the file head). */
 function workPauseReturnToZone() {
-    const state = readState();
+    const state = WorkPause_readState();
     if (state === null)
         return;
-    writeState(Object.assign(Object.assign({}, state), { lastActivity: Date.now(), returnToZone: true }));
+    WorkPause_writeState(Object.assign(Object.assign({}, state), { lastActivity: Date.now(), returnToZone: true }));
 }
 /** Whether a pause is stored -- a run asks before it decides where to end. */
 function isWorkPauseActive() {
-    return readState() !== null;
+    return WorkPause_readState() !== null;
 }
 /** End the pause and take the notice away. */
 function endWorkPause(reason) {
-    if (readState() === null)
+    if (WorkPause_readState() === null)
         return;
-    deleteStoredValue(stateKey());
+    deleteStoredValue(WorkPause_stateKey());
     $('#hhWorkPause').remove();
     logHHAuto('Work pause: ended -- ' + reason + '.');
 }
@@ -27161,7 +27688,7 @@ function workPauseHolds(page) {
     const holder = autoLoopHolder();
     if (holder !== null)
         touchWorkPause(holder);
-    const state = readState();
+    const state = WorkPause_readState();
     if (state === null) {
         $('#hhWorkPause').remove();
         return false;
@@ -27181,7 +27708,7 @@ function workPauseHolds(page) {
     if (active)
         touchWorkPause('a step of a run');
     if (decision.arrived)
-        writeState(Object.assign(Object.assign({}, state), { lastActivity: now, returnToZone: false }));
+        WorkPause_writeState(Object.assign(Object.assign({}, state), { lastActivity: now, returnToZone: false }));
     if (decision.goToZone && now - goToZoneAt >= GO_TO_ZONE_RETRY_MS) {
         goToZoneAt = now;
         logHHAuto(`Work pause: the run is done, back to the ${state.zone} page.`);
@@ -27255,8 +27782,8 @@ function showNotice(zone, remainingMs) {
     const text = getTextForUI('workPause', 'elementText')
         .replace('{what}', zoneLabel(zone)).replace('{minutes}', String(minutes));
     if (document.getElementById('hhWorkPause') === null) {
-        if (!stylesAdded) {
-            stylesAdded = true;
+        if (!WorkPause_stylesAdded) {
+            WorkPause_stylesAdded = true;
             // Red, so it is seen over any page: the same red the team popup
             // uses for a warning, with white text (contrast about 6.5:1).
             GM_addStyle('#hhWorkPause{position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:6000;'
@@ -27824,8 +28351,8 @@ class EquipmentGear {
     }
     /** The four gear actions as a list; they do not fit as buttons. */
     static showMenu() {
-        const entry = (action, key) => `<li><a data-gear-action="${action}">${esc(getTextForUI(key, 'elementText'))}`
-            + `<span class="sub">${esc(stripTags(getTextForUI(key, 'tooltip')))}</span></a></li>`;
+        const entry = (action, key) => `<li><a data-gear-action="${action}">${EquipmentGear_esc(getTextForUI(key, 'elementText'))}`
+            + `<span class="sub">${EquipmentGear_esc(stripTags(getTextForUI(key, 'tooltip')))}</span></a></li>`;
         EquipmentGear.showMessage(getTextForUI('HHGearMenu', 'elementText'), '<ul id="HHGearMenuList">'
             + entry('current', 'HHGearCurrentBest')
             + entry('possible', 'HHGearPossibleBest')
@@ -27835,7 +28362,7 @@ class EquipmentGear {
     }
     /** A plain-text message from the language files, escaped for the popup. */
     static gearText(key) {
-        return esc(getTextForUI(key, 'elementText'));
+        return EquipmentGear_esc(getTextForUI(key, 'elementText'));
     }
     /** A popup title from the language files: the menu entry's own label. */
     static gearTitle(key) {
@@ -27855,7 +28382,7 @@ class EquipmentGear {
             if (!pick.chosen) {
                 return `<tr><td>${slot}</td><td colspan="4" style="color:#aaa;">${t('HHGearNoItemOwned')}</td></tr>`;
             }
-            const label = `${esc(pick.chosen.name)} (${pick.chosen.rarity} lvl${pick.chosen.level})`;
+            const label = `${EquipmentGear_esc(pick.chosen.name)} (${pick.chosen.rarity} lvl${pick.chosen.level})`;
             const tier = `<span style="color:#aaa;">${t(TIER_KEYS[pick.tier])}</span>`;
             if (!pick.changed) {
                 return `<tr style="color:#aaa;"><td>${slot}</td><td>${t('HHGearKeepLabel')} ${label}</td>`
@@ -27885,7 +28412,7 @@ class EquipmentGear {
                 + `${t('HHGearEquipPlanned')} (${plan.changes.length})</label>`;
         fillHHPopUp('HHGearPreview', modeName, `
         <div id="HHGearPreview" style="padding:10px;max-width:760px;font-size:13px;">
-            <p>${t('HHGearHeroClass')}: <b>${HeroHelper.getClass()}</b>, ${t('HHGearTeamTheme')}: <b>${esc(theme)}</b>.
+            <p>${t('HHGearHeroClass')}: <b>${HeroHelper.getClass()}</b>, ${t('HHGearTeamTheme')}: <b>${EquipmentGear_esc(theme)}</b>.
                ${t('HHGearRankingNote')}</p>
             <table>
                 <tr><th>${t('HHGearColSlot')}</th><th>${t('HHGearColItem')}</th><th>${t('HHGearColWhy')}</th>`
@@ -28105,7 +28632,7 @@ class EquipmentGear {
      *  under either query parameter, so there is no version of this that can
      *  offer to level the rest of what the player wears. */
     static noTargetsMessage(empty) {
-        const text = (key) => esc(getTextForUI(key, 'elementText'));
+        const text = (key) => EquipmentGear_esc(getTextForUI(key, 'elementText'));
         switch (empty.reason) {
             case 'none-equipped':
                 // The count is appended, not interpolated: the translations
@@ -28126,7 +28653,7 @@ class EquipmentGear {
             return;
         }
         const t = (key) => EquipmentGear.gearText(key);
-        const rows = targets.map(target => `<tr><td>${target.slot} ${t(SLOT_KEYS[target.slot])}</td><td>${esc(target.name)}</td>`
+        const rows = targets.map(target => `<tr><td>${target.slot} ${t(SLOT_KEYS[target.slot])}</td><td>${EquipmentGear_esc(target.name)}</td>`
             + `<td class="num">lvl ${target.level}</td>`
             + `<td style="color:#aaa;">${t(TIER_KEYS[target.tier])}</td></tr>`).join('');
         fillHHPopUp('HHGearPreview', EquipmentGear.gearTitle('HHGearUpgrade'), `
@@ -28143,7 +28670,7 @@ class EquipmentGear {
             <p style="color:#aaa;font-size:11px;">${t('HHGearUpgradeFootnote')}</p>
             <p id="HHGearStatus" style="color:#ffb827;"></p>
             <label class="myButton" id="HHGearUpgradeStart" style="font-size:14px;width:100%;text-align:center;">
-                ${t('HHGearUpgradeStart')} (${targets.length}), ${t('HHGearStartingWith')} ${esc(targets[0].name)}
+                ${t('HHGearUpgradeStart')} (${targets.length}), ${t('HHGearStartingWith')} ${EquipmentGear_esc(targets[0].name)}
                 (${t('HHGearColSlot')} ${targets[0].slot})</label>
         </div>`);
         $('#HHGearUpgradeStart').on('click', function () {
@@ -28183,8 +28710,8 @@ class EquipmentGear {
         const nameOf = (target) => { var _a, _b; return (_b = (_a = girls[target.position]) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : String(target.girlId); };
         const rows = targets.map(target => {
             logHHAuto(`  ${target.position + 1}. ${nameOf(target)}, slot ${target.slot}: ${target.name} at level ${target.level}`);
-            return `<tr><td class="num">${target.position + 1}</td><td>${esc(nameOf(target))}</td>`
-                + `<td>${target.slot} ${t(SLOT_KEYS[target.slot])}</td><td>${esc(target.name)}</td>`
+            return `<tr><td class="num">${target.position + 1}</td><td>${EquipmentGear_esc(nameOf(target))}</td>`
+                + `<td>${target.slot} ${t(SLOT_KEYS[target.slot])}</td><td>${EquipmentGear_esc(target.name)}</td>`
                 + `<td class="num">lvl ${target.level}</td></tr>`;
         }).join('');
         fillHHPopUp('HHGearPreview', title, `
@@ -28602,7 +29129,7 @@ function gearButton(id) {
 function stripTags(value) {
     return String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
-function esc(value) {
+function EquipmentGear_esc(value) {
     return String(value).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 function fmtSigned(value) {
@@ -33938,6 +34465,7 @@ var AutoLoopPageHandlers_awaiter = (undefined && undefined.__awaiter) || functio
 
 
 
+
 // Tracks whether the read-only Season-arena power-calc preview has already
 // been rendered on the current page load. Reset implicitly on every page
 // navigation (full reload re-initialises the module). Used instead of
@@ -33947,6 +34475,8 @@ let seasonArenaPreviewShown = false;
 let opponentSnapshotTaken = false;
 function handlePageSpecific(ctx) {
     return AutoLoopPageHandlers_awaiter(this, void 0, void 0, function* () {
+        // The result of a season target that ended follows the player to every page.
+        SeasonTarget.showResult();
         // The upgrade pages are matched on their path: the mythic one carries no
         // `page` attribute, so it never reaches the switch below. The run is a
         // no-op unless "Upgrade Gear" or "Level-up gear" filled a queue, so this
@@ -33989,6 +34519,7 @@ function handlePageSpecific(ctx) {
                 }
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDSeason"):
+                SeasonTarget.addButton();
                 Season.styles = callItOnce(Season.styles);
                 Season.styles();
                 Season.getRemainingTime = callItOnce(Season.getRemainingTime);
@@ -34236,7 +34767,8 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 //      pause (WorkPause.ts)
 //   2. If active, reads the events on the page and hands the tick to the
 //      block scheduler (the pipeline in Pipeline.config.ts), which runs at
-//      most one block's step -- skipped while a POST is in flight
+//      most one block's step -- skipped while a POST is in flight. While a
+//      season target runs (SeasonTarget.ts) it gets the tick instead.
 //   3. Runs the page handlers (AutoLoopPageHandlers) regardless of burst
 //   4. Manages paranoia flip if enabled
 //   5. Schedules the next iteration
@@ -34349,6 +34881,10 @@ let blockTick = null;
 function setBlockTick(fn) {
     blockTick = fn;
 }
+let seasonTarget = null;
+function setSeasonTarget(port) {
+    seasonTarget = port;
+}
 // Throttle for the mouse-pause log so the polled gate does not flood the log.
 let lastMousePauseLog = 0;
 function autoLoop() {
@@ -34397,36 +34933,44 @@ function autoLoop() {
                 ParanoiaService.clearParanoiaSpendings();
             }
             CheckSpentPoints();
-            if (getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) === "true" && checkTimer('nextContestTime')) {
-                Contest.setTimers = callItOnce(Contest.setTimers);
-                ctx.busy = Contest.setTimers();
-            }
-            ctx.canCollectCompetitionActive = TimeHelper.canCollectCompetitionActive();
-            //if a new event is detected
-            const { eventIDs, bossBangEventIDs } = EventModule.parsePageForEventId();
-            ctx.eventIDs = eventIDs;
-            ctx.bossBangEventIDs = bossBangEventIDs;
-            // Skip the pipeline while a /ajax.php POST is in flight or another
-            // caller holds the explicit mutex (#1598,
-            // docs/decisions/ADR-003-ajax-post-mutex.md): its blocks are the
-            // state-changing POST sources (PoP claim, BossBang fight, Champion
-            // reorder, ...). UI updates and the page handlers below keep running
-            // so the script stays responsive -- gating the whole tick starved the
-            // menu UI.
-            if (isPostInFlight()) {
-                logHHAuto('AutoLoop: POST in flight, deferring action handlers this tick');
+            if (seasonTarget === null || seasonTarget === void 0 ? void 0 : seasonTarget.isActive()) {
+                // A season target has the tick to itself (SeasonTarget.ts): no
+                // block, no contest timer, nothing else navigates until it ends.
+                if (!isPostInFlight())
+                    yield seasonTarget.tick(ctx);
             }
             else {
-                // --- Block pipeline (every action runs here) ---
-                // Only trigger the scheduler when nothing else started an action
-                // this tick (Contest.setTimers above can). Without this gate the
-                // pipeline runs preconditions and step.fn even when the
-                // navigation mutex in PageNavigationService will swallow the
-                // resulting gotoPage / safeReload call. The gate also prevents
-                // lastRunAt from being bumped on a tick where no real work was
-                // possible, which kept the cool-down counting from a wasted run.
-                if (!ctx.busy && blockTick) {
-                    yield blockTick(ctx);
+                if (getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) === "true" && checkTimer('nextContestTime')) {
+                    Contest.setTimers = callItOnce(Contest.setTimers);
+                    ctx.busy = Contest.setTimers();
+                }
+                ctx.canCollectCompetitionActive = TimeHelper.canCollectCompetitionActive();
+                //if a new event is detected
+                const { eventIDs, bossBangEventIDs } = EventModule.parsePageForEventId();
+                ctx.eventIDs = eventIDs;
+                ctx.bossBangEventIDs = bossBangEventIDs;
+                // Skip the pipeline while a /ajax.php POST is in flight or another
+                // caller holds the explicit mutex (#1598,
+                // docs/decisions/ADR-003-ajax-post-mutex.md): its blocks are the
+                // state-changing POST sources (PoP claim, BossBang fight, Champion
+                // reorder, ...). UI updates and the page handlers below keep running
+                // so the script stays responsive -- gating the whole tick starved the
+                // menu UI.
+                if (isPostInFlight()) {
+                    logHHAuto('AutoLoop: POST in flight, deferring action handlers this tick');
+                }
+                else {
+                    // --- Block pipeline (every action runs here) ---
+                    // Only trigger the scheduler when nothing else started an action
+                    // this tick (Contest.setTimers above can). Without this gate the
+                    // pipeline runs preconditions and step.fn even when the
+                    // navigation mutex in PageNavigationService will swallow the
+                    // resulting gotoPage / safeReload call. The gate also prevents
+                    // lastRunAt from being bumped on a tick where no real work was
+                    // possible, which kept the cool-down counting from a wasted run.
+                    if (!ctx.busy && blockTick) {
+                        yield blockTick(ctx);
+                    }
                 }
             }
         }
@@ -34434,6 +34978,10 @@ function autoLoop() {
         yield handlePageSpecific(ctx);
         if (ctx.busy === false && !isUserPauseActive() && !autoLoopHolder() && !workPaused && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
             if (checkTimer("paranoiaSwitch")) {
+                // Going to rest sends the script home; a season target must not
+                // read that as the player leaving the season.
+                if (burst)
+                    seasonTarget === null || seasonTarget === void 0 ? void 0 : seasonTarget.suspendForRest();
                 ParanoiaService.flipParanoia();
             }
         }
@@ -38315,6 +38863,198 @@ function start() {
 }
 ;
 
+;// ./src/Module/Events/SeasonTargetRun.ts
+// SeasonTargetRun.ts -- The season target's fighting: one tick in place of
+// the pipeline, on the season page, the arena and the battle page.
+//
+// What the season target is, when it ends and why it is split from
+// SeasonTarget.ts is told there; the decisions are SeasonTarget.pure.ts.
+//
+// Used by: index.ts (hands it to AutoLoop through setSeasonTarget)
+var SeasonTargetRun_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+/** A bought kiss shows up in Hero.energies once the answer is in; until
+ *  then the next tick must not buy a second one. */
+const BUY_SETTLE_MS = 15000;
+/** Set once this page is on its way out: the ticks until the load do nothing. */
+let leaving = false;
+let lastBuyAt = 0;
+/** The season mojo the arena page is served with; NaN when it is missing. */
+function readMojo() {
+    var _a;
+    const fromPage = Number(unsafeWindow.season_mojo_s);
+    if (Number.isFinite(fromPage))
+        return fromPage;
+    return Number((_a = unsafeWindow.hero_data) === null || _a === void 0 ? void 0 : _a.current_season_mojo);
+}
+class SeasonTargetRun {
+    static isActive() {
+        return SeasonTarget.isActive();
+    }
+    static suspendForRest() {
+        SeasonTarget.suspendForRest();
+    }
+    /**
+     * One tick, in place of the pipeline. Returns true while the target ran
+     * this tick -- AutoLoop then leaves the pipeline out.
+     */
+    static tick(ctx) {
+        return SeasonTargetRun_awaiter(this, void 0, void 0, function* () {
+            let state = readState();
+            if (state === null)
+                return false;
+            const current = ctx.currentPage;
+            if (leaving) {
+                ctx.busy = true;
+                return true;
+            }
+            if (state.suspended) {
+                state = Object.assign(Object.assign({}, state), { suspended: false });
+                writeState(state);
+                if (!isTargetPage(current)) {
+                    logHHAuto('Season target: back from the rest, going to the arena.');
+                    SeasonTargetRun.leaveFor(ctx, () => gotoPage(page('pagesIDSeasonArena')));
+                    return true;
+                }
+            }
+            if (!isTargetPage(current)) {
+                SeasonTarget.end('left');
+                return false;
+            }
+            SeasonTarget.showNotice(state);
+            ctx.lastActionPerformed = 'season';
+            if (current === page('pagesIDSeason')) {
+                SeasonTargetRun.leaveFor(ctx, () => gotoPage(page('pagesIDSeasonArena')));
+                return true;
+            }
+            if (current === page('pagesIDSeasonBattle')) {
+                const opponent = queryStringGetParam(window.location.search, 'id_opponent');
+                if (!state.pending || (opponent !== null && String(opponent) !== state.pending.opponentId)) {
+                    SeasonTarget.end('foreignFight');
+                    return false;
+                }
+                logHHAuto('Season target: back to the arena after the fight.');
+                SeasonTargetRun.leaveFor(ctx, () => gotoPage(page('pagesIDSeasonArena'), {}, randomInterval(2000, 4000)));
+                return true;
+            }
+            return SeasonTargetRun.onArena(ctx, state);
+        });
+    }
+    static onArena(ctx, state) {
+        return SeasonTargetRun_awaiter(this, void 0, void 0, function* () {
+            const mojo = readMojo();
+            if (!Number.isFinite(mojo)) {
+                SeasonTarget.end('unreadable');
+                return false;
+            }
+            // Only a page loaded after the fight was launched can count it.
+            if (state.pending && performance.timeOrigin > state.pending.at) {
+                const outcome = fightOutcome(state.pending, mojo, Season.getEnergy());
+                state = countFight(state, outcome);
+                writeState(state);
+                logHHAuto(outcome === 'none'
+                    ? 'Season target: the fight did not take place (no kiss spent, mojo unchanged).'
+                    : `Season target: fight ${outcome} (mojo ${mojo}) -- ${progressText(state)}.`);
+            }
+            if (isTargetReached(state)) {
+                SeasonTarget.end('reached');
+                return false;
+            }
+            SeasonTarget.showNotice(state);
+            const price = kissPrice();
+            const kiss = decideKiss({
+                kisses: Season.getEnergy(),
+                buyKisses: state.buyKisses,
+                spendAllowed: getStoredValue(HHStoredVarPrefixKey + SK.spendKobans0) === 'true',
+                kobans: HeroHelper.getKoban(),
+                kobanBank: Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)) || 0,
+                price: Number.isFinite(price) ? price : Infinity,
+            });
+            if (kiss.kind === 'end') {
+                SeasonTarget.end(kiss.reason);
+                return false;
+            }
+            if (kiss.kind === 'buy') {
+                if (Date.now() - lastBuyAt >= BUY_SETTLE_MS) {
+                    lastBuyAt = Date.now();
+                    SeasonTargetRun.buyKiss(price);
+                }
+                ctx.busy = true;
+                return true;
+            }
+            Season.stylesBattle();
+            const chosen = yield Season.moduleSimSeasonBattle(true, true);
+            if (chosen === -2) {
+                SeasonTargetRun.leaveFor(ctx, () => {
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
+                    setTimeout(Season.payForNewOpponents, randomInterval(800, 1600));
+                    return true;
+                });
+                return true;
+            }
+            if (typeof chosen !== 'number' && typeof chosen !== 'string' || chosen === -1) {
+                SeasonTarget.end('noOpponent');
+                return false;
+            }
+            const opponentBlock = $('.season_arena_opponent_container[data-opponent=' + chosen + ']');
+            const href = $('.opponent_perform_button_container :first-child', opponentBlock).first().attr('href') || '';
+            if (href === '') {
+                SeasonTarget.end('unreadable');
+                return false;
+            }
+            writeState(Object.assign(Object.assign({}, state), { pending: { opponentId: String(chosen), mojoBefore: mojo, kissBefore: Season.getEnergy(), at: Date.now() } }));
+            logHHAuto(`Season target: fighting ${$('.personal_info div.player-name', opponentBlock).text()} (${chosen}).`);
+            SeasonTargetRun.leaveFor(ctx, () => safeNavigateHref(addNutakuSession(href)));
+            return true;
+        });
+    }
+    /**
+     * Navigate once and let the ticks rest until the page goes. A navigation
+     * that was refused (another one is in flight) leaves the next tick to try
+     * again -- and takes back a pending fight that never left.
+     */
+    static leaveFor(ctx, navigate) {
+        ctx.busy = true;
+        if (navigate()) {
+            leaving = true;
+            return;
+        }
+        const state = readState();
+        if ((state === null || state === void 0 ? void 0 : state.pending) && state.pending.at > performance.timeOrigin) {
+            const rest = Object.assign({}, state);
+            delete rest.pending;
+            writeState(rest);
+        }
+    }
+    /** One kiss, through the game's own recharge, as Troll buys fights. */
+    static buyKiss(price) {
+        logHHAuto(`Season target: no kiss left, buying one for ${price} kobans.`);
+        const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
+        setHHVars('Hero.infos.hc_confirm', true);
+        getHero().recharge($('<button>'), 'kiss', 1, price);
+        setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
+    }
+}
+
 ;// ./src/Service/BlockScheduler.ts
 var BlockScheduler_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -41814,6 +42554,7 @@ function getBlockScheduler() {
 
 
 
+
 // Inject the autoLoop kick into Pachinko so it can restart the loop after a
 // run without a static Module->Service import, which would close an import cycle.
 setPachinkoAutoLoopKick(autoLoop);
@@ -41833,6 +42574,9 @@ setSetDefaultsRef(StartService_setDefaults);
 // a static AutoLoop->BlockPipeline import) to avoid an import cycle, in which
 // a cycle can hand a module an uninitialised binding at load.
 setBlockTick((ctx) => getBlockScheduler().tick(ctx));
+// The season target, the same way (SeasonTargetRun -> Season ->
+// ParanoiaService -> AutoLoop would close a cycle).
+setSeasonTarget(SeasonTargetRun);
 // Wire the Block-Order popup's registry provider (avoids a static
 // PipelineOrderService->BlockPipeline import cycle).
 setPipelineRegistryProvider(buildRegistryAndOrder);

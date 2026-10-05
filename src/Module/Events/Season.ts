@@ -33,6 +33,7 @@ import { Booster } from "../Booster";
 import { EventModule } from "./EventModule";
 import { LoveRaidManager } from "./LoveRaidManager";
 import { isBlockedOnlyByMissingBooster } from "./Season.pure";
+import { chooseTargetOpponent } from "./SeasonTarget.pure";
 
 export class Season {
     static LAST_SEASON_LEVEL = 63;
@@ -145,7 +146,13 @@ export class Season {
         });
     }
 
-    static async moduleSimSeasonBattle(autoRun=false)
+    /**
+     * Simulates the three opponents, marks them on the page and returns the
+     * one to fight: an opponent id, -1 when none is chosen, -2 when three
+     * reds are to be paid away. `forTarget` picks by the season target's rule
+     * (SeasonTarget.pure.ts) instead of the season settings.
+     */
+    static async moduleSimSeasonBattle(autoRun=false, forTarget=false)
     {
         const dispalyPowerCalc = getStoredValue(HHStoredVarPrefixKey + SK.seasonDisplayPowerCalc) === "true";
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
@@ -203,7 +210,9 @@ export class Season {
                 await TimeHelper.sleep(randomInterval(10, 30)); // avoid blocking UI thread and let it update with new elements
             }
 
-            var { numberOfReds, chosenIndex } = Season.getBestOppo(seasonOpponents, Season.getEnergy(), Season.getEnergyMax());
+            var { numberOfReds, chosenIndex } = forTarget
+                ? Season.getTargetOppo(seasonOpponents)
+                : Season.getBestOppo(seasonOpponents, Season.getEnergy(), Season.getEnergyMax());
             const chosenID = chosenIndex >= 0 ? opponentDatas[chosenIndex].player?.id_fighter : chosenIndex;
 
             var price=Number($("div.opponents_arena button#refresh_villains").attr('price'));
@@ -236,6 +245,37 @@ export class Season {
             logHHAuto("Catched error : Could not display season score : "+err);
             return -1;
         }
+    }
+
+    /**
+     * The season target's pick: best chance to win, then most mojo. None of
+     * the season settings apply -- the target overrules them. Reds are
+     * counted the same way as in getBestOppo, so Pass 3 reds still works.
+     */
+    static getTargetOppo(seasonOpponents: SeasonOpponent[]) {
+        const numberOfReds = seasonOpponents.filter(o => o.simu.scoreClass === 'minus').length;
+        const chosenIndex = chooseTargetOpponent(seasonOpponents.map(o => ({ win: Number(o.simu.win), mojo: Number(o.mojo) })));
+        return { numberOfReds, chosenIndex };
+    }
+
+    /**
+     * Pays the arena for three new opponents and reloads. Kobans: the caller
+     * checks Pass 3 reds and the koban reserve before.
+     */
+    static payForNewOpponents() {
+        const Hero = getHero();
+        const params = {
+            namespace: 'h\\Season',
+            class: 'Arena',
+            action: 'arena_reload'
+        };
+        logHHAuto("Three red opponents, paying for refresh.");
+        getHHAjax()!(params, function(data: any){
+            Hero.update("hard_currency", data.hard_currency, false);
+            // C1: route through safeReload so any in-flight
+            // AJAX gets to settle before the URL change.
+            safeReload();
+        })
     }
 
     static getBestOppo(seasonOpponents: SeasonOpponent[], current_kisses=1, max_kisses=10) {
@@ -374,7 +414,6 @@ export class Season {
     static async run(): Promise<any>{
         logHHAuto("Performing auto Season.");
         // Confirm if on correct screen.
-        const Hero = getHero();
         var page = getPage();
         if (page === ConfigHelper.getHHScriptVars("pagesIDSeasonArena"))
         {
@@ -414,26 +453,10 @@ export class Season {
             if (chosenID === -2 )
             {
                 //change opponents and reload
-    
-                function refreshOpponents()
-                {
-                    var params = {
-                        namespace: 'h\\Season',
-                        class: 'Arena',
-                        action: 'arena_reload'
-                    };
-                    logHHAuto("Three red opponents, paying for refresh.");
-                    getHHAjax()!(params, function(data: any){
-                        Hero.update("hard_currency", data.hard_currency, false);
-                        // C1: route through safeReload so any in-flight
-                        // AJAX gets to settle before the URL change.
-                        safeReload();
-                    })
-                }
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 logHHAuto("setting autoloop to false");
                 setTimer('nextSeasonTime',5);
-                setTimeout(refreshOpponents,randomInterval(800,1600));
+                setTimeout(Season.payForNewOpponents,randomInterval(800,1600));
     
                 return true;
             }
