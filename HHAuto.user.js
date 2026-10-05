@@ -36898,11 +36898,11 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
 // ===, so a mismatch means the popup silently never appears, and adding a
 // paragraph without moving this number changes nothing on screen. If the
 // release number changes, change it here and in the title too.
-const FEATURE_POPUP_VERSION = "8.18.0";
+const FEATURE_POPUP_VERSION = "8.19.0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.18.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.19.0";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -36910,15 +36910,16 @@ const FEATURE_POPUP_TITLE = "HHAuto v8.18.0";
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">The automation waits while you work on a team or on your gear</p>
-    <p style="margin:0 0 10px 0;">As soon as you open <b>Team optimization</b> on the edit-team page, the automation pauses &mdash; through every reload while you work: calculating, <b>Apply</b>, <b>Team gear</b>, <b>Unequip All</b>, <b>Level-up gear</b> and <b>Stuff Team</b>. Level-up gear and Stuff Team now end back on the edit-team page. You no longer need to switch the script off while a team is calculated.</p>
-    <p style="margin:0 0 10px 0;">The <b>HH Gear</b> menu on the market does the same: opening it pauses the automation through the reload after <b>Equip</b> and through <b>Upgrade Gear</b>, which now ends back on the market.</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">Season target: fight until a number of wins is reached</p>
+    <p style="margin:0 0 10px 0;">On the season page, a new <b>Season target</b> button sits beside <b>Find Opponents</b>. Choose a number of <b>wins</b>, or of <b>fights won or lost</b>, and press <b>Start</b>. The script fights in the season until that number is reached, whatever your season settings say, and nothing else runs in between.</p>
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">How you see it, and how it ends</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">How it works</p>
     <ul style="margin:0 0 10px 18px; padding:0;">
-      <li style="margin-bottom:6px;">A notice at the top of every page shows the pause and the minutes left, with a <b>Resume automation</b> button.</li>
-      <li style="margin-bottom:6px;">It ends by itself when you leave the team page or the market, or after 15 minutes without activity.</li>
-      <li><b>Level-up gear</b> and <b>Upgrade Gear</b>: when the material or the money is not enough for the next level, the run stops, goes to the home page and the automation carries on.</li>
+      <li style="margin-bottom:6px;">It picks the opponent with the best chance to win, and among equal chances the one worth the most mojo. <b>Pass 3 reds</b> still applies if it is on.</li>
+      <li style="margin-bottom:6px;">After <b>Start</b>, the first fight waits until your <b>Mouse Pause</b> has run out &mdash; your click counts as mouse activity.</li>
+      <li style="margin-bottom:6px;">When no kiss is left it stops. Tick <b>Buy kisses with kobans</b> and it buys one kiss at a time instead, as long as your koban reserve stays untouched (<b>Spend Kobans</b> must be on).</li>
+      <li style="margin-bottom:6px;">A blue notice at the top shows the count, with a <b>Cancel target</b> button. If you leave the season pages or start a fight yourself, the target ends &mdash; once the Mouse Pause is over. Come back before that and it carries on, so use <b>Cancel target</b> to be sure.</li>
+      <li>When it is done, a green notice shows the result until you press <b>OK</b>.</li>
     </ul>
 
     <p style="margin-bottom:0; font-size:11px; color:#888;">Full details in the <a href="https://github.com/OldRon1977/HHauto/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG</a>.</p>
