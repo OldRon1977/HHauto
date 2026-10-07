@@ -1,4 +1,10 @@
 import {
+    countDraws,
+    EMPTY_LABY_DRAW_STATE,
+    LABY_DRAW_LIMIT,
+    LABY_DRAW_PAUSE_SECONDS,
+    LabyDrawState,
+    parseLabyDrawState,
     FindBetterState,
     LabyrinthOpponentLite,
     buildPathsFromMatrix,
@@ -327,5 +333,59 @@ describe("decideBetterOption", () => {
             }),
         );
         expect(chosen).toBe(weaker);
+    });
+});
+describe("countDraws (issue #1904)", () => {
+    const boss = { target: "2/row_11/1", power: 16159915, squadEgo: 700 };
+    const state = (over: Partial<LabyDrawState>): LabyDrawState => ({ ...EMPTY_LABY_DRAW_STATE, ...over });
+
+    it("starts at 0 for a first pick", () => {
+        expect(countDraws(state({}), boss)).toBe(0);
+    });
+
+    it("counts a fought draw: same hex, same power, same squad health", () => {
+        expect(countDraws(state({ last: boss, fought: true, draws: 0 }), { ...boss })).toBe(1);
+        expect(countDraws(state({ last: boss, fought: true, draws: 2 }), { ...boss })).toBe(3);
+    });
+
+    it("reads a change of the opponent's power as progress (a win)", () => {
+        expect(countDraws(state({ last: boss, fought: true, draws: 2 }), { ...boss, power: 15000000 })).toBe(0);
+    });
+
+    it("reads a change of the squad's health as a loss", () => {
+        expect(countDraws(state({ last: boss, fought: true, draws: 2 }), { ...boss, squadEgo: 640 })).toBe(0);
+    });
+
+    it("starts again for another hex", () => {
+        expect(countDraws(state({ last: boss, fought: true, draws: 2 }), { ...boss, target: "3/row_2/1" })).toBe(0);
+    });
+
+    it("keeps the count when no fight happened since the last pick", () => {
+        expect(countDraws(state({ last: boss, fought: false, draws: 2 }), { ...boss })).toBe(2);
+    });
+
+    it("pauses on the third draw in a row", () => {
+        let s = state({});
+        let draws = 0;
+        for (let fight = 0; fight < 4 && draws < LABY_DRAW_LIMIT; fight++) {
+            draws = countDraws(s, boss);
+            s = state({ last: boss, fought: true, draws });
+        }
+        expect(draws).toBe(LABY_DRAW_LIMIT);
+        expect(LABY_DRAW_LIMIT).toBe(3);
+        expect(LABY_DRAW_PAUSE_SECONDS).toBe(3600);
+    });
+});
+
+describe("parseLabyDrawState", () => {
+    it("falls back to the empty state for missing or damaged values", () => {
+        expect(parseLabyDrawState(null)).toEqual(EMPTY_LABY_DRAW_STATE);
+        expect(parseLabyDrawState("x")).toEqual(EMPTY_LABY_DRAW_STATE);
+        expect(parseLabyDrawState({ last: { target: 1 }, draws: -1 })).toEqual(EMPTY_LABY_DRAW_STATE);
+    });
+
+    it("keeps a valid state", () => {
+        const s = { last: { target: "1/row_2/1", power: 5, squadEgo: 700 }, fought: true, draws: 2, pausedUntil: 9 };
+        expect(parseLabyDrawState(JSON.parse(JSON.stringify(s)))).toEqual(s);
     });
 });

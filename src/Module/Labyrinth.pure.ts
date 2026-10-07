@@ -1,5 +1,5 @@
-// Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline
-// and the "find better option" selector.
+// Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline,
+// the "find better option" selector and the count of repeated draws.
 //
 // Behind Labyrinth.createPathFromMatrix, Labyrinth.keepPathsWithTreasure,
 // Labyrinth.sortPathsByDifficulty and Labyrinth.findBetter, so the
@@ -269,4 +269,85 @@ export function decideBetterOption<T extends LabyrinthOpponentLite>(
         chosenOption = firstOption;
     }
     return chosenOption;
+}
+
+// ---------------------------------------------------------------------------
+//  Repeated draws (#1904)
+//
+// A fight the server calls a draw changes nothing the labyrinth page shows:
+// the same opponent hex stays next with the same power, and the squad keeps
+// its health. The block then picks that hex again on every tick and never
+// releases the pipeline. What a draw does to the squad's health is not
+// measured; one that lowers it reads as a loss here, and the next fights
+// against the weakened squad end the loop anyway.
+//
+// A loss shows in the squad's health, a win in the opponent's power or in the
+// hex being gone, so "nothing changed" is read as a draw. The page shows the
+// opponent's power only, not its health: measured on labyrinth.html, a hex
+// carries `opponent_data.power_display` and nothing else. A fight that only
+// wounds the opponent without knocking out a girl may therefore leave the power
+// unchanged; that costs at most one pause too many and is accepted.
+//
+// Only a fight the script launched itself counts (`fought`), so a revisit of
+// the labyrinth page without a fight in between -- a reload, the Forbidden
+// recovery, a trip to the team editor -- is not taken for a draw.
+// ---------------------------------------------------------------------------
+
+/** Draws in a row before the labyrinth pauses. */
+export const LABY_DRAW_LIMIT = 3;
+/** The pause after LABY_DRAW_LIMIT draws, in seconds. */
+export const LABY_DRAW_PAUSE_SECONDS = 60 * 60;
+
+/** What the labyrinth page shows about the next fight. */
+export interface LabyFightSnapshot {
+    /** Floor, row and hex of the chosen opponent, e.g. "2/11/1". */
+    target: string;
+    power: number;
+    /** Sum of remaining_ego_percent over the whole squad. */
+    squadEgo: number;
+}
+
+export interface LabyDrawState {
+    /** The opponent picked last time, or null. */
+    last: LabyFightSnapshot | null;
+    /** True once the script pressed the fight button against `last`. */
+    fought: boolean;
+    /** Draws in a row against `last`. */
+    draws: number;
+    /** Epoch ms until which the labyrinth pauses for draws, 0 = none. */
+    pausedUntil: number;
+}
+
+export const EMPTY_LABY_DRAW_STATE: LabyDrawState = { last: null, fought: false, draws: 0, pausedUntil: 0 };
+
+/**
+ * Draws in a row once `next` is about to be fought. A fight against the same
+ * hex that left its power and the squad's health as they were is one more
+ * draw; any change, or another hex, starts again at 0. Without a fight since
+ * the last pick the count stays as it is for the same hex.
+ */
+export function countDraws(state: LabyDrawState, next: LabyFightSnapshot): number {
+    const last = state.last;
+    if (last === null || last.target !== next.target) return 0;
+    if (!state.fought) return state.draws;
+    const unchanged = last.power === next.power && last.squadEgo === next.squadEgo;
+    return unchanged ? state.draws + 1 : 0;
+}
+
+/** Reads a stored draw state, tolerating a missing or damaged value. */
+export function parseLabyDrawState(raw: unknown): LabyDrawState {
+    if (raw === null || typeof raw !== 'object') return { ...EMPTY_LABY_DRAW_STATE };
+    const o = raw as Partial<LabyDrawState>;
+    const last = o.last && typeof o.last === 'object'
+        && typeof o.last.target === 'string'
+        && typeof o.last.power === 'number'
+        && typeof o.last.squadEgo === 'number'
+        ? { target: o.last.target, power: o.last.power, squadEgo: o.last.squadEgo }
+        : null;
+    return {
+        last,
+        fought: o.fought === true,
+        draws: typeof o.draws === 'number' && o.draws >= 0 ? o.draws : 0,
+        pausedUntil: typeof o.pausedUntil === 'number' ? o.pausedUntil : 0,
+    };
 }

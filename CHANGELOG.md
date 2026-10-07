@@ -7,6 +7,16 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.1 - Labyrinth pauses after three draws in a row
+
+- **Labyrinth** (#1904): a fight that changes nothing -- the same opponent
+  stays next with the same power, and your squad keeps its health -- counts
+  as a draw. After three draws in a row against the same opponent the
+  labyrinth pauses for 60 minutes and the rest of the automation runs; then
+  it tries three more times. The info box shows the labyrinth timer with
+  **paused: draw**. Before, the script fought the same opponent over and over
+  and did nothing else while the labyrinth was open.
+
 ### v8.19.0 - Season target: fight until a number of wins is reached
 
 - **Season target** (#1801): a new button beside **Find Opponents** on the

@@ -409,6 +409,7 @@ HHAuto_ToolTips.en['autoLabyDifficultyNormal'] = { version: "7.25.2", elementTex
 HHAuto_ToolTips.en['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Hard"};
 HHAuto_ToolTips.en['autoLabyCustomTeamBuilder'] = { version: "8.10.42", elementText: "Custom team", tooltip: "Deprecated<br/>if enabled : Use bot team builder.<br/>Otherwise use ingame auto team based on rules defined by player previously."};
 HHAuto_ToolTips.en['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Labyrinth"};
+HHAuto_ToolTips.en['autoLabyrinthDrawPause'] = { version: "8.19.1", elementText: "paused: draw"};
 HHAuto_ToolTips.en['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Build team", tooltip: "Select full team, based on selection"};
 HHAuto_ToolTips.en['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Back", tooltip: "Select girl type for back row"};
 HHAuto_ToolTips.en['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Mid", tooltip: "Select girl type for mid row"};
