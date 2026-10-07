@@ -656,6 +656,7 @@ shown in the info panel as "Auto-Mystery").
 | `mouseLastActivity` | `Temp_mouseLastActivity` | `sessionStorage` | `Temp` | the timestamp of the last mouse activity (`MouseService`) |
 | `workPause` | `Temp_workPause` | `sessionStorage` | `Temp` | the player is working on a team or on the hero's gear: start, last sign of work, the zone (`team` or `gear`) and its page URL, and whether a finished run is on its way back (`WorkPause`) |
 | `seasonTarget` | `Temp_seasonTarget` | `sessionStorage` | `Temp` | a season target runs: wins or fights, the target, whether kisses may be bought, the count so far, the fight launched and not yet counted (opponent, mojo and kisses before it), whether paranoia sent the script to rest, and -- once it ended for a reason the player did not cause -- the end reason and time, kept as the result notice until dismissed or 30 minutes (`SeasonTarget`) |
+| `labyrinthDraws` | `Temp_labyrinthDraws` | `sessionStorage` | `Temp` | the labyrinth opponent picked last (floor/row/hex, its power, the squad's health), whether the script fought it since, the draws in a row against it, and the end of the pause three draws cause (`LabyrinthAuto`) |
 
 ### Pipeline scheduler
 

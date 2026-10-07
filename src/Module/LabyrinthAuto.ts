@@ -5,7 +5,11 @@
 // manages relic selection after completing rooms. Works in tandem with
 // Labyrinth.ts which handles the higher-level floor navigation.
 //
-// Depends on: RelicManager.ts (relic selection after fights)
+// After LABY_DRAW_LIMIT fights in a row that change nothing (a draw), the
+// labyrinth pauses for LABY_DRAW_PAUSE_SECONDS and releases the pipeline;
+// the reasoning is in Labyrinth.pure.ts (#1904).
+//
+// Depends on: RelicManager.ts (relic selection after fights), Labyrinth.pure.ts (draw counting)
 // Used by: Pipeline.config.ts (the labyrinth block)
 //
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -23,6 +27,13 @@ import {
 } from "../Utils/LogUtils";
 import { Labyrinth } from "./Labyrinth";
 import { LABY_DIFFICULTY } from "./LabyrinthDifficulty";
+import {
+    countDraws,
+    EMPTY_LABY_DRAW_STATE,
+    LABY_DRAW_LIMIT,
+    LABY_DRAW_PAUSE_SECONDS,
+    LabyFightSnapshot,
+} from "./Labyrinth.pure";
 import { RelicManager } from "./RelicManager";
 
 export class LabyrinthAuto {
@@ -112,13 +123,15 @@ export class LabyrinthAuto {
                 }
             }
 
+            const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + SK.autoLabySweep) === "true";
+            const sweepFloorButton = $('#sweeping-floor:not([disabled])');
+            const sweeping = autoLabySweep && sweepFloorButton.length > 0;
+            if (!sweeping && LabyrinthAuto.pauseAfterRepeatedDraws()) return false;
+
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             if (this.debugEnabled) logHHAuto("setting autoloop to false");
 
-            const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + SK.autoLabySweep) === "true";
-
-            const sweepFloorButton = $('#sweeping-floor:not([disabled])');
-            if (autoLabySweep && sweepFloorButton.length > 0) {
+            if (sweeping) {
                 logHHAuto("Auto laby sweep enabled, triggering sweep.");
                 sweepFloorButton.trigger('click');
                 await TimeHelper.sleep(randomInterval(1000, 1500));
@@ -153,6 +166,7 @@ export class LabyrinthAuto {
                 if (labyrinthBattleButton.length > 0) {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     logHHAuto("setting autoloop to false");
+                    LabyrinthAuto.markFightLaunched();
                     labyrinthBattleButton[0].click();
                 }
                 else {
@@ -206,6 +220,56 @@ export class LabyrinthAuto {
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"));
             return true;
         }
+    }
+
+    // ------------------------------------------------------ repeated draws
+
+    /** The opponent the green arrow marks, as the labyrinth page shows it; null if the mark is not on an opponent. */
+    static readChosenFight(): LabyFightSnapshot | null {
+        const hex = $('.labChosen').first().closest('.hex-container');
+        const clickable = $('.clickable-hex', hex).first();
+        const hexType = clickable.attr('hex_type') || '';
+        if (hex.length === 0 || hexType.indexOf('opponent_') < 0) return null;
+        const row = hex.closest('.row-hex-container').attr('id') || '';
+        const squad = unsafeWindow.girl_squad || [];
+        return {
+            target: `${Labyrinth.getCurrentFloorNumber()}/${row}/${clickable.attr('hex_id') || ''}`,
+            power: Number($('.opponent-power .opponent-power-text', hex).attr('data-power')) || 0,
+            squadEgo: squad.reduce((sum, girl) => sum + (Number(girl.remaining_ego_percent) || 0), 0),
+        };
+    }
+
+    /**
+     * Counts the draws against the opponent about to be fought (#1904) and,
+     * after LABY_DRAW_LIMIT of them in a row, sets the labyrinth timer to
+     * LABY_DRAW_PAUSE_SECONDS. True means paused: the caller releases the
+     * pipeline instead of fighting.
+     */
+    static pauseAfterRepeatedDraws(): boolean {
+        const state = Labyrinth.readDrawState();
+        const next = LabyrinthAuto.readChosenFight();
+        if (next === null) {
+            if (state.last !== null || state.draws > 0) {
+                Labyrinth.saveDrawState({ ...EMPTY_LABY_DRAW_STATE, pausedUntil: state.pausedUntil });
+            }
+            return false;
+        }
+        const draws = countDraws(state, next);
+        if (draws >= LABY_DRAW_LIMIT) {
+            logHHAuto(`Labyrinth: ${draws} fights in a row against ${next.target} changed nothing (draw), pausing ${LABY_DRAW_PAUSE_SECONDS / 60} minutes.`);
+            setTimer('nextLabyrinthTime', LABY_DRAW_PAUSE_SECONDS);
+            Labyrinth.saveDrawState({ ...EMPTY_LABY_DRAW_STATE, pausedUntil: Date.now() + LABY_DRAW_PAUSE_SECONDS * 1000 });
+            return true;
+        }
+        if (draws > 0) logHHAuto(`Labyrinth: draw ${draws}/${LABY_DRAW_LIMIT} against ${next.target}.`);
+        Labyrinth.saveDrawState({ last: next, fought: false, draws, pausedUntil: state.pausedUntil });
+        return false;
+    }
+
+    /** The script pressed the fight button: the next pick compares against this fight. */
+    static markFightLaunched(): void {
+        const state = Labyrinth.readDrawState();
+        if (state.last !== null) Labyrinth.saveDrawState({ ...state, fought: true });
     }
 
     closeRewards(): boolean{

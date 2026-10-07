@@ -460,6 +460,7 @@ HHAuto_ToolTips.es['autoLabyDifficultyNormal'] = { version: "7.25.2", elementTex
 HHAuto_ToolTips.es['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Difícil", tooltip: ""};
 HHAuto_ToolTips.es['autoLabyCustomTeamBuilder'] = { version: "8.10.42", elementText: "Equipo propio", tooltip: "Obsoleto<br/>Si habilitado: usa el constructor de equipos del bot.<br/>En caso contrario usa el equipo automático del juego, según las reglas que hayas definido antes."};
 HHAuto_ToolTips.es['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Laberinto", tooltip: ""};
+HHAuto_ToolTips.es['autoLabyrinthDrawPause'] = { version: "8.19.1", elementText: "pausa: empate"};
 HHAuto_ToolTips.es['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Construir equipo", tooltip: "Elige el equipo completo según la selección."};
 HHAuto_ToolTips.es['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Atrás", tooltip: "Elige el tipo de chica para la fila trasera."};
 HHAuto_ToolTips.es['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Centro", tooltip: "Elige el tipo de chica para la fila central."};

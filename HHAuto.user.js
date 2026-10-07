@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.0
+// @version      8.19.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -708,6 +708,7 @@ HHAuto_ToolTips.en['autoLabyDifficultyNormal'] = { version: "7.25.2", elementTex
 HHAuto_ToolTips.en['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Hard" };
 HHAuto_ToolTips.en['autoLabyCustomTeamBuilder'] = { version: "8.10.42", elementText: "Custom team", tooltip: "Deprecated<br/>if enabled : Use bot team builder.<br/>Otherwise use ingame auto team based on rules defined by player previously." };
 HHAuto_ToolTips.en['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Labyrinth" };
+HHAuto_ToolTips.en['autoLabyrinthDrawPause'] = { version: "8.19.1", elementText: "paused: draw" };
 HHAuto_ToolTips.en['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Build team", tooltip: "Select full team, based on selection" };
 HHAuto_ToolTips.en['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Back", tooltip: "Select girl type for back row" };
 HHAuto_ToolTips.en['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Mid", tooltip: "Select girl type for mid row" };
@@ -1303,6 +1304,7 @@ HHAuto_ToolTips.fr['autoLabyDifficultyNormal'] = { version: "7.25.2", elementTex
 HHAuto_ToolTips.fr['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Difficile", tooltip: "" };
 HHAuto_ToolTips.fr['autoLabyCustomTeamBuilder'] = { version: "8.10.42", elementText: "Équipe personnalisée", tooltip: "Obsolète<br/>Si activé : utilise le constructeur d'équipe du bot.<br/>Sinon, utilise l'équipe automatique du jeu selon les règles que vous avez définies auparavant." };
 HHAuto_ToolTips.fr['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Labyrinthe", tooltip: "" };
+HHAuto_ToolTips.fr['autoLabyrinthDrawPause'] = { version: "8.19.1", elementText: "pause : match nul" };
 HHAuto_ToolTips.fr['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Construire l'équipe", tooltip: "Choisit l'équipe complète selon la sélection." };
 HHAuto_ToolTips.fr['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Arrière", tooltip: "Choisit le type de fille pour la ligne arrière." };
 HHAuto_ToolTips.fr['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Milieu", tooltip: "Choisit le type de fille pour la ligne du milieu." };
@@ -1858,6 +1860,7 @@ HHAuto_ToolTips.de['autoLabyDifficultyNormal'] = { version: "7.25.2", elementTex
 HHAuto_ToolTips.de['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Schwer" };
 HHAuto_ToolTips.de['autoLabyCustomTeamBuilder'] = { version: "8.10.42", elementText: "Eigenes Team", tooltip: "Veraltet<br/>Wenn aktiv: Nutzt den Team-Bauer des Bots.<br/>Sonst wird die spieleigene Automatik verwendet." };
 HHAuto_ToolTips.de['autoLabyrinthTitle'] = { version: "8.10.0", elementText: "Liebeslabyrinth" };
+HHAuto_ToolTips.de['autoLabyrinthDrawPause'] = { version: "8.19.1", elementText: "Pause wg. Unentschieden" };
 HHAuto_ToolTips.de['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Team bauen", tooltip: "Wählt anhand der Auswahl ein vollständiges Team." };
 HHAuto_ToolTips.de['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Hinten", tooltip: "Wählt den Mädel-Typ für die hintere Reihe." };
 HHAuto_ToolTips.de['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Mitte", tooltip: "Wählt den Mädel-Typ für die mittlere Reihe." };
@@ -2484,6 +2487,7 @@ HHAuto_ToolTips.es['autoLabyDifficultyNormal'] = { version: "7.25.2", elementTex
 HHAuto_ToolTips.es['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Difícil", tooltip: "" };
 HHAuto_ToolTips.es['autoLabyCustomTeamBuilder'] = { version: "8.10.42", elementText: "Equipo propio", tooltip: "Obsoleto<br/>Si habilitado: usa el constructor de equipos del bot.<br/>En caso contrario usa el equipo automático del juego, según las reglas que hayas definido antes." };
 HHAuto_ToolTips.es['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Laberinto", tooltip: "" };
+HHAuto_ToolTips.es['autoLabyrinthDrawPause'] = { version: "8.19.1", elementText: "pausa: empate" };
 HHAuto_ToolTips.es['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Construir equipo", tooltip: "Elige el equipo completo según la selección." };
 HHAuto_ToolTips.es['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Atrás", tooltip: "Elige el tipo de chica para la fila trasera." };
 HHAuto_ToolTips.es['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Centro", tooltip: "Elige el tipo de chica para la fila central." };
@@ -3208,6 +3212,8 @@ const TK = {
     workPause: "Temp_workPause",
     // A season target runs: the pipeline waits, only season fights (SeasonTarget.ts)
     seasonTarget: "Temp_seasonTarget",
+    // Draws in a row against one labyrinth opponent, and the pause they caused (LabyrinthAuto.ts)
+    labyrinthDraws: "Temp_labyrinthDraws",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
     // Pipeline-block architecture
@@ -6177,6 +6183,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.workPause] =
 // The season target (SeasonTarget.ts). sessionStorage: it has to survive the
 // page loads of every fight, and belongs to the tab it was started in.
 HHStoredVars[HHStoredVarPrefixKey + TK.seasonTarget] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// Draws in a row against one labyrinth opponent (LabyrinthAuto.ts).
+// sessionStorage, beside the timer it sets (HHAuto_Temp_Timers).
+HHStoredVars[HHStoredVarPrefixKey + TK.labyrinthDraws] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -23085,8 +23098,8 @@ function esc(value) {
 }
 
 ;// ./src/Module/Labyrinth.pure.ts
-// Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline
-// and the "find better option" selector.
+// Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline,
+// the "find better option" selector and the count of repeated draws.
 //
 // Behind Labyrinth.createPathFromMatrix, Labyrinth.keepPathsWithTreasure,
 // Labyrinth.sortPathsByDifficulty and Labyrinth.findBetter, so the
@@ -23276,6 +23289,65 @@ function decideBetterOption(state) {
         chosenOption = firstOption;
     }
     return chosenOption;
+}
+// ---------------------------------------------------------------------------
+//  Repeated draws (#1904)
+//
+// A fight the server calls a draw changes nothing the labyrinth page shows:
+// the same opponent hex stays next with the same power, and the squad keeps
+// its health. The block then picks that hex again on every tick and never
+// releases the pipeline. What a draw does to the squad's health is not
+// measured; one that lowers it reads as a loss here, and the next fights
+// against the weakened squad end the loop anyway.
+//
+// A loss shows in the squad's health, a win in the opponent's power or in the
+// hex being gone, so "nothing changed" is read as a draw. The page shows the
+// opponent's power only, not its health: measured on labyrinth.html, a hex
+// carries `opponent_data.power_display` and nothing else. A fight that only
+// wounds the opponent without knocking out a girl may therefore leave the power
+// unchanged; that costs at most one pause too many and is accepted.
+//
+// Only a fight the script launched itself counts (`fought`), so a revisit of
+// the labyrinth page without a fight in between -- a reload, the Forbidden
+// recovery, a trip to the team editor -- is not taken for a draw.
+// ---------------------------------------------------------------------------
+/** Draws in a row before the labyrinth pauses. */
+const LABY_DRAW_LIMIT = 3;
+/** The pause after LABY_DRAW_LIMIT draws, in seconds. */
+const LABY_DRAW_PAUSE_SECONDS = 60 * 60;
+const EMPTY_LABY_DRAW_STATE = { last: null, fought: false, draws: 0, pausedUntil: 0 };
+/**
+ * Draws in a row once `next` is about to be fought. A fight against the same
+ * hex that left its power and the squad's health as they were is one more
+ * draw; any change, or another hex, starts again at 0. Without a fight since
+ * the last pick the count stays as it is for the same hex.
+ */
+function countDraws(state, next) {
+    const last = state.last;
+    if (last === null || last.target !== next.target)
+        return 0;
+    if (!state.fought)
+        return state.draws;
+    const unchanged = last.power === next.power && last.squadEgo === next.squadEgo;
+    return unchanged ? state.draws + 1 : 0;
+}
+/** Reads a stored draw state, tolerating a missing or damaged value. */
+function parseLabyDrawState(raw) {
+    if (raw === null || typeof raw !== 'object')
+        return Object.assign({}, EMPTY_LABY_DRAW_STATE);
+    const o = raw;
+    const last = o.last && typeof o.last === 'object'
+        && typeof o.last.target === 'string'
+        && typeof o.last.power === 'number'
+        && typeof o.last.squadEgo === 'number'
+        ? { target: o.last.target, power: o.last.power, squadEgo: o.last.squadEgo }
+        : null;
+    return {
+        last,
+        fought: o.fought === true,
+        draws: typeof o.draws === 'number' && o.draws >= 0 ? o.draws : 0,
+        pausedUntil: typeof o.pausedUntil === 'number' ? o.pausedUntil : 0,
+    };
 }
 
 ;// ./src/Module/RelicManager.ts
@@ -23483,7 +23555,22 @@ class Labyrinth {
         return $('.cleared-labyrinth-container').length > 0;
     }
     static getPinfo() {
-        return pInfoRow(getTextForUI("autoLabyrinthTitle", "elementText"), getTimeLeft('nextLabyrinthTime'));
+        const timeLeft = getTimeLeft('nextLabyrinthTime');
+        const value = Labyrinth.isPausedForDraws()
+            ? `${timeLeft} (${getTextForUI("autoLabyrinthDrawPause", "elementText")})`
+            : timeLeft;
+        return pInfoRow(getTextForUI("autoLabyrinthTitle", "elementText"), value);
+    }
+    /** Draws in a row against one opponent and the pause they caused (#1904, LabyrinthAuto). */
+    static readDrawState() {
+        return parseLabyDrawState(getStoredJSON(HHStoredVarPrefixKey + TK.labyrinthDraws, null));
+    }
+    static saveDrawState(state) {
+        setStoredValue(HHStoredVarPrefixKey + TK.labyrinthDraws, JSON.stringify(state));
+    }
+    /** True while the labyrinth timer runs out a pause that draws caused. */
+    static isPausedForDraws() {
+        return Labyrinth.readDrawState().pausedUntil > Date.now() && getSecondsLeft('nextLabyrinthTime') > 0;
     }
     static getCurrentFloorNumber() {
         const floorDom = $('#labyrinth-tabs .tab-switcher-fade-in .floor-number-text');
@@ -39925,9 +40012,14 @@ var LabyrinthAuto_awaiter = (undefined && undefined.__awaiter) || function (this
 // manages relic selection after completing rooms. Works in tandem with
 // Labyrinth.ts which handles the higher-level floor navigation.
 //
-// Depends on: RelicManager.ts (relic selection after fights)
+// After LABY_DRAW_LIMIT fights in a row that change nothing (a draw), the
+// labyrinth pauses for LABY_DRAW_PAUSE_SECONDS and releases the pipeline;
+// the reasoning is in Labyrinth.pure.ts (#1904).
+//
+// Depends on: RelicManager.ts (relic selection after fights), Labyrinth.pure.ts (draw counting)
 // Used by: Pipeline.config.ts (the labyrinth block)
 //
+
 
 
 
@@ -40021,12 +40113,15 @@ class LabyrinthAuto {
                         return true;
                     }
                 }
+                const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + SK.autoLabySweep) === "true";
+                const sweepFloorButton = $('#sweeping-floor:not([disabled])');
+                const sweeping = autoLabySweep && sweepFloorButton.length > 0;
+                if (!sweeping && LabyrinthAuto.pauseAfterRepeatedDraws())
+                    return false;
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 if (this.debugEnabled)
                     logHHAuto("setting autoloop to false");
-                const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + SK.autoLabySweep) === "true";
-                const sweepFloorButton = $('#sweeping-floor:not([disabled])');
-                if (autoLabySweep && sweepFloorButton.length > 0) {
+                if (sweeping) {
                     logHHAuto("Auto laby sweep enabled, triggering sweep.");
                     sweepFloorButton.trigger('click');
                     yield TimeHelper.sleep(randomInterval(1000, 1500));
@@ -40066,6 +40161,7 @@ class LabyrinthAuto {
                     if (labyrinthBattleButton.length > 0) {
                         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                         logHHAuto("setting autoloop to false");
+                        LabyrinthAuto.markFightLaunched();
                         labyrinthBattleButton[0].click();
                     }
                     else {
@@ -40124,6 +40220,55 @@ class LabyrinthAuto {
                 return true;
             }
         });
+    }
+    // ------------------------------------------------------ repeated draws
+    /** The opponent the green arrow marks, as the labyrinth page shows it; null if the mark is not on an opponent. */
+    static readChosenFight() {
+        const hex = $('.labChosen').first().closest('.hex-container');
+        const clickable = $('.clickable-hex', hex).first();
+        const hexType = clickable.attr('hex_type') || '';
+        if (hex.length === 0 || hexType.indexOf('opponent_') < 0)
+            return null;
+        const row = hex.closest('.row-hex-container').attr('id') || '';
+        const squad = unsafeWindow.girl_squad || [];
+        return {
+            target: `${Labyrinth.getCurrentFloorNumber()}/${row}/${clickable.attr('hex_id') || ''}`,
+            power: Number($('.opponent-power .opponent-power-text', hex).attr('data-power')) || 0,
+            squadEgo: squad.reduce((sum, girl) => sum + (Number(girl.remaining_ego_percent) || 0), 0),
+        };
+    }
+    /**
+     * Counts the draws against the opponent about to be fought (#1904) and,
+     * after LABY_DRAW_LIMIT of them in a row, sets the labyrinth timer to
+     * LABY_DRAW_PAUSE_SECONDS. True means paused: the caller releases the
+     * pipeline instead of fighting.
+     */
+    static pauseAfterRepeatedDraws() {
+        const state = Labyrinth.readDrawState();
+        const next = LabyrinthAuto.readChosenFight();
+        if (next === null) {
+            if (state.last !== null || state.draws > 0) {
+                Labyrinth.saveDrawState(Object.assign(Object.assign({}, EMPTY_LABY_DRAW_STATE), { pausedUntil: state.pausedUntil }));
+            }
+            return false;
+        }
+        const draws = countDraws(state, next);
+        if (draws >= (/* inlined export .LABY_DRAW_LIMIT */3)) {
+            logHHAuto(`Labyrinth: ${draws} fights in a row against ${next.target} changed nothing (draw), pausing ${(/* inlined export .LABY_DRAW_PAUSE_SECONDS */3600) / 60} minutes.`);
+            setTimer('nextLabyrinthTime', (/* inlined export .LABY_DRAW_PAUSE_SECONDS */3600));
+            Labyrinth.saveDrawState(Object.assign(Object.assign({}, EMPTY_LABY_DRAW_STATE), { pausedUntil: Date.now() + (/* inlined export .LABY_DRAW_PAUSE_SECONDS */3600) * 1000 }));
+            return true;
+        }
+        if (draws > 0)
+            logHHAuto(`Labyrinth: draw ${draws}/${(/* inlined export .LABY_DRAW_LIMIT */3)} against ${next.target}.`);
+        Labyrinth.saveDrawState({ last: next, fought: false, draws, pausedUntil: state.pausedUntil });
+        return false;
+    }
+    /** The script pressed the fight button: the next pick compares against this fight. */
+    static markFightLaunched() {
+        const state = Labyrinth.readDrawState();
+        if (state.last !== null)
+            Labyrinth.saveDrawState(Object.assign(Object.assign({}, state), { fought: true }));
     }
     closeRewards() {
         // Issue #1716: the relic-choice popup reuses the #labyrinth_reward_popup

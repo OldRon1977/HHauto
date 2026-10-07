@@ -13,9 +13,9 @@ import { ConfigHelper } from "../Helper/ConfigHelper";
 import { hhMenuSelect } from "../Helper/HHMenuHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
-import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { TimeHelper, convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
-import { getTimeLeft } from "../Helper/TimerHelper";
+import { getSecondsLeft, getTimeLeft } from "../Helper/TimerHelper";
 import { pInfoRow } from "../Utils/PInfoRow";
 import { logHHAuto } from "../Utils/LogUtils";
 import { safeJsonParse } from "../Utils/Utils";
@@ -25,6 +25,8 @@ import {
     buildPathsFromMatrix,
     decideBetterOption,
     filterPathsWithTreasure,
+    LabyDrawState,
+    parseLabyDrawState,
     sortPathsByDifficulty as sortPathsByDifficultyPure,
 } from './Labyrinth.pure';
 import { RelicManager } from './RelicManager';
@@ -53,7 +55,25 @@ export class Labyrinth {
     }
 
     static getPinfo() {
-        return pInfoRow(getTextForUI("autoLabyrinthTitle", "elementText"), getTimeLeft('nextLabyrinthTime'));
+        const timeLeft = getTimeLeft('nextLabyrinthTime');
+        const value = Labyrinth.isPausedForDraws()
+            ? `${timeLeft} (${getTextForUI("autoLabyrinthDrawPause", "elementText")})`
+            : timeLeft;
+        return pInfoRow(getTextForUI("autoLabyrinthTitle", "elementText"), value);
+    }
+
+    /** Draws in a row against one opponent and the pause they caused (#1904, LabyrinthAuto). */
+    static readDrawState(): LabyDrawState {
+        return parseLabyDrawState(getStoredJSON<unknown>(HHStoredVarPrefixKey + TK.labyrinthDraws, null));
+    }
+
+    static saveDrawState(state: LabyDrawState): void {
+        setStoredValue(HHStoredVarPrefixKey + TK.labyrinthDraws, JSON.stringify(state));
+    }
+
+    /** True while the labyrinth timer runs out a pause that draws caused. */
+    static isPausedForDraws(): boolean {
+        return Labyrinth.readDrawState().pausedUntil > Date.now() && getSecondsLeft('nextLabyrinthTime') > 0;
     }
 
     static getCurrentFloorNumber(): number {

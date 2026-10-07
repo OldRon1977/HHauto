@@ -429,6 +429,7 @@ HHAuto_ToolTips.fr['autoLabyDifficultyNormal'] = { version: "7.25.2", elementTex
 HHAuto_ToolTips.fr['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Difficile", tooltip: ""};
 HHAuto_ToolTips.fr['autoLabyCustomTeamBuilder'] = { version: "8.10.42", elementText: "Équipe personnalisée", tooltip: "Obsolète<br/>Si activé : utilise le constructeur d'équipe du bot.<br/>Sinon, utilise l'équipe automatique du jeu selon les règles que vous avez définies auparavant."};
 HHAuto_ToolTips.fr['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Labyrinthe", tooltip: ""};
+HHAuto_ToolTips.fr['autoLabyrinthDrawPause'] = { version: "8.19.1", elementText: "pause : match nul"};
 HHAuto_ToolTips.fr['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Construire l'équipe", tooltip: "Choisit l'équipe complète selon la sélection."};
 HHAuto_ToolTips.fr['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Arrière", tooltip: "Choisit le type de fille pour la ligne arrière."};
 HHAuto_ToolTips.fr['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Milieu", tooltip: "Choisit le type de fille pour la ligne du milieu."};

@@ -2778,6 +2778,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.seasonTarget] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// Draws in a row against one labyrinth opponent (LabyrinthAuto.ts).
+// sessionStorage, beside the timer it sets (HHAuto_Temp_Timers).
+HHStoredVars[HHStoredVarPrefixKey + TK.labyrinthDraws] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 
 HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
     {

@@ -425,6 +425,8 @@ export const TK = {
     workPause: "Temp_workPause",
     // A season target runs: the pipeline waits, only season fights (SeasonTarget.ts)
     seasonTarget: "Temp_seasonTarget",
+    // Draws in a row against one labyrinth opponent, and the pause they caused (LabyrinthAuto.ts)
+    labyrinthDraws: "Temp_labyrinthDraws",
 
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",

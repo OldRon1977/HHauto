@@ -410,6 +410,7 @@ HHAuto_ToolTips.de['autoLabyDifficultyNormal'] = { version: "7.25.2", elementTex
 HHAuto_ToolTips.de['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Schwer"};
 HHAuto_ToolTips.de['autoLabyCustomTeamBuilder'] = { version: "8.10.42", elementText: "Eigenes Team", tooltip: "Veraltet<br/>Wenn aktiv: Nutzt den Team-Bauer des Bots.<br/>Sonst wird die spieleigene Automatik verwendet."};
 HHAuto_ToolTips.de['autoLabyrinthTitle'] = { version: "8.10.0", elementText: "Liebeslabyrinth"};
+HHAuto_ToolTips.de['autoLabyrinthDrawPause'] = { version: "8.19.1", elementText: "Pause wg. Unentschieden"};
 HHAuto_ToolTips.de['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Team bauen", tooltip: "Wählt anhand der Auswahl ein vollständiges Team."};
 HHAuto_ToolTips.de['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Hinten", tooltip: "Wählt den Mädel-Typ für die hintere Reihe."};
 HHAuto_ToolTips.de['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Mitte", tooltip: "Wählt den Mädel-Typ für die mittlere Reihe."};
