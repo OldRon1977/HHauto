@@ -7,6 +7,46 @@ describe('LogStore', () => {
         clearLog();
     });
 
+    describe('repeated lines', () => {
+        it('stores a line repeated straight after itself once, then the count', () => {
+            for (let i = 0; i < 5; i++) appendLog(1_700_000_000_000 + i * 2000, 'Generator.next', 'Mouse pause active, holding automation.');
+            appendLog(1_700_000_010_000, 'fn', 'Time to check on labyrinth.');
+            const lines = Object.values(readLogAsObject());
+            expect(lines).toEqual([
+                'Mouse pause active, holding automation.',
+                '(same line 4 more times)',
+                'Time to check on labyrinth.',
+            ]);
+        });
+
+        it('stamps the count with the time of the last repeat', () => {
+            appendLog(1_700_000_000_000, 'fn', 'x');
+            appendLog(1_700_000_008_000, 'fn', 'x');
+            const keys = Object.keys(readLogAsObject());
+            expect(keys).toHaveLength(2);
+            expect(new Date(1_700_000_008_000).toLocaleString()).toBe(keys[1].slice(0, keys[1].lastIndexOf('.')));
+        });
+
+        it('does not merge the same text from another caller', () => {
+            appendLog(1_700_000_000_000, 'a', 'x');
+            appendLog(1_700_000_000_001, 'b', 'x');
+            expect(Object.values(readLogAsObject())).toEqual(['x', 'x']);
+        });
+
+        it('writes the count when the log is read, without waiting for another line', () => {
+            appendLog(1_700_000_000_000, 'fn', 'x');
+            appendLog(1_700_000_000_001, 'fn', 'x');
+            expect(Object.values(readLogAsObject())).toEqual(['x', '(same line 1 more time)']);
+        });
+    });
+
+    describe('export keys', () => {
+        it('gives the milliseconds three digits', () => {
+            appendLog(1_700_000_000_005, 'fn', 'x');
+            expect(Object.keys(readLogAsObject())[0]).toMatch(/\.005:fn$/);
+        });
+    });
+
     describe('writing', () => {
         it('keeps a line and gives it back', () => {
             appendLog(1_700_000_000_000, 'doBattle', 'On battle page.');

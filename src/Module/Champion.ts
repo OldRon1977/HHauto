@@ -199,7 +199,15 @@ export class Champion {
                     }
                 }
             }
-            logHHAuto('Team of girls ' + teamGirls);
+            // One line per draft instead of seven: the planned team, what was
+            // already selected, what gets clicked and unselected, and the
+            // counters. Every id keeps its state, so a click that did not
+            // take shows as "click" here and not as "selected" in the next
+            // draft's line, as it did across the old per-girl lines. Errors
+            // stay lines of their own.
+            const draftSelected: string[] = [];
+            const draftClicking: string[] = [];
+            const draftUnselecting: string[] = [];
 
             var toggleSelectGirl = function(girlId: any, girlDraggable: JQuery<HTMLElement>, timer: number = 1000){
                 setTimeout(function() {
@@ -213,7 +221,7 @@ export class Champion {
                 const selectedGirlId = $(girlBox).attr('id_girl');
                 if(teamGirls.indexOf(selectedGirlId) < 0) {
                     girlsClicked = true;
-                    logHHAuto("Unselected as out of the team :" + selectedGirlId);
+                    draftUnselecting.push(String(selectedGirlId));
                     toggleSelectGirl(selectedGirlId, $(girlBox), randomInterval(300,600));
                 }
             });
@@ -224,13 +232,17 @@ export class Champion {
                     var girlDraggable = $('.girl-box__draggable[id_girl="'+teamGirls[i]+'"]');
                     if(!girlDraggable.hasClass('selected')) {
                         girlsClicked = true;
-                        logHHAuto("Girl not selected :" + teamGirls[i]);
+                        draftClicking.push(String(teamGirls[i]));
                         toggleSelectGirl(teamGirls[i], girlDraggable, randomInterval(800,1200));
                     } else {
-                        logHHAuto("Girl already selected :" + teamGirls[i]);
+                        draftSelected.push(String(teamGirls[i]));
                     }
                 }
             }
+            logHHAuto(`Champion draft ${counterLoop + 1}/${maxLoops} on ${window.location.pathname}:`
+                + ` team=${teamGirls.join(',')} selected=${draftSelected.join(',') || '-'}`
+                + ` click=${draftClicking.join(',') || '-'} unselect=${draftUnselecting.join(',') || '-'}`
+                + ` offered=${girlBoxes.length} minPower=${girlMinPower} heroDamage=${hero_damage} freeDrafts=${freeDrafts}`);
 
             var newDraftInterval = girlsClicked ? randomInterval(1800,2500) : randomInterval(800,1500);
             setTimeout(async function() {
@@ -248,7 +260,6 @@ export class Champion {
                 else logHHAuto('Champion: new-draft AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
             }, newDraftInterval);
 
-            logHHAuto("Free drafts remanings :" + freeDrafts);
             counterLoop++;
             if(freeDrafts > 0 && counterLoop <= maxLoops) {
                 setTimeout(selectGirls, randomInterval(6000,9000)); // Wait animation

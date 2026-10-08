@@ -7,6 +7,32 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.3 - A debug log that reaches further back
+
+- **Troll battles**: the troll block no longer starts every few seconds only
+  to find nothing to fight. It starts when there is a fight to do -- energy
+  above the threshold, an event or raid girl, a quest or paranoia need -- and
+  reacts as fast as before. In two user logs those idle starts were about
+  9,000 in twelve hours and two thirds of the log.
+- **Quests**: a quest that waits for energy, money or battle power no longer
+  starts the quest block every few seconds only to find it cannot go on. In
+  one user log that was 5,411 empty starts in under five hours. The quest
+  resumes as soon as what it waits for is there; standing on the quest page
+  it still returns home as before.
+- **Debug log**: a block that starts and does nothing is noted once
+  (`ev=idle`), not with three lines on every attempt. The same line repeated
+  straight after itself is stored once, followed by "(same line N more
+  times)". `[PIPE]` lines are shorter: no second clock, the block named once.
+  The log therefore covers many more hours before the oldest lines drop out.
+- **Debug log times**: milliseconds now have three digits (".005" instead of
+  ".5"), and the export names the time zone the times are in
+  (`HHAuto_timeZone`).
+- **Champions**: the automatic team draft writes one line per draft instead
+  of seven: the planned team, which girls were already selected, which get
+  clicked or unselected, how many girls were offered, the minimum power,
+  the hero's damage and the free drafts left, together with the draft
+  number and the champion page. Error lines stay separate.
+
 ### v8.19.2 - The labyrinth pause in yellow, the script's typeface everywhere
 
 - **Labyrinth** (#1904): while the pause after three draws runs, the

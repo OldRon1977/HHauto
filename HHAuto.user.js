@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.2
+// @version      8.19.3
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -6376,6 +6376,12 @@ function getBrowserData(nav) {
  * so the log grows to whatever the browser allows -- roughly 4-8 MB, which is
  * several hours of a busy session.
  *
+ * The same line repeated straight after itself -- same caller, same text --
+ * is not stored again. It is counted, and when a different line comes, the
+ * page goes or the log is read, one line says how often and until when:
+ * "(same line N more times)", stamped with the last repeat. "Mouse pause
+ * active, holding automation." alone wrote one line every two seconds.
+ *
  * On disk a line is `<epoch-ms base36> TAB <caller> TAB <text>`, newlines in
  * the text escaped: about 60 bytes per line. The export rebuilds the shape the
  * debug log readers expect (`"<date>.<ms>:<caller>": text`).
@@ -6419,6 +6425,11 @@ function parseOr(raw, fallback) {
     }
 }
 let pending = [];
+/** The last line taken, and how often it came again since (see header). */
+let lastCaller = "";
+let lastText = null;
+let repeats = 0;
+let lastRepeatMs = 0;
 let pendingBytes = 0;
 let hooked = false;
 let flushTimer = null;
@@ -6511,11 +6522,12 @@ function installExitHook() {
     if (hooked || typeof window === "undefined" || !window.addEventListener)
         return;
     hooked = true;
-    window.addEventListener("pagehide", flushLog);
-    window.addEventListener("beforeunload", flushLog);
+    const flushAll = () => { writeRepeats(); flushLog(); };
+    window.addEventListener("pagehide", flushAll);
+    window.addEventListener("beforeunload", flushAll);
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden")
-            flushLog();
+            flushAll();
     });
 }
 /**
@@ -6529,8 +6541,21 @@ function installExitHook() {
  */
 function appendLog(epochMs, caller, text) {
     installExitHook();
+    const value = String(text);
+    if (lastText !== null && value === lastText && caller === lastCaller) {
+        repeats++;
+        lastRepeatMs = epochMs;
+        return;
+    }
+    writeRepeats();
+    lastCaller = caller;
+    lastText = value;
+    pushLine(epochMs, caller, value);
+}
+/** Queue one line for the next flush. */
+function pushLine(epochMs, caller, text) {
     const line = epochMs.toString(36) + "\t" + caller + "\t"
-        + String(text).replace(/\\/g, "\\\\").replace(/\n/g, "\\n") + "\n";
+        + text.replace(/\\/g, "\\\\").replace(/\n/g, "\\n") + "\n";
     pending.push(line);
     pendingBytes += line.length;
     if (pendingBytes >= FLUSH_BYTES) {
@@ -6541,8 +6566,21 @@ function appendLog(epochMs, caller, text) {
         flushTimer = setTimeout(flushLog, FLUSH_MS);
     }
 }
+/**
+ * Write the count of repeats of the last line, if any, as a line of its own.
+ * The next identical line after this starts a new count.
+ */
+function writeRepeats() {
+    if (repeats === 0)
+        return;
+    const n = repeats;
+    repeats = 0;
+    lastText = null;
+    pushLine(lastRepeatMs, lastCaller, `(same line ${n} more time${n === 1 ? "" : "s"})`);
+}
 /** The whole ring as raw text, oldest line first. */
 function readLogText() {
+    writeRepeats();
     flushLog();
     const idx = readIndex();
     return idx.used.map(i => { var _a; return (_a = sessionStorage.getItem(chunkKey(i))) !== null && _a !== void 0 ? _a : ""; }).join("");
@@ -6552,6 +6590,9 @@ function readLogText() {
  * `{ "<locale date>.<ms>:<caller>": text }`, duplicates within one
  * millisecond suffixed `-1`, `-2`, ... Existing readers of a debug log --
  * including the ones in the issue threads -- keep working unchanged.
+ * The milliseconds have three digits (".005", not ".5", which read as half a
+ * second); the export names the time zone the dates are in once, in its head
+ * (saveHHDebugLog).
  */
 function readLogAsObject() {
     const out = {};
@@ -6577,7 +6618,7 @@ function readLogAsObject() {
     decoded.sort((a, b) => a[0] - b[0]);
     for (const [ms, caller, text] of decoded) {
         const d = new Date(ms);
-        const base = d.toLocaleString() + "." + d.getMilliseconds() + ":" + caller;
+        const base = d.toLocaleString() + "." + String(d.getMilliseconds()).padStart(3, "0") + ":" + caller;
         let key = base;
         for (let n = 1; Object.prototype.hasOwnProperty.call(out, key) && n < 10; n++)
             key = base + "-" + n;
@@ -6613,6 +6654,8 @@ function dropOldestChunks(count = RECOVERY_DROP_CHUNKS) {
 function clearLog() {
     pending = [];
     pendingBytes = 0;
+    lastText = null;
+    repeats = 0;
     const idx = readIndex();
     for (const i of idx.used)
         sessionStorage.removeItem(chunkKey(i));
@@ -6706,6 +6749,12 @@ function cleanLogsInStorage(full = false) {
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
     console.log(`HHAuto: cleanLogsInStorage cleared ${what} and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
+// Called before every line is written. The pipeline logger uses it to write
+// out the lines it holds back for a run in progress (PipeLogger.flushHeld), so
+// they stay in front of the line that follows. A setter, because PipeLogger
+// imports this module and not the other way round.
+let beforeLogHook = null;
+function setBeforeLogHook(hook) { beforeLogHook = hook; }
 /**
  * Write a timestamped log entry to both the browser console and persistent
  * storage. Automatically detects the calling function name from the stack
@@ -6720,6 +6769,8 @@ function cleanLogsInStorage(full = false) {
  * export is rebuilt.
  */
 function logHHAuto(...args) {
+    if (beforeLogHook !== null)
+        beforeLogHook();
     const stackTrace = (new Error()).stack || '';
     let match;
     const regExps = [/at Object\.([\w_.]+) \((\S+)\)/, /\n([\w_.]+)@(\S+)/, /\)\n    at ([\w_.]+) \((\S+)\)/];
@@ -6732,7 +6783,7 @@ function logHHAuto(...args) {
     const callerName = match[1];
     const currDate = new Date();
     // The console keeps the readable stamp; storage gets the compact one.
-    const prefix = currDate.toLocaleString() + "." + currDate.getMilliseconds() + ":" + callerName;
+    const prefix = currDate.toLocaleString() + "." + String(currDate.getMilliseconds()).padStart(3, "0") + ":" + callerName;
     var text;
     // JSON.stringify replacer that tracks seen objects to avoid
     // "Converting circular structure to JSON" errors.
@@ -6762,6 +6813,19 @@ function logHHAuto(...args) {
     console.log(prefix + ":" + text);
     appendLog(currDate.getTime(), callerName, text);
 }
+/** "Europe/Berlin, UTC+02:00": the zone the log's local dates are in. */
+function describeTimeZone(at) {
+    const offsetMin = -at.getTimezoneOffset();
+    const sign = offsetMin >= 0 ? "+" : "-";
+    const abs = Math.abs(offsetMin);
+    const offset = `UTC${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+    let name = "";
+    try {
+        name = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    }
+    catch ( /* no Intl */_a) { /* no Intl */ }
+    return name ? `${name}, ${offset}` : offset;
+}
 /**
  * Bundle all HHAuto settings, browser info, script version, and the
  * stored log into a JSON file, then trigger a browser download.
@@ -6776,6 +6840,9 @@ function saveHHDebugLog() {
     dataToSave['HHAuto_scriptHandler'] = GM_info.scriptHandler + ' ' + GM_info.version;
     dataToSave['HHAuto_version'] = GM_info.script.version;
     dataToSave['HHAuto_HHSite'] = window.location.origin;
+    // The log's dates are the player's local time without a zone; this says
+    // which one, so a line can be matched against server times and UTC.
+    dataToSave['HHAuto_timeZone'] = describeTimeZone(new Date());
     dataToSave['HHAuto_storageSize'] = getLocalStorageSize();
     // The line above sums both storages over every key, the game's included,
     // under a name that reads like this script's own footprint. The breakdown
@@ -25949,7 +26016,15 @@ class Champion {
                         }
                     }
                 }
-                logHHAuto('Team of girls ' + teamGirls);
+                // One line per draft instead of seven: the planned team, what was
+                // already selected, what gets clicked and unselected, and the
+                // counters. Every id keeps its state, so a click that did not
+                // take shows as "click" here and not as "selected" in the next
+                // draft's line, as it did across the old per-girl lines. Errors
+                // stay lines of their own.
+                const draftSelected = [];
+                const draftClicking = [];
+                const draftUnselecting = [];
                 var toggleSelectGirl = function (girlId, girlDraggable, timer = 1000) {
                     setTimeout(function () {
                         console.log("click " + girlId, girlDraggable);
@@ -25962,7 +26037,7 @@ class Champion {
                     const selectedGirlId = $(girlBox).attr('id_girl');
                     if (teamGirls.indexOf(selectedGirlId) < 0) {
                         girlsClicked = true;
-                        logHHAuto("Unselected as out of the team :" + selectedGirlId);
+                        draftUnselecting.push(String(selectedGirlId));
                         toggleSelectGirl(selectedGirlId, $(girlBox), randomInterval(300, 600));
                     }
                 });
@@ -25972,14 +26047,18 @@ class Champion {
                         var girlDraggable = $('.girl-box__draggable[id_girl="' + teamGirls[i] + '"]');
                         if (!girlDraggable.hasClass('selected')) {
                             girlsClicked = true;
-                            logHHAuto("Girl not selected :" + teamGirls[i]);
+                            draftClicking.push(String(teamGirls[i]));
                             toggleSelectGirl(teamGirls[i], girlDraggable, randomInterval(800, 1200));
                         }
                         else {
-                            logHHAuto("Girl already selected :" + teamGirls[i]);
+                            draftSelected.push(String(teamGirls[i]));
                         }
                     }
                 }
+                logHHAuto(`Champion draft ${counterLoop + 1}/${maxLoops} on ${window.location.pathname}:`
+                    + ` team=${teamGirls.join(',')} selected=${draftSelected.join(',') || '-'}`
+                    + ` click=${draftClicking.join(',') || '-'} unselect=${draftUnselecting.join(',') || '-'}`
+                    + ` offered=${girlBoxes.length} minPower=${girlMinPower} heroDamage=${hero_damage} freeDrafts=${freeDrafts}`);
                 var newDraftInterval = girlsClicked ? randomInterval(1800, 2500) : randomInterval(800, 1500);
                 setTimeout(function () {
                     return Champion_awaiter(this, void 0, void 0, function* () {
@@ -26000,7 +26079,6 @@ class Champion {
                             logHHAuto('Champion: new-draft AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                     });
                 }, newDraftInterval);
-                logHHAuto("Free drafts remanings :" + freeDrafts);
                 counterLoop++;
                 if (freeDrafts > 0 && counterLoop <= maxLoops) {
                     setTimeout(selectGirls, randomInterval(6000, 9000)); // Wait animation
@@ -39457,7 +39535,7 @@ class BlockScheduler {
     }
     complete(block, run) {
         var _a, _b;
-        this.emit({ ev: "done", block: block.id, detail: "run complete" });
+        this.emit({ ev: "done", block: block.id, detail: "run complete", acted: run.acted === true });
         const now = this.ports.now();
         const last = this.ports.getLastRunAt();
         last[block.id] = now;
@@ -39692,7 +39770,20 @@ function clearBlockRun() {
 // change-deduplicated, so a block parked on one reason logs once, not on every
 // tick.
 //
+// Idle runs leave one line, not three. A run's lines are held back from its
+// start until something else is logged -- the handler's own message, another
+// block, a page change -- and written out then, in order. A run that ends
+// without any of that and without having acted (run.acted) is dropped, and its
+// block gets a single `ev=idle` line until it does something again. Measured on
+// two user logs before this: about 9,000 idle troll runs in twelve hours, three
+// lines each, two thirds of the log.
+//
+// A line carries no clock of its own: the log stores every line with its epoch
+// milliseconds, and the export prints them in the player's local time. The
+// block is named once -- `run=<block>@<start>` already holds it.
+//
 // See docs/decisions/ADR-004-pipeline-block-architecture.md.
+
 
 
 
@@ -39705,8 +39796,12 @@ function sanitize(v) {
 }
 /** Format a [PIPE] line. Pure -- unit-testable. */
 function formatPipeLine(fields) {
-    const parts = ["[PIPE]", "t=" + new Date().toISOString()];
+    const parts = ["[PIPE]"];
+    const blockInRun = fields.run !== undefined && fields.block !== undefined
+        && String(fields.run).startsWith(fields.block + "@");
     for (const key of FIELD_ORDER) {
+        if (key === "block" && blockInRun)
+            continue;
         const val = fields[key];
         if (val === undefined || val === null || val === "")
             continue;
@@ -39721,10 +39816,65 @@ function isDiagnose() {
 // Skip-dedup state: last skip detail per block, so a block parked on one
 // reason logs once instead of on every tick.
 const lastSkipDetail = {};
+// Blocks whose idle line is already in the log. Kept apart from the skip
+// reasons, which would otherwise overwrite it, and cleared only when the block
+// leaves real lines -- not by its focus bookkeeping. Measured on a user log
+// with the first version of this filter: with one shared map and focus events clearing it, a block that
+// idled the whole time still wrote its idle line five times in eight minutes.
+const idleLogged = new Set();
+/** The block did something worth reading: forget its skip and idle lines. */
+function forgetQuiet(block) {
+    delete lastSkipDetail[block];
+    idleLogged.delete(block);
+}
 /** Reset dedup state (tests / cache clear). */
 function _resetPipeLoggerForTests() {
     for (const k of Object.keys(lastSkipDetail))
         delete lastSkipDetail[k];
+    idleLogged.clear();
+    held = null;
+    if (heldTimer !== null) {
+        clearTimeout(heldTimer);
+        heldTimer = null;
+    }
+}
+let held = null;
+let heldTimer = null;
+let hooksInstalled = false;
+/** A run still silent after this long is written out anyway (a slow await, a page change). */
+const HOLD_MAX_MS = 3000;
+/** Write the held lines of the run in progress, if any. */
+function flushHeld() {
+    if (heldTimer !== null) {
+        clearTimeout(heldTimer);
+        heldTimer = null;
+    }
+    if (held === null)
+        return;
+    const h = held;
+    held = null; // before writing: logHHAuto calls back into this hook
+    if (h.block)
+        forgetQuiet(h.block);
+    for (const line of h.lines)
+        logHHAuto(line);
+}
+function installHooks() {
+    if (hooksInstalled)
+        return;
+    hooksInstalled = true;
+    // Any other line flushes first, so the run's start stays in front of it.
+    setBeforeLogHook(flushHeld);
+    if (typeof window !== "undefined" && window.addEventListener) {
+        // The page is going: write what is held, then make the log store save it.
+        window.addEventListener("pagehide", () => { flushHeld(); flushLog(); });
+    }
+}
+function hold(fields, line) {
+    flushHeld();
+    installHooks();
+    held = { run: String(fields.run), block: fields.block, lines: [line] };
+    if (typeof setTimeout === "function")
+        heldTimer = setTimeout(flushHeld, HOLD_MAX_MS);
 }
 /**
  * Emit a structured event through the existing log pipeline.
@@ -39733,23 +39883,52 @@ function _resetPipeLoggerForTests() {
  *  - everything else: always (lean lifecycle).
  */
 function logEvent(fields) {
-    var _a, _b;
+    var _a, _b, _c, _d;
     const ev = fields.ev;
+    const runComplete = ev === "done" && fields.detail === "run complete";
+    // Per-step "done" is verbose; the run-complete "done" is lean.
+    if (ev === "done" && !runComplete && !isDiagnose())
+        return;
+    const line = formatPipeLine(fields);
+    if (ev === "start" && fields.run !== undefined) {
+        hold(fields, line);
+        return;
+    }
+    if (held !== null && fields.run !== undefined && String(fields.run) === held.run) {
+        if (runComplete && fields.acted !== true) {
+            // Nothing logged and nothing done since the start: drop the run, and
+            // say so once per block.
+            const key = (_b = (_a = held.block) !== null && _a !== void 0 ? _a : fields.block) !== null && _b !== void 0 ? _b : "?";
+            held = null;
+            if (heldTimer !== null) {
+                clearTimeout(heldTimer);
+                heldTimer = null;
+            }
+            if (idleLogged.has(key))
+                return;
+            idleLogged.add(key);
+            logHHAuto(formatPipeLine({ block: key, ev: "idle", detail: "ran without doing anything; repeats are not logged" }));
+            return;
+        }
+        held.lines.push(line);
+        if (runComplete)
+            flushHeld();
+        return;
+    }
+    flushHeld();
     if (ev === "skip") {
-        const key = (_a = fields.block) !== null && _a !== void 0 ? _a : "?";
-        const detail = (_b = fields.detail) !== null && _b !== void 0 ? _b : "";
+        const key = (_c = fields.block) !== null && _c !== void 0 ? _c : "?";
+        const detail = (_d = fields.detail) !== null && _d !== void 0 ? _d : "";
         if (lastSkipDetail[key] === detail)
             return; // unchanged -> suppress
         lastSkipDetail[key] = detail;
     }
-    else if (fields.block) {
-        // a block that did something clears its skip-dedup memory
-        delete lastSkipDetail[fields.block];
+    else if (fields.block && ev !== "focus") {
+        // a block that did something clears its dedup memory; taking or
+        // releasing the focus is bookkeeping, not work
+        forgetQuiet(fields.block);
     }
-    // Per-step "done" is verbose; the run-complete "done" is lean.
-    if (ev === "done" && fields.detail !== "run complete" && !isDiagnose())
-        return;
-    logHHAuto(formatPipeLine(fields));
+    logHHAuto(line);
 }
 /** Write/refresh the non-rotating context block. Prepended to the export via storage. */
 function writeLogContext(ctx) {
@@ -41355,15 +41534,71 @@ const handleGenericBattle = {
             }),
         }],
 };
+function decideTrollFight(ctx) {
+    const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
+    const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
+    const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true';
+    const energyAboveThreshold = humanLikeRun && ctx.currentPower > threshold || ctx.currentPower > Math.max(threshold, runThreshold - 1);
+    const eventGirl = EventModule.getEventGirl();
+    const eventMythicGirl = EventModule.getEventMythicGirl();
+    const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
+    const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
+    const raidStarsRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
+    const loveRaid = LoveRaidManager.isActivated()
+        ? LoveRaidManager.getRaidToFight(allTrollRaids)
+        : undefined;
+    const shouldFight = (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true'
+        && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired))
+        && ctx.currentPower > 0
+        && (energyAboveThreshold || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'true'))
+        || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true' && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0)
+        || ((eventMythicGirl.girl_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true')
+            && (ctx.currentPower > 0 || Troll.canBuyFight(eventMythicGirl, false).canBuy))
+        || ((raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
+            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
+                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
+                : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)))
+        || ((eventGirl.girl_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true')
+            && (energyAboveThreshold || Troll.canBuyFight(eventGirl, false).canBuy))
+        || ((LoveRaidManager.isActivated() && (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
+            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
+                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
+                : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)));
+    const waitForEnergy = !shouldFight && ctx.currentPower === 0
+        && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid);
+    return { shouldFight: Boolean(shouldFight), waitForEnergy, threshold, runThreshold, humanLikeRun };
+}
+/**
+ * The idle half of handleTrollBattle: record the wait-marker and end a
+ * human-like run. Writes only what changed -- the precondition calls this on
+ * every tick the block stays idle.
+ */
+function applyIdleTrollMarkers(decision) {
+    const marker = decision.waitForEnergy ? 'true' : 'false';
+    if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) !== marker) {
+        setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, marker);
+        if (decision.waitForEnergy)
+            logHHAuto('Troll fight pending: waiting for energy refill.');
+    }
+    if (getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true') {
+        setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, 'false');
+    }
+}
+// An idle answer is kept for the block's minIntervalMs, so the decision is not
+// recomputed more often than the block used to run; a fight is never delayed.
+const TROLL_IDLE_RECHECK_MS = 4000;
+let trollIdleUntil = 0;
+/** Tests only: forget the cached idle answer. */
+function _resetTrollIdleCacheForTests() { trollIdleUntil = 0; }
 const handleTrollBattle = {
     name: 'handleTrollBattle',
-    // On a live session most 'handleTrollBattle' starts are legitimate skips
-    // (currentPower below threshold, no event girl, no raid): the precondition
-    // matches but step.fn falls through. Those are silent no-ops; the pipeline
-    // still emits Starting/completed pairs, which adds log noise. Doubling the cool-down
-    // to 4 s halves the polling rate without affecting fight responsiveness
-    // (the inner Troll battle sequence holds the autoLoop flag for several
-    // seconds between fights anyway).
+    // The precondition asks whether there is a fight to do (decideTrollFight)
+    // and keeps the block from starting when there is not. Before, the block
+    // started every 4 s on a live session only to find the energy below the
+    // threshold and no event or raid girl: about 9,000 idle runs in twelve
+    // hours, two thirds of the debug log, measured on two user logs. The idle
+    // side effects (wait-marker, end of a human-like run) are written by the
+    // precondition instead (applyIdleTrollMarkers).
     minIntervalMs: 4000,
     atomic: false,
     interruptible: 'always',
@@ -41382,6 +41617,14 @@ const handleTrollBattle = {
             return false;
         if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'troll' && ctx.lastActionPerformed !== 'quest')
             return false;
+        if (Date.now() < trollIdleUntil)
+            return false;
+        const decision = decideTrollFight(ctx);
+        if (!decision.shouldFight) {
+            applyIdleTrollMarkers(decision);
+            trollIdleUntil = Date.now() + TROLL_IDLE_RECHECK_MS;
+            return false;
+        }
         return true;
     },
     steps: [{
@@ -41393,35 +41636,8 @@ const handleTrollBattle = {
                     // decides to wait for an energy refill. Doing the clear unconditionally
                     // avoids a stale marker when the user disables auto-troll mid-wait.
                     setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'false');
-                    const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
-                    const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-                    const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true';
-                    const energyAboveThreshold = humanLikeRun && ctx.currentPower > threshold || ctx.currentPower > Math.max(threshold, runThreshold - 1);
-                    const eventGirl = EventModule.getEventGirl();
-                    const eventMythicGirl = EventModule.getEventMythicGirl();
-                    const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-                    const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-                    const raidStarsRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
-                    const loveRaid = LoveRaidManager.isActivated()
-                        ? LoveRaidManager.getRaidToFight(allTrollRaids)
-                        : undefined;
-                    const shouldFight = (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true'
-                        && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired))
-                        && ctx.currentPower > 0
-                        && (energyAboveThreshold || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'true'))
-                        || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true' && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0)
-                        || ((eventMythicGirl.girl_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true')
-                            && (ctx.currentPower > 0 || Troll.canBuyFight(eventMythicGirl, false).canBuy))
-                        || ((raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
-                            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
-                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
-                                : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)))
-                        || ((eventGirl.girl_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true')
-                            && (energyAboveThreshold || Troll.canBuyFight(eventGirl, false).canBuy))
-                        || ((LoveRaidManager.isActivated() && (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
-                            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
-                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
-                                : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)));
+                    const decision = decideTrollFight(ctx);
+                    const { shouldFight, threshold, runThreshold, humanLikeRun } = decision;
                     if (shouldFight) {
                         logHHAuto('Troll:', { threshold: threshold, runThreshold: runThreshold, TrollHumanLikeRun: humanLikeRun });
                         setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, '0');
@@ -41444,13 +41660,7 @@ const handleTrollBattle = {
                         }
                     }
                     else {
-                        if (getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true') {
-                            setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, 'false');
-                        }
-                        if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
-                            logHHAuto('Troll fight pending: waiting for energy refill.');
-                            setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'true');
-                        }
+                        applyIdleTrollMarkers(decision);
                     }
                     return { ok: true };
                 }
@@ -41508,6 +41718,70 @@ const handlePachinko = {
             }),
         }],
 };
+/**
+ * Why handleQuest would do nothing this tick, or null when the step has work
+ * (#1904 follow-up). Mirrors the step's branches without acting: a quest
+ * waiting for energy, money or battle power, or with nothing to do, is idle
+ * -- unless the bot stands on the quest page, which the step leaves. The
+ * one-shot branches (unknown button, battle error, outfit, an invalid or
+ * missing requirement, the first save-a-battle note) always count as work.
+ * `blocked` is what the step records in paranoiaQuestBlocked.
+ *
+ * MAINTENANCE -- KEEP IN SYNC WITH handleQuest's step: a branch that gains an
+ * action must return null here, or the step never runs for it.
+ */
+function questIdle(ctx) {
+    const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
+    if (onQuestPage)
+        return null;
+    const saveQuest = getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest);
+    if (saveQuest === undefined)
+        return null;
+    const req = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
+    if (typeof req !== 'string' || req === '')
+        return null;
+    if (req === 'battle') {
+        if (!ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false))
+            return { blocked: false };
+        if (saveQuest === 'false')
+            return null;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) !== 'true')
+            return null;
+        return { blocked: false }; // handleTrollBattle fights it
+    }
+    if (req[0] === '$') {
+        const needed = Number(req.substr(1));
+        if (isNaN(needed))
+            return null;
+        if (checkTimer(QuestHelper.NO_MONEY_TIMER) && needed < getHHVars('Hero.currencies.soft_currency'))
+            return null;
+        return { blocked: true };
+    }
+    if (req[0] === '*') {
+        const needed = Number(req.substr(1));
+        const current = QuestHelper.getEnergy();
+        if (needed > current)
+            return { blocked: true };
+        const aboveThreshold = Number(current) > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold));
+        return aboveThreshold || ParanoiaService.checkParanoiaSpendings('quest') > 0 ? null : { blocked: false };
+    }
+    if (req[0] === 'P') {
+        return ctx.currentPower < Number(req.substr(1)) ? { blocked: true } : null;
+    }
+    if (req === 'none') {
+        if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')
+            && (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold))
+                || ParanoiaService.checkParanoiaSpendings('quest') > 0))
+            return null;
+        return { blocked: false };
+    }
+    return null;
+}
+// As with the troll block: an idle answer is kept for the block's minInterval.
+const QUEST_IDLE_RECHECK_MS = 2000;
+let questIdleUntil = 0;
+/** Tests only: forget the cached idle answer. */
+function _resetQuestIdleCacheForTests() { questIdleUntil = 0; }
 const handleQuest = {
     name: 'handleQuest',
     minIntervalMs: 2000,
@@ -41529,6 +41803,20 @@ const handleQuest = {
             return false;
         if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'quest')
             return false;
+        // A quest that waits for energy, money or battle power does not start the
+        // block. Before, it started every 2-3 s and did nothing: 5,411 times in
+        // 4.7 hours in one user log. The waiting branches' marker is written here.
+        if (Date.now() < questIdleUntil)
+            return false;
+        const idle = questIdle(ctx);
+        if (idle !== null) {
+            if (idle.blocked && getStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked) !== 'true') {
+                setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                logHHAuto('Quest waiting: ' + getStoredValue(HHStoredVarPrefixKey + TK.questRequirement));
+            }
+            questIdleUntil = Date.now() + QUEST_IDLE_RECHECK_MS;
+            return false;
+        }
         return true;
     },
     steps: [{

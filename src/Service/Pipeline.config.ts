@@ -846,15 +846,107 @@ const handleGenericBattle: HandlerConfig = {
   }],
 };
 
+/**
+ * What handleTrollBattle would do this tick: fight, or nothing. Reads the
+ * settings, the energy, the event and raid girls; writes nothing. Used by the
+ * precondition, so an idle block is not started at all, and again by the step,
+ * which acts on a fresh answer.
+ */
+interface TrollDecision {
+  shouldFight: boolean;
+  /** No fight only for lack of energy: what the wait-marker records. */
+  waitForEnergy: boolean;
+  threshold: number;
+  runThreshold: number;
+  humanLikeRun: boolean;
+}
+
+function decideTrollFight(ctx: AutoLoopContext): TrollDecision {
+  const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
+  const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
+  const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true';
+  const energyAboveThreshold = humanLikeRun && ctx.currentPower > threshold || ctx.currentPower > Math.max(threshold, runThreshold - 1);
+  const eventGirl: EventGirl = EventModule.getEventGirl();
+  const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
+  const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
+  const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
+  const raidStarsRaid: LoveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered) as LoveRaid;
+  const loveRaid: LoveRaid = LoveRaidManager.isActivated()
+    ? LoveRaidManager.getRaidToFight(allTrollRaids)
+    : undefined as any;
+
+  const shouldFight =
+    (
+      getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true'
+      && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired))
+      && ctx.currentPower > 0
+      && (energyAboveThreshold || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'true')
+    )
+    || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true' && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0)
+    || (
+      (eventMythicGirl.girl_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true')
+      && (ctx.currentPower > 0 || Troll.canBuyFight(eventMythicGirl, false).canBuy)
+    )
+    || (
+      (raidStarsRaid?.id_girl)
+      && (
+        getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
+          ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
+          : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
+      )
+    )
+    || (
+      (eventGirl.girl_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true')
+      && (energyAboveThreshold || Troll.canBuyFight(eventGirl, false).canBuy)
+    )
+    || (
+      (LoveRaidManager.isActivated() && loveRaid?.id_girl)
+      && (
+        getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
+          ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
+          : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
+      )
+    );
+
+
+  const waitForEnergy = !shouldFight && ctx.currentPower === 0
+    && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid);
+  return { shouldFight: Boolean(shouldFight), waitForEnergy, threshold, runThreshold, humanLikeRun };
+}
+
+/**
+ * The idle half of handleTrollBattle: record the wait-marker and end a
+ * human-like run. Writes only what changed -- the precondition calls this on
+ * every tick the block stays idle.
+ */
+function applyIdleTrollMarkers(decision: TrollDecision): void {
+  const marker = decision.waitForEnergy ? 'true' : 'false';
+  if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) !== marker) {
+    setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, marker);
+    if (decision.waitForEnergy) logHHAuto('Troll fight pending: waiting for energy refill.');
+  }
+  if (getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true') {
+    setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, 'false');
+  }
+}
+
+// An idle answer is kept for the block's minIntervalMs, so the decision is not
+// recomputed more often than the block used to run; a fight is never delayed.
+const TROLL_IDLE_RECHECK_MS = 4_000;
+let trollIdleUntil = 0;
+
+/** Tests only: forget the cached idle answer. */
+export function _resetTrollIdleCacheForTests(): void { trollIdleUntil = 0; }
+
 const handleTrollBattle: HandlerConfig = {
   name: 'handleTrollBattle',
-  // On a live session most 'handleTrollBattle' starts are legitimate skips
-  // (currentPower below threshold, no event girl, no raid): the precondition
-  // matches but step.fn falls through. Those are silent no-ops; the pipeline
-  // still emits Starting/completed pairs, which adds log noise. Doubling the cool-down
-  // to 4 s halves the polling rate without affecting fight responsiveness
-  // (the inner Troll battle sequence holds the autoLoop flag for several
-  // seconds between fights anyway).
+  // The precondition asks whether there is a fight to do (decideTrollFight)
+  // and keeps the block from starting when there is not. Before, the block
+  // started every 4 s on a live session only to find the energy below the
+  // threshold and no event or raid girl: about 9,000 idle runs in twelve
+  // hours, two thirds of the debug log, measured on two user logs. The idle
+  // side effects (wait-marker, end of a human-like run) are written by the
+  // precondition instead (applyIdleTrollMarkers).
   minIntervalMs: 4_000,
   atomic: false,
   interruptible: 'always',
@@ -867,6 +959,13 @@ const handleTrollBattle: HandlerConfig = {
     // popup is parsed and raid girl shards are written back (issue #1740).
     if (isGenericBattleResultPage(ctx.currentPage)) return false;
     if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'troll' && ctx.lastActionPerformed !== 'quest') return false;
+    if (Date.now() < trollIdleUntil) return false;
+    const decision = decideTrollFight(ctx);
+    if (!decision.shouldFight) {
+      applyIdleTrollMarkers(decision);
+      trollIdleUntil = Date.now() + TROLL_IDLE_RECHECK_MS;
+      return false;
+    }
     return true;
   },
   steps: [{
@@ -879,51 +978,8 @@ const handleTrollBattle: HandlerConfig = {
         // avoids a stale marker when the user disables auto-troll mid-wait.
         setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'false');
 
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true';
-        const energyAboveThreshold = humanLikeRun && ctx.currentPower > threshold || ctx.currentPower > Math.max(threshold, runThreshold - 1);
-        const eventGirl: EventGirl = EventModule.getEventGirl();
-        const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
-        const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-        const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-        const raidStarsRaid: LoveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered) as LoveRaid;
-        const loveRaid: LoveRaid = LoveRaidManager.isActivated()
-          ? LoveRaidManager.getRaidToFight(allTrollRaids)
-          : undefined as any;
-
-        const shouldFight =
-          (
-            getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true'
-            && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired))
-            && ctx.currentPower > 0
-            && (energyAboveThreshold || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'true')
-          )
-          || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true' && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0)
-          || (
-            (eventMythicGirl.girl_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true')
-            && (ctx.currentPower > 0 || Troll.canBuyFight(eventMythicGirl, false).canBuy)
-          )
-          || (
-            (raidStarsRaid?.id_girl)
-            && (
-              getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
-                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
-                : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
-            )
-          )
-          || (
-            (eventGirl.girl_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true')
-            && (energyAboveThreshold || Troll.canBuyFight(eventGirl, false).canBuy)
-          )
-          || (
-            (LoveRaidManager.isActivated() && loveRaid?.id_girl)
-            && (
-              getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
-                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
-                : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
-            )
-          );
+        const decision = decideTrollFight(ctx);
+        const { shouldFight, threshold, runThreshold, humanLikeRun } = decision;
 
         if (shouldFight) {
           logHHAuto('Troll:', { threshold: threshold, runThreshold: runThreshold, TrollHumanLikeRun: humanLikeRun });
@@ -942,13 +998,7 @@ const handleTrollBattle: HandlerConfig = {
             if (ctx.busy) ctx.lastActionPerformed = 'troll';
           }
         } else {
-          if (getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true') {
-            setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, 'false');
-          }
-          if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
-            logHHAuto('Troll fight pending: waiting for energy refill.');
-            setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'true');
-          }
+          applyIdleTrollMarkers(decision);
         }
         return { ok: true };
       } catch (err) {
@@ -1002,6 +1052,63 @@ const handlePachinko: HandlerConfig = {
   }],
 };
 
+/**
+ * Why handleQuest would do nothing this tick, or null when the step has work
+ * (#1904 follow-up). Mirrors the step's branches without acting: a quest
+ * waiting for energy, money or battle power, or with nothing to do, is idle
+ * -- unless the bot stands on the quest page, which the step leaves. The
+ * one-shot branches (unknown button, battle error, outfit, an invalid or
+ * missing requirement, the first save-a-battle note) always count as work.
+ * `blocked` is what the step records in paranoiaQuestBlocked.
+ *
+ * MAINTENANCE -- KEEP IN SYNC WITH handleQuest's step: a branch that gains an
+ * action must return null here, or the step never runs for it.
+ */
+function questIdle(ctx: AutoLoopContext): { blocked: boolean } | null {
+  const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
+  if (onQuestPage) return null;
+  const saveQuest = getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest);
+  if (saveQuest === undefined) return null;
+  const req = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
+  if (typeof req !== 'string' || req === '') return null;
+  if (req === 'battle') {
+    if (!ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false)) return { blocked: false };
+    if (saveQuest === 'false') return null;
+    if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) !== 'true') return null;
+    return { blocked: false };   // handleTrollBattle fights it
+  }
+  if (req[0] === '$') {
+    const needed = Number(req.substr(1));
+    if (isNaN(needed)) return null;
+    if (checkTimer(QuestHelper.NO_MONEY_TIMER) && needed < (getHHVars('Hero.currencies.soft_currency') as number)) return null;
+    return { blocked: true };
+  }
+  if (req[0] === '*') {
+    const needed = Number(req.substr(1));
+    const current = QuestHelper.getEnergy();
+    if (needed > current) return { blocked: true };
+    const aboveThreshold = Number(current) > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold));
+    return aboveThreshold || ParanoiaService.checkParanoiaSpendings('quest') > 0 ? null : { blocked: false };
+  }
+  if (req[0] === 'P') {
+    return ctx.currentPower < Number(req.substr(1)) ? { blocked: true } : null;
+  }
+  if (req === 'none') {
+    if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')
+        && (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold))
+            || ParanoiaService.checkParanoiaSpendings('quest') > 0)) return null;
+    return { blocked: false };
+  }
+  return null;
+}
+
+// As with the troll block: an idle answer is kept for the block's minInterval.
+const QUEST_IDLE_RECHECK_MS = 2_000;
+let questIdleUntil = 0;
+
+/** Tests only: forget the cached idle answer. */
+export function _resetQuestIdleCacheForTests(): void { questIdleUntil = 0; }
+
 const handleQuest: HandlerConfig = {
   name: 'handleQuest',
   minIntervalMs: 2_000,
@@ -1017,6 +1124,19 @@ const handleQuest: HandlerConfig = {
     if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true') return false;
     if (!ctx.canCollectCompetitionActive) return false;
     if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'quest') return false;
+    // A quest that waits for energy, money or battle power does not start the
+    // block. Before, it started every 2-3 s and did nothing: 5,411 times in
+    // 4.7 hours in one user log. The waiting branches' marker is written here.
+    if (Date.now() < questIdleUntil) return false;
+    const idle = questIdle(ctx);
+    if (idle !== null) {
+      if (idle.blocked && getStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked) !== 'true') {
+        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+        logHHAuto('Quest waiting: ' + getStoredValue(HHStoredVarPrefixKey + TK.questRequirement));
+      }
+      questIdleUntil = Date.now() + QUEST_IDLE_RECHECK_MS;
+      return false;
+    }
     return true;
   },
   steps: [{

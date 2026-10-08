@@ -111,7 +111,8 @@ toggle makes that pipeline log its work in detail.
 section for the **Pipeline Diagnostics** switch. It is **off by default**.
 
 **What it does:** the script always logs a lean `[PIPE]` trace (which block
-ran, which was skipped and why, and when a run starts and completes). With
+ran, which was skipped and why, and when a run starts and completes). A block
+that starts and finds nothing to do is noted once, not on every attempt. With
 Pipeline Diagnostics **on**, it additionally records per-step detail for every
 block — each individual step, the page it was on, and the decision it made. A
 context header (script version, platform, the effective block order, and any
