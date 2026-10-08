@@ -3,6 +3,7 @@ import { RewardHelper } from "../../src/Helper/RewardHelper";
 import { MockHelper } from "../testHelpers/MockHelpers";
 import { Labyrinth } from "../../src/Module/Labyrinth";
 import { getSecondsLeft } from "../../src/Helper/TimerHelper";
+import * as PageNavigationService from "../../src/Service/PageNavigationService";
 
 describe("LabyrinthAuto.closeRewards relic-choice guard (issue #1716)", () => {
     beforeEach(() => {
@@ -102,5 +103,64 @@ describe("LabyrinthAuto.pauseAfterRepeatedDraws (issue #1904)", () => {
         page(16159915);
         expect(fight()).toBe(false);
         expect(Labyrinth.readDrawState().draws).toBe(0);
+    });
+});
+
+describe("LabyrinthAuto.validateTeam (stuck team editor)", () => {
+    const editor = (disabled: boolean) => {
+        document.body.innerHTML =
+            '<div class="player-panel"><div class="team-hexagon">'
+            + [0, 1, 2, 3, 4, 5, 6].map(p => `<div class="team-member-container" data-team-member-position="${p}" data-girl-id="${100 + p}"></div>`).join('')
+            + `</div></div><button id="validate-team"${disabled ? ' disabled' : ''}></button>`;
+    };
+    let now = 1_000_000;
+
+    beforeEach(() => {
+        MockHelper.mockDomain();
+        sessionStorage.clear();
+        localStorage.clear();
+        LabyrinthAuto._resetEditorStateForTests();
+        now = 1_000_000;
+        jest.spyOn(Date, 'now').mockImplementation(() => now);
+        jest.spyOn(PageNavigationService, 'safeReload').mockReturnValue(true);
+        jest.spyOn(PageNavigationService, 'gotoPage').mockReturnValue(true);
+    });
+    afterEach(() => {
+        jest.restoreAllMocks();
+        document.body.innerHTML = "";
+    });
+
+    it("presses an enabled Validate", () => {
+        editor(false);
+        const clicked = jest.fn();
+        $('#validate-team').on('click', clicked);
+        expect(LabyrinthAuto.validateTeam()).toBe(true);
+        expect(clicked).toHaveBeenCalled();
+    });
+
+    it("waits while Validate is disabled for a few seconds (a save in flight)", () => {
+        editor(true);
+        expect(LabyrinthAuto.validateTeam()).toBe(true);
+        now += 10_000;
+        expect(LabyrinthAuto.validateTeam()).toBe(true);
+        expect(PageNavigationService.safeReload).not.toHaveBeenCalled();
+    });
+
+    it("reloads the editor once, then pauses the labyrinth for 30 minutes", () => {
+        editor(true);
+        LabyrinthAuto.validateTeam();
+        now += 16_000;
+        expect(LabyrinthAuto.validateTeam()).toBe(true);
+        expect(PageNavigationService.safeReload).toHaveBeenCalledTimes(1);
+
+        // The reload brings a fresh page: its own clock starts again.
+        LabyrinthAuto._resetEditorStateForTests();
+        now += 5_000;
+        LabyrinthAuto.validateTeam();
+        now += 16_000;
+        expect(LabyrinthAuto.validateTeam()).toBe(false);
+        expect(PageNavigationService.safeReload).toHaveBeenCalledTimes(1);
+        expect(PageNavigationService.gotoPage).toHaveBeenCalled();
+        expect(getSecondsLeft('nextLabyrinthTime')).toBeGreaterThan(29 * 60);
     });
 });

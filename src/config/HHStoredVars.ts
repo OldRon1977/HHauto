@@ -2785,6 +2785,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.labyrinthDraws] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// When the labyrinth team editor was reloaded for a disabled Validate
+// (LabyrinthAuto.ts). sessionStorage: it has to survive that reload.
+HHStoredVars[HHStoredVarPrefixKey + TK.labyrinthEditorStuck] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 
 HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
     {
