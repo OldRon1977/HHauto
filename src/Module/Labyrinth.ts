@@ -55,11 +55,12 @@ export class Labyrinth {
     }
 
     static getPinfo() {
+        const title = getTextForUI("autoLabyrinthTitle", "elementText");
         const timeLeft = getTimeLeft('nextLabyrinthTime');
-        const value = Labyrinth.isPausedForDraws()
-            ? `${timeLeft} (${getTextForUI("autoLabyrinthDrawPause", "elementText")})`
-            : timeLeft;
-        return pInfoRow(getTextForUI("autoLabyrinthTitle", "elementText"), value);
+        if (!Labyrinth.isPausedForDraws()) return pInfoRow(title, timeLeft);
+        // Yellow, not the red of the blockers: the rest of the script carries on.
+        return pInfoRow(title, `${timeLeft} (${getTextForUI("autoLabyrinthDrawPause", "elementText")})`,
+            { style: 'color:yellow!important;' });
     }
 
     /** Draws in a row against one opponent and the pause they caused (#1904, LabyrinthAuto). */

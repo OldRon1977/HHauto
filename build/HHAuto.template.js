@@ -60,11 +60,25 @@ GM_addStyle('@font-face {font-family:"IBM Plex Sans"; font-style:normal; font-we
 // overlay, the gear controls on the market page, the league score labels and
 // the small marks and panels on the team and harem pages, and the rewards
 // recap on the reward paths, and the work pause notice at the top of every
-// held page. The game's own elements are left alone.
+// held page, the season target notice, the market's sell dialog, the win
+// chances on the league and season buttons, the place of power numbers, the
+// champion order marks, the event priority marks and timers, the seasonal
+// milestones, and the buttons the script adds among the game's own (collect
+// all, club champion, change team, the labyrinth team builder). `.tooltipHH`
+// is the wrapper the script puts around its own buttons. The game's own
+// elements are left alone -- the missions, daily goals and raid cards the
+// script only sorts or compacts keep the game's typeface.
+//
+// Measured on the test account with the script injected, comparing every text
+// element against the same page without the script: the elements added by the
+// script on 25 pages, the sell dialog opened, all computed as IBM Plex Sans.
 GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoPopupGlobal h2, #HHAutoTooltip,'
-            + ' .myButton, .tooltipHHtext, .HHAutoOverlay, .HHpopup_message, .hhScrollTooltip, .hhTeamSynergyInfo, #hhWorkPause,'
-            + ' .topNumber, .HHKeepMark, #hhTeamWorkflow, #HHGearButtons, #HHGearMenuList, #HHGearPreview, #HHGearStatus,'
-            + ' #HHPowerCalcScore, #HHPowerCalcPoints, .HHRewardNotCollected, .HHRewardNotCollected h1'
+            + ' .myButton, .tooltipHH, .tooltipHHtext, .HHAutoOverlay, .HHpopup_message, .hhScrollTooltip, .hhTeamSynergyInfo, #hhWorkPause,'
+            + ' #hhSeasonTarget, .topNumber, .HHKeepMark, #hhTeamWorkflow, #HHGearButtons, #HHGearMenuList, #HHGearPreview, #HHGearStatus,'
+            + ' #HHPowerCalcScore, #HHPowerCalcPoints, .HHRewardNotCollected, .HHRewardNotCollected h1,'
+            + ' #SellDialog, .matchRatingNew, .HHPopIDs, .hhgirlOrder, .HHEventPriority, .HHGirlMilestone,'
+            + ' #HHAutoPoGTimer, #HHAutoPoVTimer, #HHAutoSeasonTimer, .hhauto-spreadsheet-link,'
+            + ' #PoaCollectAll, #dpCollectAll, #LivelySceneCollectAll, #SeasonalCollectAll, .hh-club-poa, #change_team, .hhAutoLabyTeam'
             + ' {font-family:"IBM Plex Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;}');
 // Form controls do not inherit font-family -- they take the browser's own
 // control font (Arial here). Left alone, the number fields would have kept
@@ -73,7 +87,8 @@ GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoPopup
 // which is exactly 0.6em, so "17ch" really is seventeen digits wide.
 GM_addStyle('#sMenu input, #sMenu select, #sMenu textarea,'
             + ' .HHAutoScriptMenu input, .HHAutoScriptMenu select, .HHAutoScriptMenu textarea,'
-            + ' #HHAutoPopupGlobal input, #HHAutoPopupGlobal select, #HHAutoPopupGlobal textarea'
+            + ' #HHAutoPopupGlobal input, #HHAutoPopupGlobal select, #HHAutoPopupGlobal textarea,'
+            + ' #SellDialog input, .tooltipHH input, .tooltipHH select, .tooltipHH button'
             + ' {font-family:inherit;}');
 GM_addStyle('.HHAutoScriptMenu .switch { position: relative; display: inline-block; width: 34px; height: 20px; top:0 }/* The switch - the box around the slider */ '
             +'.HHAutoScriptMenu .switch input { display:none } /* Hide default HTML checkbox */ '

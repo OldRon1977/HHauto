@@ -73,6 +73,13 @@ describe("LabyrinthAuto.pauseAfterRepeatedDraws (issue #1904)", () => {
         expect(fight()).toBe(true);  // draw 3 -> pause
         expect(getSecondsLeft('nextLabyrinthTime')).toBeGreaterThan(3500);
         expect(Labyrinth.isPausedForDraws()).toBe(true);
+        expect(Labyrinth.getPinfo()).toContain('color:yellow');
+    });
+
+    it("shows the labyrinth row without colour while no draw pause runs", () => {
+        page(16159915);
+        fight();
+        expect(Labyrinth.getPinfo()).not.toContain('color:');
     });
 
     it("does not count a revisit without a fight", () => {
