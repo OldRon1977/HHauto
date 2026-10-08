@@ -427,6 +427,8 @@ export const TK = {
     seasonTarget: "Temp_seasonTarget",
     // Draws in a row against one labyrinth opponent, and the pause they caused (LabyrinthAuto.ts)
     labyrinthDraws: "Temp_labyrinthDraws",
+    // The labyrinth team editor was reloaded because Validate stayed disabled (LabyrinthAuto.ts)
+    labyrinthEditorStuck: "Temp_labyrinthEditorStuck",
 
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",

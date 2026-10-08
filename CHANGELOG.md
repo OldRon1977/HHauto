@@ -7,6 +7,18 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.4 - Labyrinth: no endless loop in the team editor
+
+- **Labyrinth**: when the game keeps **Validate** in the team editor
+  disabled although the team is full, the script no longer clicks nothing
+  every two seconds until someone leaves the page. After 15 seconds it
+  reloads the editor once; if Validate is still disabled, the labyrinth
+  pauses for 30 minutes and the rest of the automation carries on.
+- The game disables Validate while it saves the team and only lets it go
+  again when the save succeeds. When the game refuses the save, its answer
+  is now written to the debug log, together with the team's slots, so the
+  cause can be read from the log.
+
 ### v8.19.3 - A debug log that reaches further back
 
 - **Troll battles**: the troll block no longer starts every few seconds only

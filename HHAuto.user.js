@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.3
+// @version      8.19.4
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3229,6 +3229,8 @@ const TK = {
     seasonTarget: "Temp_seasonTarget",
     // Draws in a row against one labyrinth opponent, and the pause they caused (LabyrinthAuto.ts)
     labyrinthDraws: "Temp_labyrinthDraws",
+    // The labyrinth team editor was reloaded because Validate stayed disabled (LabyrinthAuto.ts)
+    labyrinthEditorStuck: "Temp_labyrinthEditorStuck",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
     // Pipeline-block architecture
@@ -6205,6 +6207,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.seasonTarget] =
 // Draws in a row against one labyrinth opponent (LabyrinthAuto.ts).
 // sessionStorage, beside the timer it sets (HHAuto_Temp_Timers).
 HHStoredVars[HHStoredVarPrefixKey + TK.labyrinthDraws] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// When the labyrinth team editor was reloaded for a disabled Validate
+// (LabyrinthAuto.ts). sessionStorage: it has to survive that reload.
+HHStoredVars[HHStoredVarPrefixKey + TK.labyrinthEditorStuck] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -40283,6 +40292,8 @@ class LabyrinthAuto {
             }
             else if (page === ConfigHelper.getHHScriptVars("pagesIDLabyrinth")) {
                 logHHAuto("On Labyrinth page.");
+                // Back on the labyrinth: the team editor let us through.
+                deleteStoredValue(HHStoredVarPrefixKey + TK.labyrinthEditorStuck);
                 yield TimeHelper.sleep(randomInterval(500, 800));
                 if (this.closeRewards()) {
                     if (this.debugEnabled)
@@ -40393,8 +40404,7 @@ class LabyrinthAuto {
                         yield TimeHelper.sleep(randomInterval(400, 800));
                     }
                     if (this.getNumberSelectedGirl() === 7) {
-                        $('#validate-team:enabled').trigger('click');
-                        yield TimeHelper.sleep(randomInterval(200, 400));
+                        return LabyrinthAuto.validateTeam();
                     }
                     else {
                         if (this.debugEnabled)
@@ -40408,13 +40418,72 @@ class LabyrinthAuto {
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     return true;
                 }
-                return true;
             }
             else {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"));
                 return true;
             }
         });
+    }
+    /** Log the game's answer when it refuses to save the team. */
+    static watchTeamSave() {
+        if (LabyrinthAuto.saveWatchInstalled)
+            return;
+        LabyrinthAuto.saveWatchInstalled = true;
+        $(document).on('ajaxComplete', (_event, xhr, settings) => {
+            var _a, _b;
+            if (String((_a = settings === null || settings === void 0 ? void 0 : settings.data) !== null && _a !== void 0 ? _a : '').indexOf('action=edit_team') < 0)
+                return;
+            const body = (_b = xhr === null || xhr === void 0 ? void 0 : xhr.responseJSON) !== null && _b !== void 0 ? _b : xhr === null || xhr === void 0 ? void 0 : xhr.responseText;
+            const ok = (xhr === null || xhr === void 0 ? void 0 : xhr.status) === 200 && (body === null || body === void 0 ? void 0 : body.success) !== false;
+            LabyrinthAuto.lastTeamSaveAnswer = `HTTP ${xhr === null || xhr === void 0 ? void 0 : xhr.status} ${JSON.stringify(body !== null && body !== void 0 ? body : null).slice(0, 200)}`;
+            if (!ok)
+                logHHAuto(`Labyrinth team save refused: ${LabyrinthAuto.lastTeamSaveAnswer}`);
+        });
+    }
+    /** "pos:id" for every team slot, for the log. */
+    static describeSlots() {
+        return $('.player-panel .team-hexagon .team-member-container').map((_i, el) => { var _a; return `${$(el).attr('data-team-member-position')}:${(_a = $(el).attr('data-girl-id')) !== null && _a !== void 0 ? _a : '-'}`; }).get().join(',');
+    }
+    /**
+     * Press Validate on a full team, or get out of an editor whose Validate
+     * stays disabled. True keeps the labyrinth block, false releases it.
+     */
+    static validateTeam() {
+        var _a;
+        LabyrinthAuto.watchTeamSave();
+        const validate = $('#validate-team');
+        if (validate.length > 0 && !validate.prop('disabled')) {
+            LabyrinthAuto.validateBlockedSince = 0;
+            validate.trigger('click');
+            return true;
+        }
+        const now = Date.now();
+        if (LabyrinthAuto.validateBlockedSince === 0)
+            LabyrinthAuto.validateBlockedSince = now;
+        if (now - LabyrinthAuto.validateBlockedSince < LabyrinthAuto.VALIDATE_GRACE_MS)
+            return true;
+        const state = getStoredJSON(HHStoredVarPrefixKey + TK.labyrinthEditorStuck, null);
+        const detail = `slots ${LabyrinthAuto.describeSlots()}, button ${validate.length > 0 ? 'disabled' : 'missing'},`
+            + ` last save answer ${LabyrinthAuto.lastTeamSaveAnswer}`;
+        const reloadedAt = (_a = state === null || state === void 0 ? void 0 : state.reloadedAt) !== null && _a !== void 0 ? _a : 0;
+        if (now - reloadedAt > LabyrinthAuto.EDITOR_RELOAD_WINDOW_MS) {
+            logHHAuto(`Labyrinth team editor: Validate stays disabled on a full team (${detail}). Reloading the editor once.`);
+            setStoredValue(HHStoredVarPrefixKey + TK.labyrinthEditorStuck, JSON.stringify({ reloadedAt: now }));
+            safeReload();
+            return true;
+        }
+        logHHAuto(`Labyrinth team editor: Validate still disabled after a reload (${detail}).`
+            + ` Pausing the labyrinth for ${LabyrinthAuto.EDITOR_STUCK_PAUSE_SECONDS / 60} minutes.`);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.labyrinthEditorStuck);
+        setTimer('nextLabyrinthTime', LabyrinthAuto.EDITOR_STUCK_PAUSE_SECONDS);
+        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+        return false;
+    }
+    /** Tests only. */
+    static _resetEditorStateForTests() {
+        LabyrinthAuto.validateBlockedSince = 0;
+        LabyrinthAuto.lastTeamSaveAnswer = "none";
     }
     // ------------------------------------------------------ repeated draws
     /** The opponent the green arrow marks, as the labyrinth page shows it; null if the mark is not on an opponent. */
@@ -40487,6 +40556,28 @@ LabyrinthAuto.EASY = LABY_DIFFICULTY.EASY;
 LabyrinthAuto.NORMAL = LABY_DIFFICULTY.NORMAL;
 LabyrinthAuto.HARD = LABY_DIFFICULTY.HARD;
 LabyrinthAuto.LABYRINTH_SELECTOR = ['easy', 'normal', 'hard'];
+// ------------------------------------------------- team editor (Validate)
+//
+// The game ships #validate-team disabled, enables it once the team holds
+// MIN_TEAM_SIZE girls (1 in the labyrinth editor, measured), and disables
+// it again on the click while it saves the team (action=edit_team). Only
+// a successful save navigates on; a failed one leaves the button disabled
+// for good (edit_team.js). The script clicked `#validate-team:enabled`
+// and returned, so a disabled button meant clicking nothing every tick:
+// measured on a user log, 114 rounds in four minutes until the player
+// left the page by hand. Now a button that stays disabled for
+// VALIDATE_GRACE_MS reloads the editor once and, if that does not help,
+// pauses the labyrinth for EDITOR_STUCK_PAUSE_SECONDS. The game's answer
+// to a failed save is logged, so the cause can be read from the log.
+/** How long Validate may stay disabled -- a save and its navigation take a few seconds. */
+LabyrinthAuto.VALIDATE_GRACE_MS = 15000;
+/** A reload this recent counts as tried already. */
+LabyrinthAuto.EDITOR_RELOAD_WINDOW_MS = 10 * 60 * 1000;
+LabyrinthAuto.EDITOR_STUCK_PAUSE_SECONDS = 30 * 60;
+/** Since when Validate is seen disabled on this page; reset by every page load. */
+LabyrinthAuto.validateBlockedSince = 0;
+LabyrinthAuto.saveWatchInstalled = false;
+LabyrinthAuto.lastTeamSaveAnswer = "none";
 
 ;// ./src/Module/harem/HaremSalary.ts
 var HaremSalary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {

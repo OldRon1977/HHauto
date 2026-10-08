@@ -16,12 +16,12 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
-import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { deleteStoredValue, getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { setTimer } from "../Helper/TimerHelper";
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { getPage } from "../Helper/PageHelper";
-import { gotoPage } from "../Service/PageNavigationService";
+import { gotoPage, safeReload } from "../Service/PageNavigationService";
 import {
     logHHAuto
 } from "../Utils/LogUtils";
@@ -96,6 +96,8 @@ export class LabyrinthAuto {
         }
         else if (page === ConfigHelper.getHHScriptVars("pagesIDLabyrinth")) {
             logHHAuto("On Labyrinth page.");
+            // Back on the labyrinth: the team editor let us through.
+            deleteStoredValue(HHStoredVarPrefixKey + TK.labyrinthEditorStuck);
             await TimeHelper.sleep(randomInterval(500, 800));
             if (this.closeRewards()) {
                 if (this.debugEnabled) logHHAuto('Some rewards popup closed');
@@ -202,8 +204,7 @@ export class LabyrinthAuto {
                 }
 
                 if (this.getNumberSelectedGirl() === 7) {
-                    $('#validate-team:enabled').trigger('click');
-                    await TimeHelper.sleep(randomInterval(200, 400));
+                    return LabyrinthAuto.validateTeam();
                 } else {
                     if (this.debugEnabled) logHHAuto('Not enough girl selected, retry...');
                     return this.run(depth + 1);
@@ -214,12 +215,95 @@ export class LabyrinthAuto {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                 return true;
             }
-            return true;
         }
         else {
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"));
             return true;
         }
+    }
+
+    // ------------------------------------------------- team editor (Validate)
+    //
+    // The game ships #validate-team disabled, enables it once the team holds
+    // MIN_TEAM_SIZE girls (1 in the labyrinth editor, measured), and disables
+    // it again on the click while it saves the team (action=edit_team). Only
+    // a successful save navigates on; a failed one leaves the button disabled
+    // for good (edit_team.js). The script clicked `#validate-team:enabled`
+    // and returned, so a disabled button meant clicking nothing every tick:
+    // measured on a user log, 114 rounds in four minutes until the player
+    // left the page by hand. Now a button that stays disabled for
+    // VALIDATE_GRACE_MS reloads the editor once and, if that does not help,
+    // pauses the labyrinth for EDITOR_STUCK_PAUSE_SECONDS. The game's answer
+    // to a failed save is logged, so the cause can be read from the log.
+
+    /** How long Validate may stay disabled -- a save and its navigation take a few seconds. */
+    static VALIDATE_GRACE_MS = 15_000;
+    /** A reload this recent counts as tried already. */
+    static EDITOR_RELOAD_WINDOW_MS = 10 * 60 * 1000;
+    static EDITOR_STUCK_PAUSE_SECONDS = 30 * 60;
+
+    /** Since when Validate is seen disabled on this page; reset by every page load. */
+    private static validateBlockedSince = 0;
+    private static saveWatchInstalled = false;
+    private static lastTeamSaveAnswer = "none";
+
+    /** Log the game's answer when it refuses to save the team. */
+    private static watchTeamSave(): void {
+        if (LabyrinthAuto.saveWatchInstalled) return;
+        LabyrinthAuto.saveWatchInstalled = true;
+        $(document).on('ajaxComplete', (_event: unknown, xhr: JQuery.jqXHR, settings: JQuery.AjaxSettings) => {
+            if (String(settings?.data ?? '').indexOf('action=edit_team') < 0) return;
+            const body = xhr?.responseJSON ?? xhr?.responseText;
+            const ok = xhr?.status === 200 && (body as { success?: unknown })?.success !== false;
+            LabyrinthAuto.lastTeamSaveAnswer = `HTTP ${xhr?.status} ${JSON.stringify(body ?? null).slice(0, 200)}`;
+            if (!ok) logHHAuto(`Labyrinth team save refused: ${LabyrinthAuto.lastTeamSaveAnswer}`);
+        });
+    }
+
+    /** "pos:id" for every team slot, for the log. */
+    private static describeSlots(): string {
+        return $('.player-panel .team-hexagon .team-member-container').map((_i, el) =>
+            `${$(el).attr('data-team-member-position')}:${$(el).attr('data-girl-id') ?? '-'}`).get().join(',');
+    }
+
+    /**
+     * Press Validate on a full team, or get out of an editor whose Validate
+     * stays disabled. True keeps the labyrinth block, false releases it.
+     */
+    static validateTeam(): boolean {
+        LabyrinthAuto.watchTeamSave();
+        const validate = $('#validate-team');
+        if (validate.length > 0 && !validate.prop('disabled')) {
+            LabyrinthAuto.validateBlockedSince = 0;
+            validate.trigger('click');
+            return true;
+        }
+        const now = Date.now();
+        if (LabyrinthAuto.validateBlockedSince === 0) LabyrinthAuto.validateBlockedSince = now;
+        if (now - LabyrinthAuto.validateBlockedSince < LabyrinthAuto.VALIDATE_GRACE_MS) return true;
+
+        const state = getStoredJSON<{ reloadedAt?: number } | null>(HHStoredVarPrefixKey + TK.labyrinthEditorStuck, null);
+        const detail = `slots ${LabyrinthAuto.describeSlots()}, button ${validate.length > 0 ? 'disabled' : 'missing'},`
+            + ` last save answer ${LabyrinthAuto.lastTeamSaveAnswer}`;
+        const reloadedAt = state?.reloadedAt ?? 0;
+        if (now - reloadedAt > LabyrinthAuto.EDITOR_RELOAD_WINDOW_MS) {
+            logHHAuto(`Labyrinth team editor: Validate stays disabled on a full team (${detail}). Reloading the editor once.`);
+            setStoredValue(HHStoredVarPrefixKey + TK.labyrinthEditorStuck, JSON.stringify({ reloadedAt: now }));
+            safeReload();
+            return true;
+        }
+        logHHAuto(`Labyrinth team editor: Validate still disabled after a reload (${detail}).`
+            + ` Pausing the labyrinth for ${LabyrinthAuto.EDITOR_STUCK_PAUSE_SECONDS / 60} minutes.`);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.labyrinthEditorStuck);
+        setTimer('nextLabyrinthTime', LabyrinthAuto.EDITOR_STUCK_PAUSE_SECONDS);
+        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+        return false;
+    }
+
+    /** Tests only. */
+    static _resetEditorStateForTests(): void {
+        LabyrinthAuto.validateBlockedSince = 0;
+        LabyrinthAuto.lastTeamSaveAnswer = "none";
     }
 
     // ------------------------------------------------------ repeated draws
