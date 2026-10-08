@@ -7,6 +7,19 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.2 - The labyrinth pause in yellow, the script's typeface everywhere
+
+- **Labyrinth** (#1904): while the pause after three draws runs, the
+  labyrinth row in the info box is yellow -- the rest of the script carries
+  on, unlike the red rows of a blocker.
+- **Typeface**: every part of the page the script adds now uses the
+  script's own typeface. Before, the market's sell dialog, the win chances
+  on the league and season buttons, the place of power numbers, the
+  champion order marks, the event marks and timers, the seasonal milestones
+  and the buttons the script adds among the game's (collect all, club
+  champion, change team, labyrinth team builder) still showed the game's
+  font.
+
 ### v8.19.1 - Labyrinth pauses after three draws in a row
 
 - **Labyrinth** (#1904): a fight that changes nothing -- the same opponent
