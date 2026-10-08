@@ -103,10 +103,11 @@ jest.mock("../../src/config/StorageKeys", () => ({
         questRequirement: "Temp_questRequirement",
         TrollHumanLikeRun: "Temp_TrollHumanLikeRun",
         trollWaitForEnergy: "Temp_trollWaitForEnergy",
+        autoLoop: "Temp_autoLoop",
     },
 }));
 
-import { pipeline } from "../../src/Service/Pipeline.config";
+import { pipeline, _resetTrollIdleCacheForTests } from "../../src/Service/Pipeline.config";
 import { getStoredValue, setStoredValue } from "../../src/Helper/StorageHelper";
 import { EventModule } from "../../src/Module/Events/EventModule";
 import { AutoLoopContext } from "../../src/Service/AutoLoopContext";
@@ -142,6 +143,7 @@ describe("handleTrollBattle wait-marker (issue #1708)", () => {
         jest.clearAllMocks();
         getStoredValueMock.mockReturnValue("false");
         getEventGirlMock.mockReturnValue({});
+        _resetTrollIdleCacheForTests();
     });
 
     it("clears trollWaitForEnergy at function entry", async () => {
@@ -189,5 +191,48 @@ describe("handleTrollBattle wait-marker (issue #1708)", () => {
             ([key, value]) => key === "HHAuto_Temp_trollWaitForEnergy" && value === "true",
         );
         expect(setTrueCalls.length).toBe(0);
+    });
+});
+
+describe("handleTrollBattle precondition: an idle block does not start", () => {
+    const precondition = (ctx: AutoLoopContext) => trollPipelineHandler!.precondition(ctx);
+    const settings = (over: Record<string, string>) => getStoredValueMock.mockImplementation(
+        (key: string) => over[key.replace("HHAuto_", "")] ?? "false");
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        getEventGirlMock.mockReturnValue({});
+        _resetTrollIdleCacheForTests();
+    });
+
+    it("does not start when the energy is below the threshold and nothing else calls for a fight", () => {
+        settings({ "Temp_autoLoop": "true", "Setting_autoTrollBattle": "true", "Setting_autoTrollThreshold": "10", "Temp_battlePowerRequired": "0" });
+        expect(precondition(makeCtx({ currentPower: 5 }))).toBe(false);
+    });
+
+    it("starts when there is a fight to do", () => {
+        settings({ "Temp_autoLoop": "true", "Setting_autoTrollBattle": "true", "Setting_autoTrollThreshold": "10", "Temp_battlePowerRequired": "0" });
+        expect(precondition(makeCtx({ currentPower: 15 }))).toBe(true);
+    });
+
+    it("records the wait-marker when only the energy is missing, without starting the block", () => {
+        settings({ "Temp_autoLoop": "true", "Setting_autoTrollBattle": "true", "Temp_battlePowerRequired": "0" });
+        expect(precondition(makeCtx({ currentPower: 0 }))).toBe(false);
+        expect(setStoredValueMock).toHaveBeenCalledWith("HHAuto_Temp_trollWaitForEnergy", "true");
+    });
+
+    it("ends a human-like run when it goes idle", () => {
+        settings({ "Temp_autoLoop": "true", "Setting_autoTrollBattle": "true", "Setting_autoTrollThreshold": "10",
+            "Temp_battlePowerRequired": "0", "Temp_TrollHumanLikeRun": "true" });
+        expect(precondition(makeCtx({ currentPower: 10 }))).toBe(false);
+        expect(setStoredValueMock).toHaveBeenCalledWith("HHAuto_Temp_TrollHumanLikeRun", "false");
+    });
+
+    it("keeps an idle answer for a few seconds instead of re-deciding on every tick", () => {
+        settings({ "Temp_autoLoop": "true", "Setting_autoTrollBattle": "true", "Setting_autoTrollThreshold": "10", "Temp_battlePowerRequired": "0" });
+        expect(precondition(makeCtx({ currentPower: 5 }))).toBe(false);
+        const reads = getEventGirlMock.mock.calls.length;
+        expect(precondition(makeCtx({ currentPower: 5 }))).toBe(false);
+        expect(getEventGirlMock.mock.calls.length).toBe(reads);
     });
 });

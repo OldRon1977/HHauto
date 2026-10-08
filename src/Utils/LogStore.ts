@@ -20,6 +20,12 @@
  * so the log grows to whatever the browser allows -- roughly 4-8 MB, which is
  * several hours of a busy session.
  *
+ * The same line repeated straight after itself -- same caller, same text --
+ * is not stored again. It is counted, and when a different line comes, the
+ * page goes or the log is read, one line says how often and until when:
+ * "(same line N more times)", stamped with the last repeat. "Mouse pause
+ * active, holding automation." alone wrote one line every two seconds.
+ *
  * On disk a line is `<epoch-ms base36> TAB <caller> TAB <text>`, newlines in
  * the text escaped: about 60 bytes per line. The export rebuilds the shape the
  * debug log readers expect (`"<date>.<ms>:<caller>": text`).
@@ -69,6 +75,11 @@ function parseOr<T>(raw: string | null, fallback: T): T {
 }
 
 let pending: string[] = [];
+/** The last line taken, and how often it came again since (see header). */
+let lastCaller = "";
+let lastText: string | null = null;
+let repeats = 0;
+let lastRepeatMs = 0;
 let pendingBytes = 0;
 let hooked = false;
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -158,10 +169,11 @@ export function flushLog(): void {
 function installExitHook(): void {
     if (hooked || typeof window === "undefined" || !window.addEventListener) return;
     hooked = true;
-    window.addEventListener("pagehide", flushLog);
-    window.addEventListener("beforeunload", flushLog);
+    const flushAll = () => { writeRepeats(); flushLog(); };
+    window.addEventListener("pagehide", flushAll);
+    window.addEventListener("beforeunload", flushAll);
     document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") flushLog();
+        if (document.visibilityState === "hidden") flushAll();
     });
 }
 
@@ -176,8 +188,22 @@ function installExitHook(): void {
  */
 export function appendLog(epochMs: number, caller: string, text: string): void {
     installExitHook();
+    const value = String(text);
+    if (lastText !== null && value === lastText && caller === lastCaller) {
+        repeats++;
+        lastRepeatMs = epochMs;
+        return;
+    }
+    writeRepeats();
+    lastCaller = caller;
+    lastText = value;
+    pushLine(epochMs, caller, value);
+}
+
+/** Queue one line for the next flush. */
+function pushLine(epochMs: number, caller: string, text: string): void {
     const line = epochMs.toString(36) + "\t" + caller + "\t"
-        + String(text).replace(/\\/g, "\\\\").replace(/\n/g, "\\n") + "\n";
+        + text.replace(/\\/g, "\\\\").replace(/\n/g, "\\n") + "\n";
     pending.push(line);
     pendingBytes += line.length;
     if (pendingBytes >= FLUSH_BYTES) { flushLog(); return; }
@@ -186,8 +212,21 @@ export function appendLog(epochMs: number, caller: string, text: string): void {
     }
 }
 
+/**
+ * Write the count of repeats of the last line, if any, as a line of its own.
+ * The next identical line after this starts a new count.
+ */
+function writeRepeats(): void {
+    if (repeats === 0) return;
+    const n = repeats;
+    repeats = 0;
+    lastText = null;
+    pushLine(lastRepeatMs, lastCaller, `(same line ${n} more time${n === 1 ? "" : "s"})`);
+}
+
 /** The whole ring as raw text, oldest line first. */
 export function readLogText(): string {
+    writeRepeats();
     flushLog();
     const idx = readIndex();
     return idx.used.map(i => sessionStorage.getItem(chunkKey(i)) ?? "").join("");
@@ -198,6 +237,9 @@ export function readLogText(): string {
  * `{ "<locale date>.<ms>:<caller>": text }`, duplicates within one
  * millisecond suffixed `-1`, `-2`, ... Existing readers of a debug log --
  * including the ones in the issue threads -- keep working unchanged.
+ * The milliseconds have three digits (".005", not ".5", which read as half a
+ * second); the export names the time zone the dates are in once, in its head
+ * (saveHHDebugLog).
  */
 export function readLogAsObject(): Record<string, string> {
     const out: Record<string, string> = {};
@@ -220,7 +262,7 @@ export function readLogAsObject(): Record<string, string> {
     decoded.sort((a, b) => a[0] - b[0]);
     for (const [ms, caller, text] of decoded) {
         const d = new Date(ms);
-        const base = d.toLocaleString() + "." + d.getMilliseconds() + ":" + caller;
+        const base = d.toLocaleString() + "." + String(d.getMilliseconds()).padStart(3, "0") + ":" + caller;
         let key = base;
         for (let n = 1; Object.prototype.hasOwnProperty.call(out, key) && n < 10; n++) key = base + "-" + n;
         out[key] = text;
@@ -255,6 +297,8 @@ export function dropOldestChunks(count: number = RECOVERY_DROP_CHUNKS): number {
 export function clearLog(): void {
     pending = [];
     pendingBytes = 0;
+    lastText = null;
+    repeats = 0;
     const idx = readIndex();
     for (const i of idx.used) sessionStorage.removeItem(chunkKey(i));
     sessionStorage.removeItem(idxKey());

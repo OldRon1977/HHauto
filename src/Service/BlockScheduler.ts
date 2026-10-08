@@ -350,7 +350,7 @@ export class BlockScheduler {
   }
 
   private complete(block: Block, run: BlockRun): void {
-    this.emit({ ev: "done", block: block.id, detail: "run complete" });
+    this.emit({ ev: "done", block: block.id, detail: "run complete", acted: run.acted === true });
     const now = this.ports.now();
     const last = this.ports.getLastRunAt();
     last[block.id] = now;

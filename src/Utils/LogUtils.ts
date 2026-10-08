@@ -57,6 +57,13 @@ export function cleanLogsInStorage(full = false) {
     console.log(`HHAuto: cleanLogsInStorage cleared ${what} and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
 
+// Called before every line is written. The pipeline logger uses it to write
+// out the lines it holds back for a run in progress (PipeLogger.flushHeld), so
+// they stay in front of the line that follows. A setter, because PipeLogger
+// imports this module and not the other way round.
+let beforeLogHook: (() => void) | null = null;
+export function setBeforeLogHook(hook: (() => void) | null): void { beforeLogHook = hook; }
+
 /**
  * Write a timestamped log entry to both the browser console and persistent
  * storage. Automatically detects the calling function name from the stack
@@ -72,6 +79,7 @@ export function cleanLogsInStorage(full = false) {
  */
 export function logHHAuto(...args: any[])
 {
+    if (beforeLogHook !== null) beforeLogHook();
 
     const stackTrace = (new Error()).stack || '';
     let match: any
@@ -85,7 +93,7 @@ export function logHHAuto(...args: any[])
 
     const currDate = new Date();
     // The console keeps the readable stamp; storage gets the compact one.
-    const prefix = currDate.toLocaleString()+"."+currDate.getMilliseconds()+":"+callerName;
+    const prefix = currDate.toLocaleString()+"."+String(currDate.getMilliseconds()).padStart(3, "0")+":"+callerName;
     var text:any;
 
     // JSON.stringify replacer that tracks seen objects to avoid
@@ -122,6 +130,17 @@ export function logHHAuto(...args: any[])
 
 }
 
+/** "Europe/Berlin, UTC+02:00": the zone the log's local dates are in. */
+export function describeTimeZone(at: Date): string {
+    const offsetMin = -at.getTimezoneOffset();
+    const sign = offsetMin >= 0 ? "+" : "-";
+    const abs = Math.abs(offsetMin);
+    const offset = `UTC${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+    let name = "";
+    try { name = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { /* no Intl */ }
+    return name ? `${name}, ${offset}` : offset;
+}
+
 /**
  * Bundle all HHAuto settings, browser info, script version, and the
  * stored log into a JSON file, then trigger a browser download.
@@ -138,6 +157,9 @@ export function saveHHDebugLog()
     dataToSave['HHAuto_scriptHandler']=GM_info.scriptHandler+' '+GM_info.version;
     dataToSave['HHAuto_version']=GM_info.script.version;
     dataToSave['HHAuto_HHSite']=window.location.origin;
+    // The log's dates are the player's local time without a zone; this says
+    // which one, so a line can be matched against server times and UTC.
+    dataToSave['HHAuto_timeZone']=describeTimeZone(new Date());
     dataToSave['HHAuto_storageSize'] = getLocalStorageSize();
     // The line above sums both storages over every key, the game's included,
     // under a name that reads like this script's own footprint. The breakdown

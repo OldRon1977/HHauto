@@ -16,6 +16,8 @@ jest.mock('../../src/Module/Events/EventModule', () => ({
   EventModule: {
     parseEventPage: jest.fn().mockResolvedValue(false),
     getEventIDsByType: jest.fn().mockReturnValue([]),
+    getEventGirl: jest.fn().mockReturnValue({}),
+    getEventMythicGirl: jest.fn().mockReturnValue({}),
   },
 }));
 
@@ -95,6 +97,7 @@ jest.mock('../../src/config/StorageKeys', () => ({
     master: 'master',
     autoEquipBoosters: 'Setting_autoEquipBoosters',
     autoQuest: 'Setting_autoQuest',
+    autoQuestThreshold: 'Setting_autoQuestThreshold',
     autoSideQuest: 'Setting_autoSideQuest',
     autoMission: 'Setting_autoMission',
     autoTrollBattle: 'Setting_autoTrollBattle',
@@ -108,6 +111,8 @@ jest.mock('../../src/config/StorageKeys', () => ({
     paranoiaQuestBlocked: 'Temp_paranoiaQuestBlocked',
     autoTrollBattleSaveQuest: 'Temp_autoTrollBattleSaveQuest',
     HaremSize: 'Temp_HaremSize',
+    battlePowerRequired: 'Temp_battlePowerRequired',
+    TrollHumanLikeRun: 'Temp_TrollHumanLikeRun',
   },
 }));
 
@@ -120,7 +125,7 @@ jest.mock('../../src/Service/PageNavigationService', () => ({
   safeReload: jest.fn(),
 }));
 
-import { pipeline, getStaleEventIDs, pruneExpiredEvents } from '../../src/Service/Pipeline.config';
+import { _resetQuestIdleCacheForTests, pipeline, getStaleEventIDs, pruneExpiredEvents } from '../../src/Service/Pipeline.config';
 import { Season } from '../../src/Module/Events/Season';
 import { applySlotHold } from '../../src/Service/BlockPipeline';
 import { getStoredValue, setStoredValue, deleteStoredValue, getStoredJSON } from '../../src/Helper/StorageHelper';
@@ -1044,7 +1049,13 @@ describe('Pipeline.config', () => {
     });
 
     it('handleTrollBattle precondition still passes on a non-battle page (e.g. pre-battle)', () => {
-      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'troll-pre-battle.html' });
+      // The precondition also asks whether there is a fight to do, so give it one.
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_autoLoop') || key.endsWith('Setting_autoTrollBattle')) return 'true';
+        if (key.endsWith('Temp_battlePowerRequired')) return '0';
+        return undefined;
+      });
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'troll-pre-battle.html', currentPower: 20 });
       expect(trollHandler.precondition(ctx)).toBe(true);
     });
 
@@ -1372,5 +1383,69 @@ describe('Pipeline.config', () => {
       expect(await handler.steps[0].fn(ctx)).toEqual({ ok: true, done: true });
       expect(SMMock.SultryMysteries.autoOpenGrid).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('handleQuest precondition: a waiting quest does not start the block', () => {
+  const handler = pipeline.find(h => h.name === 'handleQuest')!;
+  const getStored = getStoredValue as jest.Mock;
+  const setStored = setStoredValue as jest.Mock;
+  const QuestMock = jest.requireMock('../../src/Module/Quest').QuestHelper as Record<string, jest.Mock>;
+  const ConfigMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+  const checkTimerMock = jest.requireMock('../../src/Helper/TimerHelper').checkTimer as jest.Mock;
+  const store = (values: Record<string, string | undefined>) => getStored.mockImplementation((key: string) => {
+    const k = key.replace('HHAuto_', '');
+    return k in values ? values[k] : undefined;
+  });
+  const base = { Temp_autoLoop: 'true', Setting_autoQuest: 'true', Temp_autoTrollBattleSaveQuest: 'false', Setting_autoQuestThreshold: '0' };
+  const ctx = (over: Partial<AutoLoopContext> = {}) => makeCtx({ canCollectCompetitionActive: true, ...over });
+
+  beforeEach(() => {
+    getStored.mockReset();
+    setStored.mockReset();
+    ConfigMock.getHHScriptVars.mockImplementation((key: string) => key === 'pagesIDQuest' ? 'quest' : true);
+    QuestMock.getEnergy.mockReturnValue(5);
+    checkTimerMock.mockReturnValue(true);
+    _resetQuestIdleCacheForTests();
+  });
+
+  it('stays idle while the quest waits for energy, and records the block for paranoia', () => {
+    store({ ...base, Temp_questRequirement: '*20' });
+    expect(handler.precondition(ctx())).toBe(false);
+    expect(setStored).toHaveBeenCalledWith('HHAuto_Temp_paranoiaQuestBlocked', 'true');
+  });
+
+  it('starts once the energy is there', () => {
+    QuestMock.getEnergy.mockReturnValue(25);
+    store({ ...base, Temp_questRequirement: '*20' });
+    expect(handler.precondition(ctx())).toBe(true);
+  });
+
+  it('starts on the quest page, which the step leaves', () => {
+    store({ ...base, Temp_questRequirement: '*20' });
+    expect(handler.precondition(ctx({ currentPage: 'quest' }))).toBe(true);
+  });
+
+  it('stays idle while battle power is missing, starts when it is there', () => {
+    store({ ...base, Temp_questRequirement: 'P10' });
+    expect(handler.precondition(ctx({ currentPower: 3 }))).toBe(false);
+    _resetQuestIdleCacheForTests();
+    expect(handler.precondition(ctx({ currentPower: 12 }))).toBe(true);
+  });
+
+  it('stays idle with nothing to do, starts when energy is above the threshold', () => {
+    store({ ...base, Temp_questRequirement: 'none', Setting_autoQuestThreshold: '10' });
+    expect(handler.precondition(ctx())).toBe(false);
+    _resetQuestIdleCacheForTests();
+    QuestMock.getEnergy.mockReturnValue(30);
+    expect(handler.precondition(ctx())).toBe(true);
+  });
+
+  it('always starts for the one-shot branches', () => {
+    for (const req of ['outfit', 'unknownQuestButton', 'errorInAutoBattle', 'garbage']) {
+      _resetQuestIdleCacheForTests();
+      store({ ...base, Temp_questRequirement: req });
+      expect(handler.precondition(ctx())).toBe(true);
+    }
   });
 });
