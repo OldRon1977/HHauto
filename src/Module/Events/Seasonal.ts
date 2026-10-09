@@ -15,7 +15,7 @@ import { getTextForUI } from "../../Helper/LanguageHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
-import { convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
+import { convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, TimeHelper, collectAllDelay } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
@@ -85,7 +85,12 @@ export class SeasonalEvent {
             const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
             const seasonalEventEnd = getSecondsLeft("SeasonalEventRemainingTime");
             const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect) === "true")
-            const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true");
+            // With a known remaining time inside the final window the sweep runs
+            // on every visit; the collect-all timer only schedules the script's own
+            // visit. The collect round used to arrive seconds before that timer ran
+            // out and push it back 6 h. An unknown or expired end (0) keeps the
+            // timer, as before.
+            const needToCollectAllBeforeEnd = ((seasonalEventEnd > 0 || checkTimer('nextSeasonalEventCollectAllTime')) && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true");
 
             const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
             const megaSeasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-section div.mega-tier-container:has(.free-slot button.mega-claim-reward)";
@@ -167,7 +172,7 @@ export class SeasonalEvent {
                 {
                     logHHAuto("No SeasonalEvent reward to collect.");
                     setTimer('nextSeasonalEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                    setTimer('nextSeasonalEventCollectAllTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                    setTimer('nextSeasonalEventCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), seasonalEventEnd));
                     if (!manualCollectAll) {
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     }

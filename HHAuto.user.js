@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.4
+// @version      8.19.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3370,6 +3370,26 @@ function convertTimeToInt(remainingTimer, failSafe = true) {
 }
 function getLimitTimeBeforeEnd() {
     return Number(getStoredValue(HHStoredVarPrefixKey + SK.collectAllTimer)) * 3600;
+}
+/**
+ * Delay for re-arming a collect-all timer. Rewards keep arriving inside the
+ * final window -- a league fight can reach the next tier after the sweep --
+ * so two points must not be skipped by a fixed delay:
+ * - the opening of the window, while it lies ahead;
+ * - a last sweep 10 to 15 minutes before the end, while there is time left
+ *   for it. Inside those last 20 minutes the delay stays as it is, so the
+ *   script does not look again every few minutes until the end.
+ * An unknown or expired end (0) leaves the delay as it is.
+ */
+function collectAllDelay(delay, secondsToEnd) {
+    if (secondsToEnd <= 0)
+        return delay;
+    const untilWindow = secondsToEnd - getLimitTimeBeforeEnd();
+    if (untilWindow > 0)
+        return Math.min(delay, untilWindow + randomInterval(60, 180));
+    if (secondsToEnd > 20 * 60)
+        return Math.min(delay, secondsToEnd - randomInterval(10 * 60, 15 * 60));
+    return delay;
 }
 function randomInterval(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
@@ -20949,18 +20969,23 @@ class Season {
             Season.getRemainingTime();
             const seasonEnd = getSecondsLeft("SeasonRemainingTime");
             logHHAuto("Season end in " + TimeHelper.debugDate(seasonEnd));
-            if (checkTimer('nextSeasonCollectAllTime') && seasonEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === "true") {
+            // With a known remaining time inside the final window the sweep runs
+            // on every visit; the collect-all timer only schedules the script's own
+            // visit. The collect round used to arrive seconds before that timer ran
+            // out and push it back 6 h. An unknown or expired end (0) keeps the
+            // timer, as before.
+            if ((seasonEnd > 0 || checkTimer('nextSeasonCollectAllTime')) && seasonEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === "true") {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0) {
                     logHHAuto("Going to collect all Season item at once.");
                     setTimeout(function () {
                         $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
-                        setTimer('nextSeasonCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180)); // Add timer to check again later if there is new items to collect
+                        setTimer('nextSeasonCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), seasonEnd)); // Add timer to check again later if there is new items to collect
                         setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 500);
                     }, 500);
                     return true;
                 }
                 else {
-                    setTimer('nextSeasonCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextSeasonCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), seasonEnd));
                 }
             }
             if (checkTimer('nextSeasonCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollect) === "true") {
@@ -21033,7 +21058,7 @@ class Season {
                 else {
                     logHHAuto("No season collection to do.");
                     setTimer('nextSeasonCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setTimer('nextSeasonCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextSeasonCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), seasonEnd));
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     return false;
                 }
@@ -22358,18 +22383,23 @@ class PentaDrill {
             PentaDrill.getRemainingTime();
             const PentaDrillEnd = getSecondsLeft("pentaDrillRemainingTime");
             logHHAuto("PentaDrill end in " + TimeHelper.debugDate(PentaDrillEnd));
-            if (checkTimer('nextPentaDrillCollectAllTime') && PentaDrillEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll) === "true") {
+            // With a known remaining time inside the final window the sweep runs
+            // on every visit; the collect-all timer only schedules the script's own
+            // visit. The collect round used to arrive seconds before that timer ran
+            // out and push it back 6 h. An unknown or expired end (0) keeps the
+            // timer, as before.
+            if ((PentaDrillEnd > 0 || checkTimer('nextPentaDrillCollectAllTime')) && PentaDrillEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll) === "true") {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0) {
                     logHHAuto("Going to collect all PentaDrill item at once.");
                     setTimeout(function () {
                         $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
-                        setTimer('nextPentaDrillCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180)); // Add timer to check again later if there is new items to collect
+                        setTimer('nextPentaDrillCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), PentaDrillEnd)); // Add timer to check again later if there is new items to collect
                         setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 500);
                     }, 500);
                     return true;
                 }
                 else {
-                    setTimer('nextPentaDrillCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextPentaDrillCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), PentaDrillEnd));
                 }
             }
             if (checkTimer('nextPentaDrillCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollect) === "true") {
@@ -22438,7 +22468,7 @@ class PentaDrill {
                 else {
                     logHHAuto("No PentaDrill collection to do.");
                     setTimer('nextPentaDrillCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setTimer('nextPentaDrillCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextPentaDrillCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), PentaDrillEnd));
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     return false;
                 }
@@ -22554,7 +22584,12 @@ class SeasonalEvent {
                 const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
                 const seasonalEventEnd = getSecondsLeft("SeasonalEventRemainingTime");
                 const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true");
-                const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true");
+                // With a known remaining time inside the final window the sweep runs
+                // on every visit; the collect-all timer only schedules the script's own
+                // visit. The collect round used to arrive seconds before that timer ran
+                // out and push it back 6 h. An unknown or expired end (0) keeps the
+                // timer, as before.
+                const needToCollectAllBeforeEnd = ((seasonalEventEnd > 0 || checkTimer('nextSeasonalEventCollectAllTime')) && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true");
                 const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
                 const megaSeasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-section div.mega-tier-container:has(.free-slot button.mega-claim-reward)";
                 const seasonalFreeSlotQuery = ".mega-slot .slot,.mega-slot .slot_girl_shards";
@@ -22624,7 +22659,7 @@ class SeasonalEvent {
                     else {
                         logHHAuto("No SeasonalEvent reward to collect.");
                         setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                        setTimer('nextSeasonalEventCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        setTimer('nextSeasonalEventCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), seasonalEventEnd));
                         if (!manualCollectAll) {
                             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                         }
@@ -29409,18 +29444,24 @@ class PathOfGlory {
             // it an unknown remaining time opened the collect-all gate at any
             // distance from the event end -- and collect-all bypasses the
             // player's own tier filter.
-            if (checkTimer('nextPoGCollectAllTime') && pogEnd > 0 && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true") {
+            //
+            // No check of the collect-all timer here: that timer only
+            // schedules the script's own visit. Once on the page inside the
+            // final window, the sweep runs whatever brought the script here
+            // -- the collect round used to arrive seconds before that timer
+            // ran out and push it back 6 h.
+            if (pogEnd > 0 && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true") {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0) {
                     logHHAuto("Going to collect all POG item at once.");
                     setTimeout(function () {
                         $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
-                        setTimer('nextPoGCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180)); // Add timer to check again later if there is new items to collect
+                        setTimer('nextPoGCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), pogEnd)); // Add timer to check again later if there is new items to collect
                         setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 500);
                     }, 500);
                     return true;
                 }
                 else {
-                    setTimer('nextPoGCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextPoGCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), pogEnd));
                 }
             }
             // "Collect all" is the final-window sweep above, not a second
@@ -29455,7 +29496,7 @@ class PathOfGlory {
                 else {
                     logHHAuto("No Path of Glory reward to collect.");
                     setTimer('nextPoGCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setTimer('nextPoGCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextPoGCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), pogEnd));
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     return false;
                 }
@@ -29550,18 +29591,24 @@ class PathOfValue {
             // it an unknown remaining time opened the collect-all gate at any
             // distance from the event end -- and collect-all bypasses the
             // player's own tier filter.
-            if (checkTimer('nextPoVCollectAllTime') && povEnd > 0 && povEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true") {
+            //
+            // No check of the collect-all timer here: that timer only
+            // schedules the script's own visit. Once on the page inside the
+            // final window, the sweep runs whatever brought the script here
+            // -- the collect round used to arrive seconds before that timer
+            // ran out and push it back 6 h.
+            if (povEnd > 0 && povEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true") {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0) {
                     logHHAuto("Going to collect all POV item at once.");
                     setTimeout(function () {
                         $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
-                        setTimer('nextPoVCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180)); // Add timer to check again later if there is new items to collect
+                        setTimer('nextPoVCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), povEnd)); // Add timer to check again later if there is new items to collect
                         setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 500);
                     }, 500);
                     return true;
                 }
                 else {
-                    setTimer('nextPoVCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextPoVCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), povEnd));
                 }
             }
             if (checkTimer('nextPoVCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect) === "true") {
@@ -29589,7 +29636,7 @@ class PathOfValue {
                 else {
                     logHHAuto("No Path of Valor reward to collect.");
                     setTimer('nextPoVCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setTimer('nextPoVCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextPoVCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180), povEnd));
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     return false;
                 }

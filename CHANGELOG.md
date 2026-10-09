@@ -7,6 +7,22 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.5 - Collect all within the collect-all timer
+
+- **Collect all** (Path of Valor, Path of Glory, Season, Seasonal event,
+  Penta Drill): the sweep runs on every visit to the event page once the
+  event is inside the window set by **Collect all timer**. Before, a visit
+  for the routine collection could arrive shortly before the script's own
+  collect-all check was due, skip the sweep and push that check back six
+  hours -- on a user log, Path of Valor had 9 h 34 min left with a 12 h
+  window and was not collected.
+- The script's own collect-all check is no longer scheduled past the
+  opening of that window, so it comes back within a few minutes of the
+  window opening even when the window is shorter than six hours.
+- Inside the window the script sweeps once more 10 to 15 minutes before the
+  event ends, so rewards that arrive after the first sweep -- a tier reached
+  by league fights in the last hours -- are collected too.
+
 ### v8.19.4 - Labyrinth: no endless loop in the team editor
 
 - **Labyrinth**: when the game keeps **Validate** in the team editor
