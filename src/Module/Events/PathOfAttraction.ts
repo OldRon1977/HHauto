@@ -295,12 +295,7 @@ export class PathOfAttraction {
                 reward.slot.trigger('click');
                 await TimeHelper.sleep(randomInterval(300,800));
                 $(PathOfAttraction.getRewardButtonPath).trigger('click');
-                await TimeHelper.sleep(randomInterval(300,800));
-                RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
-                await TimeHelper.sleep(randomInterval(1000,1500)); // Do not collect before page refresh
-
-                RewardHelper.closeRewardPopupIfAny(); // Close reward popup
-                await TimeHelper.sleep(randomInterval(1000, 1500));
+                await RewardHelper.closeReloadingRewardPopup();
             }
 
             logHHAuto("numberTiers: " +  numberTiers);

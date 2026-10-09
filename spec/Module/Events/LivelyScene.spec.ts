@@ -139,7 +139,7 @@ describe("LivelyScene -- #1857", () => {
         jest.spyOn(TimeHelper, "sleep").mockResolvedValue(undefined as never);
         // Closing the reward popup is the step that reloads the page: it marks
         // "a reward was claimed" without driving a real claim.
-        claimSpy = jest.spyOn(RewardHelper, "closeRewardPopupIfAny").mockImplementation(() => undefined as never);
+        claimSpy = jest.spyOn(RewardHelper, "closeReloadingRewardPopup").mockResolvedValue(undefined);
         setSetting(SK.showRewardsRecap, "false");
         setSetting(SK.collectAllTimer, "12");
         setSetting(SK.autoLivelySceneEventCollect, "false");

@@ -19,20 +19,27 @@
 //
 // Used by: Event modules (progress tracking), PlaceOfPower, Season,
 //          Troll module (post-fight navigation)
-import { gotoPage } from "../Service/PageNavigationService";
+import { gotoPage, safeReload } from "../Service/PageNavigationService";
+import { kickAutoLoop } from "../Service/AutoLoopKick";
 import { logHHAuto } from "../Utils/LogUtils";
 import { parsePrice } from "./PriceHelper";
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
 import { NumberHelper } from "./NumberHelper";
-import { getStoredJSON, setStoredValue } from "./StorageHelper";
-import { randomInterval } from "./TimeHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
+import { TimeHelper, randomInterval } from "./TimeHelper";
 import { EventModule } from "../Module/Events/EventModule";
 import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
 import { queryStringGetParam } from "./UrlHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
+
+// closeReloadingRewardPopup: polls rather than a deadline, so a test with a
+// stubbed sleep runs a bounded number of rounds.
+const RELOADING_POPUP_POLL_MS = 250;
+const RELOADING_POPUP_POLLS = 60;
+const RELOADING_POPUP_RELOAD_WAIT_MS = 10000;
 
 export class RewardHelper {
     static getRewardTypeBySlot(inSlot: any): string
@@ -319,6 +326,46 @@ export class RewardHelper {
         }
         return false;
     }
+
+    /**
+     * Close the reward popup of a claim whose close reloads the page, and make
+     * sure the run goes on when it does not.
+     *
+     * Path of Attraction and Lively Scene hand the game's popup
+     * `redirectUrl = location.href`: closing it reloads the page, and the
+     * reload is what continues the sweep. Both switch autoLoop off for the
+     * claim, so a popup the script never closes leaves nothing running -- no
+     * tick, no reload, until the player reloads by hand (#1908).
+     *
+     * The popup follows the claim's AJAX answer. Measured on the PoA page
+     * with the answer held back 3.5 s: the popup came at about 4 s, after both
+     * of the fixed-time looks the collector used to take (300-800 ms and
+     * 1.3-2.3 s after the click), and the page stood still for the 75 s
+     * watched. So the popup is waited for, up to the same 15 s the AJAX-idle
+     * wait allows a slow claim.
+     *
+     * No popup within that: autoLoop goes back on and the next tick decides.
+     * Popup closed but the page still here after the reload wait: reload it
+     * the way the game would have. Neither path reloads without a popup, so
+     * a claim that keeps failing cannot turn into a reload loop.
+     */
+    static async closeReloadingRewardPopup(): Promise<void> {
+        let closed = false;
+        for (let poll = 0; poll < RELOADING_POPUP_POLLS && !closed; poll++) {
+            closed = !!RewardHelper.closeRewardPopupIfAny();
+            if (!closed) await TimeHelper.sleep(RELOADING_POPUP_POLL_MS);
+        }
+        if (!closed) {
+            logHHAuto(`Reward popup did not appear within ${RELOADING_POPUP_POLLS * RELOADING_POPUP_POLL_MS / 1000}s, restarting the loop.`);
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+            kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+            return;
+        }
+        await TimeHelper.sleep(RELOADING_POPUP_RELOAD_WAIT_MS);
+        logHHAuto("Page did not reload after the reward popup closed, reloading it.");
+        safeReload();
+    }
+
     static closeGirlRewardPopupIfAny(logging=true, popupId='') {
         const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
         if ($(rewardQuery).length >0 )
