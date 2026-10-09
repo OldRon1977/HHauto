@@ -2792,6 +2792,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.labyrinthEditorStuck] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// The quest id and URL the game reported when the main quests ran out
+// (Quest.ts). sessionStorage, beside the pause timer it belongs to.
+HHStoredVars[HHStoredVarPrefixKey + TK.questEndSeen] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 
 HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
     {

@@ -429,6 +429,8 @@ export const TK = {
     labyrinthDraws: "Temp_labyrinthDraws",
     // The labyrinth team editor was reloaded because Validate stayed disabled (LabyrinthAuto.ts)
     labyrinthEditorStuck: "Temp_labyrinthEditorStuck",
+    // The main quest state at the end of the released quests (Quest.ts)
+    questEndSeen: "Temp_questEndSeen",
 
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",

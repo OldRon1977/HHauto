@@ -7,6 +7,20 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.7 - Quests come back when the game releases new ones
+
+- **Main and side quests**: when all released quests are done, the script
+  checks again after 24 hours instead of after a week, and main and side
+  quests pause apart -- finishing the side quests no longer holds back a
+  new main quest. Before, quests released in the meantime were only taken
+  up after clearing the temp storage.
+- A new main quest ends the pause at once: the script notices on any page
+  when the game moves on to a new quest.
+- The end of the main quests is read off the quest page (the game's view
+  of a finished quest), not off a quest number kept in the script, so it no
+  longer has to be updated when the game adds quests. On that page auto
+  quest no longer switches itself off.
+
 ### v8.19.6 - Path of Attraction: no standstill after a claim
 
 - **Path of Attraction**: after claiming a reward the script no longer

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.6
+// @version      8.19.7
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3231,6 +3231,8 @@ const TK = {
     labyrinthDraws: "Temp_labyrinthDraws",
     // The labyrinth team editor was reloaded because Validate stayed disabled (LabyrinthAuto.ts)
     labyrinthEditorStuck: "Temp_labyrinthEditorStuck",
+    // The main quest state at the end of the released quests (Quest.ts)
+    questEndSeen: "Temp_questEndSeen",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
     // Pipeline-block architecture
@@ -6234,6 +6236,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.labyrinthDraws] =
 // When the labyrinth team editor was reloaded for a disabled Validate
 // (LabyrinthAuto.ts). sessionStorage: it has to survive that reload.
 HHStoredVars[HHStoredVarPrefixKey + TK.labyrinthEditorStuck] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// The quest id and URL the game reported when the main quests ran out
+// (Quest.ts). sessionStorage, beside the pause timer it belongs to.
+HHStoredVars[HHStoredVarPrefixKey + TK.questEndSeen] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -11170,7 +11179,6 @@ class AmourAgent {
     }
 }
 AmourAgent.trollIdMapping = {};
-AmourAgent.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// ./src/config/game/ComixHaremVars.ts
 // Game-variant configuration for Comix Harem.
@@ -11227,7 +11235,6 @@ class ComixHarem {
 }
 ComixHarem.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
 ComixHarem.trollIdMapping = {};
-ComixHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// ./src/config/game/GayHaremVars.ts
 // Game-variant configuration for Gay Harem.
@@ -11294,7 +11301,6 @@ class GayHarem {
 }
 GayHarem.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Bella
 GayHarem.trollIdMapping = {};
-GayHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// ./src/config/game/GayPornstarHaremVars.ts
 // Game-variant configuration for Gay Pornstar Harem.
@@ -11338,7 +11344,6 @@ class GayPornstarHarem {
 }
 GayPornstarHarem.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Cuervos & Sandor
 GayPornstarHarem.trollIdMapping = { 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8 };
-GayPornstarHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// ./src/config/game/HentaiHeroesVars.ts
 // Game-variant configuration for Hentai Heroes (the primary/default variant).
@@ -11459,7 +11464,6 @@ class HentaiHeroes {
 HentaiHeroes.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
 HentaiHeroes.trollIdMapping = { 21: 19, 24: 22 };
 HentaiHeroes.sideTrollIdMapping = { 22: 20, 23: 21 };
-HentaiHeroes.lastQuestId = 2412; //  TODO update when new quest comes
 
 ;// ./src/config/game/MangaRpgVars.ts
 // Game-variant configuration for Manga RPG.
@@ -11493,7 +11497,6 @@ class MangaRpg {
     }
 }
 MangaRpg.trollIdMapping = { 3: 3 };
-MangaRpg.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// ./src/config/game/PornstarHaremVars.ts
 // Game-variant configuration for Pornstar Harem.
@@ -11563,7 +11566,6 @@ class PornstarHarem {
     }
 }
 PornstarHarem.trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 26: 17, 27: 18, 28: 19 }; // under 10 id as usual
-PornstarHarem.lastQuestId = 16100; //  TODO update when new quest comes
 
 ;// ./src/config/game/TransPornstarHaremVars.ts
 // Game-variant configuration for Trans Pornstar Harem.
@@ -11610,7 +11612,6 @@ class TransPornstarHarem {
     }
 }
 TransPornstarHarem.trollIdMapping = { 2: 1, 3: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7, 11: 8, 13: 9, 14: 10, 15: 11 };
-TransPornstarHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// ./src/config/HHEnvVariables.ts
 // Per-environment (game variant) configuration for HHAuto.
@@ -11733,7 +11734,6 @@ HHEnvVariables["global"].trollIdMapping = []; // Empty means no specific mapping
 HHEnvVariables["global"].sideTrollIdMapping = []; // Empty means no specific mapping
 HHEnvVariables["global"].trollGirlsID = HentaiHeroes.getTrollGirlsId();
 HHEnvVariables["global"].sideTrollGirlsID = [];
-HHEnvVariables["global"].lastQuestId = -1; //  TODO update when new quest comes
 HHEnvVariables["global"].leaguesList = ["Wanker I",
     "Wanker II",
     "Wanker III",
@@ -12014,14 +12014,12 @@ for (const key in HentaiHeroes.getEnv()) {
     HHEnvVariables[element].sideTrollIdMapping = HentaiHeroes.sideTrollIdMapping;
     HHEnvVariables[element].sideTrollzList = HentaiHeroes.getSideTrolls(getLanguageCode());
     HHEnvVariables[element].sideTrollGirlsID = HentaiHeroes.getSideTrollGirlsId();
-    HHEnvVariables[element].lastQuestId = HentaiHeroes.lastQuestId;
 }
 for (const key in GayHarem.getEnv()) {
     const element = GayHarem.getEnv()[key].name;
     HHEnvVariables[element].trollzList = GayHarem.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollGirlsID = GayHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = GayHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = GayHarem.lastQuestId;
 }
 ;
 for (const key in ComixHarem.getEnv()) {
@@ -12029,7 +12027,6 @@ for (const key in ComixHarem.getEnv()) {
     HHEnvVariables[element].trollzList = ComixHarem.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollGirlsID = ComixHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = ComixHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = ComixHarem.lastQuestId;
     HHEnvVariables[element].boosterId_MB1 = 2619;
 }
 ;
@@ -12044,23 +12041,18 @@ HHEnvVariables["SH_prod"].isEnabledPantheon = false; // to remove when Pantheon 
 HHEnvVariables["SH_prod"].isEnabledLabyrinth = false; // to remove when Pantheon arrives in hornyheroes
 HHEnvVariables["SH_prod"].isEnabledPoV = false; // to remove when PoV arrives in hornyheroes
 HHEnvVariables["SH_prod"].isEnabledPoG = false; // to remove when PoG arrives in hornyheroes
-HHEnvVariables["SH_prod"].lastQuestId = -1; //  TODO update when new quest comes
 for (const key in MangaRpg.getEnv()) {
     const element = MangaRpg.getEnv()[key].name;
-    HHEnvVariables[element].lastQuestId = -1; //  TODO update when new quest comes
     HHEnvVariables[element].trollzList = MangaRpg.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollGirlsID = MangaRpg.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = MangaRpg.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = MangaRpg.lastQuestId;
     MangaRpg.updateFeatures(HHEnvVariables[element]);
 }
 ;
 for (const key in AmourAgent.getEnv()) {
     const element = AmourAgent.getEnv()[key].name;
-    HHEnvVariables[element].lastQuestId = -1; //  TODO update when new quest comes
     HHEnvVariables[element].trollzList = AmourAgent.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollIdMapping = AmourAgent.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = AmourAgent.lastQuestId;
     AmourAgent.updateFeatures(HHEnvVariables[element]);
 }
 ;
@@ -12068,7 +12060,6 @@ for (const key in PornstarHarem.getEnv()) {
     const element = PornstarHarem.getEnv()[key].name;
     HHEnvVariables[element].trollzList = PornstarHarem.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollIdMapping = PornstarHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = PornstarHarem.lastQuestId;
     HHEnvVariables[element].boosterId_MB1 = 2619;
     HHEnvVariables[element].trollGirlsID = PornstarHarem.getTrollGirlsId();
 }
@@ -12079,7 +12070,6 @@ for (const key in TransPornstarHarem.getEnv()) {
     TransPornstarHarem.updateFeatures(HHEnvVariables[element]);
     HHEnvVariables[element].trollGirlsID = TransPornstarHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = TransPornstarHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = TransPornstarHarem.lastQuestId;
     HHEnvVariables[element].boosterId_MB1 = 2619;
 }
 ;
@@ -12089,7 +12079,6 @@ for (const key in GayPornstarHarem.getEnv()) {
     GayPornstarHarem.updateFeatures(HHEnvVariables[element]);
     HHEnvVariables[element].trollGirlsID = GayPornstarHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = GayPornstarHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = GayPornstarHarem.lastQuestId;
     HHEnvVariables[element].boosterId_MB1 = 2619;
 }
 ;
@@ -21975,44 +21964,94 @@ class QuestHelper {
     static getEnergyMax() {
         return Number(getHHVars('Hero.energies.quest.max_regen_amount'));
     }
+    static isMainQuestEnabled() {
+        return getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true";
+    }
+    static isSideQuestEnabled() {
+        return ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true";
+    }
+    /** The game's own record of the main adventure, or null where the page carries none. */
+    static readMainQuestState() {
+        const id_quest = Number(getHHVars('Hero.infos.questing.id_quest', false));
+        const current_url = getHHVars('Hero.infos.questing.current_url', false);
+        if (!id_quest || typeof current_url !== 'string')
+            return null;
+        return { id_quest, current_url };
+    }
+    /**
+     * Whether the game has moved past the end that was seen. Only changes in
+     * one direction count -- a higher quest id, or a world URL turned into a
+     * quest URL -- so a value that differs between pages cannot end the pause
+     * on every tick.
+     */
+    static hasNewMainQuest(seen, now) {
+        return now.id_quest > seen.id_quest
+            || (seen.current_url.includes("world") && now.current_url.startsWith("/quest/"));
+    }
+    /** A pause longer than END_PAUSE_SECS comes from a build that paused for a week. */
+    static dropWeekLongPause(timer) {
+        if (getSecondsLeft(timer) > QuestHelper.END_PAUSE_SECS) {
+            logHHAuto(`${timer} was set for a week by an older version, checking quests again now.`);
+            clearTimer(timer);
+        }
+    }
+    static isMainQuestDue() {
+        if (!QuestHelper.isMainQuestEnabled())
+            return false;
+        QuestHelper.dropWeekLongPause(QuestHelper.MAIN_TIMER);
+        if (checkTimer(QuestHelper.MAIN_TIMER))
+            return true;
+        const seen = getStoredJSON(HHStoredVarPrefixKey + TK.questEndSeen, null);
+        const now = QuestHelper.readMainQuestState();
+        if (seen && now && QuestHelper.hasNewMainQuest(seen, now)) {
+            logHHAuto(`New main quest released (quest ${seen.id_quest} -> ${now.id_quest}, ${now.current_url}), ending the pause.`);
+            clearTimer(QuestHelper.MAIN_TIMER);
+            deleteStoredValue(HHStoredVarPrefixKey + TK.questEndSeen);
+            return true;
+        }
+        return false;
+    }
+    static isSideQuestDue() {
+        if (!QuestHelper.isSideQuestEnabled())
+            return false;
+        QuestHelper.dropWeekLongPause(QuestHelper.SIDE_TIMER);
+        return checkTimer(QuestHelper.SIDE_TIMER);
+    }
+    /** Main quests have reached the end of what is released. */
+    static pauseMainQuests() {
+        logHHAuto(`Main quest ${window.location.pathname} is finished and no next one is released, checking again in ${QuestHelper.END_PAUSE_SECS / 3600} h.`);
+        setTimer(QuestHelper.MAIN_TIMER, QuestHelper.END_PAUSE_SECS);
+        const now = QuestHelper.readMainQuestState();
+        if (now)
+            setStoredValue(HHStoredVarPrefixKey + TK.questEndSeen, JSON.stringify(now));
+    }
+    /** The game's view of a finished quest: archive arrows, no step button. */
+    static isArchiveView() {
+        return $('#controls #archive-back, #controls #archive-next').length > 0
+            && $('#controls button.next-button').length === 0;
+    }
     static getNextQuestLink() {
-        const mainQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true";
-        const sideQuest = ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true";
-        let nextQuestUrl = QuestHelper.getMainQuestUrl();
-        if ((mainQuest && sideQuest && (nextQuestUrl.includes("world"))) || (!mainQuest && sideQuest)) {
-            nextQuestUrl = QuestHelper.SITE_QUEST_PAGE;
-        }
-        else if (nextQuestUrl.includes("world")) {
-            return undefined;
-        }
-        return nextQuestUrl;
+        if (QuestHelper.isMainQuestDue())
+            return QuestHelper.getMainQuestUrl();
+        if (QuestHelper.isSideQuestDue())
+            return QuestHelper.SITE_QUEST_PAGE;
+        return undefined;
     }
     static getMainQuestUrl() {
-        let mainQuestUrl = getHHVars('Hero.infos.questing.current_url');
-        const id_world = Number(getHHVars('Hero.infos.questing.id_world'));
-        const id_quest = Number(getHHVars('Hero.infos.questing.id_quest'));
-        const lastQuestId = ConfigHelper.getHHScriptVars("lastQuestId", false);
-        const trollz = ConfigHelper.getHHScriptVars("trollzList");
-        // Fix when KK quest url is world url: force the direct /quest/<id>
-        // URL only while the player still has a known next main quest ahead.
-        // Use `<` (not `!=`) against lastQuestId: once id_quest reaches or
-        // passes our last-known quest id, trust the game's current_url (a world
-        // url at end-of-content) instead of forcing navigation into the newest
-        // quest screen. A stale lastQuestId (game added quests we do not know
-        // about yet) otherwise force-navigates onto that end-of-content screen,
-        // where the unrecognized button trips the unknownQuestButton path and
-        // switches auto main/side quest off (regression of the issue #1773 fix).
-        if (id_world < (trollz.length) || (lastQuestId > 0 && id_quest < lastQuestId)) {
-            mainQuestUrl = "/quest/" + id_quest;
-        }
-        return mainQuestUrl;
+        return "/quest/" + getHHVars('Hero.infos.questing.id_quest');
+    }
+    static gotoNextQuestOrHome() {
+        const nextQuestUrl = QuestHelper.getNextQuestLink();
+        if (nextQuestUrl !== undefined)
+            return gotoPage(nextQuestUrl);
+        return gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
     }
     static run() {
         // Check if at correct page.
         const page = getPage();
         const mainQuestUrl = QuestHelper.getMainQuestUrl();
-        const doMainQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
-        if (!doMainQuest && page === 'side-quests' && ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true") {
+        const doMainQuest = QuestHelper.isMainQuestDue();
+        if (!doMainQuest && page === 'side-quests' && QuestHelper.isSideQuestDue()) {
             var quests = $('.side-quest:has(.slot) .side-quest-button');
             let navOk;
             if (quests.length > 0) {
@@ -22020,11 +22059,8 @@ class QuestHelper {
                 navOk = gotoPage(quests.attr('href'));
             }
             else {
-                logHHAuto("All quests finished, setting timer to check back later!");
-                if (checkTimer('nextMainQuestAttempt')) {
-                    setTimer('nextMainQuestAttempt', 604800);
-                } // 1 week delay
-                setTimer('nextSideQuestAttempt', 604800); // 1 week delay
+                logHHAuto(`All released side quests are done, checking again in ${QuestHelper.END_PAUSE_SECS / 3600} h.`);
+                setTimer(QuestHelper.SIDE_TIMER, QuestHelper.END_PAUSE_SECS);
                 // Navigate away from /side-quests.html instead of reloading the
                 // same URL: the page id `side-quests` is not in the script's
                 // pagesKnownList, so subsequent autoLoop iterations would keep
@@ -22036,21 +22072,8 @@ class QuestHelper {
         }
         if (page !== ConfigHelper.getHHScriptVars("pagesIDQuest") || (doMainQuest && mainQuestUrl.split("?")[0] != window.location.pathname)) {
             // Resolve the next quest URL here; the navigation service does
-            // not know about the Quest module. When all quests are done, fall
-            // back to the home page and arm the back-off timer.
-            const nextQuestUrl = QuestHelper.getNextQuestLink();
-            let navOk;
-            if (nextQuestUrl !== undefined) {
-                navOk = gotoPage(nextQuestUrl);
-            }
-            else {
-                logHHAuto("All quests finished, setting timer to check back later!");
-                if (checkTimer('nextMainQuestAttempt')) {
-                    setTimer('nextMainQuestAttempt', 604800); // 1 week delay
-                }
-                navOk = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            }
-            return navOk;
+            // not know about the Quest module.
+            return QuestHelper.gotoNextQuestOrHome();
         }
         $("#popup_message close").trigger('click');
         // The level-up popup carries no `close` element at all. Measured
@@ -22115,6 +22138,17 @@ class QuestHelper {
         // triggers every element of the set, so the skip button would be
         // pressed alongside the real one and leave its koban confirmation
         // sitting over the quest.
+        // Before the button search: the archive arrows are buttons too, and
+        // read as an unknown proceed button they switch auto quest off (#1773).
+        if (QuestHelper.isArchiveView()) {
+            if (doMainQuest && window.location.pathname === mainQuestUrl) {
+                QuestHelper.pauseMainQuests();
+            }
+            else {
+                logHHAuto("Quest page shows a finished quest, leaving it.");
+            }
+            return QuestHelper.gotoNextQuestOrHome();
+        }
         const notSkip = ":not(#skip-quest)";
         const notAdOrHidden = ":not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])";
         var proceedButtonMatch = $("#controls button" + notAdOrHidden + notSkip);
@@ -22199,7 +22233,8 @@ class QuestHelper {
             setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "outfit");
         }
         else {
-            logHHAuto("Could not identify given resume button.");
+            logHHAuto("Could not identify given resume button: " + proceedType + ", #controls buttons: "
+                + $('#controls button').map((_i, b) => b.id || b.className).get().join(', '));
             setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "unknownQuestButton");
             return true;
         }
@@ -22220,6 +22255,28 @@ QuestHelper.SITE_QUEST_PAGE = '/side-quests.html';
  *  about 20 minutes. */
 QuestHelper.NO_MONEY_TIMER = 'nextQuestMoneyAttempt';
 QuestHelper.NO_MONEY_BACKOFF_SECS = 1200;
+/*
+ * The end of the released quests (#1909).
+ *
+ * The game releases new main and side quests now and then. When the
+ * released ones are done, each kind pauses on its own timer and checks
+ * again after END_PAUSE_SECS. The pause used to be a week and shared by
+ * both kinds: a player who had finished the side quests waited a week for
+ * a main quest the game had released the day after, and only clearing the
+ * temp storage brought the quests back.
+ *
+ * The end is read off the quest page itself, not off a quest id kept in
+ * the code. The main quest is always opened as /quest/<id_quest>; a quest
+ * that is finished shows the game's archive view (`#archive-back` /
+ * `#archive-next`, built by quest.js buildArchiveNavigation) and no
+ * `.next-button`. Every step quest.js getButtonDetails knows -- next,
+ * use, fight, use item, claim reward, finish, outfit -- is rendered by
+ * buildButtonHtml with that class. `current_url` is not trusted on its own: it comes from
+ * the server only, and in #921 it named the world while a quest was open.
+ */
+QuestHelper.END_PAUSE_SECS = 86400;
+QuestHelper.MAIN_TIMER = 'nextMainQuestAttempt';
+QuestHelper.SIDE_TIMER = 'nextSideQuestAttempt';
 
 ;// ./src/Module/PentaDrill.ts
 var PentaDrill_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -41959,7 +42016,7 @@ function questIdle(ctx) {
         return ctx.currentPower < Number(req.substr(1)) ? { blocked: true } : null;
     }
     if (req === 'none') {
-        if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')
+        if ((QuestHelper.isMainQuestDue() || QuestHelper.isSideQuestDue())
             && (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold))
                 || ParanoiaService.checkParanoiaSpendings('quest') > 0))
             return null;
@@ -42162,7 +42219,9 @@ const handleQuest = {
                         ctx.busy = false;
                     }
                     else if (questRequirement === 'none') {
-                        if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
+                        // Main and side quests pause apart: the end of one kind does not
+                        // hold the other (#1909).
+                        if (QuestHelper.isMainQuestDue() || QuestHelper.isSideQuestDue()) {
                             if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
                                 ctx.busy = QuestHelper.run();
                             }

@@ -658,6 +658,7 @@ shown in the info panel as "Auto-Mystery").
 | `seasonTarget` | `Temp_seasonTarget` | `sessionStorage` | `Temp` | a season target runs: wins or fights, the target, whether kisses may be bought, the count so far, the fight launched and not yet counted (opponent, mojo and kisses before it), whether paranoia sent the script to rest, and -- once it ended for a reason the player did not cause -- the end reason and time, kept as the result notice until dismissed or 30 minutes (`SeasonTarget`) |
 | `labyrinthDraws` | `Temp_labyrinthDraws` | `sessionStorage` | `Temp` | the labyrinth opponent picked last (floor/row/hex, its power, the squad's health), whether the script fought it since, the draws in a row against it, and the end of the pause three draws cause (`LabyrinthAuto`) |
 | `labyrinthEditorStuck` | `Temp_labyrinthEditorStuck` | `sessionStorage` | `Temp` | when the labyrinth team editor was reloaded because Validate stayed disabled on a full team; a second time within ten minutes pauses the labyrinth (`LabyrinthAuto`) |
+| `questEndSeen` | `Temp_questEndSeen` | `sessionStorage` | `Temp` | `id_quest` and `current_url` of the main adventure when its quests ran out; a higher id, or a world URL turned into a quest URL, ends the 24 h pause early (`Quest`) |
 
 ### Pipeline scheduler
 

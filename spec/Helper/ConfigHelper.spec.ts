@@ -9,7 +9,7 @@ import { MockHelper } from '../testHelpers/MockHelpers';
  * The per-domain smoke table and the getHHScriptVars value assertions were
  * removed in the spec triage (2026-08): they queried the registry in
  * src/config/game/*Vars.ts backwards and asserted the same literals it
- * defines, so a stale entry (lastQuestId, boosterId_MB1, a renamed host)
+ * defines, so a stale entry (boosterId_MB1, a renamed host)
  * stayed green by construction. Those values are only provable against the
  * running game and belong in the live check.
  */
