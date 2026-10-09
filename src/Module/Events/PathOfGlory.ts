@@ -12,7 +12,7 @@ import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
-import { TimeHelper, convertTimeToInt, getLimitTimeBeforeEnd, randomInterval } from "../../Helper/TimeHelper";
+import { TimeHelper, convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, collectAllDelay } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
@@ -80,21 +80,27 @@ export class PathOfGlory {
             // it an unknown remaining time opened the collect-all gate at any
             // distance from the event end -- and collect-all bypasses the
             // player's own tier filter.
-            if (checkTimer('nextPoGCollectAllTime') && pogEnd > 0 && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true")
+            //
+            // No check of the collect-all timer here: that timer only
+            // schedules the script's own visit. Once on the page inside the
+            // final window, the sweep runs whatever brought the script here
+            // -- the collect round used to arrive seconds before that timer
+            // ran out and push it back 6 h.
+            if (pogEnd > 0 && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true")
             {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0)
                 {
                     logHHAuto("Going to collect all POG item at once.");
                     setTimeout(function (){
                         $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
-                        setTimer('nextPoGCollectAllTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180)); // Add timer to check again later if there is new items to collect
+                        setTimer('nextPoGCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), pogEnd)); // Add timer to check again later if there is new items to collect
                         setTimeout(function (){gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));},500);
                     },500);
                     return true;
                 }
                 else
                 {
-                    setTimer('nextPoGCollectAllTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                    setTimer('nextPoGCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), pogEnd));
                 }
             }
             // "Collect all" is the final-window sweep above, not a second
@@ -136,7 +142,7 @@ export class PathOfGlory {
                 {
                     logHHAuto("No Path of Glory reward to collect.");
                     setTimer('nextPoGCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                    setTimer('nextPoGCollectAllTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                    setTimer('nextPoGCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), pogEnd));
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     return false;
                 }

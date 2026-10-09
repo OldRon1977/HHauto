@@ -14,7 +14,7 @@ import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../Helper/StorageHelper";
-import { getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../Helper/TimeHelper";
+import { getLimitTimeBeforeEnd, randomInterval, TimeHelper, collectAllDelay } from "../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../Helper/TimerHelper";
 import { pInfoRow } from "../Utils/PInfoRow";
 import { addNutakuSession, gotoPage, safeNavigateHref } from "../Service/PageNavigationService";
@@ -232,21 +232,26 @@ export class PentaDrill {
             const PentaDrillEnd = getSecondsLeft("pentaDrillRemainingTime");
             logHHAuto("PentaDrill end in " + TimeHelper.debugDate(PentaDrillEnd));
 
-            if (checkTimer('nextPentaDrillCollectAllTime') && PentaDrillEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPentaDrillCollectAll) === "true")
+            // With a known remaining time inside the final window the sweep runs
+            // on every visit; the collect-all timer only schedules the script's own
+            // visit. The collect round used to arrive seconds before that timer ran
+            // out and push it back 6 h. An unknown or expired end (0) keeps the
+            // timer, as before.
+            if ((PentaDrillEnd > 0 || checkTimer('nextPentaDrillCollectAllTime')) && PentaDrillEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPentaDrillCollectAll) === "true")
             {
                 if($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0)
                 {
                     logHHAuto("Going to collect all PentaDrill item at once.");
                     setTimeout(function (){
                         $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
-                        setTimer('nextPentaDrillCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180)); // Add timer to check again later if there is new items to collect
+                        setTimer('nextPentaDrillCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), PentaDrillEnd)); // Add timer to check again later if there is new items to collect
                         setTimeout(function (){gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));},500);
                     },500);
                     return true;
                 }
                 else
                 {
-                    setTimer('nextPentaDrillCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                    setTimer('nextPentaDrillCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), PentaDrillEnd));
                 }
             }
             if (checkTimer('nextPentaDrillCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoPentaDrillCollect) === "true")
@@ -323,7 +328,7 @@ export class PentaDrill {
                 {
                     logHHAuto("No PentaDrill collection to do.");
                     setTimer('nextPentaDrillCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                    setTimer('nextPentaDrillCollectAllTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                    setTimer('nextPentaDrillCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), PentaDrillEnd));
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     return false;
                 }

@@ -19,7 +19,7 @@ import { NumberHelper } from "../../Helper/NumberHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
-import { getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
+import { getLimitTimeBeforeEnd, randomInterval, TimeHelper, collectAllDelay } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../../Helper/TimerHelper";
 import { pInfoRow } from "../../Utils/PInfoRow";
 import { addNutakuSession, gotoPage, safeNavigateHref, safeReload } from "../../Service/PageNavigationService";
@@ -566,21 +566,26 @@ export class Season {
             const seasonEnd = getSecondsLeft("SeasonRemainingTime");
             logHHAuto("Season end in " + TimeHelper.debugDate(seasonEnd));
 
-            if (checkTimer('nextSeasonCollectAllTime') && seasonEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonCollectAll) === "true")
+            // With a known remaining time inside the final window the sweep runs
+            // on every visit; the collect-all timer only schedules the script's own
+            // visit. The collect round used to arrive seconds before that timer ran
+            // out and push it back 6 h. An unknown or expired end (0) keeps the
+            // timer, as before.
+            if ((seasonEnd > 0 || checkTimer('nextSeasonCollectAllTime')) && seasonEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonCollectAll) === "true")
             {
                 if($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0)
                 {
                     logHHAuto("Going to collect all Season item at once.");
                     setTimeout(function (){
                         $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
-                        setTimer('nextSeasonCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180)); // Add timer to check again later if there is new items to collect
+                        setTimer('nextSeasonCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), seasonEnd)); // Add timer to check again later if there is new items to collect
                         setTimeout(function (){gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));},500);
                     },500);
                     return true;
                 }
                 else
                 {
-                    setTimer('nextSeasonCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                    setTimer('nextSeasonCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), seasonEnd));
                 }
             }
             if (checkTimer('nextSeasonCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonCollect) === "true")
@@ -675,7 +680,7 @@ export class Season {
                 {
                     logHHAuto("No season collection to do.");
                     setTimer('nextSeasonCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                    setTimer('nextSeasonCollectAllTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                    setTimer('nextSeasonCollectAllTime', collectAllDelay(ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180), seasonEnd));
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     return false;
                 }

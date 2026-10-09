@@ -129,6 +129,24 @@ export function getLimitTimeBeforeEnd(){
     return Number(getStoredValue(HHStoredVarPrefixKey+SK.collectAllTimer)) * 3600;
 }
 
+/**
+ * Delay for re-arming a collect-all timer. Rewards keep arriving inside the
+ * final window -- a league fight can reach the next tier after the sweep --
+ * so two points must not be skipped by a fixed delay:
+ * - the opening of the window, while it lies ahead;
+ * - a last sweep 10 to 15 minutes before the end, while there is time left
+ *   for it. Inside those last 20 minutes the delay stays as it is, so the
+ *   script does not look again every few minutes until the end.
+ * An unknown or expired end (0) leaves the delay as it is.
+ */
+export function collectAllDelay(delay: number, secondsToEnd: number): number {
+    if (secondsToEnd <= 0) return delay;
+    const untilWindow = secondsToEnd - getLimitTimeBeforeEnd();
+    if (untilWindow > 0) return Math.min(delay, untilWindow + randomInterval(60, 180));
+    if (secondsToEnd > 20 * 60) return Math.min(delay, secondsToEnd - randomInterval(10 * 60, 15 * 60));
+    return delay;
+}
+
 
 export function randomInterval(min: number, max: number): number // min and max included
 {
