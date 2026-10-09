@@ -10,8 +10,8 @@ Older entries below were migrated 1:1 from `README.md`.
 ### v8.19.5 - Collect all within the collect-all timer
 
 - **Collect all** (Path of Valor, Path of Glory, Season, Seasonal event,
-  Penta Drill): the sweep runs on every visit to the event page once the
-  event is inside the window set by **Collect all timer**. Before, a visit
+  Penta Drill): the sweep runs on every visit the script makes to the event
+  page once the event is inside the window set by **Collect all timer**. Before, a visit
   for the routine collection could arrive shortly before the script's own
   collect-all check was due, skip the sweep and push that check back six
   hours -- on a user log, Path of Valor had 9 h 34 min left with a 12 h
