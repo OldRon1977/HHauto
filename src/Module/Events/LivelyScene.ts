@@ -175,8 +175,7 @@ export class LivelyScene {
                             // pieces and cannot become a reload loop (#1738).
                             markEventStale(queryStringGetParam(window.location.search, 'tab') || '');
                             claimed = true;
-                            RewardHelper.closeRewardPopupIfAny() // reloads the page;
-                            await TimeHelper.sleep(randomInterval(400, 700));
+                            await RewardHelper.closeReloadingRewardPopup();
                             return true;
                         }
                     }

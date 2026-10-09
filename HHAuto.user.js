@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.5
+// @version      8.19.6
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -12153,6 +12153,45 @@ const LEAGUE_SORT = {
     POWERCALC: '2',
 };
 
+;// ./src/Service/AutoLoopKick.ts
+// AutoLoopKick.ts -- The one seam a module uses to restart the auto-loop
+// after it has switched it off for an action.
+//
+// A module that sets `Temp_autoLoop` to "false" for the length of an action
+// has to start the loop again afterwards, and the obvious way to do that --
+// `import { autoLoop } from "../Service/AutoLoop"` -- is what made seven
+// modules members of the baseline import cycles. Measured 2026-09-09 by
+// removing exactly those seven edges and re-running madge: **84 cycles with
+// them, 52 without** (ADR-008 / ARCH-001).
+//
+// So the reference comes from the boot path instead, the same way
+// `setPachinkoAutoLoopKick` and `setHeroAutoLoopKick` already worked. Those
+// two keep their own setters: they are wired and tested, and moving them here
+// would not remove a single cycle.
+//
+// This file imports nothing on purpose. A leaf cannot join a cycle, so the
+// seam can never become the problem it was written to solve -- not even for
+// the storage read that supplies the delay, which is why the delay is the
+// caller's to pass.
+//
+// Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts, TeamSelectionPopup.ts,
+//   TeamGear.ts, DoublePenetration.ts, PathOfAttraction.ts, WorkPause.ts, RewardHelper.ts;
+//   wired in index.ts
+let kick = () => { };
+/** Wired once from the boot path with the real autoLoop. */
+function setAutoLoopKick(fn) {
+    kick = fn;
+}
+/**
+ * Restart the auto-loop after `delayMs`.
+ *
+ * The reference is read when the timer fires, not when it is scheduled, so a
+ * kick scheduled before the boot path wired one still runs the real loop.
+ */
+function kickAutoLoop(delayMs) {
+    setTimeout(() => kick(), delayMs);
+}
+
 ;// ./src/Module/Events/BossBang.ts
 var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -12431,44 +12470,6 @@ function getGoToChangeTeamButton(battleType = 'leagues') {
 }
 function getGoToClubChampionButton() {
     return `<button data-href="${ConfigHelper.getHHScriptVars("pagesURLClubChampion")}" class="blue_button_L hh-club-poa">${getTextForUI("goToClubChampions", "elementText")}</button>`;
-}
-
-;// ./src/Service/AutoLoopKick.ts
-// AutoLoopKick.ts -- The one seam a module uses to restart the auto-loop
-// after it has switched it off for an action.
-//
-// A module that sets `Temp_autoLoop` to "false" for the length of an action
-// has to start the loop again afterwards, and the obvious way to do that --
-// `import { autoLoop } from "../Service/AutoLoop"` -- is what made seven
-// modules members of the baseline import cycles. Measured 2026-09-09 by
-// removing exactly those seven edges and re-running madge: **84 cycles with
-// them, 52 without** (ADR-008 / ARCH-001).
-//
-// So the reference comes from the boot path instead, the same way
-// `setPachinkoAutoLoopKick` and `setHeroAutoLoopKick` already worked. Those
-// two keep their own setters: they are wired and tested, and moving them here
-// would not remove a single cycle.
-//
-// This file imports nothing on purpose. A leaf cannot join a cycle, so the
-// seam can never become the problem it was written to solve -- not even for
-// the storage read that supplies the delay, which is why the delay is the
-// caller's to pass.
-//
-// Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts, TeamSelectionPopup.ts,
-//   TeamGear.ts, DoublePenetration.ts, PathOfAttraction.ts, WorkPause.ts; wired in index.ts
-let kick = () => { };
-/** Wired once from the boot path with the real autoLoop. */
-function setAutoLoopKick(fn) {
-    kick = fn;
-}
-/**
- * Restart the auto-loop after `delayMs`.
- *
- * The reference is read when the timer fires, not when it is scheduled, so a
- * kick scheduled before the boot path wired one still runs the real loop.
- */
-function kickAutoLoop(delayMs) {
-    setTimeout(() => kick(), delayMs);
 }
 
 ;// ./src/Service/FeatureGate.pure.ts
@@ -13165,8 +13166,7 @@ class LivelyScene {
                                 // pieces and cannot become a reload loop (#1738).
                                 markEventStale(queryStringGetParam(window.location.search, 'tab') || '');
                                 claimed = true;
-                                RewardHelper.closeRewardPopupIfAny(); // reloads the page;
-                                yield TimeHelper.sleep(randomInterval(400, 700));
+                                yield RewardHelper.closeReloadingRewardPopup();
                                 return true;
                             }
                         }
@@ -13783,11 +13783,7 @@ class PathOfAttraction {
                         reward.slot.trigger('click');
                         yield TimeHelper.sleep(randomInterval(300, 800));
                         $(PathOfAttraction.getRewardButtonPath).trigger('click');
-                        yield TimeHelper.sleep(randomInterval(300, 800));
-                        RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
-                        yield TimeHelper.sleep(randomInterval(1000, 1500)); // Do not collect before page refresh
-                        RewardHelper.closeRewardPopupIfAny(); // Close reward popup
-                        yield TimeHelper.sleep(randomInterval(1000, 1500));
+                        yield RewardHelper.closeReloadingRewardPopup();
                     });
                 }
                 logHHAuto("numberTiers: " + numberTiers);
@@ -15511,6 +15507,15 @@ class LoveRaidManager {
 }
 
 ;// ./src/Helper/RewardHelper.ts
+var RewardHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 // RewardHelper.ts
 //
 // Detects, classifies, and renders in-game reward slots. The game
@@ -15545,6 +15550,12 @@ class LoveRaidManager {
 
 
 
+
+// closeReloadingRewardPopup: polls rather than a deadline, so a test with a
+// stubbed sleep runs a bounded number of rounds.
+const RELOADING_POPUP_POLL_MS = 250;
+const RELOADING_POPUP_POLLS = 60;
+const RELOADING_POPUP_RELOAD_WAIT_MS = 10000;
 class RewardHelper {
     static getRewardTypeBySlot(inSlot) {
         var _a, _b;
@@ -15830,6 +15841,47 @@ class RewardHelper {
             return true;
         }
         return false;
+    }
+    /**
+     * Close the reward popup of a claim whose close reloads the page, and make
+     * sure the run goes on when it does not.
+     *
+     * Path of Attraction and Lively Scene hand the game's popup
+     * `redirectUrl = location.href`: closing it reloads the page, and the
+     * reload is what continues the sweep. Both switch autoLoop off for the
+     * claim, so a popup the script never closes leaves nothing running -- no
+     * tick, no reload, until the player reloads by hand (#1908).
+     *
+     * The popup follows the claim's AJAX answer. Measured on the PoA page
+     * with the answer held back 3.5 s: the popup came at about 4 s, after both
+     * of the fixed-time looks the collector used to take (300-800 ms and
+     * 1.3-2.3 s after the click), and the page stood still for the 75 s
+     * watched. So the popup is waited for, up to the same 15 s the AJAX-idle
+     * wait allows a slow claim.
+     *
+     * No popup within that: autoLoop goes back on and the next tick decides.
+     * Popup closed but the page still here after the reload wait: reload it
+     * the way the game would have. Neither path reloads without a popup, so
+     * a claim that keeps failing cannot turn into a reload loop.
+     */
+    static closeReloadingRewardPopup() {
+        return RewardHelper_awaiter(this, void 0, void 0, function* () {
+            let closed = false;
+            for (let poll = 0; poll < RELOADING_POPUP_POLLS && !closed; poll++) {
+                closed = !!RewardHelper.closeRewardPopupIfAny();
+                if (!closed)
+                    yield TimeHelper.sleep(RELOADING_POPUP_POLL_MS);
+            }
+            if (!closed) {
+                logHHAuto(`Reward popup did not appear within ${RELOADING_POPUP_POLLS * RELOADING_POPUP_POLL_MS / 1000}s, restarting the loop.`);
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                return;
+            }
+            yield TimeHelper.sleep(RELOADING_POPUP_RELOAD_WAIT_MS);
+            logHHAuto("Page did not reload after the reward popup closed, reloading it.");
+            safeReload();
+        });
     }
     static closeGirlRewardPopupIfAny(logging = true, popupId = '') {
         const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;

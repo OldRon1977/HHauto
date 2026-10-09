@@ -98,7 +98,7 @@ describe("PathOfAttraction -- #1846", () => {
         // Stand-in for the click sequence, so no test ever drives the real
         // slot/confirm clicks. Spying on the popup closer is enough: it is the
         // step that would reload the page.
-        getRewardSpy = jest.spyOn(RewardHelper, "closeRewardPopupIfAny").mockImplementation(() => undefined as never);
+        getRewardSpy = jest.spyOn(RewardHelper, "closeReloadingRewardPopup").mockResolvedValue(undefined);
         setSetting(SK.showClubButtonInPoa, "false");
         setSetting(SK.collectAllTimer, "12");
         setSetting(TK.poaManualCollectAll, "false");

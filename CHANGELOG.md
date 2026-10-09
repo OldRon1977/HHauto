@@ -7,6 +7,17 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.6 - Path of Attraction: no standstill after a claim
+
+- **Path of Attraction**: after claiming a reward the script no longer
+  stands still until the page is reloaded by hand. It looked for the reward
+  popup only within the first two seconds after the claim; when the game's
+  answer took longer, the popup stayed open and the automation stayed off.
+  The script now waits up to 15 seconds for the popup. If none comes, the
+  automation carries on; if the page does not reload after the popup closes,
+  the script reloads it.
+- **Lively Scene** collects through the same path.
+
 ### v8.19.5 - Collect all within the collect-all timer
 
 - **Collect all** (Path of Valor, Path of Glory, Season, Seasonal event,

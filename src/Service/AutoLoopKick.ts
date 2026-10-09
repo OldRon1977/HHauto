@@ -19,7 +19,8 @@
 // caller's to pass.
 //
 // Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts, TeamSelectionPopup.ts,
-//   TeamGear.ts, DoublePenetration.ts, PathOfAttraction.ts, WorkPause.ts; wired in index.ts
+//   TeamGear.ts, DoublePenetration.ts, PathOfAttraction.ts, WorkPause.ts, RewardHelper.ts;
+//   wired in index.ts
 
 let kick: () => void = () => {};
 
