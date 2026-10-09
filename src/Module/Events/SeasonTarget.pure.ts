@@ -15,8 +15,10 @@ export interface SeasonTargetPending {
     /** window.season_mojo_s on the arena before the fight. */
     mojoBefore: number;
     kissBefore: number;
-    /** When the fight was launched -- only a page loaded after it may count it. */
+    /** When the fight was launched. */
     at: number;
+    /** Set on the battle page of this opponent: the fight ran, the arena may count it. */
+    fought?: boolean;
 }
 
 /** What the target keeps in sessionStorage (Temp_seasonTarget). */
@@ -56,6 +58,21 @@ export function fightOutcome(pending: SeasonTargetPending, mojoNow: number, kiss
     if (mojoNow > pending.mojoBefore) return 'won';
     if (mojoNow < pending.mojoBefore) return 'lost';
     return kissNow < pending.kissBefore ? 'unknown' : 'none';
+}
+
+/**
+ * Whether the arena may count the pending fight: only after the target has
+ * stood on its battle page (#1801).
+ *
+ * This used to compare `performance.timeOrigin` of the arena page with the
+ * launch time. In a Firefox log the arena page loaded after the fight
+ * counted only when it came more than about 6 s (one run) or 7.4 s (another)
+ * after the launch -- most come 5.6 to 7.3 s after it -- so 34 of 36 fights in
+ * one run went uncounted. The page clock is not the launch clock; a step the
+ * target takes itself is.
+ */
+export function mayCountFight(pending: SeasonTargetPending | undefined): boolean {
+    return pending?.fought === true;
 }
 
 /** The state after counting the pending fight; `pending` is gone either way. */
