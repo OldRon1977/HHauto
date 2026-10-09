@@ -48,6 +48,11 @@ jest.mock('../../src/Module/Quest', () => ({
     getEnergy: jest.fn().mockReturnValue(0),
     run: jest.fn(),
     NO_MONEY_TIMER: 'nextQuestMoneyAttempt',
+    // Due as long as the pause timer has run out: the tests here drive the
+    // pauses through the checkTimer mock. Quest.spec covers what else ends
+    // a pause.
+    isMainQuestDue: jest.fn(() => jest.requireMock('../../src/Helper/TimerHelper').checkTimer('nextMainQuestAttempt')),
+    isSideQuestDue: jest.fn(() => jest.requireMock('../../src/Helper/TimerHelper').checkTimer('nextSideQuestAttempt')),
   },
 }));
 

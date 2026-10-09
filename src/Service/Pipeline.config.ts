@@ -1094,7 +1094,7 @@ function questIdle(ctx: AutoLoopContext): { blocked: boolean } | null {
     return ctx.currentPower < Number(req.substr(1)) ? { blocked: true } : null;
   }
   if (req === 'none') {
-    if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')
+    if ((QuestHelper.isMainQuestDue() || QuestHelper.isSideQuestDue())
         && (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold))
             || ParanoiaService.checkParanoiaSpendings('quest') > 0)) return null;
     return { blocked: false };
@@ -1281,7 +1281,9 @@ const handleQuest: HandlerConfig = {
           setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
           ctx.busy = false;
         } else if (questRequirement === 'none') {
-          if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
+          // Main and side quests pause apart: the end of one kind does not
+          // hold the other (#1909).
+          if (QuestHelper.isMainQuestDue() || QuestHelper.isSideQuestDue()) {
             if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
               ctx.busy = QuestHelper.run();
             }

@@ -1,4 +1,5 @@
 import { QuestHelper } from '../../src/Module/Quest';
+import { ConfigHelper } from '../../src/Helper/ConfigHelper';
 import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
 import { SK, TK } from '../../src/config/StorageKeys';
 import { MockHelper } from '../testHelpers/MockHelpers';
@@ -6,6 +7,7 @@ import * as PageHelper from '../../src/Helper/PageHelper';
 import type { KKHero } from '../../src/model/KK/KKHero';
 import { getStoredValue } from '../../src/Helper/StorageHelper';
 import { checkTimer, getSecondsLeft, setTimers } from '../../src/Helper/TimerHelper';
+import * as PageNavigation from '../../src/Service/PageNavigationService';
 
 // The level-up popup measured on a live account, 2026-09-09. It carries no
 // `close` element -- hidden ones included -- so the selector the script used
@@ -275,5 +277,142 @@ describe('QuestHelper.run: the game refuses a step for money', function () {
 
         expect(pressed).toHaveBeenCalled();
         expect(checkTimer(QuestHelper.NO_MONEY_TIMER)).toBe(true);
+    });
+});
+
+/**
+ * The end of the released quests (#1909). The archive markup is quest.js
+ * buildArchiveNavigation as served on 2026-10-09: a finished quest shows the
+ * two arrows and no `.next-button`. Every open step -- including a fight
+ * (`battle`, `troll-button`) and claiming the reward (`end_play`,
+ * `quest-claim-reward-btn`) -- is a `.next-button`.
+ */
+const ARCHIVE_VIEW = `<div id="controls"><div class="archive-controls">
+    <button id="archive-back" class="finished round_blue_button"><img></button>
+    <button id="archive-next" class="finished round_blue_button"><img class="end"><img class="continue"></button>
+  </div></div>`;
+const BATTLE_STEP = `<div id="controls">
+    <button id="battle" class="next-button green_text_button troll-button inactive_btn"><div class="action-label">Fight</div></button>
+  </div>`;
+const CLAIM_STEP = `<div id="controls">
+    <button id="end_play" class="next-button purple_text_button quest-claim-reward-btn"><div class="action-label">The end</div></button>
+  </div>`;
+
+describe('QuestHelper: the end of the released quests (#1909)', function () {
+    const DAY = 86400;
+    let gotoPage: jest.SpyInstance;
+
+    function hero(id_quest: number, current_url: string) {
+        unsafeWindow.shared!.Hero = {
+            infos: { level: 300, questing: { id_world: 24, id_quest, current_url } },
+            currencies: { soft_currency: 1000, hard_currency: 750 },
+        } as unknown as KKHero;
+    }
+
+    beforeEach(() => {
+        jest.useFakeTimers();
+        MockHelper.mockDomain('www.hentaiheroes.com', '/quest/2436');
+        hero(2436, '/world/24');
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoQuest, 'true');
+        jest.spyOn(PageHelper, 'getPage').mockReturnValue('quest');
+        gotoPage = jest.spyOn(PageNavigation, 'gotoPage').mockReturnValue(true);
+        setTimers({});
+        document.body.innerHTML = '';
+    });
+
+    afterEach(() => {
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
+        document.body.innerHTML = '';
+        localStorage.clear();
+        sessionStorage.clear();
+        setTimers({});
+        jest.restoreAllMocks();
+    });
+
+    it('opens the main quest by its id, even when the game names the world', function () {
+        expect(QuestHelper.getMainQuestUrl()).toBe('/quest/2436');
+    });
+
+    it('pauses the main quests for a day on the archive view of the current quest', function () {
+        document.body.innerHTML = ARCHIVE_VIEW;
+        QuestHelper.run();
+        expect(getSecondsLeft('nextMainQuestAttempt')).toBeGreaterThan(DAY - 5);
+        expect(getSecondsLeft('nextMainQuestAttempt')).toBeLessThanOrEqual(DAY);
+        expect(JSON.parse(sessionStorage.getItem(HHStoredVarPrefixKey + TK.questEndSeen)!)).toEqual({ id_quest: 2436, current_url: '/world/24' });
+        expect(gotoPage).toHaveBeenCalledWith(ConfigHelper.getHHScriptVars('pagesIDHome'));
+    });
+
+    it('does not read the archive arrows as an unknown button, which switched auto quest off (#1773)', function () {
+        document.body.innerHTML = ARCHIVE_VIEW;
+        QuestHelper.run();
+        expect(getStoredValue(HHStoredVarPrefixKey + TK.questRequirement)).not.toBe('unknownQuestButton');
+        expect(getStoredValue(HHStoredVarPrefixKey + SK.autoQuest)).toBe('true');
+    });
+
+    it('goes on to the side quests when they are due', function () {
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoSideQuest, 'true');
+        document.body.innerHTML = ARCHIVE_VIEW;
+        QuestHelper.run();
+        expect(gotoPage).toHaveBeenCalledWith(QuestHelper.SITE_QUEST_PAGE);
+        expect(checkTimer('nextSideQuestAttempt')).toBe(true);
+    });
+
+    it.each([['a fight', BATTLE_STEP], ['claiming the reward', CLAIM_STEP]])('treats %s as an open quest', function (_name, html) {
+        document.body.innerHTML = html;
+        QuestHelper.run();
+        expect(checkTimer('nextMainQuestAttempt')).toBe(true);
+        expect(getStoredValue(HHStoredVarPrefixKey + TK.questRequirement)).not.toBe('unknownQuestButton');
+    });
+
+    it('pauses only the side quests when their page lists none', function () {
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoQuest, 'false');
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoSideQuest, 'true');
+        (PageHelper.getPage as jest.Mock).mockReturnValue('side-quests');
+        document.body.innerHTML = '<div class="side-quest"><a class="side-quest-button" href="/quest/1000001"></a></div>';
+        QuestHelper.run();
+        expect(getSecondsLeft('nextSideQuestAttempt')).toBeGreaterThan(DAY - 5);
+        expect(checkTimer('nextMainQuestAttempt')).toBe(true);
+    });
+
+    describe('during the main pause', function () {
+        beforeEach(() => {
+            document.body.innerHTML = ARCHIVE_VIEW;
+            QuestHelper.run();
+            gotoPage.mockClear();
+        });
+
+        it('stays paused while the game reports the same quest', function () {
+            expect(QuestHelper.isMainQuestDue()).toBe(false);
+        });
+
+        it('ends when the game moves on to a higher quest id', function () {
+            hero(2437, '/quest/2437');
+            expect(QuestHelper.isMainQuestDue()).toBe(true);
+            expect(checkTimer('nextMainQuestAttempt')).toBe(true);
+            expect(sessionStorage.getItem(HHStoredVarPrefixKey + TK.questEndSeen)).toBeNull();
+        });
+
+        it('ends when the world URL turns into a quest URL', function () {
+            hero(2436, '/quest/2436');
+            expect(QuestHelper.isMainQuestDue()).toBe(true);
+        });
+
+        it('does not end on a page without quest data', function () {
+            unsafeWindow.shared!.Hero = { infos: { level: 300 } } as unknown as KKHero;
+            expect(QuestHelper.isMainQuestDue()).toBe(false);
+        });
+    });
+
+    it('drops a week-long pause an older version set', function () {
+        setTimers({ nextMainQuestAttempt: Date.now() + 6 * DAY * 1000, nextSideQuestAttempt: Date.now() + 6 * DAY * 1000 });
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoSideQuest, 'true');
+        expect(QuestHelper.isMainQuestDue()).toBe(true);
+        expect(QuestHelper.isSideQuestDue()).toBe(true);
+    });
+
+    it('keeps a pause of a day', function () {
+        setTimers({ nextMainQuestAttempt: Date.now() + (DAY - 60) * 1000 });
+        expect(QuestHelper.isMainQuestDue()).toBe(false);
     });
 });

@@ -132,8 +132,6 @@ HHEnvVariables["global"].sideTrollIdMapping =  []; // Empty means no specific ma
 HHEnvVariables["global"].trollGirlsID = HentaiHeroes.getTrollGirlsId();
 HHEnvVariables["global"].sideTrollGirlsID = [];
 
-HHEnvVariables["global"].lastQuestId = -1; //  TODO update when new quest comes
-
 HHEnvVariables["global"].leaguesList = ["Wanker I",
                                         "Wanker II",
                                         "Wanker III",
@@ -482,7 +480,6 @@ for (const key in HentaiHeroes.getEnv()) {
     HHEnvVariables[element].sideTrollIdMapping = HentaiHeroes.sideTrollIdMapping;
     HHEnvVariables[element].sideTrollzList = HentaiHeroes.getSideTrolls(getLanguageCode());
     HHEnvVariables[element].sideTrollGirlsID = HentaiHeroes.getSideTrollGirlsId();
-    HHEnvVariables[element].lastQuestId = HentaiHeroes.lastQuestId;
 }
 
 for (const key in GayHarem.getEnv()) {
@@ -490,7 +487,6 @@ for (const key in GayHarem.getEnv()) {
     HHEnvVariables[element].trollzList = GayHarem.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollGirlsID = GayHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = GayHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = GayHarem.lastQuestId;
 };
 
 for (const key in ComixHarem.getEnv()) {
@@ -498,7 +494,6 @@ for (const key in ComixHarem.getEnv()) {
     HHEnvVariables[element].trollzList = ComixHarem.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollGirlsID = ComixHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = ComixHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = ComixHarem.lastQuestId;
     HHEnvVariables[element].boosterId_MB1 = 2619;
 };
 
@@ -513,24 +508,19 @@ HHEnvVariables["SH_prod"].isEnabledPantheon = false;// to remove when Pantheon a
 HHEnvVariables["SH_prod"].isEnabledLabyrinth = false;// to remove when Pantheon arrives in hornyheroes
 HHEnvVariables["SH_prod"].isEnabledPoV = false;// to remove when PoV arrives in hornyheroes
 HHEnvVariables["SH_prod"].isEnabledPoG = false;// to remove when PoG arrives in hornyheroes
-HHEnvVariables["SH_prod"].lastQuestId = -1; //  TODO update when new quest comes
 
 for (const key in MangaRpg.getEnv()) {
     const element = (MangaRpg.getEnv() as any)[key].name;
-    HHEnvVariables[element].lastQuestId = -1; //  TODO update when new quest comes
     HHEnvVariables[element].trollzList = MangaRpg.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollGirlsID = MangaRpg.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = MangaRpg.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = MangaRpg.lastQuestId;
     MangaRpg.updateFeatures(HHEnvVariables[element]);
 };
 
 for (const key in AmourAgent.getEnv()) {
     const element = (AmourAgent.getEnv() as any)[key].name;
-    HHEnvVariables[element].lastQuestId = -1; //  TODO update when new quest comes
     HHEnvVariables[element].trollzList = AmourAgent.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollIdMapping = AmourAgent.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = AmourAgent.lastQuestId;
     AmourAgent.updateFeatures(HHEnvVariables[element]);
 };
 
@@ -538,7 +528,6 @@ for (const key in PornstarHarem.getEnv()) {
     const element = (PornstarHarem.getEnv() as any)[key].name;
     HHEnvVariables[element].trollzList = PornstarHarem.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollIdMapping = PornstarHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = PornstarHarem.lastQuestId;
     HHEnvVariables[element].boosterId_MB1 = 2619;
     HHEnvVariables[element].trollGirlsID = PornstarHarem.getTrollGirlsId();
 };
@@ -549,7 +538,6 @@ for (const key in TransPornstarHarem.getEnv()) {
     TransPornstarHarem.updateFeatures(HHEnvVariables[element]);
     HHEnvVariables[element].trollGirlsID = TransPornstarHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = TransPornstarHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = TransPornstarHarem.lastQuestId;
     HHEnvVariables[element].boosterId_MB1 = 2619;
 };
 
@@ -559,6 +547,5 @@ for (const key in GayPornstarHarem.getEnv()) {
     GayPornstarHarem.updateFeatures(HHEnvVariables[element]);
     HHEnvVariables[element].trollGirlsID = GayPornstarHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = GayPornstarHarem.trollIdMapping;
-    HHEnvVariables[element].lastQuestId = GayPornstarHarem.lastQuestId;
     HHEnvVariables[element].boosterId_MB1 = 2619;
 };
