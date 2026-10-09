@@ -531,6 +531,13 @@ export class Season {
         }
     }
 
+    /**
+     * The unclaimed-rewards recap on the season page (#1801). It used to sit
+     * anchored at its bottom edge and grew upwards with every row of reward
+     * types: measured at 1440 px, two rows end below "Find Opponents", a
+     * third covers the button. It now hangs from the button's lower edge,
+     * folded to its title, and opens downwards while the mouse is over it.
+     */
     static displayRewardsDiv() {
         try{
             const target = $('.seasons_controls_holder_global');
@@ -538,12 +545,37 @@ export class Season {
             if ($('#' + hhRewardId).length <= 0) {
                 const rewardCountByType = Season.getNotClaimedRewards();
                 RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
+                const types = $('#' + hhRewardId + ' .slot').length;
+                if (types > 0) $('#' + hhRewardId + ' h1').append(` (${types})`);
             }
+            Season.placeRewardsDiv(document.getElementById(hhRewardId));
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             const errName = err instanceof Error ? err.name : 'Error';
             logHHAuto(`ERROR in display Season rewards: ${errName}, ${message}`);
         }
+    }
+
+    /**
+     * Below "Find Opponents", left-aligned with it. From the button's layout
+     * box on every call, as SeasonTarget.addButton places its button, so a
+     * re-render of the page takes the recap along.
+     */
+    static placeRewardsDiv(box: HTMLElement | null) {
+        const findOpponents = $('.seasons_controls_holder a[href*="season-arena"] .blue_button_L').get(0) as HTMLElement | undefined;
+        const container = box?.offsetParent;
+        if (!box || !findOpponents || !container) return;
+        let top = findOpponents.offsetHeight;
+        let left = 0;
+        let el: Element | null = findOpponents;
+        while (el instanceof HTMLElement && el !== container) {
+            top += el.offsetTop;
+            left += el.offsetLeft;
+            el = el.offsetParent;
+        }
+        if (el !== container) return;
+        box.style.top = (top + 6) + 'px';
+        box.style.left = left + 'px';
     }
 
     static getNotClaimedRewards() {

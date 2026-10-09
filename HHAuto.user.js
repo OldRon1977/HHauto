@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.7
+// @version      8.19.8
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -276,7 +276,10 @@ GM_addStyle('.HHGirlMilestone { position: absolute; bottom: 0;  z-index: 1; font
 GM_addStyle('.HHGirlMilestone > div { background: rgba(0,0,0,.5); border-radius: 10px; margin:auto;  width: 140px; }'); 
 GM_addStyle('.HHGirlMilestone .nc-claimed-reward-check { width:20px; position:absolute; }'); 
 GM_addStyle('#HHPentaDrillRewards { position: absolute; right: 7rem; top: 14.75rem; padding: 0.2rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
-GM_addStyle('#HHSeasonRewards { position: absolute; right: 33.5rem; bottom: 13rem; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
+// Season.displayRewardsDiv places it below Find Opponents; folded to its title until the mouse is over it (#1801).
+GM_addStyle('#HHSeasonRewards { position: absolute; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1; transform-origin: top left; cursor: default;}'
+            + '#HHSeasonRewards h1 { margin: 0; }'
+            + '#HHSeasonRewards:not(:hover) > .slot { display: none; }');
 GM_addStyle('#HHSeasonalRewards { position: absolute; left: 1.25rem; bottom: 1rem; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 4;}'); 
 GM_addStyle('#HHPoaRewards { position: absolute;left: 32rem; top: 13.5rem; padding: 0.2rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
 GM_addStyle('#HHDpRewards { position: absolute; left: 0; top: 12rem; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
@@ -20432,6 +20435,20 @@ function fightOutcome(pending, mojoNow, kissNow) {
         return 'lost';
     return kissNow < pending.kissBefore ? 'unknown' : 'none';
 }
+/**
+ * Whether the arena may count the pending fight: only after the target has
+ * stood on its battle page (#1801).
+ *
+ * This used to compare `performance.timeOrigin` of the arena page with the
+ * launch time. In a Firefox log the arena page loaded after the fight
+ * counted only when it came more than about 6 s (one run) or 7.4 s (another)
+ * after the launch -- most come 5.6 to 7.3 s after it -- so 34 of 36 fights in
+ * one run went uncounted. The page clock is not the launch clock; a step the
+ * target takes itself is.
+ */
+function mayCountFight(pending) {
+    return (pending === null || pending === void 0 ? void 0 : pending.fought) === true;
+}
 /** The state after counting the pending fight; `pending` is gone either way. */
 function countFight(state, outcome) {
     const next = Object.assign({}, state);
@@ -20980,6 +20997,13 @@ class Season {
             }
         });
     }
+    /**
+     * The unclaimed-rewards recap on the season page (#1801). It used to sit
+     * anchored at its bottom edge and grew upwards with every row of reward
+     * types: measured at 1440 px, two rows end below "Find Opponents", a
+     * third covers the button. It now hangs from the button's lower edge,
+     * folded to its title, and opens downwards while the mouse is over it.
+     */
     static displayRewardsDiv() {
         try {
             const target = $('.seasons_controls_holder_global');
@@ -20987,13 +21011,40 @@ class Season {
             if ($('#' + hhRewardId).length <= 0) {
                 const rewardCountByType = Season.getNotClaimedRewards();
                 RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
+                const types = $('#' + hhRewardId + ' .slot').length;
+                if (types > 0)
+                    $('#' + hhRewardId + ' h1').append(` (${types})`);
             }
+            Season.placeRewardsDiv(document.getElementById(hhRewardId));
         }
         catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             const errName = err instanceof Error ? err.name : 'Error';
             logHHAuto(`ERROR in display Season rewards: ${errName}, ${message}`);
         }
+    }
+    /**
+     * Below "Find Opponents", left-aligned with it. From the button's layout
+     * box on every call, as SeasonTarget.addButton places its button, so a
+     * re-render of the page takes the recap along.
+     */
+    static placeRewardsDiv(box) {
+        const findOpponents = $('.seasons_controls_holder a[href*="season-arena"] .blue_button_L').get(0);
+        const container = box === null || box === void 0 ? void 0 : box.offsetParent;
+        if (!box || !findOpponents || !container)
+            return;
+        let top = findOpponents.offsetHeight;
+        let left = 0;
+        let el = findOpponents;
+        while (el instanceof HTMLElement && el !== container) {
+            top += el.offsetTop;
+            left += el.offsetLeft;
+            el = el.offsetParent;
+        }
+        if (el !== container)
+            return;
+        box.style.top = (top + 6) + 'px';
+        box.style.left = left + 'px';
     }
     static getNotClaimedRewards() {
         const arrayz = $('.rewards_pair');
@@ -23213,9 +23264,8 @@ class SeasonTarget {
     // ------------------------------------------------------------------ UI
     /**
      * The button beside "Find Opponents" on the season page. Beside, not
-     * below: measured at 1440 px, the rewards recap (#HHSeasonRewards) lies
-     * over everything under that button, and a block in the flow pushed the
-     * mojo bar down. To its right are 122 px of the controls column free.
+     * below: the rewards recap (#HHSeasonRewards) hangs from the lower edge
+     * of that button, and a block in the flow pushed the mojo bar down. To its right are 122 px of the controls column free.
      * Placed from the game button's own box on every call, so a re-render
      * of the page takes it along.
      */
@@ -39304,6 +39354,8 @@ class SeasonTargetRun {
                     SeasonTarget.end('foreignFight');
                     return false;
                 }
+                if (!state.pending.fought)
+                    writeState(Object.assign(Object.assign({}, state), { pending: Object.assign(Object.assign({}, state.pending), { fought: true }) }));
                 logHHAuto('Season target: back to the arena after the fight.');
                 SeasonTargetRun.leaveFor(ctx, () => gotoPage(page('pagesIDSeasonArena'), {}, randomInterval(2000, 4000)));
                 return true;
@@ -39318,8 +39370,7 @@ class SeasonTargetRun {
                 SeasonTarget.end('unreadable');
                 return false;
             }
-            // Only a page loaded after the fight was launched can count it.
-            if (state.pending && performance.timeOrigin > state.pending.at) {
+            if (state.pending && mayCountFight(state.pending)) {
                 const outcome = fightOutcome(state.pending, mojo, Season.getEnergy());
                 state = countFight(state, outcome);
                 writeState(state);
@@ -39391,7 +39442,7 @@ class SeasonTargetRun {
             return;
         }
         const state = readState();
-        if ((state === null || state === void 0 ? void 0 : state.pending) && state.pending.at > performance.timeOrigin) {
+        if ((state === null || state === void 0 ? void 0 : state.pending) && !state.pending.fought) {
             const rest = Object.assign({}, state);
             delete rest.pending;
             writeState(rest);

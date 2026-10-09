@@ -1,5 +1,5 @@
 import {
-    chooseTargetOpponent, countFight, decideKiss, fightOutcome, isTargetReached, KissInput, parseTarget,
+    chooseTargetOpponent, countFight, decideKiss, fightOutcome, isTargetReached, KissInput, mayCountFight, parseTarget,
     SeasonTargetPending, SeasonTargetState,
 } from '../../../src/Module/Events/SeasonTarget.pure';
 
@@ -128,5 +128,21 @@ describe('parseTarget', () => {
         for (const value of ['', '0', '-3', '1000', '2.5', 'abc']) {
             expect(parseTarget(value)).toBeNull();
         }
+    });
+});
+
+// #1801: counting used to compare the arena page's performance.timeOrigin with
+// the launch time; in a Firefox log 34 of 36 fights went uncounted that way.
+describe('mayCountFight', () => {
+    it('does not count a fight that has not reached its battle page', () => {
+        expect(mayCountFight(pending)).toBe(false);
+    });
+
+    it('counts a fight once its battle page was seen, whatever the page clocks say', () => {
+        expect(mayCountFight({ ...pending, at: Date.now() + 60_000, fought: true })).toBe(true);
+    });
+
+    it('has nothing to count without a pending fight', () => {
+        expect(mayCountFight(undefined)).toBe(false);
     });
 });

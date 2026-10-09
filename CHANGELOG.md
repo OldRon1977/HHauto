@@ -7,6 +7,17 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.8 - Season target counts every fight; rewards recap out of the way
+
+- **Season target**: every fight is counted again. In Firefox most fights
+  went uncounted -- in one run 2 of 36 -- and the target kept fighting past
+  the number set. The script now counts a fight once it has been on its
+  battle page, instead of comparing page load times.
+- **Season page**: the unclaimed rewards recap no longer covers **Find
+  Opponents** when there are many reward types. It sits below the button,
+  shows only its title with the number of reward types, and opens when the
+  mouse is over it.
+
 ### v8.19.7 - Quests come back when the game releases new ones
 
 - **Main and side quests**: when all released quests are done, the script

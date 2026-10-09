@@ -206,9 +206,8 @@ export class SeasonTarget {
 
     /**
      * The button beside "Find Opponents" on the season page. Beside, not
-     * below: measured at 1440 px, the rewards recap (#HHSeasonRewards) lies
-     * over everything under that button, and a block in the flow pushed the
-     * mojo bar down. To its right are 122 px of the controls column free.
+     * below: the rewards recap (#HHSeasonRewards) hangs from the lower edge
+     * of that button, and a block in the flow pushed the mojo bar down. To its right are 122 px of the controls column free.
      * Placed from the game button's own box on every call, so a re-render
      * of the page takes it along.
      */

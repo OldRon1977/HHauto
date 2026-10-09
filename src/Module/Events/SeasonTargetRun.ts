@@ -18,7 +18,7 @@ import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { Season } from "./Season";
 import { SeasonTarget, isTargetPage, kissPrice, page, progressText, readState, writeState } from "./SeasonTarget";
-import { SeasonTargetState, countFight, decideKiss, fightOutcome, isTargetReached } from "./SeasonTarget.pure";
+import { SeasonTargetState, countFight, decideKiss, fightOutcome, isTargetReached, mayCountFight } from "./SeasonTarget.pure";
 
 /** A bought kiss shows up in Hero.energies once the answer is in; until
  *  then the next tick must not buy a second one. */
@@ -83,6 +83,7 @@ export class SeasonTargetRun {
                 SeasonTarget.end('foreignFight');
                 return false;
             }
+            if (!state.pending.fought) writeState({ ...state, pending: { ...state.pending, fought: true } });
             logHHAuto('Season target: back to the arena after the fight.');
             SeasonTargetRun.leaveFor(ctx, () => gotoPage(page('pagesIDSeasonArena'), {}, randomInterval(2000, 4000)));
             return true;
@@ -96,8 +97,7 @@ export class SeasonTargetRun {
             SeasonTarget.end('unreadable');
             return false;
         }
-        // Only a page loaded after the fight was launched can count it.
-        if (state.pending && performance.timeOrigin > state.pending.at) {
+        if (state.pending && mayCountFight(state.pending)) {
             const outcome = fightOutcome(state.pending, mojo, Season.getEnergy());
             state = countFight(state, outcome);
             writeState(state);
@@ -171,7 +171,7 @@ export class SeasonTargetRun {
             return;
         }
         const state = readState();
-        if (state?.pending && state.pending.at > performance.timeOrigin) {
+        if (state?.pending && !state.pending.fought) {
             const rest = { ...state };
             delete rest.pending;
             writeState(rest);

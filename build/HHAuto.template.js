@@ -276,7 +276,10 @@ GM_addStyle('.HHGirlMilestone { position: absolute; bottom: 0;  z-index: 1; font
 GM_addStyle('.HHGirlMilestone > div { background: rgba(0,0,0,.5); border-radius: 10px; margin:auto;  width: 140px; }'); 
 GM_addStyle('.HHGirlMilestone .nc-claimed-reward-check { width:20px; position:absolute; }'); 
 GM_addStyle('#HHPentaDrillRewards { position: absolute; right: 7rem; top: 14.75rem; padding: 0.2rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
-GM_addStyle('#HHSeasonRewards { position: absolute; right: 33.5rem; bottom: 13rem; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
+// Season.displayRewardsDiv places it below Find Opponents; folded to its title until the mouse is over it (#1801).
+GM_addStyle('#HHSeasonRewards { position: absolute; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1; transform-origin: top left; cursor: default;}'
+            + '#HHSeasonRewards h1 { margin: 0; }'
+            + '#HHSeasonRewards:not(:hover) > .slot { display: none; }');
 GM_addStyle('#HHSeasonalRewards { position: absolute; left: 1.25rem; bottom: 1rem; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 4;}'); 
 GM_addStyle('#HHPoaRewards { position: absolute;left: 32rem; top: 13.5rem; padding: 0.2rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
 GM_addStyle('#HHDpRewards { position: absolute; left: 0; top: 12rem; padding: 0.5rem; background: rgba(0,0,0,.5); border-radius: 10px; z-index: 1;}'); 
