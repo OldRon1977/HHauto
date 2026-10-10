@@ -287,11 +287,11 @@ export class TeamModule {
      * girl pages and returns to this page (WorkPause). Skills unlock by grade
      * and level, so this comes before Stuff Team.
      */
-    static levelUpTeam() {
+    static levelUpTeam(): boolean {
         const available = getHHVars('availableGirls', false);
         if (!Array.isArray(available)) {
             logHHAuto('Error: availableGirls not found on the edit team page, cancel action');
-            return;
+            return false;
         }
         type Girl = { id_girl: number; name: string; level: number; graded: number; nb_grades: number };
         const girls: Girl[] = [];
@@ -302,11 +302,9 @@ export class TeamModule {
             if (girl.graded < girl.nb_grades || girl.level < GIRL_MAX_LEVEL) girls.push(girl);
         }
         if (girls.length === 0) {
-            window.alert(getTextForUI('levelUpTeamNone', 'elementText'));
-            return;
+            logHHAuto('Level-up team: every hexagon girl is fully developed');
+            return false;
         }
-        const names = girls.map(g => `${g.name} (${g.level}, ${g.graded}/${g.nb_grades})`).join('\n');
-        if (!window.confirm(getTextForUI('levelUpTeamConfirm', 'elementText').replace('{girls}', names))) return;
 
         const team = new TeamData();
         team.team = girls.map(g => ({ id_girl: g.id_girl }) as KKTeamGirl);
@@ -323,6 +321,7 @@ export class TeamModule {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         startWorkPause('team');
         gotoPage('/girl/' + team.girlIds[0], { resource: HaremGirl.AFFECTION_TYPE });
+        return true;
     }
 
     static getSkillNeededScrolls(mainGirl: KKTeamGirl, teamGirls: KKTeamGirl[], rarity: string, nbGrades: number): number {

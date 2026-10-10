@@ -78,8 +78,9 @@ export interface TeamSelectionActions {
     /** Save the given team; reports success or the game's message. */
     saveTeam: (ids: number[], onDone: (ok: boolean, message: string) => void) => void;
     unequipAll: () => void;
-    /** Grades and levels for the hexagon girls (TeamModule.levelUpTeam). */
-    levelUpTeam: () => void;
+    /** Grades and levels for the hexagon girls (TeamModule.levelUpTeam);
+     *  false when none of them needs any. */
+    levelUpTeam: () => boolean;
     stuffTeam: () => void;
     /** Plan and equip the hexagon girls' gear (TeamGear.preview). */
     bestGear: () => void;
@@ -214,6 +215,7 @@ export class TeamSelectionPopup {
                 </div>
                 <div>
                     <label class="myButton" id="hhTsLevelUp" title="${getTextForUI('LevelUpTeam', 'tooltip')}">${getTextForUI('LevelUpTeam', 'elementText')}</label>
+                    <div class="tsState" id="hhTsLevelUpState"></div>
                 </div>
                 <div>
                     <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
@@ -236,11 +238,12 @@ export class TeamSelectionPopup {
         }
         $('#hhTsSlowInfoToggle').on('click', () => $('#hhTsSlowInfo').toggle());
         $('#hhTsUnequip').on('click', () => TeamSelectionPopup.actions?.unequipAll());
+        // No question before the run (the player asked for none): the
+        // tooltip says what it spends.
         $('#hhTsLevelUp').on('click', () => {
             const a = TeamSelectionPopup.actions;
             if (!a) return;
-            if (!TeamSelectionPopup.hexagonsMatchSaved() && !window.confirm(getTextForUI('levelUpTeamUnsaved', 'elementText'))) return;
-            a.levelUpTeam();
+            if (!a.levelUpTeam()) $('#hhTsLevelUpState').html(getTextForUI('levelUpTeamNone', 'elementText'));
         });
         $('#hhTsStuff').on('click', () => {
             const a = TeamSelectionPopup.actions;
