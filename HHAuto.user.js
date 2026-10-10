@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.10
+// @version      8.19.11
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -16936,6 +16936,7 @@ class Booster {
             }
             let anyEquipped = false;
             let conflictSeen = false;
+            Booster.conflictPopupLeftOpen = false;
             let conflicts = 0;
             for (const identifier of priorityList) {
                 if (free <= 0) {
@@ -16996,12 +16997,10 @@ class Booster {
                     break;
                 }
             }
-            if (conflictSeen) {
-                // The conflict popup ignores every synthetic close attempt (click,
-                // jQuery trigger, pointer sequence, DOM removal of the matched
-                // node) -- a reload is the one reliable way to clear it. Thanks to
-                // the conflict memory this happens at most once per loadout
-                // change, not every cycle. safeReload waits for in-flight AJAX
+            if (conflictSeen && Booster.conflictPopupLeftOpen) {
+                // Only when a conflict popup would not close in place: a reload
+                // clears it. Thanks to the conflict memory this happens at most
+                // once per loadout change. safeReload waits for in-flight AJAX
                 // (e.g. the equips above) to settle first.
                 logHHAuto("Auto-equip mythic: reloading the page to clear the conflict popup.");
                 safeReload();
@@ -17012,35 +17011,61 @@ class Booster {
     /**
      * Detects the game's "you cannot equip this booster, it conflicts with
      * another mythic booster already equipped" popup after a refused equip,
-     * dismisses it (so popups do not stack up) and reports whether the
-     * failure was such a conflict. Polls briefly because the popup renders
-     * asynchronously after the AJAX response.
+     * closes it and reports whether the failure was such a conflict. Polls
+     * briefly because the popup renders asynchronously after the AJAX
+     * response.
+     *
+     * A refused request shows the game's error popup: #simple_text_popup in a
+     * .popup_wrapper under #common-popups, with a <close class="closable">
+     * element. Measured on that popup (a refused claim, same popup): a jQuery
+     * click on <close> closes it, and so does a synthetic Escape keydown (the
+     * popup is created with close_on_esc). Removing only the inner .popup, as
+     * this did before, left the wrapper behind, and the page had to be
+     * reloaded at the end of the pass to clear it.
      */
     static dismissMythicConflictPopup() {
         return Booster_awaiter(this, void 0, void 0, function* () {
-            var _a;
             const deadline = Date.now() + Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS;
             for (;;) {
                 const textEl = Array.from(document.querySelectorAll("div.text"))
                     .find((el) => Booster.MYTHIC_CONFLICT_TEXT.test(el.textContent || ""));
                 if (textEl) {
-                    // This popup cannot be closed with synthetic clicks: native
-                    // .click(), jQuery trigger('click'), a full pointer/mouse
-                    // event sequence and an overlay click were all verified
-                    // ineffective in the field (the game seems to accept only
-                    // trusted user events on its "X"). The refusal already
-                    // happened server-side and the window is purely
-                    // informational, so remove it from the DOM instead.
-                    const box = (_a = textEl.closest('[class*="popup"], [id*="popup"], #sliding-popups > *')) !== null && _a !== void 0 ? _a : textEl.parentElement;
-                    logHHAuto("Auto-equip mythic: removing conflict popup ("
-                        + (box ? box.tagName + (box.id ? "#" + box.id : "") + (box.className ? "." + String(box.className).split(" ").join(".") : "") : "?") + ").");
-                    box === null || box === void 0 ? void 0 : box.remove();
+                    yield Booster.closeConflictPopup(textEl);
                     return true;
                 }
                 if (Date.now() >= deadline)
                     return false;
                 yield new Promise((resolve) => setTimeout(resolve, 400));
             }
+        });
+    }
+    static closeConflictPopup(textEl) {
+        return Booster_awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            const box = (_b = (_a = textEl.closest('.popup_wrapper')) !== null && _a !== void 0 ? _a : textEl.closest('[class*="popup"], [id*="popup"], #sliding-popups > *')) !== null && _b !== void 0 ? _b : textEl.parentElement;
+            const gone = () => Booster_awaiter(this, void 0, void 0, function* () {
+                const until = Date.now() + Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS;
+                while (Date.now() < until) {
+                    if (!textEl.isConnected)
+                        return true;
+                    yield new Promise((resolve) => setTimeout(resolve, 100));
+                }
+                return !textEl.isConnected;
+            });
+            $(box !== null && box !== void 0 ? box : textEl).find('close.closable, close').first().trigger('click');
+            if (yield gone()) {
+                logHHAuto("Auto-equip mythic: conflict popup closed.");
+                return;
+            }
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, which: 27, bubbles: true }));
+            if (yield gone()) {
+                logHHAuto("Auto-equip mythic: conflict popup closed with Escape.");
+                return;
+            }
+            logHHAuto("Auto-equip mythic: conflict popup did not close, removing it ("
+                + (box ? box.tagName + (box.id ? "#" + box.id : "") + (box.className ? "." + String(box.className).split(" ").join(".") : "") : "?") + ").");
+            box === null || box === void 0 ? void 0 : box.remove();
+            Booster.conflictPopupLeftOpen = true;
         });
     }
     /**
@@ -17493,6 +17518,9 @@ Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS = 2000;
  * a refusal for every remaining entry in a single pass.
  */
 Booster.MYTHIC_CONFLICTS_PER_PASS = 3;
+/** Set when a conflict popup could not be closed in place; the pass then
+ *  reloads the page to clear it. */
+Booster.conflictPopupLeftOpen = false;
 
 ;// ./src/Module/Troll.ts
 var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {

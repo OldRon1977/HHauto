@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.11 - Mythic booster conflict message closes at once
+
+- **Auto-equip mythic boosters**: the message "You cannot equip this booster,
+  it conflicts with another mythic booster already equipped" now closes right
+  away. Before, it stayed on screen until the end of the equip run and was
+  only cleared by reloading the page.
+
 ### v8.19.10 - Waiting for the game on a slow connection
 
 On a slow connection these steps acted before the game had answered. They now

@@ -10,9 +10,8 @@ import { EventGirl } from '../../src/model/EventGirl';
 import { LoveRaid } from '../../src/model/LoveRaid';
 import { LoveRaidManager } from '../../src/Module/Events/LoveRaidManager';
 
-// Booster reloads the page after a mythic conflict (the game's conflict popup
-// cannot be closed programmatically); mock navigation so tests never touch
-// window.location.
+// Booster reloads the page after a mythic conflict whose popup would not
+// close in place; mock navigation so tests never touch window.location.
 jest.mock('../../src/Service/PageNavigationService', () => ({
     ...jest.requireActual('../../src/Service/PageNavigationService'),
     gotoPage: jest.fn(),
@@ -974,6 +973,8 @@ describe("Booster", function() {
           document.body.innerHTML =
             `<div class="popup"><div class="text">You cannot equip this booster, it conflicts with another mythic booster already equipped.</div>`
             + `<close id="conflictClose" class="closable"></close></div>`;
+          // Measured on the game's error popup: a click on <close> closes it.
+          $('#conflictClose').on('click', () => $('.popup').remove());
           successCb({ success: false });
         } else {
           successCb({ success: true });
@@ -984,9 +985,9 @@ describe("Booster", function() {
 
       expect(result).toBeTruthy();
       expect(sentIdItems()).toEqual(['633', '638']); // MB2 equipped, MB9 attempted
-      // The popup cannot be closed programmatically -> the page is reloaded
-      // once to clear it (at most once per loadout change).
-      expect(safeReloadMock).toHaveBeenCalledTimes(1);
+      // The popup is closed in place -> no page reload.
+      expect(safeReloadMock).not.toHaveBeenCalled();
+      expect(document.querySelector('.popup')).toBeNull();
       expect(Booster.haveBoosterEquiped('MB2')).toBeTruthy();
       expect(Booster.haveBoosterEquiped('MB9')).toBeFalsy();
       document.body.innerHTML = "";
