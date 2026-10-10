@@ -30,10 +30,12 @@
 // (TeamSelectionService.projectCaracs). Measurements are shared between the
 // rubrics, so a later rubric pays only for teams not yet measured.
 //
-// The right-hand column holds Unequip All and Stuff Team, each with the state
-// it acts on: the gear on the team, and whether the hexagons match the saved
-// team (Stuff Team skills the hexagon girls, the league fights the saved
-// team).
+// The right-hand column holds Unequip All, Level-up team and Stuff Team.
+// Unequip All and Stuff Team show the state they act on: the gear on the
+// team, and whether the hexagons match the saved team (Level-up team and
+// Stuff Team work on the hexagon girls, the league fights the saved team).
+// Level-up team stands above Stuff Team because skills unlock by grade and
+// level.
 // Below them the Team gear block, for the hexagon girls: Best gear and
 // Possibly best gear (each shows its plan before equipping), and Level-up
 // gear, which levels the worn mythics. None of them depends on the saved
@@ -76,6 +78,8 @@ export interface TeamSelectionActions {
     /** Save the given team; reports success or the game's message. */
     saveTeam: (ids: number[], onDone: (ok: boolean, message: string) => void) => void;
     unequipAll: () => void;
+    /** Grades and levels for the hexagon girls (TeamModule.levelUpTeam). */
+    levelUpTeam: () => void;
     stuffTeam: () => void;
     /** Plan and equip the hexagon girls' gear (TeamGear.preview). */
     bestGear: () => void;
@@ -209,6 +213,9 @@ export class TeamSelectionPopup {
                     <div class="tsState" id="hhTsGearState"></div>
                 </div>
                 <div>
+                    <label class="myButton" id="hhTsLevelUp" title="${getTextForUI('LevelUpTeam', 'tooltip')}">${getTextForUI('LevelUpTeam', 'elementText')}</label>
+                </div>
+                <div>
                     <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
                     <div class="tsState" id="hhTsSavedState"></div>
                 </div>
@@ -229,6 +236,12 @@ export class TeamSelectionPopup {
         }
         $('#hhTsSlowInfoToggle').on('click', () => $('#hhTsSlowInfo').toggle());
         $('#hhTsUnequip').on('click', () => TeamSelectionPopup.actions?.unequipAll());
+        $('#hhTsLevelUp').on('click', () => {
+            const a = TeamSelectionPopup.actions;
+            if (!a) return;
+            if (!TeamSelectionPopup.hexagonsMatchSaved() && !window.confirm(getTextForUI('levelUpTeamUnsaved', 'elementText'))) return;
+            a.levelUpTeam();
+        });
         $('#hhTsStuff').on('click', () => {
             const a = TeamSelectionPopup.actions;
             if (!a) return;

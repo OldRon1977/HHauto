@@ -3,8 +3,8 @@
 //
 // Puts the "Team optimization" button on the edit-team page and hands the
 // popup behind it (TeamSelectionPopup) its actions: read the hexagons and
-// the saved team, save a team in place, Unequip All, Stuff Team (skill
-// scrolls), and the Team gear block: Best gear and Possibly best gear (run
+// the saved team, save a team in place, Unequip All, Level-up team (grades
+// and levels), Stuff Team (skill scrolls), and the Team gear block: Best gear and Possibly best gear (run
 // by TeamGear), Level-up gear (the girls' worn mythics, run by
 // EquipmentGear). The team list (teams.html) gets only the scroll hint; its
 // former Unequip All / Equip Teams / Stuff Team buttons are gone, the popup
@@ -41,6 +41,9 @@ import { KKTeamGirl } from "../model/KK/KKTeamGirl";
 import { TeamData } from "../model/TeamData";
 import { Harem } from "./harem/Harem";
 import { HaremGirl } from "./harem/HaremGirl";
+
+/** The level every girl can reach, whatever the hero's level. */
+const GIRL_MAX_LEVEL = 750;
 
 export class TeamModule {
 
@@ -276,6 +279,52 @@ export class TeamModule {
         });
     }
 
+    /**
+     * Level-up team: every hexagon girl that is not fully developed gets all
+     * her grades and then all her levels, girl by girl, with the game's own
+     * "Max Grade-up" (gifts, money for missing gifts, the grade quests) and
+     * "Max Level-up" (books, gems for the awakenings). The run goes over the
+     * girl pages and returns to this page (WorkPause). Skills unlock by grade
+     * and level, so this comes before Stuff Team.
+     */
+    static levelUpTeam() {
+        const available = getHHVars('availableGirls', false);
+        if (!Array.isArray(available)) {
+            logHHAuto('Error: availableGirls not found on the edit team page, cancel action');
+            return;
+        }
+        type Girl = { id_girl: number; name: string; level: number; graded: number; nb_grades: number };
+        const girls: Girl[] = [];
+        for (const id of TeamModule.getEditTeamGirlIds()) {
+            const g = available.find((a: { id_girl?: unknown }) => Number(a.id_girl) === id);
+            if (!g) continue;
+            const girl: Girl = { id_girl: id, name: String(g.name ?? id), level: Number(g.level), graded: Number(g.graded), nb_grades: Number(g.nb_grades) };
+            if (girl.graded < girl.nb_grades || girl.level < GIRL_MAX_LEVEL) girls.push(girl);
+        }
+        if (girls.length === 0) {
+            window.alert(getTextForUI('levelUpTeamNone', 'elementText'));
+            return;
+        }
+        const names = girls.map(g => `${g.name} (${g.level}, ${g.graded}/${g.nb_grades})`).join('\n');
+        if (!window.confirm(getTextForUI('levelUpTeamConfirm', 'elementText').replace('{girls}', names))) return;
+
+        const team = new TeamData();
+        team.team = girls.map(g => ({ id_girl: g.id_girl }) as KKTeamGirl);
+        team.girlIds = team.team.map(g => g.id_girl);
+        logHHAuto('Level-up team: ' + girls.map(g => `${g.name} (${g.id_girl}) level ${g.level}, grade ${g.graded}/${g.nb_grades}`).join(', '));
+
+        setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
+        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.LEVEL_UP_TYPE);
+        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
+        // Every grade, the last one included (the harem's "Upgrade max").
+        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast, 'true');
+        setStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart, HeroHelper.getMoney());
+        setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+        startWorkPause('team');
+        gotoPage('/girl/' + team.girlIds[0], { resource: HaremGirl.AFFECTION_TYPE });
+    }
+
     static getSkillNeededScrolls(mainGirl: KKTeamGirl, teamGirls: KKTeamGirl[], rarity: string, nbGrades: number): number {
         const girls = teamGirls.filter(girl => girl.girl && girl.girl.rarity === rarity && girl.girl.nb_grades == nbGrades);
         if (girls.length > 0) logHHAuto(`Found ${girls.length} ${rarity} girls with ${nbGrades} grades in the team.`);
@@ -475,6 +524,7 @@ export class TeamModule {
                 safeReload(randomInterval(800, 1200));
             }),
             unequipAll: () => TeamModule.unequipAllGirls(),
+            levelUpTeam: () => TeamModule.levelUpTeam(),
             stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
             bestGear: () => { void TeamGear.preview('best', TeamModule.getHexagonGirlsWithGear()); },
             possibleGear: () => { void TeamGear.preview('possible', TeamModule.getHexagonGirlsWithGear()); },

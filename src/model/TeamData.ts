@@ -11,4 +11,7 @@ export class TeamData {
     scrolls_legendary: number;
     scrolls_mythic: number;
     scrolls_rare: number;
+    /** Level-up team: trips to a girl's quest, by girl id -- the stop for a
+     *  grade the game keeps offering but does not complete. */
+    levelUpTrips?: Record<string, number>;
 }
