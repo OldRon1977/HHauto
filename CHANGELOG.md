@@ -7,6 +7,22 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.9 - Girl upgrades wait for the game
+
+- **Harem girl tools** (fill or fully upgrade a girl or the filtered girls,
+  max out skills): every step now waits until the game has loaded what it
+  needs, instead of a fixed pause. On a slow connection this fixes four
+  things:
+  - the run no longer stops at the payment popup of "max out all" -- it
+    pays with cash once the popup has its prices, and reports it when the
+    popup does not open;
+  - girls are no longer skipped because their gifts had not loaded yet;
+  - skills are upgraded one answer at a time, so the "already at max
+    level" message no longer piles up, and a girl is no longer skipped
+    before her skills have loaded;
+  - the star bar is no longer shown twice: the script no longer clicks a
+    tab whose gifts are still loading.
+
 ### v8.19.8 - Season target counts every fight; rewards recap out of the way
 
 - **Season target**: every fight is counted again. In Firefox most fights

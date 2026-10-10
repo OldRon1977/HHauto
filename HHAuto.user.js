@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.8
+// @version      8.19.9
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3270,7 +3270,17 @@ const TK = {
 // of locale.
 //
 // Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
-//          InfoService (display remaining times)
+//          InfoService (display remaining times), HaremGirl (waiting for
+//          the game's popups)
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 
 
 
@@ -3322,6 +3332,24 @@ class TimeHelper {
     static sleep(waitTime) {
         return new Promise((resolve) => {
             setTimeout(resolve, waitTime);
+        });
+    }
+    /**
+     * Polls `probe` until it returns a truthy value or `timeoutMs` has
+     * passed. Resolves with that value, or null on timeout -- never waits
+     * without a bound.
+     */
+    static waitFor(probe_1, timeoutMs_1) {
+        return __awaiter(this, arguments, void 0, function* (probe, timeoutMs, pollMs = 100) {
+            const deadline = Date.now() + timeoutMs;
+            for (;;) {
+                const value = probe();
+                if (value)
+                    return value;
+                if (Date.now() >= deadline)
+                    return null;
+                yield TimeHelper.sleep(pollMs);
+            }
         });
     }
 }
@@ -7827,7 +7855,7 @@ function getPage(checkUnknown = false) {
 }
 
 ;// ./src/Service/AjaxTracker.ts
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -8036,7 +8064,7 @@ function pendingAjaxCount() {
  * Polls every 50ms. Returns true if idle was reached, false on timeout.
  */
 function waitForAjaxIdle() {
-    return __awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
+    return AjaxTracker_awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
         if (!installed) {
             // Tracker not installed -> behave like immediate idle, just settle.
             yield sleep(settleMs);
@@ -8122,7 +8150,7 @@ function isPostInFlight() {
  * does not have one, pass 0 to get the minimum pause.
  */
 function awaitServerSettleAfterPost(claimXhrDurationMs) {
-    return __awaiter(this, void 0, void 0, function* () {
+    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
         const durationMs = Number.isFinite(claimXhrDurationMs) && claimXhrDurationMs > 0
             ? claimXhrDurationMs
             : 0;
@@ -9490,6 +9518,7 @@ var HaremGirl_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 
 
 
+
 class HaremGirl {
     static getCurrentGirl() {
         // Only called on harem pages where the game defines window.girl.
@@ -9504,89 +9533,154 @@ class HaremGirl {
     static switchTabs(haremItem) {
         $('#girl-leveler-tabs .switch-tab[data-tab="' + haremItem + '"]').trigger('click');
     }
-    static confirmMaxOut() {
-        const confirmMaxOutButton = $('#girl_max_out_popup button.blue_button_L:not([disabled]):visible[confirm_callback]');
-        if (confirmMaxOutButton.length > 0) {
-            confirmMaxOutButton.trigger('click');
-        }
-        else
-            logHHAuto('Confirm max out button not found');
-    }
-    static maxOutButtonAndConfirm(haremItem, girl) {
-        return new Promise((resolve) => {
-            const maxOutButton = HaremGirl.getMaxOutButton(haremItem);
-            if (maxOutButton.length > 0) {
-                logHHAuto('Max out ' + haremItem + ' for girl ' + girl.id_girl);
-                maxOutButton.trigger('click');
-                setTimeout(() => {
-                    HaremGirl.confirmMaxOut();
-                    setTimeout(() => {
-                        resolve(true);
-                    }, 200);
-                }, randomInterval(700, 1100));
-            }
-            else {
-                logHHAuto('Max out button for' + haremItem + ' for girl ' + girl.id_girl + ' not enabled');
-                resolve(false);
-            }
+    static waitForGameData() {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            // Measured: the game sends its request in the click handler itself.
+            // The pause only covers a build that defers it.
+            yield TimeHelper.sleep(150);
+            return waitForAjaxIdle(HaremGirl.GAME_DATA_TIMEOUT_MS, 250);
         });
     }
-    static confirmMaxOutAllCash() {
-        const confirmMaxOutButton = $('#girl_max_out_all_levels_popup button.green_button_L:not([disabled]):visible[confirm_callback][currency="soft_currency"]');
-        if (confirmMaxOutButton.length > 0) {
-            confirmMaxOutButton.trigger('click');
+    /**
+     * True once the game has rendered a tab's data. The game draws the
+     * progress bar of the gift and book tabs, and fills the scroll count of
+     * the skills tab, in the answer to the tab's request.
+     */
+    static isTabLoaded(haremItem) {
+        if (haremItem === HaremGirl.AFFECTION_TYPE || haremItem === HaremGirl.EXPERIENCE_TYPE) {
+            return $('#' + haremItem + ' .girl-resource-section .bar-section').length > 0;
         }
-        else
-            logHHAuto('Confirm max out all button not found');
+        if (haremItem === HaremGirl.SKILLS_TYPE) {
+            return $('.main-skill-block .available-resources .resource-value').text().trim() !== '';
+        }
+        return true;
+    }
+    // The game requests a tab's data on every activation until the first
+    // answer is in (girl_leveler.js: `if(!m.gifts)` / `if(m.skills)`), and
+    // renders it once per answer. A click on the shown tab while its request
+    // is still running therefore draws the star bar twice -- measured with a
+    // delayed inventory and no script: 2 requests, 2 bars; a click after the
+    // answer sends nothing. The page's own first request is also invisible
+    // to the AjaxTracker. So a tab that is already shown is not clicked
+    // again; the wait is for its rendered data.
+    static openTab(haremItem) {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            if (!$('#' + haremItem).is(':visible'))
+                HaremGirl.switchTabs(haremItem);
+            const loaded = yield TimeHelper.waitFor(() => HaremGirl.isTabLoaded(haremItem), HaremGirl.GAME_DATA_TIMEOUT_MS);
+            if (!loaded) {
+                logHHAuto(`Tab ${haremItem} still loading after ${HaremGirl.GAME_DATA_TIMEOUT_MS}ms`);
+                return false;
+            }
+            // Rendering also enables the buttons; let follow-up requests settle.
+            yield HaremGirl.waitForGameData();
+            return true;
+        });
+    }
+    /**
+     * Waits until a popup's confirm button is on screen and enabled, after
+     * the popup's own request has answered. Null when it does not appear.
+     */
+    static waitForPopupButton(selector) {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            yield HaremGirl.waitForGameData();
+            return TimeHelper.waitFor(() => {
+                const button = $(selector);
+                return button.length > 0 ? button : null;
+            }, HaremGirl.GAME_DATA_TIMEOUT_MS);
+        });
+    }
+    /** Waits until the popup has gone, which is how the game confirms the payment. */
+    static waitForPopupClosed(popupSelector) {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            const closed = yield TimeHelper.waitFor(() => $(popupSelector + ':visible').length === 0, HaremGirl.GAME_DATA_TIMEOUT_MS);
+            if (!closed)
+                logHHAuto(`${popupSelector} still open after ${HaremGirl.GAME_DATA_TIMEOUT_MS}ms`);
+            return !!closed;
+        });
+    }
+    static confirmMaxOut() {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            const confirmMaxOutButton = yield HaremGirl.waitForPopupButton(HaremGirl.CONFIRM_MAX_OUT_SELECTOR);
+            if (!confirmMaxOutButton) {
+                logHHAuto('Confirm max out button not found');
+                return false;
+            }
+            confirmMaxOutButton.trigger('click');
+            // Measured: this popup stays open after the game has filled the
+            // affection, so the answer to the click is the signal, not the popup.
+            return HaremGirl.waitForGameData();
+        });
+    }
+    static maxOutButtonAndConfirm(haremItem, girl) {
+        const maxOutButton = HaremGirl.getMaxOutButton(haremItem);
+        if (maxOutButton.length === 0) {
+            logHHAuto('Max out button for' + haremItem + ' for girl ' + girl.id_girl + ' not enabled');
+            return Promise.resolve(false);
+        }
+        logHHAuto('Max out ' + haremItem + ' for girl ' + girl.id_girl);
+        maxOutButton.trigger('click');
+        return HaremGirl.confirmMaxOut();
     }
     static getMaxOutPrice() {
         return Number($('#girl_max_out_all_levels_popup .slot_soft_currency .amount').text().replace(/\D+/g, ""));
     }
-    static confirmMaxOutAllGems() {
-        const confirmMaxOutButton = $('#girl_max_out_all_levels_popup button.blue_button_L:not([disabled]):visible[confirm_callback]');
-        if (confirmMaxOutButton.length > 0) {
-            confirmMaxOutButton.trigger('click');
-        }
-        else
-            logHHAuto('Confirm max out all button not found');
-    }
     static getMaxOutGems() {
         return Number($('#girl_max_out_all_levels_popup .slot_gems .amount').text().replace(/\D+/g, ""));
     }
+    /**
+     * Clicks "max out all" and pays in the popup that opens: cash for
+     * affection, gems for experience. Resolves with the price, or -1 when the
+     * popup or its button never appeared -- the caller must not go on as if
+     * it had been paid.
+     */
     static maxOutAllButtonAndConfirm(haremItem, girl) {
-        return new Promise((resolve) => {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const maxOutButton = HaremGirl.getMaxOutAllButton(haremItem);
-            if (maxOutButton.length > 0) {
-                maxOutButton.trigger('click');
-                if (haremItem === HaremGirl.EXPERIENCE_TYPE) {
-                    setTimeout(() => HaremGirl_awaiter(this, void 0, void 0, function* () {
-                        const cost = HaremGirl.getMaxOutGems();
-                        logHHAuto(`Max out all ${haremItem} (for ${cost} gems) for girl ${girl.name} (${girl.id_girl})`);
-                        HaremGirl.confirmMaxOutAllGems();
-                        yield TimeHelper.sleep(randomInterval(400, 700));
-                        HaremGirl.confirmMaxOut(); // No gems
-                        yield TimeHelper.sleep(randomInterval(400, 700));
-                        resolve(cost);
-                    }), randomInterval(700, 1100));
-                }
-                else if (haremItem === HaremGirl.AFFECTION_TYPE) {
-                    setTimeout(() => HaremGirl_awaiter(this, void 0, void 0, function* () {
-                        const cost = HaremGirl.getMaxOutPrice();
-                        logHHAuto(`Max out all ${haremItem} (for ${cost}) for girl ${girl.name} (${girl.id_girl})`);
-                        HaremGirl.confirmMaxOutAllCash();
-                        yield TimeHelper.sleep(randomInterval(400, 700));
-                        resolve(cost);
-                    }), randomInterval(700, 1100));
-                }
-                else {
-                    logHHAuto(`Max out all confirm path not implemented for haremItem '${haremItem}', resolving without confirm`);
-                    resolve(0);
-                }
+            if (maxOutButton.length === 0) {
+                logHHAuto(`Max out all button for ${haremItem} for girl ${girl.name} (${girl.id_girl}) not enabled`);
+                return -1;
+            }
+            let selector;
+            let readCost;
+            if (haremItem === HaremGirl.EXPERIENCE_TYPE) {
+                selector = HaremGirl.CONFIRM_MAX_OUT_ALL_GEMS_SELECTOR;
+                readCost = HaremGirl.getMaxOutGems;
+            }
+            else if (haremItem === HaremGirl.AFFECTION_TYPE) {
+                selector = HaremGirl.CONFIRM_MAX_OUT_ALL_CASH_SELECTOR;
+                readCost = HaremGirl.getMaxOutPrice;
             }
             else {
-                logHHAuto(`Max out all button for ${haremItem} for girl ${girl.name} (${girl.id_girl}) not enabled`);
-                resolve(0);
+                logHHAuto(`Max out all confirm path not implemented for haremItem '${haremItem}'`);
+                return -1;
             }
+            maxOutButton.trigger('click');
+            const confirmButton = yield HaremGirl.waitForPopupButton(selector);
+            if (!confirmButton) {
+                logHHAuto(`Max out all ${haremItem} for girl ${girl.name} (${girl.id_girl}): payment button did not appear`);
+                return -1;
+            }
+            const cost = readCost();
+            logHHAuto(`Max out all ${haremItem} (for ${cost}${haremItem === HaremGirl.EXPERIENCE_TYPE ? ' gems' : ''}) for girl ${girl.name} (${girl.id_girl})`);
+            yield TimeHelper.sleep(randomInterval(300, 600));
+            confirmButton.trigger('click');
+            if (haremItem === HaremGirl.AFFECTION_TYPE) {
+                // Measured: the popup closes with the answer, then the game opens
+                // the girl's quest.
+                if (!(yield HaremGirl.waitForPopupClosed(HaremGirl.MAX_OUT_ALL_POPUP)))
+                    return -1;
+            }
+            else {
+                // Without enough gems the game asks once more.
+                yield HaremGirl.waitForGameData();
+                const noGems = $(HaremGirl.CONFIRM_MAX_OUT_SELECTOR);
+                if (noGems.length > 0) {
+                    noGems.trigger('click');
+                    yield HaremGirl.waitForGameData();
+                }
+            }
+            return cost;
         });
     }
     static confirmAwake() {
@@ -9691,7 +9785,7 @@ class HaremGirl {
     static giveHaremGirlItem(haremItem) {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const selectedGirl = HaremGirl.getCurrentGirl();
-            HaremGirl.switchTabs(haremItem);
+            yield HaremGirl.openTab(haremItem);
             const userHaremGirlLimit = Math.min(Number(document.getElementById("menuExpLevel").value), 750);
             if ((Number(selectedGirl.level) + 50) <= Number(userHaremGirlLimit)) {
                 HaremGirl.HaremDisplayGirlPopup(haremItem, selectedGirl.name + ' ' + selectedGirl.Xp.cur + "xp, level " + selectedGirl.level + "/" + userHaremGirlLimit, (1) * 5);
@@ -9721,7 +9815,7 @@ class HaremGirl {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const haremItem = HaremGirl.AFFECTION_TYPE;
             const selectedGirl = HaremGirl.getCurrentGirl();
-            HaremGirl.switchTabs(haremItem);
+            yield HaremGirl.openTab(haremItem);
             const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast) === 'true';
             const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded;
             const lastGirlGrad = selectedGirl.nb_grades <= (selectedGirl.graded + 1);
@@ -9729,12 +9823,12 @@ class HaremGirl {
             const maxOutAllButton = HaremGirl.getMaxOutAllButton(haremItem);
             if (canGiftGirl) {
                 if (haremGirlPayLast && maxOutAllButton.length > 0) {
-                    yield HaremGirl.maxOutAllButtonAndConfirm(haremItem, selectedGirl);
-                    // reach girl quest
-                    return true;
+                    // Paying takes the game to the girl's quest by itself.
+                    return (yield HaremGirl.maxOutAllButtonAndConfirm(haremItem, selectedGirl)) >= 0;
                 }
                 else if (maxOutButton.length > 0) {
-                    yield HaremGirl.maxOutButtonAndConfirm(haremItem, selectedGirl);
+                    if (!(yield HaremGirl.maxOutButtonAndConfirm(haremItem, selectedGirl)))
+                        return false;
                     if (!lastGirlGrad || haremGirlPayLast) {
                         setTimeout(function () {
                             HaremGirl.goToGirlQuest(selectedGirl);
@@ -9757,6 +9851,9 @@ class HaremGirl {
                         logHHAuto("Girl grade reach, keep last to buy manually");
                     }
                 }
+                else {
+                    logHHAuto(`No affection to give and no grade to pay for girl ${selectedGirl.name} (${selectedGirl.id_girl})`);
+                }
             }
             else {
                 logHHAuto("Girl grade is already maxed out");
@@ -9768,11 +9865,10 @@ class HaremGirl {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const haremItem = HaremGirl.EXPERIENCE_TYPE;
             const selectedGirl = HaremGirl.getCurrentGirl();
-            HaremGirl.switchTabs(haremItem);
+            yield HaremGirl.openTab(haremItem);
             const maxOutAllButton = HaremGirl.getMaxOutAllButton(haremItem);
             if (maxOutAllButton.length > 0) {
-                yield HaremGirl.maxOutAllButtonAndConfirm(haremItem, selectedGirl);
-                return true;
+                return (yield HaremGirl.maxOutAllButtonAndConfirm(haremItem, selectedGirl)) >= 0;
             }
             else {
                 logHHAuto("Girl level is already maxed out");
@@ -9832,7 +9928,6 @@ class HaremGirl {
             if (canGiftGirl) {
                 const fillGirlGifts = (payLast = false) => {
                     maskHHPopUp();
-                    HaremGirl.switchTabs(HaremGirl.AFFECTION_TYPE);
                     setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.AFFECTION_TYPE);
                     setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'girl');
                     setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
@@ -9850,8 +9945,7 @@ class HaremGirl {
             }
             $('#' + menuIDMaxSkill + 'Button').on("click", () => HaremGirl_awaiter(this, void 0, void 0, function* () {
                 maskHHPopUp();
-                HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
-                yield TimeHelper.sleep(randomInterval(400, 700));
+                yield HaremGirl.openTab(HaremGirl.SKILLS_TYPE);
                 HaremGirl.fullSkillsUpgrade();
             }));
         };
@@ -9973,8 +10067,6 @@ class HaremGirl {
                 const haremGirlLimit = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlLimit);
                 const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart));
                 const haremGirlSpent = moneyOnStart > 0 ? moneyOnStart - HeroHelper.getMoney() : 0;
-                const canGiftGirl = HaremGirl.canGiftGirl();
-                const canAwakeGirl = HaremGirl.canAwakeGirl();
                 const girl = HaremGirl.getCurrentGirl();
                 if (!haremItem) {
                     // No action to be peformed
@@ -9987,6 +10079,7 @@ class HaremGirl {
                 if (haremGirlMode === 'girl') {
                     if (haremItem === HaremGirl.EXPERIENCE_TYPE && haremGirlLimit && (Number(girl.level) + 50) <= Number(haremGirlLimit)) {
                         logHHAuto("haremGirlLimit: " + haremGirlLimit);
+                        yield HaremGirl.openTab(haremItem);
                         HaremGirl.HaremDisplayGirlPopup(haremItem, girl.name + ' ' + girl.Xp.cur + "xp, level " + girl.level + "/" + haremGirlLimit, (1) * 5, haremGirlSpent);
                         if ((Number(girl.level) + 50) >= Number(haremGirlLimit)) {
                             yield HaremGirl.maxOutButtonAndConfirm(haremItem, girl);
@@ -9996,7 +10089,9 @@ class HaremGirl {
                         else
                             HaremGirl.maxOutAndAwake(haremItem, girl);
                     }
-                    else if (haremItem === HaremGirl.AFFECTION_TYPE && (canGiftGirl)) {
+                    else if (haremItem === HaremGirl.AFFECTION_TYPE && girl.nb_grades > girl.graded) {
+                        // fillAllAffection opens the tab and waits for the inventory
+                        // before it decides; the max-out button is not read here.
                         HaremGirl.HaremDisplayGirlPopup(haremItem, girl.name + ' ' + girl.graded + "/" + girl.nb_grades + "star", 2, haremGirlSpent);
                         if (!(yield HaremGirl.fillAllAffection())) {
                             logHHAuto("No more quest");
@@ -10007,7 +10102,7 @@ class HaremGirl {
                         }
                     }
                     else {
-                        logHHAuto('ERROR, no action found to be executed. ', { haremItem: haremItem, canGiftGirl: canGiftGirl, canAwakeGirl: canAwakeGirl });
+                        logHHAuto('ERROR, no action found to be executed. ', { haremItem: haremItem, graded: girl.graded, nb_grades: girl.nb_grades, canAwakeGirl: HaremGirl.canAwakeGirl() });
                         Harem.clearHaremToolVariables();
                         return false;
                     }
@@ -10047,13 +10142,13 @@ class HaremGirl {
                     }
                     else if (haremItem === HaremGirl.SKILLS_TYPE) {
                         HaremGirl.HaremDisplayGirlPopup(haremItem, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
-                        HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
-                        yield TimeHelper.sleep(randomInterval(400, 700));
+                        yield HaremGirl.openTab(HaremGirl.SKILLS_TYPE);
                         logHHAuto('Upgrade skills, Scroll available: ' + $('.main-skill-block .available-resources .resource-value').text());
                         yield HaremGirl.fullSkillsUpgrade();
                         yield TimeHelper.sleep(randomInterval(400, 700));
                     }
                     else {
+                        yield HaremGirl.openTab(haremItem);
                         const canMaxOut = HaremGirl.getMaxOutButton(haremItem).length > 0;
                         if (nextGirlId < 0)
                             girlListProgress += lastGirlListProgress;
@@ -10104,8 +10199,7 @@ class HaremGirl {
                         yield HaremGirl.optimizeEquipmentSlots(girl);
                     }
                     if (upgradeSkill) {
-                        HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
-                        yield TimeHelper.sleep(randomInterval(400, 700));
+                        yield HaremGirl.openTab(HaremGirl.SKILLS_TYPE);
                         HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
                         logHHAuto('Upgrade skills, Scroll available: ' + $('.main-skill-block .available-resources .resource-value').text());
                         yield HaremGirl.fullSkillsUpgrade(girlPosInList === 0 ? 5 : 4);
@@ -10158,7 +10252,10 @@ class HaremGirl {
                 const skillButton = $(`#skills .skill-upgrade .skill-upgrade-row[skill-id='${skillId}'] button.blue_button_L:not([disabled])`).first();
                 if (skillButton.length > 0) {
                     skillButton.trigger('click');
-                    yield TimeHelper.sleep(randomInterval(400, 700));
+                    // The button stays enabled until the answer is in; a second
+                    // click before that buys a level the skill may not have left.
+                    yield HaremGirl.waitForGameData();
+                    yield TimeHelper.sleep(randomInterval(200, 400));
                     return yield HaremGirl.singleSkillsUpgrade(skillId);
                 }
             }
@@ -10187,7 +10284,8 @@ class HaremGirl {
                         return Promise.resolve();
                     }
                     skillButton.trigger('click');
-                    yield TimeHelper.sleep(randomInterval(400, 700));
+                    yield HaremGirl.waitForGameData();
+                    yield TimeHelper.sleep(randomInterval(200, 400));
                     return yield HaremGirl.fullSkillsUpgrade(maxTier);
                 }
             }
@@ -10502,6 +10600,22 @@ HaremGirl.SCROLLS_NEED_4 = {
 };
 HaremGirl.SKILL_BUTTON_SELECTOR = "#skills .skill-upgrade button.blue_button_L:not([disabled])";
 HaremGirl.SKILL_ORDER_PRIO = [2, 5, 4, 8];
+// The girl page loads its data by AJAX: the gift or book inventory
+// (girl_items_inventory) whenever a leveler tab is clicked, the skill
+// list (girl_skills_list), the prices of a max-out popup
+// (get_girl_max_out_items) after its button is clicked, and every skill
+// upgrade gets its own answer. Measured on the test account with a
+// delayed answer (#1915): reading the page after a fixed pause skipped
+// girls whose max-out buttons were not enabled yet, looked for the cash
+// button of a payment popup that was still loading -- the popup then
+// stayed open and the run stood still -- and sent 25 skill upgrades for
+// 10 scrolls. Every step therefore waits for the game, bounded by
+// GAME_DATA_TIMEOUT_MS.
+HaremGirl.GAME_DATA_TIMEOUT_MS = AJAX_IDLE_TIMEOUT_MS;
+HaremGirl.CONFIRM_MAX_OUT_SELECTOR = '#girl_max_out_popup button.blue_button_L:not([disabled]):visible[confirm_callback]';
+HaremGirl.MAX_OUT_ALL_POPUP = '#girl_max_out_all_levels_popup';
+HaremGirl.CONFIRM_MAX_OUT_ALL_CASH_SELECTOR = '#girl_max_out_all_levels_popup button.green_button_L:not([disabled]):visible[confirm_callback][currency="soft_currency"]';
+HaremGirl.CONFIRM_MAX_OUT_ALL_GEMS_SELECTOR = '#girl_max_out_all_levels_popup button.blue_button_L:not([disabled]):visible[confirm_callback]';
 
 ;// ./src/Module/harem/Harem.ts
 var Harem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
