@@ -259,6 +259,26 @@ export class HeroHelper {
                 settle(false);
             }, 15000);
 
+            // A refused equip never reaches the callbacks below: the game's
+            // hh_ajax hands success:false to its own error handler, which only
+            // shows #simple_text_popup (measured, and read in the game's
+            // shared.js). Waiting for the callback meant waiting out the 15 s
+            // timeout with the refusal already on screen. A new error popup is
+            // the refusal, so it settles the equip at once.
+            const errorPopupsBefore = document.querySelectorAll('#simple_text_popup').length;
+            const watchRefusal = () => {
+                if (settled) return;
+                if (document.querySelectorAll('#simple_text_popup').length > errorPopupsBefore) {
+                    logHHAuto('equipBooster: the game refused the equip (error popup), resolving with false');
+                    deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
+                    if (countsAsSandalwoodFailure) HeroHelper.getSandalWoodEquipFailure(true);
+                    settle(false);
+                    return;
+                }
+                setTimeout(watchRefusal, 200);
+            };
+            setTimeout(watchRefusal, 200);
+
             getHHAjax()!(params, function(data: any) {
                 logHHAuto(`equipBooster: AJAX success callback, data.success=${data.success}, full response=${JSON.stringify(data)}`);
                 if (data.success) {

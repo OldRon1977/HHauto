@@ -11,8 +11,9 @@ Older entries below were migrated 1:1 from `README.md`.
 
 - **Auto-equip mythic boosters**: the message "You cannot equip this booster,
   it conflicts with another mythic booster already equipped" now closes right
-  away. Before, it stayed on screen until the end of the equip run and was
-  only cleared by reloading the page.
+  away. Before, the script waited 15 seconds for an answer the game never
+  sends on a refusal, and then cleared the message only by reloading the
+  page at the end of the equip run.
 
 ### v8.19.10 - Waiting for the game on a slow connection
 
