@@ -4,6 +4,10 @@ import { MockHelper } from "../testHelpers/MockHelpers";
 import { Labyrinth } from "../../src/Module/Labyrinth";
 import { getSecondsLeft } from "../../src/Helper/TimerHelper";
 import * as PageNavigationService from "../../src/Service/PageNavigationService";
+import * as PageHelper from "../../src/Helper/PageHelper";
+import { ConfigHelper } from "../../src/Helper/ConfigHelper";
+import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
+import { SK } from "../../src/config/StorageKeys";
 
 describe("LabyrinthAuto.closeRewards relic-choice guard (issue #1716)", () => {
     beforeEach(() => {
@@ -162,5 +166,56 @@ describe("LabyrinthAuto.validateTeam (stuck team editor)", () => {
         expect(PageNavigationService.safeReload).toHaveBeenCalledTimes(1);
         expect(PageNavigationService.gotoPage).toHaveBeenCalled();
         expect(getSecondsLeft('nextLabyrinthTime')).toBeGreaterThan(29 * 60);
+    });
+});
+
+describe("LabyrinthAuto sweep under a slow server (#1915)", () => {
+    let savedRects: typeof HTMLElement.prototype.getClientRects;
+
+    beforeEach(() => {
+        MockHelper.mockDomain();
+        jest.useFakeTimers();
+        // jsdom lays nothing out; jQuery's :visible needs a client rect.
+        savedRects = HTMLElement.prototype.getClientRects;
+        HTMLElement.prototype.getClientRects = function () { return [{}] as unknown as DOMRectList; };
+        jest.spyOn(PageHelper, "getPage").mockReturnValue(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"));
+        jest.spyOn(Labyrinth, "getResetTime").mockReturnValue(3600);
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoLabySweep, "true");
+    });
+    afterEach(() => {
+        HTMLElement.prototype.getClientRects = savedRects;
+        jest.useRealTimers();
+        jest.restoreAllMocks();
+        localStorage.clear();
+        sessionStorage.clear();
+        document.body.innerHTML = "";
+    });
+
+    it("confirms the sweep once its preview has opened late", async () => {
+        // Measured with the server answering after 3 s: the confirm was looked
+        // for after a fixed 1-1.5 s, the preview opened later and stayed open.
+        document.body.innerHTML = '<div class="labChosen"></div><button id="sweeping-floor">Sweep</button>';
+        let confirms = 0;
+        $("#sweeping-floor").on("click", () => {
+            setTimeout(() => {
+                $("body").append('<div id="labyrinth_sweeping_preview_popup"><button id="popup_confirm" class="blue_button_L">OK</button></div>');
+                $("#popup_confirm").on("click", () => {
+                    confirms++;
+                    $("#labyrinth_sweeping_preview_popup, #sweeping-floor").remove();
+                    setTimeout(() => {
+                        $("body").append('<div id="labyrinth_reward_popup"><button class="blue_button_L">OK</button></div>'
+                            + '<div class="cleared-labyrinth-container"></div>');
+                        $("#labyrinth_reward_popup button").on("click", () => $("#labyrinth_reward_popup").remove());
+                    }, 3000);
+                });
+            }, 3000);
+        });
+
+        const done = new LabyrinthAuto().run();
+        await jest.advanceTimersByTimeAsync(30_000);
+        await done;
+
+        expect(confirms).toBe(1);
+        expect($("#labyrinth_reward_popup").length).toBe(0);
     });
 });

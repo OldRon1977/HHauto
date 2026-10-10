@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.9
+// @version      8.19.10
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -7896,6 +7896,7 @@ var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 //   installAjaxTracker()              -- call once at script start
 //   pendingAjaxCount()                -- in-flight XHR count
 //   waitForAjaxIdle(timeoutMs, settleMs)
+//   waitForGameAnswer()               -- after a click: its request answered
 //   acquirePostMutex(holderName?)     -- explicit caller mutex
 //   releasePostMutex()
 //   isPostInFlight()                  -- any tracked POST or held mutex
@@ -8082,6 +8083,19 @@ function waitForAjaxIdle() {
             yield sleep(settleMs);
         }
         return reachedIdle;
+    });
+}
+/**
+ * After a click whose handler sends a request: resolve once it is answered,
+ * bounded by AJAX_IDLE_TIMEOUT_MS. The game sends from the click handler
+ * itself (measured on the girl page, #1915); the short pause only covers a
+ * handler that defers it. A fixed pause after a click is what failed under
+ * a slow server: the script read or clicked again before the answer.
+ */
+function waitForGameAnswer() {
+    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
+        yield sleep(150);
+        return waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, 250);
     });
 }
 // --- POST mutex ----------------------------------------------------
@@ -8924,8 +8938,12 @@ function doStatUpgrades() {
                     else {
                         Hero.currencies.soft_currency = Number(Hero.currencies.soft_currency) - cost;
                     }
+                    // The next buy waits for this answer. Measured with the
+                    // server answering after 3 s: a fixed 300-500 ms re-run
+                    // found the stat unchanged and stopped as "not confirmed"
+                    // although the buy went through.
+                    setTimeout(doStatUpgrades, randomInterval(300, 500));
                 });
-                setTimeout(doStatUpgrades, randomInterval(300, 500));
                 return;
             }
         }
@@ -22808,6 +22826,7 @@ var Seasonal_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+
 class SeasonalEvent {
     static isMegaSeasonalEvent() {
         return $('#get_mega_pass_kobans_btn').length > 0;
@@ -23108,13 +23127,21 @@ class SeasonalEvent {
                     logHHAuto('Not Mega Event but rank tab exist');
                 }
                 logHHAuto('Collect Mega Event Rank Rewards');
-                // switch tabs
-                if (topRank.length > 0)
+                // switch tabs. Each tab loads its board with a `leaderboard`
+                // request; the rank timer is read from it. Measured with the
+                // server answering after 3 s: read after a fixed pause, the timer
+                // was missing and the next visit came after 7 h instead of the
+                // 2 d 23 h left.
+                if (topRank.length > 0) {
                     topRank.trigger("click");
+                    yield waitForGameAnswer();
+                }
                 yield TimeHelper.sleep(randomInterval(400, 600));
                 RewardHelper.closeRewardPopupIfAny();
-                if (eventRank.length > 0)
+                if (eventRank.length > 0) {
                     eventRank.trigger("click");
+                    yield waitForGameAnswer();
+                }
                 yield TimeHelper.sleep(randomInterval(400, 600));
                 RewardHelper.closeRewardPopupIfAny();
                 setTimer('nextMegaEventRankCollectTime', SeasonalEvent.getGlobalRankRemainingTime() + randomInterval(3600, 4000));
@@ -29644,6 +29671,15 @@ function fmtSignedPct(value) {
 }
 
 ;// ./src/Module/Events/PathOfGlory.ts
+var PathOfGlory_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 // PathOfGlory.ts -- Path of Glory (PoG) event: tier collection and reward tracking.
 //
 // Path of Glory is a tiered event: points the game counts elsewhere unlock
@@ -29654,6 +29690,7 @@ function fmtSignedPct(value) {
 // Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
 //          (the collect block)
 //
+
 
 
 
@@ -29751,17 +29788,24 @@ class PathOfGlory {
                 const buttonsToCollect = PathOfGlory.getRewardButtonToCollect();
                 if (buttonsToCollect.length > 0) {
                     function collectPoGRewards() {
-                        if (buttonsToCollect.length > 0) {
-                            logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            setTimeout(collectPoGRewards, randomInterval(300, 500));
-                        }
-                        else {
-                            logHHAuto("Path of Glory collection finished.");
-                            setTimer('nextPoGCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        }
+                        return PathOfGlory_awaiter(this, void 0, void 0, function* () {
+                            if (buttonsToCollect.length > 0) {
+                                logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
+                                buttonsToCollect[0].click();
+                                buttonsToCollect.shift();
+                                // The game ignores a claim click while the previous
+                                // claim is unanswered: with the server answering
+                                // after 3 s, one request went out for five tiers and
+                                // the rest stayed open (measured). Wait for it.
+                                yield waitForGameAnswer();
+                                setTimeout(collectPoGRewards, randomInterval(300, 500));
+                            }
+                            else {
+                                logHHAuto("Path of Glory collection finished.");
+                                setTimer('nextPoGCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            }
+                        });
                     }
                     collectPoGRewards();
                     return true;
@@ -29790,6 +29834,15 @@ class PathOfGlory {
 }
 
 ;// ./src/Module/Events/PathOfValue.ts
+var PathOfValue_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 // PathOfValue.ts -- Path of Value (PoV) event: tier collection and reward tracking.
 //
 // Path of Valor is a tiered event like Path of Glory: points the game counts
@@ -29801,6 +29854,7 @@ class PathOfGlory {
 // Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
 //          (the collect block)
 //
+
 
 
 
@@ -29891,17 +29945,24 @@ class PathOfValue {
                 const buttonsToCollect = PathOfValue.getRewardButtonToCollect();
                 if (buttonsToCollect.length > 0) {
                     function collectPoVRewards() {
-                        if (buttonsToCollect.length > 0) {
-                            logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            setTimeout(collectPoVRewards, randomInterval(300, 500));
-                        }
-                        else {
-                            logHHAuto("Path of Valor collection finished.");
-                            setTimer('nextPoVCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        }
+                        return PathOfValue_awaiter(this, void 0, void 0, function* () {
+                            if (buttonsToCollect.length > 0) {
+                                logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
+                                buttonsToCollect[0].click();
+                                buttonsToCollect.shift();
+                                // The game ignores a claim click while the previous
+                                // claim is unanswered: with the server answering
+                                // after 3 s, one request went out for five tiers and
+                                // the rest stayed open (measured). Wait for it.
+                                yield waitForGameAnswer();
+                                setTimeout(collectPoVRewards, randomInterval(300, 500));
+                            }
+                            else {
+                                logHHAuto("Path of Valor collection finished.");
+                                setTimer('nextPoVCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            }
+                        });
                     }
                     collectPoVRewards();
                     return true;
@@ -40356,6 +40417,7 @@ function extractTimerText(rawText) {
 
 
 
+
 // One walk through the popup at a time. Measured 2026-09-09: the pipeline
 // entered goAndCollectFreeBundles three times within four seconds, each entry
 // pressing the "+" again. The popup then held its content twice over -- the
@@ -40446,7 +40508,10 @@ class Bundles {
                     collectionStartedAt = 0;
                     logHHAuto(message);
                     setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);
-                    $("#common-popups .close_cross").trigger('click'); // Close popup
+                    // The shop's close button is a <close class="closable">
+                    // element (measured): a click on `.close_cross` left the
+                    // shop open over the page, with and without a slow server.
+                    $("#common-popups close.closable, #common-popups .close_cross").first().trigger('click');
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                     logHHAuto("setting autoloop to true");
                     kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
@@ -40501,8 +40566,14 @@ class Bundles {
                         return false;
                     }
                 }
-                // Wait popup is opened
-                setTimeout(switchToBundleTabs, randomInterval(1400, 1800));
+                // The shop popup opens with the answer to load_payment_methods.
+                // Measured with the server answering after 3.2 s: a fixed
+                // 1.4-1.8 s wait found no tabs, clicked the close cross before
+                // the popup existed, and the popup then stayed open over the
+                // page. Wait for the tabs, then look through them.
+                void TimeHelper.waitFor(() => $(bundleTabsListQuery, $(bundleTabsContainerQuery)).length > 0, AJAX_IDLE_TIMEOUT_MS)
+                    .then(() => TimeHelper.sleep(randomInterval(400, 700)))
+                    .then(switchToBundleTabs);
                 return true;
             }
             catch ({ message }) {
@@ -40544,6 +40615,7 @@ var LabyrinthAuto_awaiter = (undefined && undefined.__awaiter) || function (this
 // Depends on: RelicManager.ts (relic selection after fights), Labyrinth.pure.ts (draw counting)
 // Used by: Pipeline.config.ts (the labyrinth block)
 //
+
 
 
 
@@ -40651,19 +40723,32 @@ class LabyrinthAuto {
                 if (sweeping) {
                     logHHAuto("Auto laby sweep enabled, triggering sweep.");
                     sweepFloorButton.trigger('click');
-                    yield TimeHelper.sleep(randomInterval(1000, 1500));
+                    // The preview popup opens with the answer to
+                    // preview_sweep_laby_floor, the reward popup with the answer to
+                    // sweep_laby_floor. Measured with the server answering after
+                    // 3 s: the confirm was looked for after a fixed 1-1.5 s, the
+                    // preview opened later and stayed open with autoLoop off.
+                    const confirmButton = yield TimeHelper.waitFor(() => {
+                        const button = $("#labyrinth_sweeping_preview_popup #popup_confirm.blue_button_L:visible");
+                        return button.length > 0 ? button : null;
+                    }, AJAX_IDLE_TIMEOUT_MS);
+                    if (!confirmButton) {
+                        logHHAuto("Sweep preview did not open, retry in 60secs.");
+                        setTimer('nextLabyrinthTime', randomInterval(60, 70));
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                        return true;
+                    }
                     if (this.debugEnabled)
                         logHHAuto("Confirm sweep.");
-                    $("#labyrinth_sweeping_preview_popup #popup_confirm.blue_button_L").trigger('click');
-                    yield TimeHelper.sleep(randomInterval(1500, 2000));
-                    // Close reward popup or wait until it opens
-                    for (let i = 0; i < 3; i++) {
-                        if (this.debugEnabled)
-                            logHHAuto("Close seep reward popup.");
-                        const popupOpened = this.closeRewards();
+                    yield TimeHelper.sleep(randomInterval(300, 600));
+                    confirmButton.trigger('click');
+                    yield waitForGameAnswer();
+                    if (this.debugEnabled)
+                        logHHAuto("Close seep reward popup.");
+                    const popupOpened = yield TimeHelper.waitFor(() => this.closeRewards(), AJAX_IDLE_TIMEOUT_MS, 300);
+                    if (popupOpened) {
                         yield TimeHelper.sleep(randomInterval(800, 1300));
-                        if (popupOpened)
-                            return this.run(depth + 1);
+                        return this.run(depth + 1);
                     }
                 }
                 else {

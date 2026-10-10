@@ -5,6 +5,7 @@ import { logHHAuto } from '../../../src/Utils/LogUtils';
 import { gotoPage } from '../../../src/Service/PageNavigationService';
 import { MockHelper } from '../../testHelpers/MockHelpers';
 import { getSecondsLeft } from '../../../src/Helper/TimerHelper';
+import * as AjaxTracker from '../../../src/Service/AjaxTracker';
 
 // PageNavigationService is mocked so the navigation branch does not touch
 // window.location (see Shop.spec.ts for the same pattern).
@@ -121,6 +122,47 @@ describe("SeasonalEvent", function () {
             expect(result).toBe(false);
             expect(gotoPageMock).not.toHaveBeenCalled();
             expect(logHHAuto).toHaveBeenCalledWith("No SeasonalEvent active.");
+        });
+    });
+
+    describe("goAndCollectMegaEventRankRewards under a slow server (#1915)", function () {
+        beforeEach(() => {
+            MockHelper.mockDomain("www.hentaiheroes.com");
+            jest.useFakeTimers();
+        });
+        afterEach(() => {
+            jest.useRealTimers();
+            jest.restoreAllMocks();
+            document.body.innerHTML = '';
+            localStorage.clear();
+            sessionStorage.clear();
+        });
+
+        it("reads the rank timer after the board has loaded", async function () {
+            // Measured with the server answering after 3 s: the timer was read
+            // before the board arrived, and the next visit came after 7 h
+            // instead of the 2 d 23 h left.
+            document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="${ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")}">
+                <div id="mega-event-tabs"><div id="top_ranking_tab"></div></div><div id="top_ranking_tab_container"></div></div>`;
+            jest.spyOn(SeasonalEvent, 'isMegaSeasonalEvent').mockReturnValue(true);
+            let answered = true;
+            $('#top_ranking_tab').on('click', () => {
+                answered = false;
+                setTimeout(() => {
+                    $('#top_ranking_tab_container').append('<div class="ranking-timer-reset"><div class="ranking-timer"><span rel="expires">2d 23h</span></div></div>');
+                    answered = true;
+                }, 3000);
+            });
+            jest.spyOn(AjaxTracker, 'waitForGameAnswer').mockImplementation(async () => {
+                while (!answered) await new Promise(r => setTimeout(r, 50));
+                return true;
+            });
+
+            const done = SeasonalEvent.goAndCollectMegaEventRankRewards();
+            await jest.advanceTimersByTimeAsync(10_000);
+            await done;
+
+            expect(getSecondsLeft('nextMegaEventRankCollectTime')).toBeGreaterThan(2 * 24 * 3600);
         });
     });
 });

@@ -21,6 +21,7 @@ import { randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { setTimer } from "../Helper/TimerHelper";
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { getPage } from "../Helper/PageHelper";
+import { AJAX_IDLE_TIMEOUT_MS, waitForGameAnswer } from "../Service/AjaxTracker";
 import { gotoPage, safeReload } from "../Service/PageNavigationService";
 import {
     logHHAuto
@@ -136,16 +137,30 @@ export class LabyrinthAuto {
             if (sweeping) {
                 logHHAuto("Auto laby sweep enabled, triggering sweep.");
                 sweepFloorButton.trigger('click');
-                await TimeHelper.sleep(randomInterval(1000, 1500));
+                // The preview popup opens with the answer to
+                // preview_sweep_laby_floor, the reward popup with the answer to
+                // sweep_laby_floor. Measured with the server answering after
+                // 3 s: the confirm was looked for after a fixed 1-1.5 s, the
+                // preview opened later and stayed open with autoLoop off.
+                const confirmButton = await TimeHelper.waitFor(() => {
+                    const button = $("#labyrinth_sweeping_preview_popup #popup_confirm.blue_button_L:visible");
+                    return button.length > 0 ? button : null;
+                }, AJAX_IDLE_TIMEOUT_MS);
+                if (!confirmButton) {
+                    logHHAuto("Sweep preview did not open, retry in 60secs.");
+                    setTimer('nextLabyrinthTime', randomInterval(60, 70));
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    return true;
+                }
                 if (this.debugEnabled) logHHAuto("Confirm sweep.");
-                $("#labyrinth_sweeping_preview_popup #popup_confirm.blue_button_L").trigger('click');
-                await TimeHelper.sleep(randomInterval(1500, 2000));
-                // Close reward popup or wait until it opens
-                for (let i = 0; i < 3; i++) {
-                    if (this.debugEnabled) logHHAuto("Close seep reward popup.");
-                    const popupOpened = this.closeRewards();
+                await TimeHelper.sleep(randomInterval(300, 600));
+                confirmButton.trigger('click');
+                await waitForGameAnswer();
+                if (this.debugEnabled) logHHAuto("Close seep reward popup.");
+                const popupOpened = await TimeHelper.waitFor(() => this.closeRewards(), AJAX_IDLE_TIMEOUT_MS, 300);
+                if (popupOpened) {
                     await TimeHelper.sleep(randomInterval(800, 1300));
-                    if (popupOpened) return this.run(depth + 1);
+                    return this.run(depth + 1);
                 }
             }else {
                 $('.labChosen').trigger('click');

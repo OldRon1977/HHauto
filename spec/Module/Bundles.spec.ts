@@ -100,19 +100,19 @@ describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', functi
         jest.restoreAllMocks();
     });
 
-    it('claims the step-up rung, whose button is purple and not blue', function () {
+    it('claims the step-up rung, whose button is purple and not blue', async function () {
         document.body.innerHTML = shopPopup(STEPUP_TAB, STEPUP_CONTENT);
         const claimed = jest.fn();
         document.querySelector<HTMLButtonElement>('button[product="70678"]')!
             .addEventListener('click', claimed);
 
         Bundles.goAndCollectFreeBundles();
-        jest.advanceTimersByTime(2000);
+        await jest.advanceTimersByTimeAsync(2000);
 
         expect(claimed).toHaveBeenCalled();
     });
 
-    it('the old colour-keyed query would have found nothing there', function () {
+    it('the old colour-keyed query would have found nothing there', async function () {
         document.body.innerHTML = shopPopup(STEPUP_TAB, STEPUP_CONTENT);
         const container = '#common-popups .payments-wrapper .bundle .bundle-offer-price ';
 
@@ -120,7 +120,7 @@ describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', functi
         expect($(container + ".free-buy-button-shop:enabled[price='0.00']").length).toBe(1);
     });
 
-    it('clicks the step-up tab, which the old tab list did not name', function () {
+    it('clicks the step-up tab, which the old tab list did not name', async function () {
         // No free claim anywhere, so the tab walk runs to the end instead of
         // stopping at the first tab that yields one. In jsdom every tab's
         // content sits in the DOM at once, so a fixture with a claim would
@@ -132,12 +132,12 @@ describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', functi
             .addEventListener('click', opened);
 
         Bundles.goAndCollectFreeBundles();
-        jest.advanceTimersByTime(2000);
+        await jest.advanceTimersByTimeAsync(2000);
 
         expect(opened).toHaveBeenCalled();
     });
 
-    it('leaves the already-claimed rung and the paid button alone', function () {
+    it('leaves the already-claimed rung and the paid button alone', async function () {
         document.body.innerHTML = shopPopup(STEPUP_TAB, STEPUP_CONTENT);
         const disabled = jest.fn();
         const paid = jest.fn();
@@ -145,7 +145,7 @@ describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', functi
         document.querySelector('button[product="70693"]')!.addEventListener('click', paid);
 
         Bundles.goAndCollectFreeBundles();
-        jest.advanceTimersByTime(2000);
+        await jest.advanceTimersByTimeAsync(2000);
 
         expect(disabled).not.toHaveBeenCalled();
         expect(paid).not.toHaveBeenCalled();
@@ -155,7 +155,7 @@ describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', functi
     // four seconds, each entry pressing "+" again. The popup then held its
     // content twice over -- 32 free buttons where a plain read showed 16 --
     // and six game-side exceptions landed inside the doubled tab walk.
-    it('does not press the popup button again while a walk is running', function () {
+    it('does not press the popup button again while a walk is running', async function () {
         document.body.innerHTML = shopPopup(STEPUP_TAB, STEPUP_CONTENT);
         const opened = jest.fn();
         document.querySelector('header .currency .reversed_tooltip')!
@@ -164,12 +164,12 @@ describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', functi
         Bundles.goAndCollectFreeBundles();
         Bundles.goAndCollectFreeBundles();
         Bundles.goAndCollectFreeBundles();
-        jest.advanceTimersByTime(2000);
+        await jest.advanceTimersByTimeAsync(2000);
 
         expect(opened).toHaveBeenCalledTimes(1);
     });
 
-    it('lets the next walk start once the previous one has finished', function () {
+    it('lets the next walk start once the previous one has finished', async function () {
         // No free claim anywhere, so the first walk runs straight to
         // collectFreeBundlesFinished and clears the flag.
         document.body.innerHTML = shopPopup(STEPUP_TAB, '');
@@ -178,14 +178,14 @@ describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', functi
             .addEventListener('click', opened);
 
         Bundles.goAndCollectFreeBundles();
-        jest.advanceTimersByTime(2000);
+        await jest.advanceTimersByTimeAsync(2000);
         Bundles.goAndCollectFreeBundles();
-        jest.advanceTimersByTime(2000);
+        await jest.advanceTimersByTimeAsync(2000);
 
         expect(opened).toHaveBeenCalledTimes(2);
     });
 
-    it('starts again once an unfinished walk has aged out', function () {
+    it('starts again once an unfinished walk has aged out', async function () {
         document.body.innerHTML = shopPopup(STEPUP_TAB, STEPUP_CONTENT);
         const opened = jest.fn();
         document.querySelector('header .currency .reversed_tooltip')!
@@ -193,25 +193,59 @@ describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', functi
 
         // First walk claims a rung and never reaches its finish path.
         Bundles.goAndCollectFreeBundles();
-        jest.advanceTimersByTime(2000);
+        await jest.advanceTimersByTimeAsync(2000);
         // Blocked while the walk still counts as running ...
         Bundles.goAndCollectFreeBundles();
         expect(opened).toHaveBeenCalledTimes(1);
         // ... and free again a minute later.
-        jest.advanceTimersByTime(61_000);
+        await jest.advanceTimersByTimeAsync(61_000);
         Bundles.goAndCollectFreeBundles();
 
         expect(opened).toHaveBeenCalledTimes(2);
     });
 
-    it('still reaches the blue free claim under special offers', function () {
+    it('still reaches the blue free claim under special offers', async function () {
         document.body.innerHTML = shopPopup(SPECIAL_TAB, SPECIAL_CONTENT);
         const claimed = jest.fn();
         document.querySelector('button[product="71788"]')!.addEventListener('click', claimed);
 
         Bundles.goAndCollectFreeBundles();
-        jest.advanceTimersByTime(2000);
+        await jest.advanceTimersByTimeAsync(2000);
 
         expect(claimed).toHaveBeenCalled();
+    });
+
+    it('waits for a shop popup that opens late, instead of closing it unseen (#1915)', async function () {
+        // Measured with the server answering after 3.2 s: the popup was not
+        // there after the fixed 1.4-1.8 s, the close cross was clicked before
+        // it existed, and the popup then stayed open over the page.
+        document.body.innerHTML = `<header><div class="currency"><div class="reversed_tooltip">+</div></div></header>`;
+        const popup = shopPopup(SPECIAL_TAB, SPECIAL_CONTENT).replace(/^[\s\S]*?<\/header>/, '');
+        const claimed = jest.fn();
+        $('header .currency .reversed_tooltip').on('click', () => {
+            setTimeout(() => {
+                $('body').append(popup);
+                document.querySelector('button[product="71788"]')!.addEventListener('click', claimed);
+            }, 3200);
+        });
+
+        Bundles.goAndCollectFreeBundles();
+        await jest.advanceTimersByTimeAsync(5000);
+
+        expect(claimed).toHaveBeenCalled();
+    });
+
+    it('closes the shop with its close element once the walk is over (#1915)', async function () {
+        // Measured on the live shop: the close button is <close class="closable">;
+        // a click on .close_cross left the shop open.
+        document.body.innerHTML = shopPopup(SPECIAL_TAB, '');
+        $('#common-popups .payments-wrapper').append('<close class="closable"></close>');
+        const closed = jest.fn();
+        $('#common-popups close.closable').on('click', closed);
+
+        Bundles.goAndCollectFreeBundles();
+        await jest.advanceTimersByTimeAsync(5000);
+
+        expect(closed).toHaveBeenCalled();
     });
 });

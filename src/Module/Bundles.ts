@@ -10,7 +10,8 @@ import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
-import { randomInterval, convertTimeToInt } from "../Helper/TimeHelper";
+import { randomInterval, convertTimeToInt, TimeHelper } from "../Helper/TimeHelper";
+import { AJAX_IDLE_TIMEOUT_MS } from "../Service/AjaxTracker";
 import { setTimer } from "../Helper/TimerHelper";
 import { kickAutoLoop } from "../Service/AutoLoopKick";
 import { gotoPage } from "../Service/PageNavigationService";
@@ -115,7 +116,10 @@ export class Bundles {
                     collectionStartedAt = 0;
                     logHHAuto(message);
                     setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);
-                    $("#common-popups .close_cross").trigger('click'); // Close popup
+                    // The shop's close button is a <close class="closable">
+                    // element (measured): a click on `.close_cross` left the
+                    // shop open over the page, with and without a slow server.
+                    $("#common-popups close.closable, #common-popups .close_cross").first().trigger('click');
                     setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
                     logHHAuto("setting autoloop to true");
                     kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
@@ -180,8 +184,14 @@ export class Bundles {
                     }
                 }
 
-                // Wait popup is opened
-                setTimeout(switchToBundleTabs,randomInterval(1400, 1800));
+                // The shop popup opens with the answer to load_payment_methods.
+                // Measured with the server answering after 3.2 s: a fixed
+                // 1.4-1.8 s wait found no tabs, clicked the close cross before
+                // the popup existed, and the popup then stayed open over the
+                // page. Wait for the tabs, then look through them.
+                void TimeHelper.waitFor(() => $(bundleTabsListQuery, $(bundleTabsContainerQuery)).length > 0, AJAX_IDLE_TIMEOUT_MS)
+                    .then(() => TimeHelper.sleep(randomInterval(400, 700)))
+                    .then(switchToBundleTabs);
 
                 return true;
             } catch ({ message }: any) {

@@ -17,6 +17,7 @@ import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, TimeHelper, collectAllDelay } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
+import { waitForGameAnswer } from "../../Service/AjaxTracker";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
@@ -363,11 +364,21 @@ export class SeasonalEvent {
                 logHHAuto('Not Mega Event but rank tab exist');
             }
             logHHAuto('Collect Mega Event Rank Rewards');
-            // switch tabs
-            if (topRank.length > 0) topRank.trigger("click");
+            // switch tabs. Each tab loads its board with a `leaderboard`
+            // request; the rank timer is read from it. Measured with the
+            // server answering after 3 s: read after a fixed pause, the timer
+            // was missing and the next visit came after 7 h instead of the
+            // 2 d 23 h left.
+            if (topRank.length > 0) {
+                topRank.trigger("click");
+                await waitForGameAnswer();
+            }
             await TimeHelper.sleep(randomInterval(400, 600));
             RewardHelper.closeRewardPopupIfAny();
-            if (eventRank.length > 0) eventRank.trigger("click");
+            if (eventRank.length > 0) {
+                eventRank.trigger("click");
+                await waitForGameAnswer();
+            }
             await TimeHelper.sleep(randomInterval(400, 600));
             RewardHelper.closeRewardPopupIfAny();
 
