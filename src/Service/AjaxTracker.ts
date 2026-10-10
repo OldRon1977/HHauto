@@ -30,6 +30,7 @@
 //   installAjaxTracker()              -- call once at script start
 //   pendingAjaxCount()                -- in-flight XHR count
 //   waitForAjaxIdle(timeoutMs, settleMs)
+//   waitForGameAnswer()               -- after a click: its request answered
 //   acquirePostMutex(holderName?)     -- explicit caller mutex
 //   releasePostMutex()
 //   isPostInFlight()                  -- any tracked POST or held mutex
@@ -232,6 +233,18 @@ export async function waitForAjaxIdle(
         await sleep(settleMs);
     }
     return reachedIdle;
+}
+
+/**
+ * After a click whose handler sends a request: resolve once it is answered,
+ * bounded by AJAX_IDLE_TIMEOUT_MS. The game sends from the click handler
+ * itself (measured on the girl page, #1915); the short pause only covers a
+ * handler that defers it. A fixed pause after a click is what failed under
+ * a slow server: the script read or clicked again before the answer.
+ */
+export async function waitForGameAnswer(): Promise<boolean> {
+    await sleep(150);
+    return waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, 250);
 }
 
 // --- POST mutex ----------------------------------------------------

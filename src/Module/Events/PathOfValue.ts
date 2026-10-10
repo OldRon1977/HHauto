@@ -15,6 +15,7 @@ import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { TimeHelper, convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, collectAllDelay } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
+import { waitForGameAnswer } from "../../Service/AjaxTracker";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { FeatureGate } from "../../Service/FeatureGate";
@@ -113,13 +114,18 @@ export class PathOfValue {
 
                 if (buttonsToCollect.length >0)
                 {
-                    function collectPoVRewards()
+                    async function collectPoVRewards()
                     {
                         if (buttonsToCollect.length >0)
                         {
                             logHHAuto("Collecting tier : "+buttonsToCollect[0].getAttribute('tier'));
                             buttonsToCollect[0].click();
                             buttonsToCollect.shift();
+                            // The game ignores a claim click while the previous
+                            // claim is unanswered: with the server answering
+                            // after 3 s, one request went out for five tiers and
+                            // the rest stayed open (measured). Wait for it.
+                            await waitForGameAnswer();
                             setTimeout(collectPoVRewards, randomInterval(300, 500));
                         }
                         else

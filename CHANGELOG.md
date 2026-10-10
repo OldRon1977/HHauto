@@ -7,6 +7,24 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.19.10 - Waiting for the game on a slow connection
+
+On a slow connection these steps acted before the game had answered. They now
+wait for it.
+
+- **Free bundles**: the shop no longer stays open over the page. The script
+  waited a fixed moment for the shop and gave up before it had opened, and its
+  close click missed the shop's close button even when it was open.
+- **Path of Valor and Path of Glory**: every claimable tier is collected. The
+  game ignores a claim while the previous one is still being processed, so
+  tiers were left open until the next round hours later.
+- **Labyrinth sweep**: the sweep is confirmed once its preview has opened,
+  instead of the run standing still in front of it.
+- **Seasonal event rank rewards**: the next visit follows the ranking timer
+  again instead of coming back after seven hours.
+- **Stats**: buying stats goes on after each confirmed buy instead of stopping
+  after one.
+
 ### v8.19.9 - Girl upgrades wait for the game
 
 - **Harem girl tools** (fill or fully upgrade a girl or the filtered girls,

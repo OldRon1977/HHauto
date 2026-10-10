@@ -138,8 +138,12 @@ export function doStatUpgrades()
                     } else {
                         Hero.currencies.soft_currency = Number(Hero.currencies.soft_currency) - cost;
                     }
+                    // The next buy waits for this answer. Measured with the
+                    // server answering after 3 s: a fixed 300-500 ms re-run
+                    // found the stat unchanged and stopped as "not confirmed"
+                    // although the buy went through.
+                    setTimeout(doStatUpgrades, randomInterval(300,500));
                 });
-                setTimeout(doStatUpgrades, randomInterval(300,500));
                 return;
             }
         }

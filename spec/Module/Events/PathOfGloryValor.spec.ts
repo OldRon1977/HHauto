@@ -7,6 +7,7 @@ import { SK } from "../../../src/config/StorageKeys";
 import { MockHelper } from "../../testHelpers/MockHelpers";
 import * as PageHelper from "../../../src/Helper/PageHelper";
 import * as LogUtils from "../../../src/Utils/LogUtils";
+import * as AjaxTracker from "../../../src/Service/AjaxTracker";
 
 jest.mock("../../../src/Service/PageNavigationService", () => ({
     gotoPage: jest.fn().mockReturnValue(true),
@@ -100,6 +101,48 @@ describe.each(PATHS)("$label -- collecting", (path) => {
         sessionStorage.clear();
         for (const name of Object.keys(Timers)) delete Timers[name];
         document.body.innerHTML = '';
+    });
+
+    describe("the claim round under a slow server (#1915)", () => {
+        it("claims each tier only after the previous claim has been answered", async () => {
+            // Measured with the server answering after 3 s: the game ignores a
+            // claim click while the previous claim is unanswered, so one
+            // request went out for five tiers and the rest stayed open.
+            jest.useFakeTimers();
+            try {
+                localStorage.setItem(HHStoredVarPrefixKey + path.collectSetting, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + path.collectAllSetting, 'false');
+                setTimer(path.remainingTimer, (HOURS_BEFORE_END + 24) * 3600);
+                let pending = false;
+                let accepted = 0;
+                let ignored = 0;
+                const buttons = [1, 2, 3].map((tier) => {
+                    const b = document.createElement('button');
+                    b.setAttribute('tier', String(tier));
+                    b.addEventListener('click', () => {
+                        if (pending) { ignored++; return; }
+                        pending = true;
+                        accepted++;
+                        setTimeout(() => { pending = false; }, 3000);
+                    });
+                    return b;
+                });
+                const target = path.label === 'Path of Glory' ? PathOfGlory : PathOfValue;
+                jest.spyOn(target, 'getRewardButtonToCollect').mockReturnValue(buttons);
+                jest.spyOn(AjaxTracker, 'waitForGameAnswer').mockImplementation(async () => {
+                    while (pending) await new Promise(r => setTimeout(r, 50));
+                    return true;
+                });
+
+                path.run();
+                await jest.advanceTimersByTimeAsync(15_000);
+
+                expect(ignored).toBe(0);
+                expect(accepted).toBe(3);
+            } finally {
+                jest.useRealTimers();
+            }
+        });
     });
 
     const enableCollectAllOnly = () => {

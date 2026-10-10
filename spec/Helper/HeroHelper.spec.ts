@@ -289,6 +289,24 @@ describe("HeroHelper", function() {
       expect(ajax).toHaveBeenCalledTimes(1);
     });
 
+    it("buys on once a slow answer has confirmed the previous buy (#1915)", async function() {
+      // Measured with the server answering after 3 s: the fixed 300-500 ms
+      // re-run found the stat unchanged, stopped as "not confirmed", and the
+      // successful answer came too late to start another buy.
+      setupHero();
+      const ajax = jest.fn((...args: unknown[]) => {
+        setTimeout(() => (args[1] as (d: object) => void)({ success: true }), 3000);
+      });
+      unsafeWindow.shared!.general!.hh_ajax = ajax;
+
+      const doStatUpgrades = await loadDoStatUpgrades();
+      doStatUpgrades();
+      jest.advanceTimersByTime(1000);
+      expect(ajax).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(3000);
+      expect(ajax).toHaveBeenCalledTimes(2);
+    });
+
     it("stops after a buy the game refuses", async function() {
       setupHero();
       const ajax = answering({ success: false });
