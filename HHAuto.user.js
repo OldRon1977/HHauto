@@ -605,9 +605,7 @@ HHAuto_ToolTips.en['ChangeTeamButton'] = { version: "5.6.24", elementText: "Curr
 HHAuto_ToolTips.en['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Possible Best", tooltip: "Get list of top 16 girls for your team if they are Max Lv & Aff" };
 HHAuto_ToolTips.en['UnequipAll'] = { version: "7.22.0", elementText: "Unequip All", tooltip: "Unequip all girls equipment" };
 HHAuto_ToolTips.en['LevelUpTeam'] = { version: "8.20.0", elementText: "Level-up team XP & grades", tooltip: "Gives every girl in the hexagons who is not fully developed all her grades and then all her levels, leader first, with the game's Max Grade-up (gifts, money for missing gifts, every grade quest) and Max Level-up (books, gems for the awakenings). Pays with money and gems, never with kobans, and comes back to this page. Skills unlock by grade and level, so this comes before Stuff Team." };
-HHAuto_ToolTips.en['levelUpTeamConfirm'] = { version: "8.20.0", elementText: "Level-up team: these girls get all their grades and levels. This spends gifts, books, money and gems.\n\n{girls}\n\nContinue?", tooltip: "" };
 HHAuto_ToolTips.en['levelUpTeamNone'] = { version: "8.20.0", elementText: "Every girl in the hexagons is fully developed.", tooltip: "" };
-HHAuto_ToolTips.en['levelUpTeamUnsaved'] = { version: "8.20.0", elementText: "The hexagons do not show the saved team. Level-up team develops the hexagon girls, and the page comes back with the saved team. Continue?", tooltip: "" };
 HHAuto_ToolTips.en['StuffTeam'] = { version: "8.16.0", elementText: "Stuff Team", tooltip: "Auto build the team's skills. Can also remove skills from other girls if needed. Money limit will be considered. The gear is in the Team gear block." };
 HHAuto_ToolTips.en['HHGearMenu'] = { version: "8.10.20", elementText: "HH Gear", tooltip: "Opens the gear tools: best gear now, best gear once levelled, upgrade the worn mythics, and mark the ones worth keeping. They live in a menu because four buttons do not fit beside the game\u0027s own." };
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker." };
@@ -1207,9 +1205,7 @@ HHAuto_ToolTips.fr['ChangeTeamButton'] = { version: "5.6.24", elementText: "Meil
 HHAuto_ToolTips.fr['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Meilleure possible", tooltip: "Récupère la liste des 16 meilleures filles pour votre équipe si elles étaient au niveau et à l'affection maximum." };
 HHAuto_ToolTips.fr['UnequipAll'] = { version: "7.22.0", elementText: "Tout déséquiper", tooltip: "Retire l'équipement de toutes les filles." };
 HHAuto_ToolTips.fr['LevelUpTeam'] = { version: "8.20.0", elementText: "Monter l'équipe (XP & grades)", tooltip: "Donne à chaque fille des hexagones qui n'est pas entièrement développée tous ses grades puis tous ses niveaux, la meneuse d'abord, avec « Max Grade-up » du jeu (cadeaux, argent pour les cadeaux manquants, chaque quête de grade) et « Max Level-up » (livres, gemmes pour les éveils). Paie en argent et en gemmes, jamais en kobans, et revient sur cette page. Les compétences se débloquent par grade et niveau, d'où sa place avant « Équiper l'équipe »." };
-HHAuto_ToolTips.fr['levelUpTeamConfirm'] = { version: "8.20.0", elementText: "Monter l'équipe : ces filles reçoivent tous leurs grades et niveaux. Cela consomme cadeaux, livres, argent et gemmes.\n\n{girls}\n\nContinuer ?", tooltip: "" };
 HHAuto_ToolTips.fr['levelUpTeamNone'] = { version: "8.20.0", elementText: "Toutes les filles des hexagones sont entièrement développées.", tooltip: "" };
-HHAuto_ToolTips.fr['levelUpTeamUnsaved'] = { version: "8.20.0", elementText: "Les hexagones ne montrent pas l'équipe enregistrée. Monter l'équipe développe les filles des hexagones, et la page revient avec l'équipe enregistrée. Continuer ?", tooltip: "" };
 HHAuto_ToolTips.fr['StuffTeam'] = { version: "8.16.0", elementText: "Équiper l'équipe", tooltip: "Construit automatiquement les compétences de l'équipe. Peut aussi retirer des compétences à d'autres filles si nécessaire. La limite d'argent est respectée. L'équipement est dans le bloc « Équipement de l'équipe »." };
 HHAuto_ToolTips.fr['HHGearMenu'] = { version: "8.10.20", elementText: "Équipement HH", tooltip: "Ouvre les outils d'équipement : meilleur équipement actuel, meilleur équipement une fois monté au niveau max, amélioration des mythiques portés, et marquage de ceux qui valent la peine d'être gardés. Ils sont dans un menu parce que quatre boutons ne tiennent pas à côté de ceux du jeu." };
 HHAuto_ToolTips.fr['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Meilleur équipement actuel", tooltip: "Équipe la meilleure armure que vous possédez pour chacun des six emplacements du héros, jugée sur les statistiques du jour. Les statistiques brutes décident, la résonance départage : cela ne vous affaiblit jamais." };
@@ -1765,9 +1761,7 @@ HHAuto_ToolTips.de['ChangeTeamButton'] = { version: "5.6.24", elementText: "Aktu
 HHAuto_ToolTips.de['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mögliches Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team, wenn sie auf max. Level und Zuneigung wären." };
 HHAuto_ToolTips.de['UnequipAll'] = { version: "7.22.0", elementText: "Alles ablegen", tooltip: "Nimmt allen Mädels die Ausrüstung ab." };
 HHAuto_ToolTips.de['LevelUpTeam'] = { version: "8.20.0", elementText: "Team leveln (XP & Grade)", tooltip: "Gibt jedem Mädel in den Hexagons, das noch nicht voll entwickelt ist, alle Grade und dann alle Level, die Anführerin zuerst – mit „Max Grade-up“ des Spiels (Geschenke, Geld für fehlende Geschenke, jede Grad-Quest) und „Max Level-up“ (Bücher, Gems fürs Erwachen). Bezahlt mit Geld und Gems, nie mit Kobans, und kehrt auf diese Seite zurück. Skills werden über Grad und Level freigeschaltet, deshalb steht das vor „Team bestücken“." };
-HHAuto_ToolTips.de['levelUpTeamConfirm'] = { version: "8.20.0", elementText: "Team leveln: diese Mädels bekommen alle Grade und Level. Das verbraucht Geschenke, Bücher, Geld und Gems.\n\n{girls}\n\nFortfahren?", tooltip: "" };
 HHAuto_ToolTips.de['levelUpTeamNone'] = { version: "8.20.0", elementText: "Alle Mädels in den Hexagons sind voll entwickelt.", tooltip: "" };
-HHAuto_ToolTips.de['levelUpTeamUnsaved'] = { version: "8.20.0", elementText: "Die Sechsecke zeigen nicht das gespeicherte Team. Team leveln entwickelt die Mädels in den Sechsecken, und die Seite kommt mit dem gespeicherten Team zurück. Fortfahren?", tooltip: "" };
 HHAuto_ToolTips.de['StuffTeam'] = { version: "8.16.0", elementText: "Team bestücken", tooltip: "Baut die Skills des Teams automatisch auf. Kann anderen Mädels auch Skills wieder abnehmen. Die Ausrüstung steht im Block „Team-Ausrüstung“." };
 HHAuto_ToolTips.de['HHGearMenu'] = { version: "8.10.20", elementText: "HH Ausrüstung", tooltip: "Öffnet die Ausrüstungs-Werkzeuge: beste Ausrüstung jetzt, beste nach dem Leveln, getragene Mythics aufwerten und die Behalter markieren. Sie stecken in einem Menü, weil vier Knöpfe neben den spieleigenen nicht hinpassen." };
 HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten." };
@@ -2242,9 +2236,7 @@ HHAuto_ToolTips.es['ChangeTeamButton'] = { version: "5.6.24", elementText: "Mejo
 HHAuto_ToolTips.es['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mejor posible", tooltip: "Obtiene la lista de las 16 mejores chicas para tu equipo si estuvieran al nivel y afecto máximos." };
 HHAuto_ToolTips.es['UnequipAll'] = { version: "7.22.0", elementText: "Desequipar todo", tooltip: "Quita el equipo a todas las chicas." };
 HHAuto_ToolTips.es['LevelUpTeam'] = { version: "8.20.0", elementText: "Subir chicas (XP y grados)", tooltip: "Da a cada chica de los hexágonos que no esté del todo desarrollada todos sus grados y luego todos sus niveles, la líder primero, con «Max Grade-up» del juego (regalos, dinero para los regalos que faltan, cada misión de grado) y «Max Level-up» (libros, gemas para los despertares). Paga con dinero y gemas, nunca con kobans, y vuelve a esta página. Las habilidades se desbloquean por grado y nivel, por eso va antes de «Preparar equipo»." };
-HHAuto_ToolTips.es['levelUpTeamConfirm'] = { version: "8.20.0", elementText: "Subir chicas: estas chicas reciben todos sus grados y niveles. Se gastan regalos, libros, dinero y gemas.\n\n{girls}\n\n¿Continuar?", tooltip: "" };
 HHAuto_ToolTips.es['levelUpTeamNone'] = { version: "8.20.0", elementText: "Todas las chicas de los hexágonos están del todo desarrolladas.", tooltip: "" };
-HHAuto_ToolTips.es['levelUpTeamUnsaved'] = { version: "8.20.0", elementText: "Los hexágonos no muestran el equipo guardado. Subir chicas desarrolla a las chicas de los hexágonos, y la página vuelve con el equipo guardado. ¿Continuar?", tooltip: "" };
 HHAuto_ToolTips.es['StuffTeam'] = { version: "8.16.0", elementText: "Preparar equipo", tooltip: "Construye automáticamente las habilidades del equipo. También puede quitar habilidades a otras chicas si hace falta. Se respeta el límite de dinero. El equipo está en el bloque «Equipo de las chicas»." };
 HHAuto_ToolTips.es['HHGearMenu'] = { version: "8.10.20", elementText: "Equipo HH", tooltip: "Abre las herramientas de equipo: mejor equipo ahora, mejor equipo una vez subido de nivel, mejorar los míticos puestos y marcar los que merece la pena conservar. Están en un menú porque cuatro botones no caben junto a los del propio juego." };
 HHAuto_ToolTips.es['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Mejor equipo actual", tooltip: "Equipa la armadura más fuerte que tienes para cada una de las seis ranuras del héroe, según las estadísticas de hoy. Deciden las estadísticas brutas y la resonancia desempata; esto nunca te deja más débil." };
@@ -32624,6 +32616,7 @@ class TeamSelectionPopup {
                 </div>
                 <div>
                     <label class="myButton" id="hhTsLevelUp" title="${getTextForUI('LevelUpTeam', 'tooltip')}">${getTextForUI('LevelUpTeam', 'elementText')}</label>
+                    <div class="tsState" id="hhTsLevelUpState"></div>
                 </div>
                 <div>
                     <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
@@ -32646,13 +32639,14 @@ class TeamSelectionPopup {
         }
         $('#hhTsSlowInfoToggle').on('click', () => $('#hhTsSlowInfo').toggle());
         $('#hhTsUnequip').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.unequipAll(); });
+        // No question before the run (the player asked for none): the
+        // tooltip says what it spends.
         $('#hhTsLevelUp').on('click', () => {
             const a = TeamSelectionPopup.actions;
             if (!a)
                 return;
-            if (!TeamSelectionPopup.hexagonsMatchSaved() && !window.confirm(getTextForUI('levelUpTeamUnsaved', 'elementText')))
-                return;
-            a.levelUpTeam();
+            if (!a.levelUpTeam())
+                $('#hhTsLevelUpState').html(getTextForUI('levelUpTeamNone', 'elementText'));
         });
         $('#hhTsStuff').on('click', () => {
             const a = TeamSelectionPopup.actions;
@@ -34019,7 +34013,7 @@ class TeamModule {
         const available = getHHVars('availableGirls', false);
         if (!Array.isArray(available)) {
             logHHAuto('Error: availableGirls not found on the edit team page, cancel action');
-            return;
+            return false;
         }
         const girls = [];
         for (const id of TeamModule.getEditTeamGirlIds()) {
@@ -34031,12 +34025,9 @@ class TeamModule {
                 girls.push(girl);
         }
         if (girls.length === 0) {
-            window.alert(getTextForUI('levelUpTeamNone', 'elementText'));
-            return;
+            logHHAuto('Level-up team: every hexagon girl is fully developed');
+            return false;
         }
-        const names = girls.map(g => `${g.name} (${g.level}, ${g.graded}/${g.nb_grades})`).join('\n');
-        if (!window.confirm(getTextForUI('levelUpTeamConfirm', 'elementText').replace('{girls}', names)))
-            return;
         const team = new TeamData();
         team.team = girls.map(g => ({ id_girl: g.id_girl }));
         team.girlIds = team.team.map(g => g.id_girl);
@@ -34051,6 +34042,7 @@ class TeamModule {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         startWorkPause('team');
         gotoPage('/girl/' + team.girlIds[0], { resource: HaremGirl.AFFECTION_TYPE });
+        return true;
     }
     static getSkillNeededScrolls(mainGirl, teamGirls, rarity, nbGrades) {
         const girls = teamGirls.filter(girl => girl.girl && girl.girl.rarity === rarity && girl.girl.nb_grades == nbGrades);

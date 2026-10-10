@@ -15,8 +15,10 @@ Older entries below were migrated 1:1 from `README.md`.
   resources allow, using the harem tools' own steps: Max Grade-up, or the
   gifts in the inventory when the money does not cover it, and every grade
   quest including the last; then awakening at the level cap and Max Level-up.
-  It pays with money and gems, never with kobans, and returns to the team page
-  when the last girl is done. Skills unlock by grade and level, so a girl
+  It starts without a question -- the tooltip says what it spends -- pays
+  with money and gems, never with kobans, and returns to the team page when
+  the last girl is done. With every hexagon girl fully developed, a line
+  under the button says so. Skills unlock by grade and level, so a girl
   levelled this way can then be skilled with Stuff Team.
 - A grade quest the money does not cover, or an awakening the game refuses
   (it asks for a number of girls at the same level first), no longer ends the
