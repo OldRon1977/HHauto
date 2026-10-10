@@ -188,6 +188,30 @@ describe("HeroHelper", function() {
       expect(HeroHelper.getSandalWoodEquipFailure()).toBe(1);
     });
 
+    it("a refusal settles at once on the game's error popup, not after the 15 s timeout", async function() {
+      // Measured: on success:false the game's hh_ajax calls neither callback;
+      // its error handler only shows #simple_text_popup.
+      unsafeWindow.shared!.general!.hh_ajax = jest.fn(() => {
+        setTimeout(() => {
+          document.body.insertAdjacentHTML('beforeend',
+            '<div class="popup_wrapper"><div id="simple_text_popup" class="popup"><div class="text">refused</div></div></div>');
+        }, 300);
+      });
+      const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
+      jest.useFakeTimers();
+      try {
+        let result: boolean | undefined;
+        void HeroHelper.equipBooster(TEST_SANDALWOOD).then(r => { result = r; });
+        await jest.advanceTimersByTimeAsync(1000);
+        expect(result).toBe(false);
+        expect(HeroHelper.getSandalWoodEquipFailure()).toBe(1);
+      } finally {
+        jest.useRealTimers();
+        document.body.innerHTML = '';
+      }
+    });
+
     it("AJAX network error returns false", async function() {
         mockEquipeError();
       const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
