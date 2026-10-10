@@ -11,7 +11,8 @@
 // of locale.
 //
 // Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
-//          InfoService (display remaining times)
+//          InfoService (display remaining times), HaremGirl (waiting for
+//          the game's popups)
 
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -70,6 +71,21 @@ export class TimeHelper {
         return new Promise((resolve) => {
             setTimeout(resolve, waitTime);
         });
+    }
+
+    /**
+     * Polls `probe` until it returns a truthy value or `timeoutMs` has
+     * passed. Resolves with that value, or null on timeout -- never waits
+     * without a bound.
+     */
+    static async waitFor<T>(probe: () => T | null | undefined | false, timeoutMs: number, pollMs = 100): Promise<T | null> {
+        const deadline = Date.now() + timeoutMs;
+        for (;;) {
+            const value = probe();
+            if (value) return value;
+            if (Date.now() >= deadline) return null;
+            await TimeHelper.sleep(pollMs);
+        }
     }
 
     // waitForAjaxEnd was removed in the issue #1782 fix: it waited forever

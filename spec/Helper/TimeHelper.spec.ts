@@ -66,4 +66,20 @@ describe("Time Helper", function () {
         });
     });
 
+    describe("waitFor", function () {
+        it("resolves with the value once the probe returns one", async function () {
+            let calls = 0;
+            const value = await TimeHelper.waitFor(() => (++calls >= 3 ? 'ready' : null), 1000, 10);
+            expect(value).toBe('ready');
+            expect(calls).toBe(3);
+        });
+
+        it("gives up with null after the timeout", async function () {
+            const start = Date.now();
+            const value = await TimeHelper.waitFor(() => false, 60, 10);
+            expect(value).toBeNull();
+            expect(Date.now() - start).toBeGreaterThanOrEqual(55);
+        });
+    });
+
 });
