@@ -106,6 +106,7 @@ describe("HaremGirl waiting for the game (#1915)", function () {
     });
 
     it("pays with cash once the popup has loaded, not before", async function () {
+        (unsafeWindow as unknown as { shared: unknown }).shared = { Hero: { currencies: { soft_currency: 10_000_000 } } };
         let cashClicks = 0;
         $('#girl-leveler-max-out-all-levels-affection').on('click', () => {
             // The popup arrives with the price request's answer: 1.5 s on the

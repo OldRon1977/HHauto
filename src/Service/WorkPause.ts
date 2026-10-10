@@ -2,8 +2,9 @@
 // on the hero's gear.
 //
 // Working on a team is a sequence, not one click: calculate, Apply (the page
-// reloads), Team gear (it reloads again), Level-up gear or Stuff Team (they
-// leave for the upgrade, harem and girl pages and come back). Measured on a
+// reloads), Team gear (it reloads again), Level-up gear, Level-up team or
+// Stuff Team (they leave for the upgrade, harem, girl and quest pages and
+// come back). Measured on a
 // live account (#1888): the in-memory hold of AutoLoopHold.ts covered the
 // calculation itself, but one second after it ended a due League block left
 // edit-team, and Apply pressed a second later saved the team while the page
@@ -20,7 +21,8 @@
 // the market is the same kind of sequence: preview, Equip (the page reloads),
 // Upgrade Gear over the upgrade pages and back. The pause holds
 //   - on the pages of its zone,
-//   - on every page of a running Stuff Team, Level-up gear or Upgrade Gear,
+//   - on every page of a running Level-up team (the grade quests included),
+//     Stuff Team, Level-up gear or Upgrade Gear,
 //   - on the way back to the zone after such a run finished.
 // It ends when the player leaves the zone by their own hand, presses
 // "Resume automation" on the notice every held page shows, after
@@ -29,7 +31,7 @@
 //
 // The decision is WorkPause.pure.ts; this file reads its input and acts.
 //
-// Stuff Team's end sets returnToZone on the stored state itself, in the
+// The end of Stuff Team and Level-up team sets returnToZone on the stored state itself, in the
 // harem girl module: importing this file there would close new import cycles.
 //
 // Used by: AutoLoop.ts (asks it every tick), TeamModule.ts,
@@ -113,7 +115,8 @@ function runActive(page: string): boolean {
     const path = window.location.pathname;
     const onUpgradePage = path.indexOf(UPGRADE_PATH) !== -1 || path.indexOf(GIRL_UPGRADE_PATH) !== -1;
     if (getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode) === 'team'
-        && (page === cfg('pagesIDWaifu') || page === cfg('pagesIDHarem') || page === cfg('pagesIDGirlPage'))) {
+        && (page === cfg('pagesIDWaifu') || page === cfg('pagesIDHarem') || page === cfg('pagesIDGirlPage')
+            || page === cfg('pagesIDQuest'))) {
         return true;
     }
     if (queued(TK.girlGearUpgradeQueue) && (onUpgradePage || page === cfg('pagesIDGirlPage'))) return true;

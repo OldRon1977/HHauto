@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.19.11
+// @version      8.20.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -604,6 +604,10 @@ HHAuto_ToolTips.en['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: 'Orbs
 HHAuto_ToolTips.en['ChangeTeamButton'] = { version: "5.6.24", elementText: "Current Best", tooltip: "Get list of top 16 girls for your team." };
 HHAuto_ToolTips.en['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Possible Best", tooltip: "Get list of top 16 girls for your team if they are Max Lv & Aff" };
 HHAuto_ToolTips.en['UnequipAll'] = { version: "7.22.0", elementText: "Unequip All", tooltip: "Unequip all girls equipment" };
+HHAuto_ToolTips.en['LevelUpTeam'] = { version: "8.20.0", elementText: "Level-up team XP & grades", tooltip: "Gives every girl in the hexagons who is not fully developed all her grades and then all her levels, leader first, with the game's Max Grade-up (gifts, money for missing gifts, every grade quest) and Max Level-up (books, gems for the awakenings). Pays with money and gems, never with kobans, and comes back to this page. Skills unlock by grade and level, so this comes before Stuff Team." };
+HHAuto_ToolTips.en['levelUpTeamConfirm'] = { version: "8.20.0", elementText: "Level-up team: these girls get all their grades and levels. This spends gifts, books, money and gems.\n\n{girls}\n\nContinue?", tooltip: "" };
+HHAuto_ToolTips.en['levelUpTeamNone'] = { version: "8.20.0", elementText: "Every girl in the hexagons is fully developed.", tooltip: "" };
+HHAuto_ToolTips.en['levelUpTeamUnsaved'] = { version: "8.20.0", elementText: "The hexagons do not show the saved team. Level-up team develops the hexagon girls, and the page comes back with the saved team. Continue?", tooltip: "" };
 HHAuto_ToolTips.en['StuffTeam'] = { version: "8.16.0", elementText: "Stuff Team", tooltip: "Auto build the team's skills. Can also remove skills from other girls if needed. Money limit will be considered. The gear is in the Team gear block." };
 HHAuto_ToolTips.en['HHGearMenu'] = { version: "8.10.20", elementText: "HH Gear", tooltip: "Opens the gear tools: best gear now, best gear once levelled, upgrade the worn mythics, and mark the ones worth keeping. They live in a menu because four buttons do not fit beside the game\u0027s own." };
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker." };
@@ -1202,6 +1206,10 @@ HHAuto_ToolTips.fr['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Orbe
 HHAuto_ToolTips.fr['ChangeTeamButton'] = { version: "5.6.24", elementText: "Meilleure actuelle", tooltip: "Récupère la liste des 16 meilleures filles pour votre équipe." };
 HHAuto_ToolTips.fr['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Meilleure possible", tooltip: "Récupère la liste des 16 meilleures filles pour votre équipe si elles étaient au niveau et à l'affection maximum." };
 HHAuto_ToolTips.fr['UnequipAll'] = { version: "7.22.0", elementText: "Tout déséquiper", tooltip: "Retire l'équipement de toutes les filles." };
+HHAuto_ToolTips.fr['LevelUpTeam'] = { version: "8.20.0", elementText: "Monter l'équipe (XP & grades)", tooltip: "Donne à chaque fille des hexagones qui n'est pas entièrement développée tous ses grades puis tous ses niveaux, la meneuse d'abord, avec « Max Grade-up » du jeu (cadeaux, argent pour les cadeaux manquants, chaque quête de grade) et « Max Level-up » (livres, gemmes pour les éveils). Paie en argent et en gemmes, jamais en kobans, et revient sur cette page. Les compétences se débloquent par grade et niveau, d'où sa place avant « Équiper l'équipe »." };
+HHAuto_ToolTips.fr['levelUpTeamConfirm'] = { version: "8.20.0", elementText: "Monter l'équipe : ces filles reçoivent tous leurs grades et niveaux. Cela consomme cadeaux, livres, argent et gemmes.\n\n{girls}\n\nContinuer ?", tooltip: "" };
+HHAuto_ToolTips.fr['levelUpTeamNone'] = { version: "8.20.0", elementText: "Toutes les filles des hexagones sont entièrement développées.", tooltip: "" };
+HHAuto_ToolTips.fr['levelUpTeamUnsaved'] = { version: "8.20.0", elementText: "Les hexagones ne montrent pas l'équipe enregistrée. Monter l'équipe développe les filles des hexagones, et la page revient avec l'équipe enregistrée. Continuer ?", tooltip: "" };
 HHAuto_ToolTips.fr['StuffTeam'] = { version: "8.16.0", elementText: "Équiper l'équipe", tooltip: "Construit automatiquement les compétences de l'équipe. Peut aussi retirer des compétences à d'autres filles si nécessaire. La limite d'argent est respectée. L'équipement est dans le bloc « Équipement de l'équipe »." };
 HHAuto_ToolTips.fr['HHGearMenu'] = { version: "8.10.20", elementText: "Équipement HH", tooltip: "Ouvre les outils d'équipement : meilleur équipement actuel, meilleur équipement une fois monté au niveau max, amélioration des mythiques portés, et marquage de ceux qui valent la peine d'être gardés. Ils sont dans un menu parce que quatre boutons ne tiennent pas à côté de ceux du jeu." };
 HHAuto_ToolTips.fr['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Meilleur équipement actuel", tooltip: "Équipe la meilleure armure que vous possédez pour chacun des six emplacements du héros, jugée sur les statistiques du jour. Les statistiques brutes décident, la résonance départage : cela ne vous affaiblit jamais." };
@@ -1756,6 +1764,10 @@ HHAuto_ToolTips.de['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Verb
 HHAuto_ToolTips.de['ChangeTeamButton'] = { version: "5.6.24", elementText: "Aktuell Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team." };
 HHAuto_ToolTips.de['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mögliches Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team, wenn sie auf max. Level und Zuneigung wären." };
 HHAuto_ToolTips.de['UnequipAll'] = { version: "7.22.0", elementText: "Alles ablegen", tooltip: "Nimmt allen Mädels die Ausrüstung ab." };
+HHAuto_ToolTips.de['LevelUpTeam'] = { version: "8.20.0", elementText: "Team leveln (XP & Grade)", tooltip: "Gibt jedem Mädel in den Hexagons, das noch nicht voll entwickelt ist, alle Grade und dann alle Level, die Anführerin zuerst – mit „Max Grade-up“ des Spiels (Geschenke, Geld für fehlende Geschenke, jede Grad-Quest) und „Max Level-up“ (Bücher, Gems fürs Erwachen). Bezahlt mit Geld und Gems, nie mit Kobans, und kehrt auf diese Seite zurück. Skills werden über Grad und Level freigeschaltet, deshalb steht das vor „Team bestücken“." };
+HHAuto_ToolTips.de['levelUpTeamConfirm'] = { version: "8.20.0", elementText: "Team leveln: diese Mädels bekommen alle Grade und Level. Das verbraucht Geschenke, Bücher, Geld und Gems.\n\n{girls}\n\nFortfahren?", tooltip: "" };
+HHAuto_ToolTips.de['levelUpTeamNone'] = { version: "8.20.0", elementText: "Alle Mädels in den Hexagons sind voll entwickelt.", tooltip: "" };
+HHAuto_ToolTips.de['levelUpTeamUnsaved'] = { version: "8.20.0", elementText: "Die Sechsecke zeigen nicht das gespeicherte Team. Team leveln entwickelt die Mädels in den Sechsecken, und die Seite kommt mit dem gespeicherten Team zurück. Fortfahren?", tooltip: "" };
 HHAuto_ToolTips.de['StuffTeam'] = { version: "8.16.0", elementText: "Team bestücken", tooltip: "Baut die Skills des Teams automatisch auf. Kann anderen Mädels auch Skills wieder abnehmen. Die Ausrüstung steht im Block „Team-Ausrüstung“." };
 HHAuto_ToolTips.de['HHGearMenu'] = { version: "8.10.20", elementText: "HH Ausrüstung", tooltip: "Öffnet die Ausrüstungs-Werkzeuge: beste Ausrüstung jetzt, beste nach dem Leveln, getragene Mythics aufwerten und die Behalter markieren. Sie stecken in einem Menü, weil vier Knöpfe neben den spieleigenen nicht hinpassen." };
 HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten." };
@@ -2229,6 +2241,10 @@ HHAuto_ToolTips.es['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Orbe
 HHAuto_ToolTips.es['ChangeTeamButton'] = { version: "5.6.24", elementText: "Mejor actual", tooltip: "Obtiene la lista de las 16 mejores chicas para tu equipo." };
 HHAuto_ToolTips.es['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mejor posible", tooltip: "Obtiene la lista de las 16 mejores chicas para tu equipo si estuvieran al nivel y afecto máximos." };
 HHAuto_ToolTips.es['UnequipAll'] = { version: "7.22.0", elementText: "Desequipar todo", tooltip: "Quita el equipo a todas las chicas." };
+HHAuto_ToolTips.es['LevelUpTeam'] = { version: "8.20.0", elementText: "Subir chicas (XP y grados)", tooltip: "Da a cada chica de los hexágonos que no esté del todo desarrollada todos sus grados y luego todos sus niveles, la líder primero, con «Max Grade-up» del juego (regalos, dinero para los regalos que faltan, cada misión de grado) y «Max Level-up» (libros, gemas para los despertares). Paga con dinero y gemas, nunca con kobans, y vuelve a esta página. Las habilidades se desbloquean por grado y nivel, por eso va antes de «Preparar equipo»." };
+HHAuto_ToolTips.es['levelUpTeamConfirm'] = { version: "8.20.0", elementText: "Subir chicas: estas chicas reciben todos sus grados y niveles. Se gastan regalos, libros, dinero y gemas.\n\n{girls}\n\n¿Continuar?", tooltip: "" };
+HHAuto_ToolTips.es['levelUpTeamNone'] = { version: "8.20.0", elementText: "Todas las chicas de los hexágonos están del todo desarrolladas.", tooltip: "" };
+HHAuto_ToolTips.es['levelUpTeamUnsaved'] = { version: "8.20.0", elementText: "Los hexágonos no muestran el equipo guardado. Subir chicas desarrolla a las chicas de los hexágonos, y la página vuelve con el equipo guardado. ¿Continuar?", tooltip: "" };
 HHAuto_ToolTips.es['StuffTeam'] = { version: "8.16.0", elementText: "Preparar equipo", tooltip: "Construye automáticamente las habilidades del equipo. También puede quitar habilidades a otras chicas si hace falta. Se respeta el límite de dinero. El equipo está en el bloque «Equipo de las chicas»." };
 HHAuto_ToolTips.es['HHGearMenu'] = { version: "8.10.20", elementText: "Equipo HH", tooltip: "Abre las herramientas de equipo: mejor equipo ahora, mejor equipo una vez subido de nivel, mejorar los míticos puestos y marcar los que merece la pena conservar. Están en un menú porque cuatro botones no caben junto a los del propio juego." };
 HHAuto_ToolTips.es['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Mejor equipo actual", tooltip: "Equipa la armadura más fuerte que tienes para cada una de las seis ranuras del héroe, según las estadísticas de hoy. Deciden las estadísticas brutas y la resonancia desempata; esto nunca te deja más débil." };
@@ -9683,7 +9699,10 @@ class HaremGirl {
             let selector;
             let readCost;
             if (haremItem === HaremGirl.EXPERIENCE_TYPE) {
-                selector = HaremGirl.CONFIRM_MAX_OUT_ALL_GEMS_SELECTOR;
+                // Measured: with an awakening still ahead the button opens the
+                // all-levels popup (books and gems, up to 750); past the last
+                // awakening it opens the single max-out popup (books only).
+                selector = HaremGirl.CONFIRM_MAX_OUT_ALL_GEMS_SELECTOR + ', ' + HaremGirl.CONFIRM_MAX_OUT_SELECTOR;
                 readCost = HaremGirl.getMaxOutGems;
             }
             else if (haremItem === HaremGirl.AFFECTION_TYPE) {
@@ -9700,7 +9719,21 @@ class HaremGirl {
                 logHHAuto(`Max out all ${haremItem} for girl ${girl.name} (${girl.id_girl}): payment button did not appear`);
                 return -1;
             }
+            if (confirmButton.closest('#girl_max_out_popup').length > 0) {
+                logHHAuto(`Max out ${haremItem} (books only, no awakening left) for girl ${girl.name} (${girl.id_girl})`);
+                yield TimeHelper.sleep(randomInterval(300, 600));
+                confirmButton.first().trigger('click');
+                yield HaremGirl.waitForGameData();
+                return 0;
+            }
             const cost = readCost();
+            if (haremItem === HaremGirl.AFFECTION_TYPE && cost > HeroHelper.getMoney()) {
+                // Measured: the cash button stays enabled when the money falls
+                // short, so the price is compared here and the popup closed.
+                logHHAuto(`Max out all ${haremItem} for girl ${girl.name} (${girl.id_girl}) costs ${cost}, more than the money (${HeroHelper.getMoney()})`);
+                $(HaremGirl.MAX_OUT_ALL_POPUP + ' button.blue_button_L:not([confirm_callback])').first().trigger('click');
+                return -1;
+            }
             logHHAuto(`Max out all ${haremItem} (for ${cost}${haremItem === HaremGirl.EXPERIENCE_TYPE ? ' gems' : ''}) for girl ${girl.name} (${girl.id_girl})`);
             yield TimeHelper.sleep(randomInterval(300, 600));
             confirmButton.trigger('click');
@@ -9735,7 +9768,8 @@ class HaremGirl {
             return false;
         }
     }
-    static awakGirl(girl) {
+    /** Clicks #awaken when it is there and the gems suffice. */
+    static startAwakening(girl) {
         var _a, _b, _c;
         const numberOfGem = (_c = (_b = (_a = unsafeWindow.player_gems_amount) === null || _a === void 0 ? void 0 : _a[girl.element]) === null || _b === void 0 ? void 0 : _b.amount) !== null && _c !== void 0 ? _c : 0;
         const canXpGirl = numberOfGem >= girl.awakening_costs;
@@ -9743,15 +9777,50 @@ class HaremGirl {
         if (awakButton.length > 0 && canXpGirl) {
             logHHAuto('Awake for girl ' + girl.id_girl);
             awakButton.trigger('click');
-            setTimeout(HaremGirl.confirmAwake, randomInterval(500, 1000)); // Page will be refreshed if done
             return true;
         }
         else {
-            logHHAuto('Awake button for girl ' + girl.id_girl + ' not enabled or not enough gems (' + numberOfGem + '<' + girl.awakening_costs + ')');
+            // Measured: #awaken exists only while the experience tab is shown.
+            logHHAuto('Awake button for girl ' + girl.id_girl + (awakButton.length === 0 ? ' not found or not enabled' : ' shown, not enough gems') + ' (' + numberOfGem + '/' + girl.awakening_costs + ')');
             return false;
         }
     }
+    static awakGirl(girl) {
+        if (!HaremGirl.startAwakening(girl))
+            return false;
+        setTimeout(HaremGirl.confirmAwake, randomInterval(500, 1000)); // Page will be refreshed if done
+        return true;
+    }
     ;
+    /**
+     * awakGirl for a run that goes on when the girl cannot be awakened.
+     * Measured: the popup is there within milliseconds, and the game may keep
+     * its button disabled ("You need 19 more Girls on level 350 ..."); the
+     * popup is then closed and false returned. True when confirmed -- the
+     * game reloads the page.
+     */
+    static awakGirlAndWait(girl) {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            if (!HaremGirl.startAwakening(girl))
+                return false;
+            const popup = yield TimeHelper.waitFor(() => {
+                const button = $('#awakening_popup button.awaken-btn:visible');
+                return button.length > 0 ? button : null;
+            }, HaremGirl.GAME_DATA_TIMEOUT_MS);
+            if (!popup) {
+                logHHAuto(`Awakening popup for girl ${girl.name} (${girl.id_girl}) did not appear`);
+                return false;
+            }
+            if (popup.is('[disabled]')) {
+                logHHAuto(`Awakening of girl ${girl.name} (${girl.id_girl}) refused by the game: ${$('#awakening_popup').text().replace(/\s+/g, ' ').trim().slice(0, 160)}`);
+                $('#awakening_popup').closest('.popup_wrapper').find('close, .close_cross').first().trigger('click');
+                return false;
+            }
+            popup.first().trigger('click');
+            yield HaremGirl.waitForGameData();
+            return true;
+        });
+    }
     static goToGirlQuest(girl, retry = 0) {
         const canGiftGirl = girl.nb_grades > girl.graded;
         const upgradeQuest = $('.upgrade_girl').attr('href');
@@ -9795,6 +9864,13 @@ class HaremGirl {
             }
             else {
                 logHHAuto("Need " + proceedCost + " Money to proceed.");
+                if (getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions) === HaremGirl.LEVEL_UP_TYPE) {
+                    // Level-up team: this grade waits, her levels and the
+                    // other girls do not.
+                    HaremGirl.blockLevelUpGrades(Number(unsafeWindow.id_girl));
+                    gotoPage('/girl/' + unsafeWindow.id_girl, { resource: HaremGirl.EXPERIENCE_TYPE }, randomInterval(1500, 2500));
+                    return true;
+                }
                 Harem.clearHaremToolVariables();
                 return false;
             }
@@ -9812,6 +9888,15 @@ class HaremGirl {
                 return false;
             }
         }
+    }
+    /** Level-up team: no more trips to this girl's quest. */
+    static blockLevelUpGrades(girlId) {
+        var _a;
+        const team = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeam, null);
+        if (!team)
+            return;
+        team.levelUpTrips = Object.assign(Object.assign({}, ((_a = team.levelUpTrips) !== null && _a !== void 0 ? _a : {})), { ['' + girlId]: Number.MAX_SAFE_INTEGER });
+        setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
     }
     static maxOutAndAwake(haremItem, selectedGirl) {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
@@ -9858,28 +9943,21 @@ class HaremGirl {
             const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast) === 'true';
             const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded;
             const lastGirlGrad = selectedGirl.nb_grades <= (selectedGirl.graded + 1);
-            const maxOutButton = HaremGirl.getMaxOutButton(haremItem);
             const maxOutAllButton = HaremGirl.getMaxOutAllButton(haremItem);
             if (canGiftGirl) {
                 if (haremGirlPayLast && maxOutAllButton.length > 0) {
                     // Paying takes the game to the girl's quest by itself.
-                    return (yield HaremGirl.maxOutAllButtonAndConfirm(haremItem, selectedGirl)) >= 0;
-                }
-                else if (maxOutButton.length > 0) {
-                    if (!(yield HaremGirl.maxOutButtonAndConfirm(haremItem, selectedGirl)))
-                        return false;
-                    if (!lastGirlGrad || haremGirlPayLast) {
-                        setTimeout(function () {
-                            HaremGirl.goToGirlQuest(selectedGirl);
-                        }, randomInterval(1500, 2000));
+                    if ((yield HaremGirl.maxOutAllButtonAndConfirm(haremItem, selectedGirl)) >= 0)
                         return true;
-                    }
-                    else {
-                        logHHAuto("Girl grade reach, keep last to buy manually");
-                    }
+                    // Not paid: the gifts she can take from the inventory are
+                    // still worth giving, one grade at a time.
                 }
-                else if ($('.upgrade_girl').length > 0) {
-                    // Grade full but quest not paid
+                // A filled bar: the grade's quest is there to be paid. Also the
+                // way on when Max out found nothing to confirm (measured: a full
+                // bar with the quest link, Max out did not answer).
+                const filled = HaremGirl.getMaxOutButton(haremItem).length > 0
+                    && (yield HaremGirl.maxOutButtonAndConfirm(haremItem, selectedGirl));
+                if (filled || $('.upgrade_girl').length > 0) {
                     if (!lastGirlGrad || haremGirlPayLast) {
                         setTimeout(function () {
                             HaremGirl.goToGirlQuest(selectedGirl);
@@ -10099,6 +10177,7 @@ class HaremGirl {
     }
     static run() {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             try {
                 const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
                 const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
@@ -10229,6 +10308,39 @@ class HaremGirl {
                     }
                     if (girlPosInList === 0)
                         logHHAuto('Main girl from the team');
+                    if (haremItem === HaremGirl.LEVEL_UP_TYPE) {
+                        // Grades first: each one is a trip to the girl's quest and
+                        // back to this page, which runs this branch again. The
+                        // levels come once the grades are done, so the gems are
+                        // paid once per girl.
+                        const trips = (_a = team.levelUpTrips) !== null && _a !== void 0 ? _a : {};
+                        const tripsSoFar = (_b = trips['' + girl.id_girl]) !== null && _b !== void 0 ? _b : 0;
+                        if (Number(girl.graded) < Number(girl.nb_grades) && tripsSoFar > Number(girl.nb_grades)) {
+                            logHHAuto(`Level-up team: ${girl.name} (${girl.id_girl}) stays ${girl.graded}/${girl.nb_grades}`
+                                + (tripsSoFar === Number.MAX_SAFE_INTEGER ? ' (her grade quest costs more than the money)' : ` after ${tripsSoFar} trips to her quest`)
+                                + ', going on with her levels');
+                        }
+                        else if (Number(girl.graded) < Number(girl.nb_grades)) {
+                            trips['' + girl.id_girl] = tripsSoFar + 1;
+                            setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(Object.assign(Object.assign({}, team), { levelUpTrips: trips })));
+                            HaremGirl.HaremDisplayGirlPopup(HaremGirl.AFFECTION_TYPE, girl.name + ' ' + girl.graded + '/' + girl.nb_grades + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+                            if (yield HaremGirl.fillAllAffection()) {
+                                logHHAuto(`Level-up team: ${girl.name} (${girl.id_girl}) on to her next grade`);
+                                return true;
+                            }
+                        }
+                        HaremGirl.HaremDisplayGirlPopup(HaremGirl.EXPERIENCE_TYPE, girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+                        // Measured at the cap: "Max reached. Awaken!", and Max
+                        // Level-up stays disabled with books in the inventory.
+                        // The awakening reloads the page, which runs this again.
+                        if (Number(girl.level) >= Number(girl.level_cap) && Number(girl.level) < 750) {
+                            yield HaremGirl.openTab(HaremGirl.EXPERIENCE_TYPE);
+                            if (yield HaremGirl.awakGirlAndWait(girl))
+                                return true;
+                        }
+                        yield HaremGirl.fillAllExperience();
+                        yield TimeHelper.sleep(randomInterval(400, 700));
+                    }
                     if (upgradeEquipment) {
                         HaremGirl.switchTabs(HaremGirl.EQUIPMENT_TYPE);
                         yield TimeHelper.sleep(randomInterval(400, 700));
@@ -10613,6 +10725,8 @@ HaremGirl.AFFECTION_TYPE = 'affection';
 HaremGirl.EXPERIENCE_TYPE = 'experience';
 HaremGirl.EQUIPMENT_TYPE = 'equipment';
 HaremGirl.SKILLS_TYPE = 'skills';
+/** Level-up team: every grade and every level the girl can still take. */
+HaremGirl.LEVEL_UP_TYPE = 'levelup';
 HaremGirl.SCROLLS_NEED_5 = {
     'mythic_6': 31,
     'legendary_5': 27,
@@ -28089,8 +28203,9 @@ function decideWorkPause(input) {
 // on the hero's gear.
 //
 // Working on a team is a sequence, not one click: calculate, Apply (the page
-// reloads), Team gear (it reloads again), Level-up gear or Stuff Team (they
-// leave for the upgrade, harem and girl pages and come back). Measured on a
+// reloads), Team gear (it reloads again), Level-up gear, Level-up team or
+// Stuff Team (they leave for the upgrade, harem, girl and quest pages and
+// come back). Measured on a
 // live account (#1888): the in-memory hold of AutoLoopHold.ts covered the
 // calculation itself, but one second after it ended a due League block left
 // edit-team, and Apply pressed a second later saved the team while the page
@@ -28107,7 +28222,8 @@ function decideWorkPause(input) {
 // the market is the same kind of sequence: preview, Equip (the page reloads),
 // Upgrade Gear over the upgrade pages and back. The pause holds
 //   - on the pages of its zone,
-//   - on every page of a running Stuff Team, Level-up gear or Upgrade Gear,
+//   - on every page of a running Level-up team (the grade quests included),
+//     Stuff Team, Level-up gear or Upgrade Gear,
 //   - on the way back to the zone after such a run finished.
 // It ends when the player leaves the zone by their own hand, presses
 // "Resume automation" on the notice every held page shows, after
@@ -28116,7 +28232,7 @@ function decideWorkPause(input) {
 //
 // The decision is WorkPause.pure.ts; this file reads its input and acts.
 //
-// Stuff Team's end sets returnToZone on the stored state itself, in the
+// The end of Stuff Team and Level-up team sets returnToZone on the stored state itself, in the
 // harem girl module: importing this file there would close new import cycles.
 //
 // Used by: AutoLoop.ts (asks it every tick), TeamModule.ts,
@@ -28193,7 +28309,8 @@ function runActive(page) {
     const path = window.location.pathname;
     const onUpgradePage = path.indexOf(UPGRADE_PATH) !== -1 || path.indexOf(GIRL_UPGRADE_PATH) !== -1;
     if (getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode) === 'team'
-        && (page === cfg('pagesIDWaifu') || page === cfg('pagesIDHarem') || page === cfg('pagesIDGirlPage'))) {
+        && (page === cfg('pagesIDWaifu') || page === cfg('pagesIDHarem') || page === cfg('pagesIDGirlPage')
+            || page === cfg('pagesIDQuest'))) {
         return true;
     }
     if (queued(TK.girlGearUpgradeQueue) && (onUpgradePage || page === cfg('pagesIDGirlPage')))
@@ -32383,10 +32500,12 @@ class BlessingForecast {
 // (TeamSelectionService.projectCaracs). Measurements are shared between the
 // rubrics, so a later rubric pays only for teams not yet measured.
 //
-// The right-hand column holds Unequip All and Stuff Team, each with the state
-// it acts on: the gear on the team, and whether the hexagons match the saved
-// team (Stuff Team skills the hexagon girls, the league fights the saved
-// team).
+// The right-hand column holds Unequip All, Level-up team and Stuff Team.
+// Unequip All and Stuff Team show the state they act on: the gear on the
+// team, and whether the hexagons match the saved team (Level-up team and
+// Stuff Team work on the hexagon girls, the league fights the saved team).
+// Level-up team stands above Stuff Team because skills unlock by grade and
+// level.
 // Below them the Team gear block, for the hexagon girls: Best gear and
 // Possibly best gear (each shows its plan before equipping), and Level-up
 // gear, which levels the worn mythics. None of them depends on the saved
@@ -32504,6 +32623,9 @@ class TeamSelectionPopup {
                     <div class="tsState" id="hhTsGearState"></div>
                 </div>
                 <div>
+                    <label class="myButton" id="hhTsLevelUp" title="${getTextForUI('LevelUpTeam', 'tooltip')}">${getTextForUI('LevelUpTeam', 'elementText')}</label>
+                </div>
+                <div>
                     <label class="myButton" id="hhTsStuff">${getTextForUI('StuffTeam', 'elementText')}</label>
                     <div class="tsState" id="hhTsSavedState"></div>
                 </div>
@@ -32524,6 +32646,14 @@ class TeamSelectionPopup {
         }
         $('#hhTsSlowInfoToggle').on('click', () => $('#hhTsSlowInfo').toggle());
         $('#hhTsUnequip').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.unequipAll(); });
+        $('#hhTsLevelUp').on('click', () => {
+            const a = TeamSelectionPopup.actions;
+            if (!a)
+                return;
+            if (!TeamSelectionPopup.hexagonsMatchSaved() && !window.confirm(getTextForUI('levelUpTeamUnsaved', 'elementText')))
+                return;
+            a.levelUpTeam();
+        });
         $('#hhTsStuff').on('click', () => {
             const a = TeamSelectionPopup.actions;
             if (!a)
@@ -33627,8 +33757,8 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 //
 // Puts the "Team optimization" button on the edit-team page and hands the
 // popup behind it (TeamSelectionPopup) its actions: read the hexagons and
-// the saved team, save a team in place, Unequip All, Stuff Team (skill
-// scrolls), and the Team gear block: Best gear and Possibly best gear (run
+// the saved team, save a team in place, Unequip All, Level-up team (grades
+// and levels), Stuff Team (skill scrolls), and the Team gear block: Best gear and Possibly best gear (run
 // by TeamGear), Level-up gear (the girls' worn mythics, run by
 // EquipmentGear). The team list (teams.html) gets only the scroll hint; its
 // former Unequip All / Equip Teams / Stuff Team buttons are gone, the popup
@@ -33662,6 +33792,8 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
+/** The level every girl can reach, whatever the hero's level. */
+const GIRL_MAX_LEVEL = 750;
 class TeamModule {
     static resetTeam() {
         $('#clear-team').trigger('click');
@@ -33874,6 +34006,52 @@ class TeamModule {
             }
         });
     }
+    /**
+     * Level-up team: every hexagon girl that is not fully developed gets all
+     * her grades and then all her levels, girl by girl, with the game's own
+     * "Max Grade-up" (gifts, money for missing gifts, the grade quests) and
+     * "Max Level-up" (books, gems for the awakenings). The run goes over the
+     * girl pages and returns to this page (WorkPause). Skills unlock by grade
+     * and level, so this comes before Stuff Team.
+     */
+    static levelUpTeam() {
+        var _a;
+        const available = getHHVars('availableGirls', false);
+        if (!Array.isArray(available)) {
+            logHHAuto('Error: availableGirls not found on the edit team page, cancel action');
+            return;
+        }
+        const girls = [];
+        for (const id of TeamModule.getEditTeamGirlIds()) {
+            const g = available.find((a) => Number(a.id_girl) === id);
+            if (!g)
+                continue;
+            const girl = { id_girl: id, name: String((_a = g.name) !== null && _a !== void 0 ? _a : id), level: Number(g.level), graded: Number(g.graded), nb_grades: Number(g.nb_grades) };
+            if (girl.graded < girl.nb_grades || girl.level < GIRL_MAX_LEVEL)
+                girls.push(girl);
+        }
+        if (girls.length === 0) {
+            window.alert(getTextForUI('levelUpTeamNone', 'elementText'));
+            return;
+        }
+        const names = girls.map(g => `${g.name} (${g.level}, ${g.graded}/${g.nb_grades})`).join('\n');
+        if (!window.confirm(getTextForUI('levelUpTeamConfirm', 'elementText').replace('{girls}', names)))
+            return;
+        const team = new TeamData();
+        team.team = girls.map(g => ({ id_girl: g.id_girl }));
+        team.girlIds = team.team.map(g => g.id_girl);
+        logHHAuto('Level-up team: ' + girls.map(g => `${g.name} (${g.id_girl}) level ${g.level}, grade ${g.graded}/${g.nb_grades}`).join(', '));
+        setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
+        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.LEVEL_UP_TYPE);
+        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
+        // Every grade, the last one included (the harem's "Upgrade max").
+        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast, 'true');
+        setStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart, HeroHelper.getMoney());
+        setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+        startWorkPause('team');
+        gotoPage('/girl/' + team.girlIds[0], { resource: HaremGirl.AFFECTION_TYPE });
+    }
     static getSkillNeededScrolls(mainGirl, teamGirls, rarity, nbGrades) {
         const girls = teamGirls.filter(girl => girl.girl && girl.girl.rarity === rarity && girl.girl.nb_grades == nbGrades);
         if (girls.length > 0)
@@ -34071,6 +34249,7 @@ class TeamModule {
                 safeReload(randomInterval(800, 1200));
             }),
             unequipAll: () => TeamModule.unequipAllGirls(),
+            levelUpTeam: () => TeamModule.levelUpTeam(),
             stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
             bestGear: () => { void TeamGear.preview('best', TeamModule.getHexagonGirlsWithGear()); },
             possibleGear: () => { void TeamGear.preview('possible', TeamModule.getHexagonGirlsWithGear()); },
@@ -35342,7 +35521,7 @@ function handlePageSpecific(ctx) {
             case ConfigHelper.getHHScriptVars("pagesIDQuest"):
                 const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
                 const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
-                if (haremGirlMode && haremItem === HaremGirl.AFFECTION_TYPE) {
+                if (haremGirlMode && (haremItem === HaremGirl.AFFECTION_TYPE || haremItem === HaremGirl.LEVEL_UP_TYPE)) {
                     HaremGirl.payGirlQuest = callItOnce(HaremGirl.payGirlQuest);
                     ctx.busy = HaremGirl.payGirlQuest();
                 }

@@ -7,6 +7,29 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.20.0 - Level-up team: XP and grades before Stuff Team
+
+- **Team optimization popup**: a new button, *Level-up team XP & grades*, stands
+  above Stuff Team. It takes every girl in the hexagons who is not fully
+  developed, leader first, and gives her all the grades and levels the
+  resources allow, using the harem tools' own steps: Max Grade-up, or the
+  gifts in the inventory when the money does not cover it, and every grade
+  quest including the last; then awakening at the level cap and Max Level-up.
+  It pays with money and gems, never with kobans, and returns to the team page
+  when the last girl is done. Skills unlock by grade and level, so a girl
+  levelled this way can then be skilled with Stuff Team.
+- A grade quest the money does not cover, or an awakening the game refuses
+  (it asks for a number of girls at the same level first), no longer ends the
+  run: the girl keeps what she got and the next one follows.
+- **Harem tools, Max Grade-up**: when the price is above the money, the
+  script closes the payment popup instead of clicking a payment the game
+  cannot take, and gives the gifts the girl can take from the inventory.
+  A girl with a full affection bar goes on to her grade quest even when Max
+  out finds nothing to confirm.
+- **Harem tools, Max Level-up**: a girl past her last awakening is levelled
+  again. The button then opens the game's books-only popup, and the script
+  waited 15 seconds for the awakening popup instead.
+
 ### v8.19.11 - Mythic booster conflict message closes at once
 
 - **Auto-equip mythic boosters**: the message "You cannot equip this booster,

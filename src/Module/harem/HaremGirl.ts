@@ -34,6 +34,8 @@ export class HaremGirl {
     static EXPERIENCE_TYPE='experience';
     static EQUIPMENT_TYPE ='equipment';
     static SKILLS_TYPE ='skills';
+    /** Level-up team: every grade and every level the girl can still take. */
+    static LEVEL_UP_TYPE = 'levelup';
     static SCROLLS_NEED_5 = {
         'mythic_6': 31,
         'legendary_5': 27,
@@ -204,7 +206,10 @@ export class HaremGirl {
         let selector: string;
         let readCost: () => number;
         if (haremItem === HaremGirl.EXPERIENCE_TYPE) {
-            selector = HaremGirl.CONFIRM_MAX_OUT_ALL_GEMS_SELECTOR;
+            // Measured: with an awakening still ahead the button opens the
+            // all-levels popup (books and gems, up to 750); past the last
+            // awakening it opens the single max-out popup (books only).
+            selector = HaremGirl.CONFIRM_MAX_OUT_ALL_GEMS_SELECTOR + ', ' + HaremGirl.CONFIRM_MAX_OUT_SELECTOR;
             readCost = HaremGirl.getMaxOutGems;
         } else if (haremItem === HaremGirl.AFFECTION_TYPE) {
             selector = HaremGirl.CONFIRM_MAX_OUT_ALL_CASH_SELECTOR;
@@ -220,7 +225,21 @@ export class HaremGirl {
             logHHAuto(`Max out all ${haremItem} for girl ${girl.name} (${girl.id_girl}): payment button did not appear`);
             return -1;
         }
+        if (confirmButton.closest('#girl_max_out_popup').length > 0) {
+            logHHAuto(`Max out ${haremItem} (books only, no awakening left) for girl ${girl.name} (${girl.id_girl})`);
+            await TimeHelper.sleep(randomInterval(300, 600));
+            confirmButton.first().trigger('click');
+            await HaremGirl.waitForGameData();
+            return 0;
+        }
         const cost = readCost();
+        if (haremItem === HaremGirl.AFFECTION_TYPE && cost > HeroHelper.getMoney()) {
+            // Measured: the cash button stays enabled when the money falls
+            // short, so the price is compared here and the popup closed.
+            logHHAuto(`Max out all ${haremItem} for girl ${girl.name} (${girl.id_girl}) costs ${cost}, more than the money (${HeroHelper.getMoney()})`);
+            $(HaremGirl.MAX_OUT_ALL_POPUP + ' button.blue_button_L:not([confirm_callback])').first().trigger('click');
+            return -1;
+        }
         logHHAuto(`Max out all ${haremItem} (for ${cost}${haremItem === HaremGirl.EXPERIENCE_TYPE ? ' gems' : ''}) for girl ${girl.name} (${girl.id_girl})`);
         await TimeHelper.sleep(randomInterval(300, 600));
         confirmButton.trigger('click');
@@ -253,20 +272,54 @@ export class HaremGirl {
         }
     }
     
-    static awakGirl(girl: KKHaremGirl) {
+    /** Clicks #awaken when it is there and the gems suffice. */
+    static startAwakening(girl: KKHaremGirl): boolean {
         const numberOfGem = unsafeWindow.player_gems_amount?.[girl.element]?.amount ?? 0;
         const canXpGirl = numberOfGem >= girl.awakening_costs;
         const awakButton = $('#awaken:not([disabled])');
         if(awakButton.length > 0 && canXpGirl) {
             logHHAuto('Awake for girl ' + girl.id_girl);
             awakButton.trigger('click');
-            setTimeout(HaremGirl.confirmAwake, randomInterval(500,1000)); // Page will be refreshed if done
             return true;
         } else {
-            logHHAuto('Awake button for girl ' + girl.id_girl + ' not enabled or not enough gems (' + numberOfGem +'<'+ girl.awakening_costs + ')');
+            // Measured: #awaken exists only while the experience tab is shown.
+            logHHAuto('Awake button for girl ' + girl.id_girl + (awakButton.length === 0 ? ' not found or not enabled' : ' shown, not enough gems') + ' (' + numberOfGem + '/' + girl.awakening_costs + ')');
             return false;
         }
+    }
+
+    static awakGirl(girl: KKHaremGirl) {
+        if (!HaremGirl.startAwakening(girl)) return false;
+        setTimeout(HaremGirl.confirmAwake, randomInterval(500,1000)); // Page will be refreshed if done
+        return true;
     };
+
+    /**
+     * awakGirl for a run that goes on when the girl cannot be awakened.
+     * Measured: the popup is there within milliseconds, and the game may keep
+     * its button disabled ("You need 19 more Girls on level 350 ..."); the
+     * popup is then closed and false returned. True when confirmed -- the
+     * game reloads the page.
+     */
+    static async awakGirlAndWait(girl: KKHaremGirl): Promise<boolean> {
+        if (!HaremGirl.startAwakening(girl)) return false;
+        const popup = await TimeHelper.waitFor(() => {
+            const button = $('#awakening_popup button.awaken-btn:visible');
+            return button.length > 0 ? button : null;
+        }, HaremGirl.GAME_DATA_TIMEOUT_MS);
+        if (!popup) {
+            logHHAuto(`Awakening popup for girl ${girl.name} (${girl.id_girl}) did not appear`);
+            return false;
+        }
+        if (popup.is('[disabled]')) {
+            logHHAuto(`Awakening of girl ${girl.name} (${girl.id_girl}) refused by the game: ${$('#awakening_popup').text().replace(/\s+/g, ' ').trim().slice(0, 160)}`);
+            $('#awakening_popup').closest('.popup_wrapper').find('close, .close_cross').first().trigger('click');
+            return false;
+        }
+        popup.first().trigger('click');
+        await HaremGirl.waitForGameData();
+        return true;
+    }
     
     static goToGirlQuest(girl: KKHaremGirl, retry=0) {
         const canGiftGirl = girl.nb_grades > girl.graded;
@@ -313,6 +366,13 @@ export class HaremGirl {
             else
             {
                 logHHAuto("Need "+proceedCost+" Money to proceed.");
+                if (getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions) === HaremGirl.LEVEL_UP_TYPE) {
+                    // Level-up team: this grade waits, her levels and the
+                    // other girls do not.
+                    HaremGirl.blockLevelUpGrades(Number(unsafeWindow.id_girl));
+                    gotoPage('/girl/' + unsafeWindow.id_girl, { resource: HaremGirl.EXPERIENCE_TYPE }, randomInterval(1500, 2500));
+                    return true;
+                }
                 Harem.clearHaremToolVariables();
                 return false;
             }
@@ -328,6 +388,14 @@ export class HaremGirl {
                 return false;
             }
         }
+    }
+
+    /** Level-up team: no more trips to this girl's quest. */
+    static blockLevelUpGrades(girlId: number): void {
+        const team = getStoredJSON<TeamData | null>(HHStoredVarPrefixKey + TK.haremTeam, null);
+        if (!team) return;
+        team.levelUpTrips = { ...(team.levelUpTrips ?? {}), ['' + girlId]: Number.MAX_SAFE_INTEGER };
+        setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
     }
 
     static async maxOutAndAwake(haremItem:string, selectedGirl: KKHaremGirl){
@@ -374,28 +442,22 @@ export class HaremGirl {
         const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey+TK.haremGirlPayLast) === 'true';
         const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded;
         const lastGirlGrad = selectedGirl.nb_grades <= (selectedGirl.graded+1);
-        const maxOutButton = HaremGirl.getMaxOutButton(haremItem);
         const maxOutAllButton = HaremGirl.getMaxOutAllButton(haremItem);
 
         if(canGiftGirl) {
 
             if (haremGirlPayLast && maxOutAllButton.length > 0) {
                 // Paying takes the game to the girl's quest by itself.
-                return (await HaremGirl.maxOutAllButtonAndConfirm(haremItem, selectedGirl)) >= 0;
-            } else if(maxOutButton.length > 0) {
-                if (!(await HaremGirl.maxOutButtonAndConfirm(haremItem, selectedGirl))) return false;
-
-                if (!lastGirlGrad || haremGirlPayLast) {
-                    setTimeout(function () {
-                        HaremGirl.goToGirlQuest(selectedGirl);
-                    }, randomInterval(1500, 2000));
-                    return true;
-                } else {
-                    logHHAuto("Girl grade reach, keep last to buy manually");
-                }
-            } else if ($('.upgrade_girl').length > 0) {
-                // Grade full but quest not paid
-
+                if ((await HaremGirl.maxOutAllButtonAndConfirm(haremItem, selectedGirl)) >= 0) return true;
+                // Not paid: the gifts she can take from the inventory are
+                // still worth giving, one grade at a time.
+            }
+            // A filled bar: the grade's quest is there to be paid. Also the
+            // way on when Max out found nothing to confirm (measured: a full
+            // bar with the quest link, Max out did not answer).
+            const filled = HaremGirl.getMaxOutButton(haremItem).length > 0
+                && await HaremGirl.maxOutButtonAndConfirm(haremItem, selectedGirl);
+            if (filled || $('.upgrade_girl').length > 0) {
                 if (!lastGirlGrad || haremGirlPayLast) {
                     setTimeout(function () {
                         HaremGirl.goToGirlQuest(selectedGirl);
@@ -772,6 +834,38 @@ export class HaremGirl {
                     }
                 }
                 if (girlPosInList === 0) logHHAuto('Main girl from the team');
+
+                if (haremItem === HaremGirl.LEVEL_UP_TYPE) {
+                    // Grades first: each one is a trip to the girl's quest and
+                    // back to this page, which runs this branch again. The
+                    // levels come once the grades are done, so the gems are
+                    // paid once per girl.
+                    const trips = team.levelUpTrips ?? {};
+                    const tripsSoFar = trips['' + girl.id_girl] ?? 0;
+                    if (Number(girl.graded) < Number(girl.nb_grades) && tripsSoFar > Number(girl.nb_grades)) {
+                        logHHAuto(`Level-up team: ${girl.name} (${girl.id_girl}) stays ${girl.graded}/${girl.nb_grades}`
+                            + (tripsSoFar === Number.MAX_SAFE_INTEGER ? ' (her grade quest costs more than the money)' : ` after ${tripsSoFar} trips to her quest`)
+                            + ', going on with her levels');
+                    } else if (Number(girl.graded) < Number(girl.nb_grades)) {
+                        trips['' + girl.id_girl] = tripsSoFar + 1;
+                        setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify({ ...team, levelUpTrips: trips }));
+                        HaremGirl.HaremDisplayGirlPopup(HaremGirl.AFFECTION_TYPE, girl.name + ' ' + girl.graded + '/' + girl.nb_grades + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+                        if (await HaremGirl.fillAllAffection()) {
+                            logHHAuto(`Level-up team: ${girl.name} (${girl.id_girl}) on to her next grade`);
+                            return true;
+                        }
+                    }
+                    HaremGirl.HaremDisplayGirlPopup(HaremGirl.EXPERIENCE_TYPE, girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+                    // Measured at the cap: "Max reached. Awaken!", and Max
+                    // Level-up stays disabled with books in the inventory.
+                    // The awakening reloads the page, which runs this again.
+                    if (Number(girl.level) >= Number(girl.level_cap) && Number(girl.level) < 750) {
+                        await HaremGirl.openTab(HaremGirl.EXPERIENCE_TYPE);
+                        if (await HaremGirl.awakGirlAndWait(girl)) return true;
+                    }
+                    await HaremGirl.fillAllExperience();
+                    await TimeHelper.sleep(randomInterval(400, 700));
+                }
 
 
                 if (upgradeEquipment) {

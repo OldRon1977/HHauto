@@ -326,7 +326,7 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
         case ConfigHelper.getHHScriptVars("pagesIDQuest"):
             const haremItem = getStoredValue(HHStoredVarPrefixKey+TK.haremGirlActions);
             const haremGirlMode = getStoredValue(HHStoredVarPrefixKey+TK.haremGirlMode);
-            if(haremGirlMode && haremItem === HaremGirl.AFFECTION_TYPE) {
+            if(haremGirlMode && (haremItem === HaremGirl.AFFECTION_TYPE || haremItem === HaremGirl.LEVEL_UP_TYPE)) {
                 HaremGirl.payGirlQuest = callItOnce(HaremGirl.payGirlQuest);
                 ctx.busy = HaremGirl.payGirlQuest();
             }
