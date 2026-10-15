@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.1
+// @version      8.21.2
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -611,7 +611,7 @@ HHAuto_ToolTips.en['HHGearMenu'] = { version: "8.10.20", elementText: "HH Gear",
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker." };
 HHAuto_ToolTips.en['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Possible Best Gear", tooltip: "Equip the armor that will be strongest once it is levelled to the max, matching your class and your team's theme. Shows what the switch costs you today." };
 HHAuto_ToolTips.en['HHGearUpgrade'] = { version: "8.8.0", elementText: "Upgrade Gear", tooltip: "Level the mythic items you are wearing towards the cap, using legendary and epic items as material. Mythics are never consumed. Shows what it costs before anything is spent." };
-HHAuto_ToolTips.en['HHGirlGearLevelUp'] = { version: "8.16.0", elementText: "Level-up gear", tooltip: "Levels the worn mythic items of the girls in the hexagons to level 10, leader first. Uses every item except mythics as material, picked by the game's Auto Select. Stops at the first item the material cannot take further, and before the money drops below the amount to keep." };
+HHAuto_ToolTips.en['HHGirlGearLevelUp'] = { version: "8.21.2", elementText: "Level-up gear", tooltip: "Levels the worn mythic items of the girls in the hexagons to level 10, leader first. Uses every item except mythics as material, picked by the game's Auto Select. Stops at the first item the material cannot take further, and before the money drops below the amount to keep, and returns to the team page." };
 HHAuto_ToolTips.en['HHGirlGearNone'] = { version: "8.16.0", elementText: "No girl in this team wears a mythic item below level 10.", tooltip: "" };
 HHAuto_ToolTips.en['HHGirlGearIntro'] = { version: "8.16.0", elementText: "These worn mythics are levelled to level 10, in this order. The run stops at the first item the material cannot take further; that item keeps the levels it got.", tooltip: "" };
 HHAuto_ToolTips.en['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "girl", tooltip: "" };
@@ -1211,7 +1211,7 @@ HHAuto_ToolTips.fr['HHGearMenu'] = { version: "8.10.20", elementText: "Équipeme
 HHAuto_ToolTips.fr['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Meilleur équipement actuel", tooltip: "Équipe la meilleure armure que vous possédez pour chacun des six emplacements du héros, jugée sur les statistiques du jour. Les statistiques brutes décident, la résonance départage : cela ne vous affaiblit jamais." };
 HHAuto_ToolTips.fr['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Meilleur équipement possible", tooltip: "Équipe l'armure qui sera la plus forte une fois montée au niveau maximum, en accord avec votre classe et le thème de votre équipe. Affiche ce que le changement vous coûte aujourd'hui." };
 HHAuto_ToolTips.fr['HHGearUpgrade'] = { version: "8.8.0", elementText: "Améliorer l'équipement", tooltip: "Monte au maximum possible les objets mythiques que vous portez, en utilisant des objets légendaires et épiques comme matériau. Les mythiques ne sont jamais consommés. Affiche le coût avant toute dépense." };
-HHAuto_ToolTips.fr['HHGirlGearLevelUp'] = { version: "8.16.0", elementText: "Monter l'équipement", tooltip: "Monte au niveau 10 les objets mythiques portés par les filles des hexagones, la meneuse d'abord. Tous les objets sauf les mythiques servent de matériau, choisis par l'Auto Select du jeu. S'arrête au premier objet que le matériau ne peut plus monter, et avant que l'argent passe sous le montant à garder." };
+HHAuto_ToolTips.fr['HHGirlGearLevelUp'] = { version: "8.21.2", elementText: "Monter l'équipement", tooltip: "Monte au niveau 10 les objets mythiques portés par les filles des hexagones, la meneuse d'abord. Tous les objets sauf les mythiques servent de matériau, choisis par l'Auto Select du jeu. S'arrête au premier objet que le matériau ne peut plus monter, et avant que l'argent passe sous le montant à garder, puis revient à la page de l'équipe." };
 HHAuto_ToolTips.fr['HHGirlGearNone'] = { version: "8.16.0", elementText: "Aucune fille de cette équipe ne porte d'objet mythique sous le niveau 10.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGirlGearIntro'] = { version: "8.16.0", elementText: "Ces mythiques portés sont montés au niveau 10, dans cet ordre. Le lancement s'arrête au premier objet que le matériau ne peut plus monter ; cet objet garde les niveaux obtenus.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "fille", tooltip: "" };
@@ -1767,7 +1767,7 @@ HHAuto_ToolTips.de['HHGearMenu'] = { version: "8.10.20", elementText: "HH Ausrü
 HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten." };
 HHAuto_ToolTips.de['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mögliche beste Ausrüstung", tooltip: "Legt die Rüstung an, die nach vollem Aufleveln die stärkste wäre, passend zu deiner Klasse und deinem Team-Thema." };
 HHAuto_ToolTips.de['HHGearUpgrade'] = { version: "8.8.0", elementText: "Ausrüstung aufwerten", tooltip: "Levelt die getragenen Mythic-Teile Richtung Maximum und nutzt legendäre und epische Teile als Material." };
-HHAuto_ToolTips.de['HHGirlGearLevelUp'] = { version: "8.16.0", elementText: "Ausrüstung leveln", tooltip: "Levelt die angelegten Mythic-Teile der Mädels in den Hexagons auf Level 10, die Anführerin zuerst. Als Material dient alles außer Mythics, ausgewählt vom Auto Select des Spiels. Endet beim ersten Teil, das das Material nicht weiterbringt, und bevor das Geld unter den Rückhalt fällt." };
+HHAuto_ToolTips.de['HHGirlGearLevelUp'] = { version: "8.21.2", elementText: "Ausrüstung leveln", tooltip: "Levelt die angelegten Mythic-Teile der Mädels in den Hexagons auf Level 10, die Anführerin zuerst. Als Material dient alles außer Mythics, ausgewählt vom Auto Select des Spiels. Endet beim ersten Teil, das das Material nicht weiterbringt, und bevor das Geld unter den Rückhalt fällt, und kehrt zur Team-Seite zurück." };
 HHAuto_ToolTips.de['HHGirlGearNone'] = { version: "8.16.0", elementText: "Kein Mädel in diesem Team trägt ein Mythic-Teil unter Level 10.", tooltip: "" };
 HHAuto_ToolTips.de['HHGirlGearIntro'] = { version: "8.16.0", elementText: "Diese angelegten Mythics werden in dieser Reihenfolge auf Level 10 gebracht. Der Lauf endet beim ersten Teil, das das Material nicht weiterbringt; es behält die erreichten Level.", tooltip: "" };
 HHAuto_ToolTips.de['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "Mädel", tooltip: "" };
@@ -2242,7 +2242,7 @@ HHAuto_ToolTips.es['HHGearMenu'] = { version: "8.10.20", elementText: "Equipo HH
 HHAuto_ToolTips.es['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Mejor equipo actual", tooltip: "Equipa la armadura más fuerte que tienes para cada una de las seis ranuras del héroe, según las estadísticas de hoy. Deciden las estadísticas brutas y la resonancia desempata; esto nunca te deja más débil." };
 HHAuto_ToolTips.es['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mejor equipo posible", tooltip: "Equipa la armadura que será más fuerte una vez subida al máximo, acorde con tu clase y con el tema de tu equipo. Muestra lo que te cuesta el cambio hoy." };
 HHAuto_ToolTips.es['HHGearUpgrade'] = { version: "8.8.0", elementText: "Mejorar equipo", tooltip: "Sube al máximo posible los objetos míticos que llevas puestos, usando objetos legendarios y épicos como material. Los míticos nunca se consumen. Muestra el coste antes de gastar nada." };
-HHAuto_ToolTips.es['HHGirlGearLevelUp'] = { version: "8.16.0", elementText: "Subir equipo", tooltip: "Sube a nivel 10 los objetos míticos que llevan las chicas de los hexágonos, la líder primero. Todo objeto salvo los míticos sirve de material, elegido por el Auto Select del juego. Se detiene en el primer objeto que el material ya no puede subir, y antes de que el dinero baje del mínimo a conservar." };
+HHAuto_ToolTips.es['HHGirlGearLevelUp'] = { version: "8.21.2", elementText: "Subir equipo", tooltip: "Sube a nivel 10 los objetos míticos que llevan las chicas de los hexágonos, la líder primero. Todo objeto salvo los míticos sirve de material, elegido por el Auto Select del juego. Se detiene en el primer objeto que el material ya no puede subir, y antes de que el dinero baje del mínimo a conservar, y vuelve a la página del equipo." };
 HHAuto_ToolTips.es['HHGirlGearNone'] = { version: "8.16.0", elementText: "Ninguna chica de este equipo lleva un objeto mítico por debajo del nivel 10.", tooltip: "" };
 HHAuto_ToolTips.es['HHGirlGearIntro'] = { version: "8.16.0", elementText: "Estos míticos equipados se suben a nivel 10, en este orden. La ejecución se detiene en el primer objeto que el material ya no puede subir; ese objeto conserva los niveles obtenidos.", tooltip: "" };
 HHAuto_ToolTips.es['HHGirlGearColGirl'] = { version: "8.16.0", elementText: "chica", tooltip: "" };
@@ -28757,8 +28757,11 @@ function showNotice(zone, remainingMs) {
 // Opening the HH Gear menu starts the work pause for the market (WorkPause.ts),
 // and a run of Upgrade Gear or Level-up gear stands under it on every page it
 // passes, so no pipeline block takes the player off the market or the run off
-// the upgrade page. A run that cannot go on -- not enough material or money
-// for the next level -- ends the pause and goes home (abortRun).
+// the upgrade page. A run the material or the money cannot take further
+// goes back where it started, like a finished one -- Level-up gear to
+// edit-team, so Stuff Team can follow (#1914). A run that fails -- an error,
+// an item that is not the one queued -- ends the pause and goes home
+// (abortRun).
 //
 // Used by: Service/AutoLoopPageHandlers.ts (market page, girl page, and the
 // two upgrade pages), Module/TeamModule.ts (Level-up gear)
@@ -29710,8 +29713,24 @@ class EquipmentGear {
         logHHAuto('Gear: upgrade run finished -- ' + msg);
     }
     /**
-     * A run that cannot go on: not enough material or money for the next
-     * level, an item that is not the one queued, an error. The queue goes,
+     * The material or the money does not cover the next level. The rest of
+     * the queue goes, and the run goes back where it started, like a finished
+     * one: the player left the team page to have the gear levelled and wants
+     * to go on there -- Stuff Team is the next step (#1914). Going home
+     * instead ended the work pause and left the player to find the way back.
+     * The material is one pool for every slot (the girls' upgrade page loads
+     * it with girl_equipment_list and no slot_index), so the other items in
+     * the queue would not get further either.
+     */
+    static stopShort(profile, msg) {
+        setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
+        EquipmentGear.releaseAutoLoop();
+        workPauseReturnToZone();
+        logHHAuto('Gear: upgrade run stopped -- ' + msg + ' Back to where it started.');
+    }
+    /**
+     * A run that fails: an item that is not the one queued, an error. (Not
+     * enough material or money ends in stopShort.) The queue goes,
      * and a live run -- one the work pause still stands for -- ends the pause
      * and goes home, where the pipeline takes over (#1888). Left on the
      * upgrade page, the player found the automation standing still.
@@ -29943,7 +29962,7 @@ class EquipmentGear {
                     if (!verdict.go) {
                         logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
                         if (!verdict.done) {
-                            abort(verdict.reason + '.');
+                            EquipmentGear.stopShort(profile, verdict.reason + '.');
                             return;
                         }
                         handOver('every queued item is done.');

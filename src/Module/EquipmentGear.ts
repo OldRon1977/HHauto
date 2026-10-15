@@ -18,8 +18,11 @@
 // Opening the HH Gear menu starts the work pause for the market (WorkPause.ts),
 // and a run of Upgrade Gear or Level-up gear stands under it on every page it
 // passes, so no pipeline block takes the player off the market or the run off
-// the upgrade page. A run that cannot go on -- not enough material or money
-// for the next level -- ends the pause and goes home (abortRun).
+// the upgrade page. A run the material or the money cannot take further
+// goes back where it started, like a finished one -- Level-up gear to
+// edit-team, so Stuff Team can follow (#1914). A run that fails -- an error,
+// an item that is not the one queued -- ends the pause and goes home
+// (abortRun).
 //
 // Used by: Service/AutoLoopPageHandlers.ts (market page, girl page, and the
 // two upgrade pages), Module/TeamModule.ts (Level-up gear)
@@ -1086,8 +1089,25 @@ export class EquipmentGear {
     }
 
     /**
-     * A run that cannot go on: not enough material or money for the next
-     * level, an item that is not the one queued, an error. The queue goes,
+     * The material or the money does not cover the next level. The rest of
+     * the queue goes, and the run goes back where it started, like a finished
+     * one: the player left the team page to have the gear levelled and wants
+     * to go on there -- Stuff Team is the next step (#1914). Going home
+     * instead ended the work pause and left the player to find the way back.
+     * The material is one pool for every slot (the girls' upgrade page loads
+     * it with girl_equipment_list and no slot_index), so the other items in
+     * the queue would not get further either.
+     */
+    private static stopShort(profile: UpgradeProfile, msg: string): void {
+        setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
+        EquipmentGear.releaseAutoLoop();
+        workPauseReturnToZone();
+        logHHAuto('Gear: upgrade run stopped -- ' + msg + ' Back to where it started.');
+    }
+
+    /**
+     * A run that fails: an item that is not the one queued, an error. (Not
+     * enough material or money ends in stopShort.) The queue goes,
      * and a live run -- one the work pause still stands for -- ends the pause
      * and goes home, where the pipeline takes over (#1888). Left on the
      * upgrade page, the player found the automation standing still.
@@ -1325,7 +1345,7 @@ export class EquipmentGear {
                 });
                 if (!verdict.go) {
                     logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
-                    if (!verdict.done) { abort(verdict.reason + '.'); return; }
+                    if (!verdict.done) { EquipmentGear.stopShort(profile, verdict.reason + '.'); return; }
                     handOver('every queued item is done.');
                     break;
                 }
