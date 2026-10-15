@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.2 - Level-up gear: back to the team page when the material runs out
+
+- **Level-up gear** went home when the material or the money did not cover
+  the next level, and the player had to find the way back to the team. It now
+  returns to the team page, as it does when every item is done, so Stuff Team
+  can follow. **Upgrade Gear** returns to the market the same way. The
+  material is one pool for every slot, so the run does not try the other
+  items once it stops.
+
 ### v8.21.1 - Main quest: on into a newly released world
 
 - **Auto quest** stopped at the last quest of a world when the game released
