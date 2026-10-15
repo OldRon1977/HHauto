@@ -298,9 +298,27 @@ const CLAIM_STEP = `<div id="controls">
     <button id="end_play" class="next-button purple_text_button quest-claim-reward-btn"><div class="action-label">The end</div></button>
   </div>`;
 
+// What /world/<next> answers, measured 2026-10-15 from an account in world 5:
+// a world the account cannot enter yet is a bare notice without shared.Hero.
+const WORLD_LOCKED = `<html><head></head><body><div id="msg_bunny"><img src="popup_bunny.png"><p>You can't access this world yet.</p></div></body></html>`;
+// A reachable world lists its quests as icons (measured on /world/5).
+const WORLD_OPEN = `<div class="fixed_scaled"><a href="/quest/2510"></a></div>`
+    + `<a class="ico-quest " href="/quest/2510"></a>`;
+
 describe('QuestHelper: the end of the released quests (#1909)', function () {
     const DAY = 86400;
     let gotoPage: jest.SpyInstance;
+    let fetchMock: jest.Mock;
+
+    function worldPage(html: string, ok = true) {
+        fetchMock.mockResolvedValue({ ok, text: async () => html });
+    }
+
+    /** Run the quest page and let the next-world lookup finish. */
+    async function runAndProbe() {
+        QuestHelper.run();
+        await QuestHelper.worldProbe;
+    }
 
     function hero(id_quest: number, current_url: string) {
         unsafeWindow.shared!.Hero = {
@@ -316,6 +334,9 @@ describe('QuestHelper: the end of the released quests (#1909)', function () {
         localStorage.setItem(HHStoredVarPrefixKey + SK.autoQuest, 'true');
         jest.spyOn(PageHelper, 'getPage').mockReturnValue('quest');
         gotoPage = jest.spyOn(PageNavigation, 'gotoPage').mockReturnValue(true);
+        fetchMock = jest.fn();
+        (globalThis as unknown as { fetch: jest.Mock }).fetch = fetchMock;
+        worldPage(WORLD_LOCKED);
         setTimers({});
         document.body.innerHTML = '';
     });
@@ -334,9 +355,10 @@ describe('QuestHelper: the end of the released quests (#1909)', function () {
         expect(QuestHelper.getMainQuestUrl()).toBe('/quest/2436');
     });
 
-    it('pauses the main quests for a day on the archive view of the current quest', function () {
+    it('pauses the main quests for a day on the archive view of the current quest', async function () {
         document.body.innerHTML = ARCHIVE_VIEW;
-        QuestHelper.run();
+        await runAndProbe();
+        expect(fetchMock).toHaveBeenCalledWith('/world/25', expect.anything());
         expect(getSecondsLeft('nextMainQuestAttempt')).toBeGreaterThan(DAY - 5);
         expect(getSecondsLeft('nextMainQuestAttempt')).toBeLessThanOrEqual(DAY);
         expect(JSON.parse(sessionStorage.getItem(HHStoredVarPrefixKey + TK.questEndSeen)!)).toEqual({ id_quest: 2436, current_url: '/world/24' });
@@ -350,10 +372,10 @@ describe('QuestHelper: the end of the released quests (#1909)', function () {
         expect(getStoredValue(HHStoredVarPrefixKey + SK.autoQuest)).toBe('true');
     });
 
-    it('goes on to the side quests when they are due', function () {
+    it('goes on to the side quests when they are due', async function () {
         localStorage.setItem(HHStoredVarPrefixKey + SK.autoSideQuest, 'true');
         document.body.innerHTML = ARCHIVE_VIEW;
-        QuestHelper.run();
+        await runAndProbe();
         expect(gotoPage).toHaveBeenCalledWith(QuestHelper.SITE_QUEST_PAGE);
         expect(checkTimer('nextSideQuestAttempt')).toBe(true);
     });
@@ -376,9 +398,9 @@ describe('QuestHelper: the end of the released quests (#1909)', function () {
     });
 
     describe('during the main pause', function () {
-        beforeEach(() => {
+        beforeEach(async () => {
             document.body.innerHTML = ARCHIVE_VIEW;
-            QuestHelper.run();
+            await runAndProbe();
             gotoPage.mockClear();
         });
 
@@ -401,6 +423,60 @@ describe('QuestHelper: the end of the released quests (#1909)', function () {
         it('does not end on a page without quest data', function () {
             unsafeWindow.shared!.Hero = { infos: { level: 300 } } as unknown as KKHero;
             expect(QuestHelper.isMainQuestDue()).toBe(false);
+        });
+    });
+
+    // #1921: the game keeps id_quest on the last quest of the old world until
+    // the player opens the new one; the script stopped at /quest/2436 while
+    // world 25 was out.
+    describe('a newly released world (#1921)', function () {
+        it('goes to the quest of the next world instead of pausing', async function () {
+            worldPage(WORLD_OPEN);
+            document.body.innerHTML = ARCHIVE_VIEW;
+            await runAndProbe();
+            expect(gotoPage).toHaveBeenCalledWith('/quest/2510');
+            expect(checkTimer('nextMainQuestAttempt')).toBe(true);
+            expect(QuestHelper.getMainQuestUrl()).toBe('/quest/2510');
+        });
+
+        it('keeps the page while the lookup runs', function () {
+            fetchMock.mockReturnValue(new Promise(() => undefined));
+            document.body.innerHTML = ARCHIVE_VIEW;
+            expect(QuestHelper.run()).toBe(true);
+            expect(gotoPage).not.toHaveBeenCalled();
+            QuestHelper.worldProbe = null;
+        });
+
+        it('pauses when the lookup fails', async function () {
+            worldPage('', false);
+            document.body.innerHTML = ARCHIVE_VIEW;
+            await runAndProbe();
+            expect(getSecondsLeft('nextMainQuestAttempt')).toBeGreaterThan(DAY - 5);
+        });
+
+        it('pauses on the new world\'s quest when it is finished too, instead of opening it again', async function () {
+            MockHelper.mockDomain('www.hentaiheroes.com', '/quest/2510');
+            sessionStorage.setItem(HHStoredVarPrefixKey + TK.questNextWorld, '2510');
+            worldPage(WORLD_OPEN);
+            document.body.innerHTML = ARCHIVE_VIEW;
+            await runAndProbe();
+            expect(gotoPage).not.toHaveBeenCalledWith('/quest/2510');
+            expect(getSecondsLeft('nextMainQuestAttempt')).toBeGreaterThan(DAY - 5);
+        });
+
+        it('lets the game\'s quest id take over once it reaches the new world', function () {
+            sessionStorage.setItem(HHStoredVarPrefixKey + TK.questNextWorld, '2510');
+            hero(2511, '/quest/2511');
+            expect(QuestHelper.getMainQuestUrl()).toBe('/quest/2511');
+            expect(sessionStorage.getItem(HHStoredVarPrefixKey + TK.questNextWorld)).toBeNull();
+        });
+
+        it('does not look for a world when the game names a quest, not a world', async function () {
+            hero(2436, '/quest/2436');
+            document.body.innerHTML = ARCHIVE_VIEW;
+            await runAndProbe();
+            expect(fetchMock).not.toHaveBeenCalled();
+            expect(getSecondsLeft('nextMainQuestAttempt')).toBeGreaterThan(DAY - 5);
         });
     });
 

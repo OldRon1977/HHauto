@@ -138,7 +138,78 @@ export class QuestHelper {
     }
 
     static getMainQuestUrl():string {
+        const id_quest = Number(getHHVars('Hero.infos.questing.id_quest'));
+        const nextWorldQuest = Number(getStoredValue(HHStoredVarPrefixKey+TK.questNextWorld));
+        if (nextWorldQuest > 0) {
+            if (!(id_quest >= nextWorldQuest)) return "/quest/" + nextWorldQuest;
+            // The game has caught up with the new world.
+            deleteStoredValue(HHStoredVarPrefixKey+TK.questNextWorld);
+        }
         return "/quest/" + getHHVars('Hero.infos.questing.id_quest');
+    }
+
+    /*
+     * The next world (#1921).
+     *
+     * When the last quest of a world is done, the game keeps `id_quest` on
+     * that quest and points `current_url` at the world (`/world/24`, from a
+     * player's log). A newly released world does not move `id_quest` until
+     * the player opens it -- the log shows the player going /world/24 ->
+     * /adventures.html -> /world/25 -> /quest/2510 by hand while the script
+     * had paused at /quest/2436. So before pausing, the page of the next
+     * world is fetched: a world the account cannot enter yet answers with
+     * the game's notice ("You can't access this world yet.", measured
+     * 2026-10-15 on /world/6 from world 5) and no `shared.Hero` -- a page the
+     * script must never navigate to, since it does not start there. A
+     * reachable world lists its quests as `a.ico-quest` links (measured on
+     * /world/5); the highest one is where it stands. That the first quest of
+     * a fresh world is linked the same way is inferred, not measured.
+     */
+    static worldProbe: Promise<void> | null = null;
+
+    /** The world the main adventure is parked in, from `current_url`, or 0. */
+    static parkedWorld(): number {
+        const now = QuestHelper.readMainQuestState();
+        const match = now?.current_url.match(/^\/world\/(\d+)/);
+        return match ? Number(match[1]) : 0;
+    }
+
+    /** The quest to open on a world page's HTML, or 0 when it links none. */
+    static questOnWorldPage(html: string): number {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        let best = 0;
+        doc.querySelectorAll('a.ico-quest[href*="/quest/"]').forEach((a) => {
+            const id = Number((a.getAttribute('href') || '').match(/\/quest\/(\d+)/)?.[1]);
+            if (id > best) best = id;
+        });
+        return best;
+    }
+
+    /**
+     * Look for a released next world; open its quest, or pause the main
+     * quests when there is none. Runs once per finished world page; while it
+     * is in flight, the caller holds the page.
+     */
+    static probeNextWorld(world: number): void {
+        if (QuestHelper.worldProbe) return;
+        const next = world + 1;
+        logHHAuto(`Main quests of world ${world} are done, looking for world ${next}.`);
+        QuestHelper.worldProbe = fetch(`/world/${next}`, { credentials: 'same-origin' })
+            .then((response) => response.ok ? response.text() : '')
+            .catch(() => '')
+            .then((html) => {
+                const quest = html ? QuestHelper.questOnWorldPage(html) : 0;
+                // The quest this page already shows, finished, is no way on.
+                if (quest > 0 && window.location.pathname !== "/quest/" + quest) {
+                    logHHAuto(`World ${next} is released, going to quest ${quest}.`);
+                    setStoredValue(HHStoredVarPrefixKey+TK.questNextWorld, String(quest));
+                    gotoPage("/quest/" + quest);
+                } else {
+                    QuestHelper.pauseMainQuests();
+                    QuestHelper.gotoNextQuestOrHome();
+                }
+            })
+            .finally(() => { QuestHelper.worldProbe = null; });
     }
     static gotoNextQuestOrHome(): boolean {
         const nextQuestUrl = QuestHelper.getNextQuestLink();
@@ -242,6 +313,12 @@ export class QuestHelper {
         // read as an unknown proceed button they switch auto quest off (#1773).
         if (QuestHelper.isArchiveView()) {
             if (doMainQuest && window.location.pathname === mainQuestUrl) {
+                const world = QuestHelper.parkedWorld();
+                if (world > 0) {
+                    // The page stays until the probe has decided (#1921).
+                    QuestHelper.probeNextWorld(world);
+                    return true;
+                }
                 QuestHelper.pauseMainQuests();
             } else {
                 logHHAuto("Quest page shows a finished quest, leaving it.");

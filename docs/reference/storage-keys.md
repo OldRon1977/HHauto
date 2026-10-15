@@ -659,6 +659,7 @@ shown in the info panel as "Auto-Mystery").
 | `labyrinthDraws` | `Temp_labyrinthDraws` | `sessionStorage` | `Temp` | the labyrinth opponent picked last (floor/row/hex, its power, the squad's health), whether the script fought it since, the draws in a row against it, and the end of the pause three draws cause (`LabyrinthAuto`) |
 | `labyrinthEditorStuck` | `Temp_labyrinthEditorStuck` | `sessionStorage` | `Temp` | when the labyrinth team editor was reloaded because Validate stayed disabled on a full team; a second time within ten minutes pauses the labyrinth (`LabyrinthAuto`) |
 | `questEndSeen` | `Temp_questEndSeen` | `sessionStorage` | `Temp` | `id_quest` and `current_url` of the main adventure when its quests ran out; a higher id, or a world URL turned into a quest URL, ends the 24 h pause early (`Quest`) |
+| `questNextWorld` | `Temp_questNextWorld` | `sessionStorage` | `Temp` | the quest a newly released world starts with, read off that world's page at the end of the previous one; the main quest goes there until the game's `id_quest` reaches it (`Quest`) |
 
 ### Pipeline scheduler
 
