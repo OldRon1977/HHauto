@@ -7,6 +7,26 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.0 - Boss Bang from start to finish
+
+- **Boss Bang** (Events tab, *Enabled*): the script now runs the whole event
+  on its own. It builds the five teams first -- the game fills each team page
+  with the strongest girls not yet in a Boss Bang team, and the script
+  validates and confirms it --, then fights until the 100 potions are in or
+  every team is tired, and claims the chests. A tired team is never revived
+  with kobans; when all five are tired before the 100 potions, the event ends
+  there and the chests reached so far are claimed.
+- **First Team** now sets the order the teams fight in: 5 fights with teams
+  5, 4, 3, 2, 1, and 1 with teams 1, 2, 3, 4, 5. A tired team is skipped.
+- Each step reads where the event stands from the page it is on, so a reload
+  of the event page, the team page or the battle page continues the event
+  instead of breaking it off. While a Boss Bang runs, no other activity
+  navigates away between two fights.
+- Fixed: without teams built by hand the script waited for them forever
+  ("No eligible team found"), and after one visit it left a running Boss Bang
+  alone for an hour. Another event's tab no longer counts as an unfinished
+  Boss Bang. An account below the event's requirements skips it.
+
 ### v8.20.0 - Level-up team: XP and grades before Stuff Team
 
 - **Team optimization popup**: a new button, *Level-up team XP & grades*, stands

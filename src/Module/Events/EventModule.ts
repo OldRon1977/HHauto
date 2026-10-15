@@ -805,10 +805,9 @@ export class EventModule {
                 // Event is over. Unlike the collect-all timers of PoV/PoG/
                 // Seasonal -- which their own block re-arms on every run and
                 // which therefore only ever show a countdown -- nextBossBangTime
-                // is armed by goToFightPage even on a finished event (see the
-                // note on the bossBang precondition in Pipeline.config.ts) and
-                // is then never re-armed, because the precondition can no
-                // longer be met once the event is gone. Without this the timer
+                // is a back-off BossBang arms when a step cannot go on, and it
+                // is never re-armed once the event is gone, because the
+                // precondition can no longer be met. Without this the timer
                 // stays expired forever and the status panel keeps reporting
                 // "Time's up!" for an event that does not exist.
                 clearTimer('nextBossBangTime');

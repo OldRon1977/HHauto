@@ -359,7 +359,7 @@ The "Storage" column shows the value from the registry. `--` means: not register
 | `autoTrollLoveRaidByPassThreshold` | `Setting_autoTrollLoveRaidByPassThreshold` | `Storage()` | `Setting` | the love raid bypass |
 | `plusEventLoveRaidSandalWood` | `Setting_plusEventLoveRaidSandalWood` | `Storage()` | `Setting` | love raid Sandalwood |
 | `bossBangEvent` | `Setting_bossBangEvent` | `Storage()` | `Setting` | boss bang |
-| `bossBangMinTeam` | `Setting_bossBangMinTeam` | `Storage()` | `Setting` | boss bang minimum team |
+| `bossBangMinTeam` | `Setting_bossBangMinTeam` | `Storage()` | `Setting` | boss bang team to fight with first: 1 goes 1 to 5, any other number goes down from there |
 | `collectEventChest` | `Setting_collectEventChest` | `Storage()` | `Setting` | collect the event chest |
 
 ### Seasonal Event
@@ -556,7 +556,7 @@ shown in the info panel as "Auto-Mystery").
 | `autoChampsEventGirls` | `Temp_autoChampsEventGirls` | `sessionStorage` | `Temp` | champion event girls |
 | `loveRaids` | `Temp_loveRaids` | `sessionStorage` | `Temp` | love raid data |
 | `raidGirls` | `Temp_raidGirls` | `sessionStorage` | `Temp` | raid girls |
-| `bossBangTeam` | `Temp_bossBangTeam` | `sessionStorage` | `Temp` | the boss bang team |
+| `bossBangTeamBuild` | `Temp_bossBangTeamBuild` | `sessionStorage` | `Temp` | when the Boss Bang run opened the team page (ms epoch); the run only validates a team on a page it opened itself, for ten minutes |
 | `lseManualCollectAll` | `Temp_lseManualCollectAll` | `localStorage` | `Temp` | collect LSE manually |
 | `poaManualCollectAll` | `Temp_poaManualCollectAll` | `localStorage` | `Temp` | collect PoA manually |
 | `smStaleGridReload` | `Temp_smStaleGridReload` | `sessionStorage` | `Temp` | when Sultry Mysteries last reloaded the event page because a square did not open (ms epoch); a second refusal within two minutes pauses the grid |

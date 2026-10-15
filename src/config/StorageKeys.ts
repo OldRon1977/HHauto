@@ -357,7 +357,7 @@ export const TK = {
     autoChampsEventGirls: "Temp_autoChampsEventGirls",
     loveRaids: "Temp_loveRaids",
     raidGirls: "Temp_raidGirls",
-    bossBangTeam: "Temp_bossBangTeam",
+    bossBangTeamBuild: "Temp_bossBangTeamBuild",
     lseManualCollectAll: "Temp_lseManualCollectAll",
     poaManualCollectAll: "Temp_poaManualCollectAll",
     smStaleGridReload: "Temp_smStaleGridReload",

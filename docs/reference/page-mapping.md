@@ -58,6 +58,14 @@ page links, they do carry it; measured for `troll-pre-battle`,
 and `edit-team`. The battle pages themselves were not visited, because opening
 them starts a fight.
 
+The Boss Bang pages, **measured 2026-10-15 on www.comixharem.com:**
+`/boss-bang-battle.html?number_of_battles=1&bb_team_index=N` carries
+`page="boss-bang-battle"` and fights as it loads (`do_battles_boss_bang`).
+`add-boss-bang-team` is the team page the event's empty slots link to, without
+parameters; its ID is taken from the list of team pages in the game's
+`shared.js` (`current_page`), not read off the attribute. Below the event's
+requirements both pages answer with a redirect to home.
+
 The activities page multiplexes several sub-pages through a tab parameter and
 the query string -- see activities sub-tabs below.
 

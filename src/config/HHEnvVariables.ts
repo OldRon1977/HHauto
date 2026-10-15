@@ -403,6 +403,9 @@ HHEnvVariables["global"].pagesKnownList.push("PoA");
 HHEnvVariables["global"].pagesIDBossBang = "boss-bang-battle";
 HHEnvVariables["global"].pagesKnownList.push("BossBang");
 
+HHEnvVariables["global"].pagesIDAddBossBangTeam = "add-boss-bang-team";
+HHEnvVariables["global"].pagesKnownList.push("AddBossBangTeam");
+
 HHEnvVariables["global"].pagesIDSexGodPath = "god-path";
 HHEnvVariables["global"].pagesURLSexGodPath = "/god-path.html";
 HHEnvVariables["global"].pagesKnownList.push("SexGodPath");
