@@ -2799,6 +2799,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.questEndSeen] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// The quest a newly released world starts with, found on its world page
+// (Quest.ts); used until the game's own id_quest catches up.
+HHStoredVars[HHStoredVarPrefixKey + TK.questNextWorld] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 
 HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
     {

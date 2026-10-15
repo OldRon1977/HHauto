@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.1 - Main quest: on into a newly released world
+
+- **Auto quest** stopped at the last quest of a world when the game released
+  a new one: the game keeps pointing at the finished quest until the player
+  opens the new world, so the script paused for a day and then found the same
+  finished quest again. At the end of a world the script now looks at the next
+  world first and, when it is open, goes to its quest. When it is not open
+  yet, the day's pause stays as before.
+
 ### v8.21.0 - Boss Bang from start to finish
 
 - **Boss Bang** (Events tab, *Enabled*): the script now runs the whole event

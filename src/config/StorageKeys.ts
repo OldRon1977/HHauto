@@ -431,6 +431,8 @@ export const TK = {
     labyrinthEditorStuck: "Temp_labyrinthEditorStuck",
     // The main quest state at the end of the released quests (Quest.ts)
     questEndSeen: "Temp_questEndSeen",
+    // The first quest of a newly released world, before the game's id_quest reaches it (Quest.ts)
+    questNextWorld: "Temp_questNextWorld",
 
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
