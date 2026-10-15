@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.20.0
+// @version      8.21.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -554,9 +554,9 @@ HHAuto_ToolTips.en['AllMaskRewards'] = { version: "7.26.0", elementText: "Mask c
 HHAuto_ToolTips.en['rewardsToCollectTitle'] = { version: "8.15.0", elementText: "Unclaimed rewards" };
 HHAuto_ToolTips.en['showRewardsRecap'] = { version: "8.15.0", elementText: "Show rewards recap", tooltip: "Show the total of every reward not yet claimed on the page" };
 HHAuto_ToolTips.en['hideOwnedGirls'] = { version: "8.10.42", elementText: "Hide owned girls", tooltip: "Hide owned girls in event page, when event have more than 30 girls to win and players have already more than 10 girls" };
-HHAuto_ToolTips.en['bossBangEvent'] = { version: "8.10.42", elementText: "Enabled", tooltip: "Perform boss bang fight script will start with the team configured after." };
+HHAuto_ToolTips.en['bossBangEvent'] = { version: "8.21.0", elementText: "Enabled", tooltip: "Runs the whole Boss Bang: builds the five teams, fights until the 100 potions or until every team is tired, and claims the chests. A tired team is never revived with kobans." };
 HHAuto_ToolTips.en['bossBangEventTitle'] = { version: "5.20.3", elementText: "Boss Bang" };
-HHAuto_ToolTips.en['bossBangMinTeam'] = { version: "5.6.137", elementText: "First Team", tooltip: "First team to start with<br>If 5 will start with last team and reach the first one." };
+HHAuto_ToolTips.en['bossBangMinTeam'] = { version: "8.21.0", elementText: "First Team", tooltip: "Team to fight with first.<br>5: teams 5, 4, 3, 2, 1.<br>1: teams 1, 2, 3, 4, 5." };
 HHAuto_ToolTips.en['sultryMysteriesEventTitle'] = { version: "6.15.8", elementText: "Sultry Mysteries" };
 HHAuto_ToolTips.en['eventTitle'] = { version: "6.15.8", elementText: "Events" };
 HHAuto_ToolTips.en['doublePenetrationEventTitle'] = { version: "6.15.8", elementText: "DP" };
@@ -1009,9 +1009,9 @@ HHAuto_ToolTips.fr['seasonalEventTitle'] = { version: "5.6.133", elementText: "E
 HHAuto_ToolTips.fr['mousePause'] = { version: "5.6.135", elementText: "Pause souris", tooltip: "Pause le script pour 5 secondes quand des mouvements de la souris sont detecté. Evite le sript d'interrompre les actions manuelles. (en ms, 5000ms=5s)" };
 HHAuto_ToolTips.fr['rewardsToCollectTitle'] = { version: "8.15.0", elementText: "Récompenses non récupérées" };
 HHAuto_ToolTips.fr['showRewardsRecap'] = { version: "8.15.0", elementText: "Affiche recap de récompenses", tooltip: "Affiche le total de toutes les récompenses pas encore récupérées sur la page" };
-HHAuto_ToolTips.fr['bossBangEvent'] = { version: "8.10.42", elementText: "Activé", tooltip: "Si activé : Effectue les combats boss bang en commençant par l'équipe configuré si après." };
+HHAuto_ToolTips.fr['bossBangEvent'] = { version: "8.21.0", elementText: "Activé", tooltip: "Gère tout le Boss Bang : crée les cinq équipes, combat jusqu'aux 100 potions ou jusqu'à ce que toutes les équipes soient fatiguées, et récupère les coffres. Une équipe fatiguée n'est jamais ranimée avec des kobans." };
 HHAuto_ToolTips.fr['bossBangEventTitle'] = { version: "6.15.8", elementText: "Boss Bang" };
-HHAuto_ToolTips.fr['bossBangMinTeam'] = { version: "5.6.137", elementText: "Première équipe", tooltip: "Première équipe à utiliser<br>Si 5, le script commencera par la dernière pour finir par la premiere." };
+HHAuto_ToolTips.fr['bossBangMinTeam'] = { version: "8.21.0", elementText: "Première équipe", tooltip: "Équipe qui combat en premier.<br>5 : équipes 5, 4, 3, 2, 1.<br>1 : équipes 1, 2, 3, 4, 5." };
 HHAuto_ToolTips.fr['sultryMysteriesEventTitle'] = { version: "6.15.8", elementText: "Mystère sensuel" };
 HHAuto_ToolTips.fr['sultryMysteriesAutoOpen'] = { version: "8.6.0", elementText: "Auto-Mystère", tooltip: "Ouvre les cases de la grille Mystère sensuel avec les clés disponibles, et génère une nouvelle grille dès qu'au moins 15 cases sont ouvertes et que toutes les récompenses sélectionnées ont été trouvées. N'achète jamais de clés avec des kobans." };
 HHAuto_ToolTips.fr['sultryMysteriesAutoOpenCollectableText'] = { version: "8.6.0", elementText: "Sélectionnez les récompenses qui doivent être trouvées avant de générer une nouvelle grille. Ne rien sélectionner génère une nouvelle grille dès que 15 cases sont ouvertes.", tooltip: "" };
@@ -1711,9 +1711,9 @@ HHAuto_ToolTips.de['AllMaskRewards'] = { version: "8.10.0", elementText: "Abgeho
 HHAuto_ToolTips.de['rewardsToCollectTitle'] = { version: "8.15.0", elementText: "Offene Belohnungen" };
 HHAuto_ToolTips.de['showRewardsRecap'] = { version: "8.15.0", elementText: "Belohnungsübersicht zeigen", tooltip: "Zeigt die Summe aller noch nicht abgeholten Belohnungen der Seite." };
 HHAuto_ToolTips.de['hideOwnedGirls'] = { version: "8.10.42", elementText: "Bereits erhaltene ausblenden", tooltip: "Blendet auf der Event-Seite die Mädels aus, die du schon hast, wenn das Event mehr als 30 zu gewinnende Mädels bietet." };
-HHAuto_ToolTips.de['bossBangEvent'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Führt Boss-Bang-Kämpfe aus; das Skript startet mit dem unten eingestellten Team." };
+HHAuto_ToolTips.de['bossBangEvent'] = { version: "8.21.0", elementText: "Aktiviert", tooltip: "Erledigt den ganzen Boss Bang: baut die fünf Teams, kämpft bis zu den 100 Tränken oder bis jedes Team müde ist und holt die Truhen ab. Ein müdes Team wird nie mit Kobans wiederbelebt." };
 HHAuto_ToolTips.de['bossBangEventTitle'] = { version: "8.10.0", elementText: "Boss-Bang" };
-HHAuto_ToolTips.de['bossBangMinTeam'] = { version: "5.6.137", elementText: "Erstes Team", tooltip: "Team, mit dem begonnen wird.<br>Bei 5 wird mit dem letzten Team begonnen und bis zum ersten durchgegangen." };
+HHAuto_ToolTips.de['bossBangMinTeam'] = { version: "8.21.0", elementText: "Erstes Team", tooltip: "Team, mit dem zuerst gekämpft wird.<br>5: Teams 5, 4, 3, 2, 1.<br>1: Teams 1, 2, 3, 4, 5." };
 HHAuto_ToolTips.de['sultryMysteriesEventTitle'] = { version: "8.10.0", elementText: "Sinnliche Abenteuer" };
 HHAuto_ToolTips.de['eventTitle'] = { version: "6.15.8", elementText: "Events" };
 HHAuto_ToolTips.de['doublePenetrationEventTitle'] = { version: "8.10.0", elementText: "Doppelte Fusion" };
@@ -2473,9 +2473,9 @@ HHAuto_ToolTips.es['seasonalEventTitle'] = { version: "5.6.133", elementText: "E
 HHAuto_ToolTips.es['rewardsToCollectTitle'] = { version: "8.15.0", elementText: "Recompensas sin reclamar" };
 HHAuto_ToolTips.es['showRewardsRecap'] = { version: "8.15.0", elementText: "Mostrar resumen de recompensas", tooltip: "Muestra el total de todas las recompensas aún no reclamadas en la página." };
 HHAuto_ToolTips.es['hideOwnedGirls'] = { version: "8.10.42", elementText: "Ocultar chicas conseguidas", tooltip: "Oculta las chicas que ya tienes en la página del evento, cuando el evento tiene más de 30 chicas por conseguir y ya tienes más de 10." };
-HHAuto_ToolTips.es['bossBangEvent'] = { version: "8.10.42", elementText: "Activado", tooltip: "Ejecuta el combate de Boss Bang; el script empezará con el equipo configurado a continuación." };
+HHAuto_ToolTips.es['bossBangEvent'] = { version: "8.21.0", elementText: "Activado", tooltip: "Hace todo el Boss Bang: crea los cinco equipos, combate hasta las 100 pociones o hasta que todos los equipos estén cansados y recoge los cofres. Un equipo cansado nunca se reanima con kobans." };
 HHAuto_ToolTips.es['bossBangEventTitle'] = { version: "5.20.3", elementText: "Boss Bang", tooltip: "" };
-HHAuto_ToolTips.es['bossBangMinTeam'] = { version: "5.6.137", elementText: "Primer equipo", tooltip: "Equipo con el que empezar.<br>Con 5 empezará por el último equipo y llegará hasta el primero." };
+HHAuto_ToolTips.es['bossBangMinTeam'] = { version: "8.21.0", elementText: "Primer equipo", tooltip: "Equipo que combate primero.<br>5: equipos 5, 4, 3, 2, 1.<br>1: equipos 1, 2, 3, 4, 5." };
 HHAuto_ToolTips.es['sultryMysteriesEventTitle'] = { version: "6.15.8", elementText: "Misterios Sensuales", tooltip: "" };
 HHAuto_ToolTips.es['eventTitle'] = { version: "6.15.8", elementText: "Eventos", tooltip: "" };
 HHAuto_ToolTips.es['doublePenetrationEventTitle'] = { version: "6.15.8", elementText: "DP", tooltip: "" };
@@ -3182,7 +3182,7 @@ const TK = {
     autoChampsEventGirls: "Temp_autoChampsEventGirls",
     loveRaids: "Temp_loveRaids",
     raidGirls: "Temp_raidGirls",
-    bossBangTeam: "Temp_bossBangTeam",
+    bossBangTeamBuild: "Temp_bossBangTeamBuild",
     lseManualCollectAll: "Temp_lseManualCollectAll",
     poaManualCollectAll: "Temp_poaManualCollectAll",
     smStaleGridReload: "Temp_smStaleGridReload",
@@ -6092,7 +6092,7 @@ HHStoredVars[HHStoredVarPrefixKey + TK.eventsList] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeam] =
+HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeamBuild] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -12209,6 +12209,8 @@ HHEnvVariables["global"].pagesIDPoA = "path_of_attraction";
 HHEnvVariables["global"].pagesKnownList.push("PoA");
 HHEnvVariables["global"].pagesIDBossBang = "boss-bang-battle";
 HHEnvVariables["global"].pagesKnownList.push("BossBang");
+HHEnvVariables["global"].pagesIDAddBossBangTeam = "add-boss-bang-team";
+HHEnvVariables["global"].pagesKnownList.push("AddBossBangTeam");
 HHEnvVariables["global"].pagesIDSexGodPath = "god-path";
 HHEnvVariables["global"].pagesURLSexGodPath = "/god-path.html";
 HHEnvVariables["global"].pagesKnownList.push("SexGodPath");
@@ -12453,17 +12455,37 @@ var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// BossBang.ts -- Boss Bang event: cooperative boss fights with club members.
+// BossBang.ts -- Boss Bang event: build the five teams, fight, claim the chests.
 //
-// Boss Bang is a club-wide cooperative event where members contribute damage
-// to shared bosses. This module parses the event page (event end, whether the
-// boss is beaten, which team still has ego to fight with), steps through the
-// fight sequence and claims the milestone rewards. The bossBangEvent setting
-// stays on between events; a beaten boss bang is stored as completed and
-// skipped from then on.
+// A Boss Bang runs build -> fight -> claim, and every step reads its state
+// from the page it is on, never from a stored cursor. A reload anywhere --
+// on the event page, the team page or the battle page -- therefore resumes
+// where the event stands: the event page shows how many teams exist, which
+// are tired, how many potions are in and which chests wait.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Boss Bang event is active),
+// Measured on the event page (#boss_bang, 2026-10-15):
+//   - a team slot is `.boss-bang-team-slot`; an empty one holds a link to
+//     /add-boss-bang-team.html, a built one `.boss-bang-team-first-girl`,
+//     a tired one (ego spent) `.boss-bang-team-tired-girl` as well;
+//   - clicking a built slot makes the game point #start-bang-button at
+//     /boss-bang-battle.html?number_of_battles=1&bb_team_index=<slot>;
+//   - an account below the requirements sees `.boss-bang-requirements-row`
+//     instead of slots;
+//   - at 100 potions the slots and the Bang button go and
+//     `.boss-bang-event-info.completed-event` appears, next to one claim
+//     button per chest still waiting.
+// On the team page the game fills the hexagons itself with the strongest
+// girls not yet in a Boss Bang team; Validate asks once more
+// (#confirm-boss-bang-team-creation) and then saves with create_bb_team. A
+// team cannot be changed afterwards. The battle page fights on load; the
+// result popup's OK leads back to the event page.
+//
+// A tired team is never revived: that costs kobans. When every team is tired
+// before the 100 potions, the event ends there and the chests reached so far
+// are claimed.
+//
+// Depends on: EventModule.ts (event routing and the event list)
+// Used by: EventModule.ts (parse, when the Boss Bang tab is open),
 //          Pipeline.config.ts (the parse and fight blocks)
 //
 
@@ -12477,7 +12499,71 @@ var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+const TEAM_COUNT = 5;
+const TEAM_SIZE = 7;
+// A battle page that shows neither the result popup nor the skip button this
+// long after loading is stuck; the event page is asked again.
+const BATTLE_PAGE_STUCK_MS = 30000;
+// A team page this module opened and has not confirmed after this long is
+// left to the player.
+const TEAM_BUILD_MAX_MS = 10 * 60000;
 class BossBang {
+    /** The Boss Bang tab is the one open on the event page. */
+    static isOnEventTab() {
+        return getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && $(BossBang.EVENT_SELECTOR).length > 0;
+    }
+    /**
+     * The order the teams fight in, as slot indexes (0 = team 1). The
+     * setting names the team to start with: 1 goes up (1, 2, 3, 4, 5), any
+     * other number goes down from there and then on from the last team
+     * (5: 5, 4, 3, 2, 1 -- 3: 3, 2, 1, 5, 4).
+     */
+    static teamOrder(firstTeam, count = TEAM_COUNT) {
+        const first = Math.min(Math.max(Math.trunc(Number(firstTeam)) || count, 1), count);
+        const order = [];
+        if (first === 1) {
+            for (let team = 1; team <= count; team++)
+                order.push(team - 1);
+        }
+        else {
+            for (let team = first; team >= 1; team--)
+                order.push(team - 1);
+            for (let team = count; team > first; team--)
+                order.push(team - 1);
+        }
+        return order;
+    }
+    /** Slot index of the next team to fight with, or -1 when none can fight. */
+    static pickTeam(firstTeam) {
+        const ready = new Set();
+        $(`${BossBang.EVENT_SELECTOR} .boss-bang-team-slot`).each(function () {
+            const slot = $(this);
+            if (slot.find('.boss-bang-team-first-girl').length > 0 && slot.find('.boss-bang-team-tired-girl').length === 0) {
+                ready.add(Number(slot.attr('data-slot-index')));
+            }
+        });
+        for (const index of BossBang.teamOrder(firstTeam)) {
+            if (ready.has(index))
+                return index;
+        }
+        return -1;
+    }
+    /** Read the open Boss Bang tab and say what comes next. */
+    static nextStep() {
+        const page = $(BossBang.EVENT_SELECTOR);
+        if (page.find('.boss-bang-requirements-row').length > 0)
+            return 'blocked';
+        if ($(BossBang.PROGRESS_REWARD_SELECTOR).length > 0)
+            return 'claim';
+        if (page.find('.completed-event').length > 0)
+            return 'done';
+        if (page.find('.boss-bang-team-slot a[href*="add-boss-bang-team"]').length > 0)
+            return 'build';
+        const firstTeam = Number(getStoredValue(HHStoredVarPrefixKey + SK.bossBangMinTeam));
+        if (BossBang.pickTeam(firstTeam) >= 0 && $('#start-bang-button').length > 0)
+            return 'fight';
+        return 'done';
+    }
     static parse(hhEvent, eventList, _hhEventData) {
         const eventID = hhEvent.eventId;
         const refreshTimer = randomInterval(3600, 4000);
@@ -12487,174 +12573,243 @@ class BossBang {
         }
         else
             setTimer('eventBossBangGoing', refreshTimer);
+        const step = BossBang.nextStep();
         eventList[eventID] = {};
         eventList[eventID]["id"] = eventID;
         eventList[eventID]["type"] = hhEvent.eventType;
         eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = $('#contains_all #events #boss_bang .completed-event').length > 0;
-        const teamEventz = $('#contains_all #events #boss_bang .boss-bang-teams-container .boss-bang-team-slot');
-        let teamFound = false;
-        const firstTeamToStartWith = getStoredValue(HHStoredVarPrefixKey + SK.bossBangMinTeam);
-        if ($('.boss-bang-team-ego', teamEventz[firstTeamToStartWith - 1]).length > 0) {
-            // Do not trigger event if not all teams are set
-            for (let currIndex = teamEventz.length - 1; currIndex >= 0 && !teamFound; currIndex--) {
-                // start with last team first
-                const teamz = $(teamEventz[currIndex]);
-                const teamIndex = teamz.data('slot-index');
-                const teamEgo = $('.boss-bang-team-ego', teamz);
-                if (teamEgo.length > 0 && parseInt(teamEgo.text()) > 0) {
-                    if (!teamFound) {
-                        if (!teamz.hasClass('.selected-hero-team'))
-                            teamz.click();
-                        teamFound = true;
-                        logHHAuto("Select team " + (teamIndex + 1) + ", Ego: " + parseInt(teamEgo.text()));
-                        setStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam, teamIndex);
-                        return true;
-                    }
-                }
-                else {
-                    logHHAuto("Team " + teamIndex + " not eligible");
-                }
-            }
-        }
-        else if (eventList[eventID]["isCompleted"]) {
-            // The setting stays on for the next boss bang. This one is stored
-            // as completed, and checkEvent never hands a completed event ID
-            // to the parse or fight blocks again.
-            logHHAuto("Boss bang completed, " + $(BossBang.PROGRESS_REWARD_SELECTOR).length + " progress reward(s) left to claim.");
+        // Finished means nothing is left to do here this event: the chests
+        // are claimed and no team can fight, or the account cannot take part.
+        eventList[eventID]["isCompleted"] = step === 'done' || step === 'blocked';
+        if (step === 'blocked') {
+            logHHAuto("Boss bang: this account does not meet the requirements, skipping the event.");
         }
         else {
-            logHHAuto(`No eligible team found for boss bang event, need team ${firstTeamToStartWith} or higher`);
-        }
-        if (!teamFound) {
-            setStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam, -1);
+            logHHAuto("Boss bang: next step " + step + ".");
         }
     }
-    // Drives one step of the boss-bang battle sequence: claim a pending reward
-    // popup or click the next skip button. Returns true while the sequence is
-    // still in progress (an action was taken, or a POST is deferred and should
-    // be retried), false when neither button is present after AJAX idle -- i.e.
-    // the sequence is finished. The handleBossBangFight pipeline block re-enters
-    // this each tick and holds the scheduler slot on repeat (issue #1455), so
-    // this does not set autoLoop=false and does not self-reschedule via setTimeout.
-    static skipFightPage() {
-        return BossBang_awaiter(this, void 0, void 0, function* () {
-            const rewardsButton = $('#rewards_popup .blue_button_L:not([disabled]):visible');
-            const skipFightButton = $('#battle #new-battle-skip-btn:not([disabled]):visible');
-            if (rewardsButton.length > 0) {
-                // Serialise the claim POST through the global mutex (#1598,
-                // docs/decisions/ADR-003-ajax-post-mutex.md)
-                // and wait for AJAX idle + server settle before yielding the tick.
-                if (!acquirePostMutex('bossbang:rewards')) {
-                    logHHAuto('BossBang: another POST in flight, deferring rewards click');
-                    return true;
-                }
-                logHHAuto("Click get rewards bang fight");
-                const claimStart = Date.now();
-                rewardsButton.trigger('click');
-                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
-                const claimDuration = Date.now() - claimStart;
-                releasePostMutex();
-                if (idle)
-                    yield awaitServerSettleAfterPost(claimDuration);
-                else
-                    logHHAuto('BossBang: rewards AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                return true;
-            }
-            else if (skipFightButton.length > 0) {
-                // Serialise the skip POST through the global mutex (#1598,
-                // docs/decisions/ADR-003-ajax-post-mutex.md)
-                // and wait for AJAX idle + server settle before yielding the tick.
-                if (!acquirePostMutex('bossbang:skipFight')) {
-                    logHHAuto('BossBang: another POST in flight, deferring skip click');
-                    return true;
-                }
-                logHHAuto("Click skip boss bang fight");
-                const claimStart = Date.now();
-                skipFightButton.trigger('click');
-                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
-                const claimDuration = Date.now() - claimStart;
-                releasePostMutex();
-                if (idle)
-                    yield awaitServerSettleAfterPost(claimDuration);
-                else
-                    logHHAuto('BossBang: skip AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                return true;
-            }
-            return false;
-        });
+    /** Mark the event as finished in the event list, so it is not visited again. */
+    static markCompleted(eventID) {
+        var _a;
+        if (!eventID)
+            return;
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        eventList[eventID] = Object.assign(Object.assign({}, ((_a = eventList[eventID]) !== null && _a !== void 0 ? _a : { id: eventID, type: 'bossBang' })), { isCompleted: true });
+        setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
     }
-    // Collects the boss-bang milestone/progress-bar rewards the same simple way
-    // the other collectors do (PathOfValue / DailyGoals): click each claim
-    // button in turn with a small delay, then go home. No slot-hold and no POST
-    // mutex -- a plain click, like every other reward button (issue #1455).
-    // Sets autoLoop=false while collecting (the scheduler pauses); the final
-    // gotoPage(home) restores it. Returns true if a collection run was started.
-    static collectProgressRewards() {
-        const buttons = $(BossBang.PROGRESS_REWARD_SELECTOR).toArray();
-        if (buttons.length === 0)
-            return false;
-        logHHAuto("Collecting boss bang progress rewards, " + buttons.length + " tier(s) available.");
-        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-        function collect() {
-            var _a;
-            if (buttons.length > 0) {
-                const button = buttons.shift();
-                logHHAuto("Collecting boss bang reward tier " + ((_a = button.getAttribute("tier")) !== null && _a !== void 0 ? _a : "?"));
-                button.click();
-                setTimeout(collect, randomInterval(300, 500));
-            }
-            else {
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            }
+    static isMarkedCompleted(eventID) {
+        var _a;
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        return ((_a = eventList[eventID]) === null || _a === void 0 ? void 0 : _a.isCompleted) === true;
+    }
+    /**
+     * The team page was opened by this module, not by the player. Set when
+     * the event page sends the run there, cleared once the team is confirmed;
+     * kept in sessionStorage so a reload of the team page still knows it.
+     */
+    static isBuildingTeam() {
+        const since = Number(getStoredValue(HHStoredVarPrefixKey + TK.bossBangTeamBuild));
+        return Number.isFinite(since) && since > 0 && Date.now() - since < TEAM_BUILD_MAX_MS;
+    }
+    /** The Boss Bang event to work on: the open tab, else the first one known. */
+    static targetEventID(fallback = '') {
+        if (BossBang.isOnEventTab()) {
+            const shown = EventModule.getDisplayedIdEventPage(false);
+            if (shown)
+                return shown;
         }
-        collect();
+        return fallback || EventModule.getEventIDsByType('bossBang')[0] || '';
+    }
+    static goToEvent(eventID) {
+        if (!eventID) {
+            logHHAuto("Boss bang: no boss bang event known, nothing to open.");
+            setTimer('nextBossBangTime', randomInterval(30, 60) * 60);
+            return false;
+        }
+        logHHAuto("Boss bang: going to the event page.");
+        gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: eventID });
         return true;
     }
-    static goToFightPage(bossbangEventID) {
+    /**
+     * One step on the event tab. Returns true while the event goes on (the
+     * caller holds the scheduler slot), false once it is finished or there
+     * is nothing this run may do -- fighting and building need the setting,
+     * claiming does not.
+     */
+    static workEventPage(fightEnabled) {
         return BossBang_awaiter(this, void 0, void 0, function* () {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
-                const teamIndexFound = parseInt(getStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam));
-                const bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
-                if (teamIndexFound >= 0 && bangButton.length > 0) {
-                    logHHAuto("Go to boss bang fight page");
-                    // Use safeNavigateHref so any in-flight game AJAX completes
-                    // before the URL change. Direct location.href = ... cancels
-                    // open XHRs with NS_BINDING_ABORTED, which can trigger the
-                    // server-side Forbidden race (issue #1598).
-                    const href = addNutakuSession(bangButton.attr('href'));
-                    safeNavigateHref(href);
-                    yield TimeHelper.sleep(randomInterval(3000, 5000));
+            const step = BossBang.nextStep();
+            const eventID = BossBang.targetEventID();
+            switch (step) {
+                case 'claim':
+                    return BossBang.claimNextChest();
+                case 'build':
+                    if (!fightEnabled)
+                        return false;
+                    return BossBang.goToAddTeam();
+                case 'fight':
+                    if (!fightEnabled)
+                        return false;
+                    return BossBang.startFight();
+                case 'blocked':
+                case 'done':
+                default:
+                    logHHAuto(step === 'blocked'
+                        ? "Boss bang: this account does not meet the requirements."
+                        : "Boss bang finished: chests claimed, no team left to fight.");
+                    BossBang.markCompleted(eventID);
+                    return false;
+            }
+        });
+    }
+    /**
+     * Claim one chest, or close the reward popup the previous claim opened.
+     * One action per call: the popup covers the next button, and a reload
+     * between two claims starts again from what the page shows.
+     */
+    static claimNextChest() {
+        return BossBang_awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const popupOk = $(BossBang.REWARD_POPUP_OK_SELECTOR);
+            if (popupOk.length > 0) {
+                logHHAuto("Boss bang: closing the chest reward.");
+                popupOk.first().trigger('click');
+                return true;
+            }
+            const button = $(BossBang.PROGRESS_REWARD_SELECTOR).first();
+            if (button.length === 0)
+                return false;
+            // Serialise the claim POST through the global mutex (#1598,
+            // docs/decisions/ADR-003-ajax-post-mutex.md).
+            if (!acquirePostMutex('bossbang:claim')) {
+                logHHAuto('BossBang: another POST in flight, deferring the chest claim');
+                return true;
+            }
+            logHHAuto("Boss bang: claiming chest " + ((_a = button.attr('tier')) !== null && _a !== void 0 ? _a : '?') + ".");
+            const start = Date.now();
+            button.trigger('click');
+            const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+            releasePostMutex();
+            if (idle)
+                yield awaitServerSettleAfterPost(Date.now() - start);
+            return true;
+        });
+    }
+    static goToAddTeam() {
+        const link = $(`${BossBang.EVENT_SELECTOR} .boss-bang-team-slot a[href*="add-boss-bang-team"]`).first();
+        const href = link.attr('href');
+        if (!href)
+            return false;
+        logHHAuto("Boss bang: building team " + ($(`${BossBang.EVENT_SELECTOR} .boss-bang-team-first-girl`).length + 1) + ".");
+        setStoredValue(HHStoredVarPrefixKey + TK.bossBangTeamBuild, String(Date.now()));
+        safeNavigateHref(addNutakuSession(href));
+        return true;
+    }
+    /** Select the team the setting asks for and open its battle. */
+    static startFight() {
+        const firstTeam = Number(getStoredValue(HHStoredVarPrefixKey + SK.bossBangMinTeam));
+        const slotIndex = BossBang.pickTeam(firstTeam);
+        if (slotIndex < 0)
+            return false;
+        // The game's own slot handler points the Bang button at this team.
+        $(`${BossBang.EVENT_SELECTOR} .boss-bang-team-slot[data-slot-index="${slotIndex}"]`).trigger('click');
+        const button = $('#start-bang-button');
+        const href = button.attr('href') || '';
+        if (button.attr('disabled') === 'disabled' || !new RegExp('bb_team_index=' + slotIndex + '(\\D|$)').test(href)) {
+            logHHAuto("Boss bang: the Bang button did not take team " + (slotIndex + 1) + " (" + href + "), trying again later.");
+            setTimer('nextBossBangTime', randomInterval(10, 20) * 60);
+            return false;
+        }
+        logHHAuto("Boss bang: fighting with team " + (slotIndex + 1) + ".");
+        // safeNavigateHref lets in-flight game AJAX finish before the URL
+        // change; a direct location change aborts open XHRs (issue #1598).
+        safeNavigateHref(addNutakuSession(href));
+        return true;
+    }
+    /**
+     * One step on the team page: fill the hexagons if the game left them
+     * short, press Validate, then confirm. Returns true while the team is on
+     * its way; after the confirmation the game saves and returns to the event.
+     */
+    static buildTeamStep() {
+        return BossBang_awaiter(this, void 0, void 0, function* () {
+            const confirm = $('#confirm-boss-bang-team-creation:visible');
+            if (confirm.length > 0) {
+                if (!acquirePostMutex('bossbang:createTeam')) {
+                    logHHAuto('BossBang: another POST in flight, deferring the team confirmation');
                     return true;
                 }
-                else {
-                    logHHAuto(`Cannot go to boss bang fight page, no team selected ${teamIndexFound} or no bang button found`);
-                    setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
-                }
+                logHHAuto("Boss bang: confirming the team.");
+                deleteStoredValue(HHStoredVarPrefixKey + TK.bossBangTeamBuild);
+                const start = Date.now();
+                confirm.trigger('click');
+                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                releasePostMutex();
+                if (idle)
+                    yield awaitServerSettleAfterPost(Date.now() - start);
+                return true;
             }
-            else {
-                if (bossbangEventID)
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: bossbangEventID });
-                else {
-                    const bossbangEventIDs = EventModule.getEventIDsByType('boss_bang');
-                    if (bossbangEventIDs.length > 0)
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: bossbangEventIDs[0] });
-                    else {
-                        logHHAuto("Cannot go to boss bang fight page, no boss bang event found");
-                        setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
-                    }
+            const placed = $('.team-hexagon .team-member-container[data-girl-id]').length;
+            if (placed < TEAM_SIZE) {
+                const autoFill = $('#auto-fill-team:not([disabled])');
+                if (autoFill.length > 0 && placed === 0) {
+                    logHHAuto("Boss bang: filling the team.");
+                    autoFill.trigger('click');
+                    return true;
                 }
+                logHHAuto("Boss bang: only " + placed + " girls for the team, trying again later.");
+                setTimer('nextBossBangTime', randomInterval(30, 60) * 60);
+                return BossBang.goToEvent(BossBang.targetEventID());
             }
-            return false;
+            const validate = $('#validate-team:not([disabled])');
+            if (validate.length > 0) {
+                logHHAuto("Boss bang: validating the team.");
+                validate.trigger('click');
+            }
+            // Without an enabled Validate the confirmation is on its way; the
+            // next call finds it.
+            return true;
+        });
+    }
+    /**
+     * One step on the battle page: close the result with OK (or skip the
+     * fight animation). Returns true while the page is still busy. A page
+     * that shows neither for too long goes back to the event.
+     */
+    static battlePageStep() {
+        return BossBang_awaiter(this, void 0, void 0, function* () {
+            const rewardsButton = $(BossBang.REWARD_POPUP_OK_SELECTOR);
+            const skipFightButton = $('#battle #new-battle-skip-btn:not([disabled]):visible');
+            if (rewardsButton.length > 0 || skipFightButton.length > 0) {
+                const button = rewardsButton.length > 0 ? rewardsButton : skipFightButton;
+                // Serialise through the global mutex (#1598,
+                // docs/decisions/ADR-003-ajax-post-mutex.md).
+                if (!acquirePostMutex('bossbang:battle')) {
+                    logHHAuto('BossBang: another POST in flight, deferring the battle page click');
+                    return true;
+                }
+                logHHAuto(rewardsButton.length > 0 ? "Boss bang: fight over, OK." : "Boss bang: skipping the fight.");
+                const start = Date.now();
+                button.first().trigger('click');
+                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                releasePostMutex();
+                if (idle)
+                    yield awaitServerSettleAfterPost(Date.now() - start);
+                return true;
+            }
+            if (performance.now() > BATTLE_PAGE_STUCK_MS) {
+                logHHAuto("Boss bang: battle page shows no result, back to the event.");
+                return BossBang.goToEvent(BossBang.targetEventID());
+            }
+            return true;
         });
     }
 }
-// Milestone/progress-bar reward claim buttons on the boss-bang event
-// page (tiered "Claim" buttons that unlock as the club deals damage,
-// issue #1455). Kept as a shared constant so handleBossBangFight can
-// gate on their presence with the exact same selector.
+BossBang.EVENT_SELECTOR = '#contains_all #events #boss_bang';
+// One claim button per chest that can be opened (issue #1455).
 BossBang.PROGRESS_REWARD_SELECTOR = 'button[rel="claim"].progress-bar-claim-reward:not([disabled]):visible';
+BossBang.REWARD_POPUP_OK_SELECTOR = '#rewards_popup .blue_button_L:not([disabled]):visible';
 
 ;// ./src/Module/Events/CumbackContests.ts
 // CumbackContests.ts -- Cumback Contest event handling and auto-collection.
@@ -15296,10 +15451,9 @@ class EventModule {
                 // Event is over. Unlike the collect-all timers of PoV/PoG/
                 // Seasonal -- which their own block re-arms on every run and
                 // which therefore only ever show a countdown -- nextBossBangTime
-                // is armed by goToFightPage even on a finished event (see the
-                // note on the bossBang precondition in Pipeline.config.ts) and
-                // is then never re-armed, because the precondition can no
-                // longer be met once the event is gone. Without this the timer
+                // is a back-off BossBang arms when a step cannot go on, and it
+                // is never re-armed once the event is gone, because the
+                // precondition can no longer be met. Without this the timer
                 // stays expired forever and the status panel keeps reporting
                 // "Time's up!" for an event that does not exist.
                 clearTimer('nextBossBangTime');
@@ -31494,7 +31648,7 @@ class Shop {
 //   5. If the pool cannot fill 7 slots, emergency fallback (top-N by caracs_sum).
 
 
-const TEAM_SIZE = 7;
+const TeamBuilderService_TEAM_SIZE = 7;
 const POS_2_TO_7 = 6;
 // Two candidate teams within this relative stat-sum margin are treated
 // as a near-tie; the higher Tier-5 leader skill (Shield > Stun > Execute
@@ -31564,7 +31718,7 @@ class TeamBuilderService {
         for (const g of eligible)
             scoreMap.set(g.id_girl, scoreFn(g));
         // Pool too small for any cluster to form: emergency fallback.
-        if (eligible.length < TEAM_SIZE) {
+        if (eligible.length < TeamBuilderService_TEAM_SIZE) {
             return [TeamBuilderService.buildFallback(eligible, scoreMap, playerClass, 'Eligible pool has fewer than 7 girls.')];
         }
         const blessings = BlessingService.detectActiveBlessings(allGirls);
@@ -31615,7 +31769,7 @@ class TeamBuilderService {
         const bless1 = blessings[0];
         const bless2 = blessings[1];
         const addCandidatesForPool = (pool, label) => {
-            if (pool.length < TEAM_SIZE)
+            if (pool.length < TeamBuilderService_TEAM_SIZE)
                 return;
             // One clustered candidate per enumerable trait cluster.
             for (const cluster of TeamBuilderService.enumerateClusters(pool)) {
@@ -31730,7 +31884,7 @@ class TeamBuilderService {
      * Returns null if the pool cannot fill 7 slots for this cluster.
      */
     static buildWithCluster(pool, eligibleAll, scoreMap, cluster) {
-        if (pool.length < TEAM_SIZE)
+        if (pool.length < TeamBuilderService_TEAM_SIZE)
             return null;
         const leader = TeamBuilderService.pickLeader(eligibleAll, cluster, scoreMap);
         if (!leader)
@@ -31766,7 +31920,7 @@ class TeamBuilderService {
      */
     static buildFlat(pool, eligibleAll, scoreMap) {
         var _a;
-        if (pool.length < TEAM_SIZE)
+        if (pool.length < TeamBuilderService_TEAM_SIZE)
             return null;
         const scoreOf = (g) => { var _a; return (_a = scoreMap.get(g.id_girl)) !== null && _a !== void 0 ? _a : TeamScoringService.caracsSum(g); };
         // Leader from the full eligible pool (spec rule: a strong Mythic
@@ -31820,7 +31974,7 @@ class TeamBuilderService {
         for (const category of TRAIT_HIERARCHY) {
             const pair = ELEMENT_PAIRS_BY_CATEGORY[category];
             const subset = pool.filter(g => pair.includes(g.element));
-            if (subset.length < TEAM_SIZE)
+            if (subset.length < TeamBuilderService_TEAM_SIZE)
                 continue;
             const buckets = new Map();
             for (const g of subset) {
@@ -32111,7 +32265,7 @@ class TeamBuilderService {
             return TeamScoringService.getElementPowerCoeff(b.element)
                 - TeamScoringService.getElementPowerCoeff(a.element);
         });
-        const team = sorted.slice(0, TEAM_SIZE);
+        const team = sorted.slice(0, TeamBuilderService_TEAM_SIZE);
         const fallbackCluster = team.length > 0
             ? (() => {
                 var _a;
@@ -43227,9 +43381,17 @@ const handleBossBangParse = {
         if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'event')
             return false;
         const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
-        const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
         const hasParseTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
-        return hasParseTarget || hasIncompleteOnPage;
+        // An open Boss Bang tab the event list does not know yet. Only the Boss
+        // Bang tab: '#boss_bang .completed-event' counts 0 on every other event
+        // tab as well.
+        let unparsedOnTab = false;
+        if (BossBang.isOnEventTab()) {
+            const shownId = EventModule.getDisplayedIdEventPage(false);
+            const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+            unparsedOnTab = shownId !== '' && !Object.prototype.hasOwnProperty.call(eventList, shownId);
+        }
+        return hasParseTarget || unparsedOnTab;
     },
     steps: [{
             name: 'parseBossBang',
@@ -43311,64 +43473,58 @@ const handleBossBangFight = {
             return false;
         if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'bossBang')
             return false;
-        const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
-        const onBattlePage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang');
-        // Reward phase (issue #1455): boss bang is build -> fight -> rewards. The
-        // tiered milestone rewards become claimable on the event page once the boss
-        // is defeated. Claiming is gated on the FEATURE, not on the fight setting --
-        // a user may have switched fighting off by then -- and NOT on the fight
-        // back-off timer (goToFightPage arms nextBossBangTime on a finished event);
-        // otherwise the rewards are never collected.
-        if (onEvent && $(BossBang.PROGRESS_REWARD_SELECTOR).length > 0)
+        // Boss Bang runs build -> fight -> claim (BossBang.ts). Each step leaves
+        // the slot held (busy -> repeat), and this re-check runs after every
+        // reload, so it has to say yes on every page of a running event.
+        const onTab = BossBang.isOnEventTab();
+        // Claiming is gated on the feature only, not on the fight setting or the
+        // back-off timer: a user may have switched fighting off by then, and the
+        // chests are lost with the event.
+        if (onTab && ($(BossBang.PROGRESS_REWARD_SELECTOR).length > 0 || $(BossBang.REWARD_POPUP_OK_SELECTOR).length > 0))
             return true;
-        // Fight phase: needs the user setting on and the fight back-off timer elapsed.
         if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true')
             return false;
+        // The battle page fights on load; its result popup leads back to the event.
+        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang'))
+            return true;
+        // The team page only when this block opened it: a player building a team
+        // there by hand must not have it validated for them.
+        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDAddBossBangTeam'))
+            return BossBang.isBuildingTeam();
         if (!checkTimer('nextBossBangTime'))
             return false;
-        const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
-        const hasFightTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
-        // onBattlePage keeps the held run alive on the boss-bang-battle page so the
-        // scheduler's gate-hold-return precondition re-check does not release the
-        // slot mid-sequence.
-        return hasFightTarget || hasIncompleteOnPage || onBattlePage;
+        if (onTab) {
+            const step = BossBang.nextStep();
+            // A finished event once more, so the step can mark it completed;
+            // otherwise the event list keeps sending the run back here.
+            return step === 'build' || step === 'fight' || !BossBang.isMarkedCompleted(BossBang.targetEventID());
+        }
+        // From any other page: an event that is known and not finished. The home
+        // widget list (ctx.bossBangEventIDs) only carries events that are due for
+        // a re-parse, so it alone would leave a parsed event untouched for an hour.
+        return ctx.bossBangEventIDs.length > 0 || EventModule.getEventIDsByType('bossBang').length > 0;
     },
     steps: [{
             name: 'fightBossBang',
             fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
                 try {
-                    const onBattlePage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang');
-                    if (onBattlePage) {
-                        // Own the battle page as part of the held run (issue #1455): drive the
-                        // skip/claim best-effort and keep the slot on repeat so no other block
-                        // navigates away between fights. The game itself returns to the event
-                        // page after each fight; termination happens there -- BossBang.parse
-                        // stores the event as completed once the page shows it (which drops
-                        // it from bossBangEventIDs), or arms the back-off timer when no
-                        // attempt is left; either flips this block's precondition false and
-                        // releases the slot. skipFightPage leaves
-                        // autoLoop on 'true'; flipping it would make BlockScheduler.tick
-                        // discard the held run.
-                        yield BossBang.skipFightPage();
-                        ctx.lastActionPerformed = 'bossBang';
-                        ctx.busy = true; // applySlotHold: busy -> repeat -> keep the slot
-                        return { ok: true };
+                    const fightEnabled = getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === 'true';
+                    if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang')) {
+                        ctx.busy = yield BossBang.battlePageStep();
                     }
-                    // Reward phase: on the event page, collect the milestone/progress rewards
-                    // the simple way. BossBang.collectProgressRewards clicks each claim button
-                    // then returns home (like the other collectors); it sets autoLoop=false
-                    // and drives the clicks + go-home itself, so we just release here.
-                    if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent') && BossBang.collectProgressRewards()) {
-                        ctx.lastActionPerformed = 'bossBang';
-                        return { ok: true };
+                    else if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDAddBossBangTeam')) {
+                        ctx.busy = yield BossBang.buildTeamStep();
                     }
-                    // Fight phase only while the user setting is on; when it is off we are here
-                    // purely to finish claiming rewards, so release once none remain.
-                    if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === 'true') {
-                        logHHAuto('Going to fight boss bang.');
-                        ctx.busy = yield BossBang.goToFightPage(ctx.bossBangEventIDs[0]);
-                        ctx.lastActionPerformed = 'bossBang';
+                    else if (BossBang.isOnEventTab()) {
+                        ctx.busy = yield BossBang.workEventPage(fightEnabled);
                     }
+                    else {
+                        ctx.busy = BossBang.goToEvent(BossBang.targetEventID(ctx.bossBangEventIDs[0]));
+                    }
+                    // busy -> applySlotHold repeats the run, so no other block navigates
+                    // away between two fights. The step leaves autoLoop on 'true';
+                    // flipping it would make BlockScheduler.tick discard the held run.
+                    ctx.lastActionPerformed = 'bossBang';
                     return { ok: true };
                 }
                 catch (err) {

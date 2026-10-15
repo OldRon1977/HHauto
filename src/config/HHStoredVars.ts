@@ -2605,7 +2605,7 @@ HHStoredVars[HHStoredVarPrefixKey + TK.eventsList] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
-HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeam] =
+HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeamBuild] =
     {
     storage:"sessionStorage",
     HHType:"Temp"

@@ -106,6 +106,8 @@ jest.mock('../../src/config/StorageKeys', () => ({
     autoSideQuest: 'Setting_autoSideQuest',
     autoMission: 'Setting_autoMission',
     autoTrollBattle: 'Setting_autoTrollBattle',
+    bossBangEvent: 'Setting_bossBangEvent',
+    bossBangMinTeam: 'Setting_bossBangMinTeam',
   },
   TK: {
     eventsList: 'Temp_eventsList',
@@ -118,6 +120,7 @@ jest.mock('../../src/config/StorageKeys', () => ({
     HaremSize: 'Temp_HaremSize',
     battlePowerRequired: 'Temp_battlePowerRequired',
     TrollHumanLikeRun: 'Temp_TrollHumanLikeRun',
+    bossBangTeamBuild: 'Temp_bossBangTeamBuild',
   },
 }));
 
@@ -1452,5 +1455,62 @@ describe('handleQuest precondition: a waiting quest does not start the block', (
       store({ ...base, Temp_questRequirement: req });
       expect(handler.precondition(ctx())).toBe(true);
     }
+  });
+});
+
+// #1488: Boss Bang runs build -> fight -> claim, and the held run re-checks
+// this precondition after every reload.
+describe('handleBossBangFight (issue #1488)', () => {
+  const { BossBang } = require('../../src/Module/Events/BossBang') as typeof import('../../src/Module/Events/BossBang');
+  const handler = pipeline.find(h => h.name === 'handleBossBangFight')!;
+  const TimerHelperMock = jest.requireMock('../../src/Helper/TimerHelper') as { checkTimer: jest.Mock };
+  const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+  const EventModuleMock = jest.requireMock('../../src/Module/Events/EventModule') as { EventModule: { getEventIDsByType: jest.Mock } };
+  const pages: Record<string, string> = { pagesIDEvent: 'event', pagesIDBossBang: 'boss-bang-battle', pagesIDAddBossBangTeam: 'add-boss-bang-team' };
+
+  beforeEach(() => {
+    getStoredValueMock.mockImplementation((k: string) =>
+      k.endsWith('Temp_autoLoop') || k.endsWith('Setting_bossBangEvent') ? 'true' : undefined);
+    TimerHelperMock.checkTimer.mockReturnValue(true);
+    ConfigHelperMock.getHHScriptVars.mockImplementation((k: string) => pages[k] ?? true);
+    jest.spyOn(BossBang, 'isOnEventTab').mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    getStoredValueMock.mockReset();
+    TimerHelperMock.checkTimer.mockReturnValue(false);
+    ConfigHelperMock.getHHScriptVars.mockReset().mockReturnValue(true);
+    EventModuleMock.EventModule.getEventIDsByType.mockReturnValue([]);
+  });
+
+  it('goes to a parsed, unfinished event from home, not only to one due for a re-parse', () => {
+    EventModuleMock.EventModule.getEventIDsByType.mockReturnValue(['boss_bang_event_7']);
+    expect(handler.precondition(makeCtx({ bossBangEventIDs: [] }))).toBe(true);
+  });
+
+  it('stays idle with no Boss Bang event known', () => {
+    expect(handler.precondition(makeCtx())).toBe(false);
+  });
+
+  it('validates a team only on a team page the run opened itself', () => {
+    const building = jest.spyOn(BossBang, 'isBuildingTeam').mockReturnValue(false);
+    expect(handler.precondition(makeCtx({ currentPage: 'add-boss-bang-team' }))).toBe(false);
+    building.mockReturnValue(true);
+    expect(handler.precondition(makeCtx({ currentPage: 'add-boss-bang-team' }))).toBe(true);
+  });
+
+  it('holds the battle page so the result popup is closed', () => {
+    expect(handler.precondition(makeCtx({ currentPage: 'boss-bang-battle' }))).toBe(true);
+  });
+
+  it('lets a finished event go once it is marked completed', () => {
+    (BossBang.isOnEventTab as jest.Mock).mockReturnValue(true);
+    jest.spyOn(BossBang, 'nextStep').mockReturnValue('done');
+    jest.spyOn(BossBang, 'targetEventID').mockReturnValue('boss_bang_event_7');
+    const marked = jest.spyOn(BossBang, 'isMarkedCompleted').mockReturnValue(false);
+    expect(handler.precondition(makeCtx({ currentPage: 'event' }))).toBe(true);
+    marked.mockReturnValue(true);
+    expect(handler.precondition(makeCtx({ currentPage: 'event' }))).toBe(false);
   });
 });

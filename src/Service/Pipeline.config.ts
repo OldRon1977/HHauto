@@ -1746,9 +1746,17 @@ const handleBossBangParse: HandlerConfig = {
     if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true') return false;
     if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'event') return false;
     const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
-    const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
     const hasParseTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
-    return hasParseTarget || hasIncompleteOnPage;
+    // An open Boss Bang tab the event list does not know yet. Only the Boss
+    // Bang tab: '#boss_bang .completed-event' counts 0 on every other event
+    // tab as well.
+    let unparsedOnTab = false;
+    if (BossBang.isOnEventTab()) {
+      const shownId = EventModule.getDisplayedIdEventPage(false);
+      const eventList = getStoredJSON<Record<string, unknown>>(HHStoredVarPrefixKey + TK.eventsList, {});
+      unparsedOnTab = shownId !== '' && !Object.prototype.hasOwnProperty.call(eventList, shownId);
+    }
+    return hasParseTarget || unparsedOnTab;
   },
   steps: [{
     name: 'parseBossBang',
@@ -1819,61 +1827,50 @@ const handleBossBangFight: HandlerConfig = {
     if (ConfigHelper.getHHScriptVars('isEnabledBossBangEvent', false) !== true) return false;
     if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true') return false;
     if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'bossBang') return false;
-    const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
-    const onBattlePage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang');
-    // Reward phase (issue #1455): boss bang is build -> fight -> rewards. The
-    // tiered milestone rewards become claimable on the event page once the boss
-    // is defeated. Claiming is gated on the FEATURE, not on the fight setting --
-    // a user may have switched fighting off by then -- and NOT on the fight
-    // back-off timer (goToFightPage arms nextBossBangTime on a finished event);
-    // otherwise the rewards are never collected.
-    if (onEvent && $(BossBang.PROGRESS_REWARD_SELECTOR).length > 0) return true;
-    // Fight phase: needs the user setting on and the fight back-off timer elapsed.
+    // Boss Bang runs build -> fight -> claim (BossBang.ts). Each step leaves
+    // the slot held (busy -> repeat), and this re-check runs after every
+    // reload, so it has to say yes on every page of a running event.
+    const onTab = BossBang.isOnEventTab();
+    // Claiming is gated on the feature only, not on the fight setting or the
+    // back-off timer: a user may have switched fighting off by then, and the
+    // chests are lost with the event.
+    if (onTab && ($(BossBang.PROGRESS_REWARD_SELECTOR).length > 0 || $(BossBang.REWARD_POPUP_OK_SELECTOR).length > 0)) return true;
     if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true') return false;
+    // The battle page fights on load; its result popup leads back to the event.
+    if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang')) return true;
+    // The team page only when this block opened it: a player building a team
+    // there by hand must not have it validated for them.
+    if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDAddBossBangTeam')) return BossBang.isBuildingTeam();
     if (!checkTimer('nextBossBangTime')) return false;
-    const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
-    const hasFightTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
-    // onBattlePage keeps the held run alive on the boss-bang-battle page so the
-    // scheduler's gate-hold-return precondition re-check does not release the
-    // slot mid-sequence.
-    return hasFightTarget || hasIncompleteOnPage || onBattlePage;
+    if (onTab) {
+      const step = BossBang.nextStep();
+      // A finished event once more, so the step can mark it completed;
+      // otherwise the event list keeps sending the run back here.
+      return step === 'build' || step === 'fight' || !BossBang.isMarkedCompleted(BossBang.targetEventID());
+    }
+    // From any other page: an event that is known and not finished. The home
+    // widget list (ctx.bossBangEventIDs) only carries events that are due for
+    // a re-parse, so it alone would leave a parsed event untouched for an hour.
+    return ctx.bossBangEventIDs.length > 0 || EventModule.getEventIDsByType('bossBang').length > 0;
   },
   steps: [{
     name: 'fightBossBang',
     fn: async (ctx) => {
       try {
-        const onBattlePage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang');
-        if (onBattlePage) {
-          // Own the battle page as part of the held run (issue #1455): drive the
-          // skip/claim best-effort and keep the slot on repeat so no other block
-          // navigates away between fights. The game itself returns to the event
-          // page after each fight; termination happens there -- BossBang.parse
-          // stores the event as completed once the page shows it (which drops
-          // it from bossBangEventIDs), or arms the back-off timer when no
-          // attempt is left; either flips this block's precondition false and
-          // releases the slot. skipFightPage leaves
-          // autoLoop on 'true'; flipping it would make BlockScheduler.tick
-          // discard the held run.
-          await BossBang.skipFightPage();
-          ctx.lastActionPerformed = 'bossBang';
-          ctx.busy = true; // applySlotHold: busy -> repeat -> keep the slot
-          return { ok: true };
+        const fightEnabled = getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === 'true';
+        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDBossBang')) {
+          ctx.busy = await BossBang.battlePageStep();
+        } else if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDAddBossBangTeam')) {
+          ctx.busy = await BossBang.buildTeamStep();
+        } else if (BossBang.isOnEventTab()) {
+          ctx.busy = await BossBang.workEventPage(fightEnabled);
+        } else {
+          ctx.busy = BossBang.goToEvent(BossBang.targetEventID(ctx.bossBangEventIDs[0]));
         }
-        // Reward phase: on the event page, collect the milestone/progress rewards
-        // the simple way. BossBang.collectProgressRewards clicks each claim button
-        // then returns home (like the other collectors); it sets autoLoop=false
-        // and drives the clicks + go-home itself, so we just release here.
-        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent') && BossBang.collectProgressRewards()) {
-          ctx.lastActionPerformed = 'bossBang';
-          return { ok: true };
-        }
-        // Fight phase only while the user setting is on; when it is off we are here
-        // purely to finish claiming rewards, so release once none remain.
-        if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === 'true') {
-          logHHAuto('Going to fight boss bang.');
-          ctx.busy = await BossBang.goToFightPage(ctx.bossBangEventIDs[0]);
-          ctx.lastActionPerformed = 'bossBang';
-        }
+        // busy -> applySlotHold repeats the run, so no other block navigates
+        // away between two fights. The step leaves autoLoop on 'true';
+        // flipping it would make BlockScheduler.tick discard the held run.
+        ctx.lastActionPerformed = 'bossBang';
         return { ok: true };
       } catch (err) {
         return { ok: false, reason: String(err), retryable: true };
