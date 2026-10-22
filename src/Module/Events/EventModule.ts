@@ -14,7 +14,7 @@ import { KKEventGirl } from "../../model/KK/KKEventGirl";
 import { BossBang } from "./BossBang";
 import { CumbackContests } from "./CumbackContests";
 import { DoublePenetration } from "./DoublePenetration";
-import { markEventStale as markStaleInRegistry } from "./EventRegistry";
+import { absentFromHome, clearNavTarget, expiredIds, forgetEventGone, isEventGone, markEventGone, markEventStale as markStaleInRegistry, readNavTarget, removeEventEntry, wasSentAway } from "./EventRegistry";
 import { KinkyCumpetition } from "./KinkyCumpetition";
 import { LivelyScene } from "./LivelyScene";
 import { MythicEvent } from "./MythicEvent";
@@ -468,16 +468,133 @@ export class EventModule {
         }
     }
 
+    /**
+     * The registered, unfinished events of one type that are still running:
+     * not past their stored end, not refused by the game (#1925). The blocks
+     * that navigate to an event tab ask this in their precondition, and the
+     * scheduler re-asks it on every continuation -- an entry that outlived its
+     * event kept a held run navigating to a dead tab for hours.
+     */
     static getEventIDsByType(inType:string):string[] {
         const eventIDs:string[] = [];
         const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.eventsList, {});
+        const now = Date.now();
+        const expired = new Set(expiredIds(eventList, now));
         for (const eventID of Object.keys(eventList))
         {
-            if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
+            if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]
+                && !expired.has(eventID) && !isEventGone(eventID)) {
                 eventIDs.push(eventID);
             }
         }
         return eventIDs;
+    }
+
+    /**
+     * Take an event out of the registry and tidy what hangs off it -- its
+     * girls, its champions, the event timers once nothing is left.
+     */
+    static dropEvent(eventID: string, why: string): void {
+        if (removeEventEntry(eventID)) {
+            logHHAuto(`Event ${eventID} is over (${why}), removed from the event list.`);
+        }
+        EventModule.clearEventData(eventID);
+    }
+
+    /**
+     * Once per page load: did the game serve the event tab the last navigation
+     * asked for? It sends a tab that no longer exists back to home.html
+     * (measured), so landing there right after asking for event.html?tab=X
+     * means X is over. The id is remembered as gone until the home page or the
+     * event page shows it again (reconcileRegistry, parsePageForEventId), so
+     * the event-page list cannot start the same visit in the meantime.
+     */
+    static checkNavigationAnswer(loadStart?: number): void {
+        if (loadStart === undefined) {
+            // Called once, as the script starts on the new page: if a sandbox
+            // hides timeOrigin, now is still after the navigation was sent.
+            const origin = Number(globalThis.performance?.timeOrigin);
+            loadStart = Number.isFinite(origin) && origin > 0 ? origin : Date.now();
+        }
+        const target = readNavTarget();
+        if (!target) return;
+        clearNavTarget();
+        const gone = wasSentAway(target, loadStart, getPage(),
+            ConfigHelper.getHHScriptVars("pagesIDEvent"), ConfigHelper.getHHScriptVars("pagesIDHome"));
+        if (!gone) return;
+        markEventGone(gone);
+        EventModule.dropEvent(gone, "the game sent its tab back to the home page");
+    }
+
+    /**
+     * On every tick, before any block is asked: drop the entries the game no
+     * longer has. Runs whatever block holds the slot -- handleEventParsing's
+     * own pruning is only reached when no block does.
+     *
+     * Past their stored end: dropped on any page. On home.html, when the
+     * widget area itself is there -- a page that did not build it says
+     * nothing about the events: every event shown there is running, so a
+     * refusal of it is taken back and the home scan registers it again; every
+     * registry entry not shown there is dropped.
+     */
+    static reconcileRegistry(): void {
+        const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.eventsList, {});
+        const ids = Object.keys(eventList);
+        const expired = expiredIds(eventList, Date.now());
+        for (const id of expired) EventModule.dropEvent(id, "its end time has passed");
+
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDHome")) return;
+        if ($('#contains_all #homepage .event-widget').length <= 0) return;
+        if (EventModule.pageFromHistory()) return;
+        const homeTabs: string[] = [];
+        $('#contains_all #homepage .event-widget a[href*="tab="]').each((_i, a) => {
+            const href = a.getAttribute('href') || '';
+            const tab = queryStringGetParam(new URL(href, window.location.origin).search, 'tab');
+            if (tab) homeTabs.push(tab);
+        });
+        for (const tab of homeTabs) {
+            if (isEventGone(tab)) {
+                forgetEventGone(tab);
+                logHHAuto(`Event ${tab} is on the home page again, taken back into account.`);
+            }
+        }
+        const left = ids.filter(id => expired.indexOf(id) < 0);
+        for (const id of absentFromHome(left, homeTabs)) EventModule.dropEvent(id, "the home page no longer shows it");
+    }
+
+    private static restoredFromCache = false;
+
+    /**
+     * Note a page brought back from the back/forward cache. The script does
+     * not start again there -- the old run carries on -- and the navigation
+     * entry keeps the type of the original load, so only pageshow tells.
+     * Whether a browser keeps a no-store page in that cache differs between
+     * Chromium (Chrome, Edge, Opera) and Firefox and across versions;
+     * pageshow is there in all of them.
+     */
+    static watchHistoryRestore(): void {
+        try {
+            window.addEventListener('pageshow', (e: PageTransitionEvent) => {
+                if (e.persisted) EventModule.restoredFromCache = true;
+            });
+        } catch { /* without it, only the navigation type is asked */ }
+    }
+
+    /**
+     * Was this page restored from the browser history instead of loaded?
+     * home.html is sent with Cache-Control: no-store (measured), so a load the
+     * script starts always comes from the server; only back/forward or a
+     * restored session can show an old one -- and an old page says nothing
+     * about which events run now.
+     */
+    static pageFromHistory(): boolean {
+        if (EventModule.restoredFromCache) return true;
+        try {
+            const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+            return nav?.type === 'back_forward';
+        } catch {
+            return false;
+        }
     }
 
     static isEventActive(inEventID:string)
@@ -732,6 +849,7 @@ export class EventModule {
         const livelySceneEventQuery = getEventQuery("lively_scene_event");
         const seasonalEventQuery = '#contains_all #homepage .seasonal-event a, #contains_all #homepage .mega-event a';
         const poaEventQuery = getEventQuery("path_event");
+        EventModule.reconcileRegistry();
         const eventIDs:string[] =[];
         const ongoingEventIDs:string[] =[];
         const bossBangEventIDs:string[]=[];
@@ -750,7 +868,7 @@ export class EventModule {
                     logHHAuto(`Error: No name displayed for event ${eventId}, ignoring it.`);
                     continue;
                 }
-                if (eventId !== '' && EventModule.checkEvent(eventId))
+                if (eventId !== '' && !isEventGone(eventId) && EventModule.checkEvent(eventId))
                 {
                     eventList.push(eventId);
                 }
@@ -761,7 +879,9 @@ export class EventModule {
         if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent"))
         {
             const currentPageEventId: string = EventModule.getDisplayedIdEventPage();
-            if (currentPageEventId !== null && EventModule.checkEvent(currentPageEventId))
+            // The page shows it, so the game has it after all.
+            if (currentPageEventId) forgetEventGone(currentPageEventId);
+            if (currentPageEventId !== null && !isEventGone(currentPageEventId) && EventModule.checkEvent(currentPageEventId))
             {
                 eventIDs.push(currentPageEventId);
             }
@@ -774,7 +894,7 @@ export class EventModule {
             {
                 parsedURL = new URL(queryResults[index].getAttribute("href")||'',window.location.origin);
                 eventId = queryStringGetParam(parsedURL.search,'tab') || '';
-                if (eventId !== '' && EventModule.checkEvent(eventId))
+                if (eventId !== '' && !isEventGone(eventId) && EventModule.checkEvent(eventId))
                 {
                     eventIDs.push(eventId);
                 }

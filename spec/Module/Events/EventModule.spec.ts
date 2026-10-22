@@ -259,6 +259,127 @@ describe("Event Module", function() {
         });
     });
 
+    // #1925: an SM entry outlived its event; the held Sultry Mysteries run
+    // navigated to the dead tab, the game sent it home, for hours.
+    describe("events the game no longer has", function () {
+        const HOME_START = `<!DOCTYPE html><div id="hh_hentai" page="home"><p>Hello world</p></div>`;
+        const LIST = HHStoredVarPrefixKey + "Temp_eventsList";
+        const GONE = HHStoredVarPrefixKey + "Temp_eventsGone";
+        const NAV = HHStoredVarPrefixKey + "Temp_lastNavTarget";
+        const sm = (end: number) => `{"sm_event_49":{"id":"sm_event_49","type":"sultryMysteries","seconds_before_end":${end},"next_refresh":${end},"isCompleted":false}}`;
+
+        // The widget markup as measured on home.html.
+        function home(tabs: string[] | null) {
+            document.body.innerHTML = HOME_START + `<div id="contains_all"><div id="homepage">`
+                + (tabs === null ? `` : `<div class="event-widget special-fullscreen-view" rel="event_widget"><div class="event-thumbnail"><div class="event-timer bar-wrapper">`
+                    + tabs.map(t => `<a class="over" rel="${t.replace(/_\d+$/, '')}" href="/event.html?tab=${t}"><p>Name</p>`
+                        + `<div class="timer-box" data-type="x" data-ongoing="1" data-time="75996"></div></a>`).join('')
+                    + `</div></div></div>`)
+                + `</div></div>`;
+        }
+
+        beforeEach(() => {
+            sessionStorage.removeItem(GONE);
+            sessionStorage.removeItem(NAV);
+        });
+
+        it("the case from the report: an entry past its end is no Sultry Mysteries event any more", function () {
+            sessionStorage.setItem(LIST, sm(pastTime));
+            expect(EventModule.getEventIDsByType('sultryMysteries')).toEqual([]);
+        });
+
+        it("an entry the home page no longer shows is dropped there, whatever its stored end says", function () {
+            sessionStorage.setItem(LIST, sm(nextTime));
+            home(['legendary_contest_78']);
+            EventModule.parsePageForEventId();
+            expect(sessionStorage.getItem(LIST)).toBeNull();
+            expect(EventModule.getEventIDsByType('sultryMysteries')).toEqual([]);
+        });
+
+        it("an entry the home page shows stays", function () {
+            sessionStorage.setItem(LIST, sm(nextTime));
+            home(['sm_event_49']);
+            EventModule.parsePageForEventId();
+            expect(EventModule.getEventIDsByType('sultryMysteries')).toEqual(['sm_event_49']);
+        });
+
+        it("a home page restored from the browser history decides nothing", function () {
+            sessionStorage.setItem(LIST, sm(nextTime));
+            home(['legendary_contest_78']);
+            const spy = jest.spyOn(EventModule, 'pageFromHistory').mockReturnValue(true);
+            EventModule.parsePageForEventId();
+            spy.mockRestore();
+            expect(EventModule.getEventIDsByType('sultryMysteries')).toEqual(['sm_event_49']);
+        });
+
+        it("a home page without the widget area decides nothing", function () {
+            sessionStorage.setItem(LIST, sm(nextTime));
+            home(null);
+            EventModule.parsePageForEventId();
+            expect(EventModule.getEventIDsByType('sultryMysteries')).toEqual(['sm_event_49']);
+        });
+
+        it("an expired entry is dropped on any page, not only on home", function () {
+            sessionStorage.setItem(LIST, sm(pastTime));
+            createEventTab('666');
+            EventModule.parsePageForEventId();
+            expect(sessionStorage.getItem(LIST)).toBeNull();
+        });
+
+        describe("the answer to a navigation", function () {
+            const LOAD = (new Date('2020-03-01')).getTime();
+            const asked = (tab: string) => sessionStorage.setItem(NAV, JSON.stringify({ page: 'event', tab, at: LOAD - 2000 }));
+
+            afterEach(() => localStorage.removeItem(HHStoredVarPrefixKey + "Setting_sultryMysteriesAutoOpen"));
+
+            it("sent back to home: the event is dropped, and the event page's list does not bring it back", function () {
+                sessionStorage.setItem(LIST, sm(nextTime));
+                asked('sm_event_49');
+                home(['legendary_contest_78']);
+                EventModule.checkNavigationAnswer(LOAD);
+                expect(sessionStorage.getItem(LIST)).toBeNull();
+                expect(sessionStorage.getItem(NAV)).toBeNull();
+
+                localStorage.setItem(HHStoredVarPrefixKey + "Setting_sultryMysteriesAutoOpen", 'true');
+                document.body.innerHTML = HTML_START + `<div id="contains_all"><div id="events"><div class="events-list">
+                    <a class="event-title active" href="/event.html?tab=event_1">A</a>
+                    <a class="event-title" href="/event.html?tab=sm_event_49">B</a></div></div></div>`;
+                const { eventIDs } = EventModule.parsePageForEventId();
+                expect(eventIDs).not.toContain('sm_event_49');
+            });
+
+            it("a wrong verdict: the home page still shows the event, so it counts again at once", function () {
+                sessionStorage.setItem(LIST, `{"event_7":{"id":"event_7","type":"event","isMythic":false,"seconds_before_end":${nextTime},"next_refresh":${nextTime},"isCompleted":false}}`);
+                asked('event_7');
+                home(['event_7']);
+                EventModule.checkNavigationAnswer(LOAD);
+                expect(sessionStorage.getItem(GONE)).not.toBeNull();
+
+                localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEvent", 'true');
+                const { eventIDs } = EventModule.parsePageForEventId();
+                expect(eventIDs).toContain('event_7');
+                expect(JSON.parse(sessionStorage.getItem(GONE) || '{}')).toEqual({});
+            });
+
+            it("served: nothing changes", function () {
+                sessionStorage.setItem(LIST, sm(nextTime));
+                asked('sm_event_49');
+                createEventTab('666');
+                EventModule.checkNavigationAnswer(LOAD);
+                expect(EventModule.getEventIDsByType('sultryMysteries')).toEqual(['sm_event_49']);
+                expect(sessionStorage.getItem(GONE)).toBeNull();
+            });
+
+            it("an event page that shows a refused id again lifts the refusal", function () {
+                sessionStorage.setItem(GONE, JSON.stringify({ event_666: LOAD }));
+                createEventTab('666');
+                localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEvent", 'true');
+                const { eventIDs } = EventModule.parsePageForEventId();
+                expect(eventIDs).toContain('event_666');
+            });
+        });
+    });
+
     describe("boss bang timer cleanup on the home page", function () {
         // The home page is what carries the event widgets; parsePageForEventId
         // only evaluates the widget queries there.

@@ -2605,6 +2605,16 @@ HHStoredVars[HHStoredVarPrefixKey + TK.eventsList] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + TK.eventsGone] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey + TK.lastNavTarget] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeamBuild] =
     {
     storage:"sessionStorage",

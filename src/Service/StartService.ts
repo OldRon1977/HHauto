@@ -35,6 +35,7 @@ import { Booster } from "../Module/Booster";
 import { Club } from "../Module/Club";
 import { Contest } from "../Module/Contest";
 import { DailyGoals } from "../Module/DailyGoals";
+import { EventModule } from "../Module/Events/EventModule";
 import { LeagueHelper } from "../Module/League";
 import { Market } from "../Module/Market";
 import { Missions } from "../Module/Missions";
@@ -682,6 +683,10 @@ function start() {
         haltScript("game root element missing on startup");
         return;
     }
+
+    // Did the game serve the event tab the last navigation asked for (#1925)?
+    EventModule.checkNavigationAnswer();
+    EventModule.watchHistoryRestore();
 
     // Version-gated popups: show but don't block autoLoop
     if (FeaturePopupService.shouldShowPopup()) {

@@ -216,6 +216,7 @@ export function gotoPage(
         // cancels open XHRs with NS_BINDING_ABORTED, and an aborted
         // state-changing request can make the server answer Forbidden
         // on the next call (issue #1598).
+        recordNavTarget(targetUrl);
         window.location.href = window.location.origin + targetUrl;
     });
     return true;
@@ -239,6 +240,7 @@ export function safeReload(delay: number = -1): boolean {
     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
     logHHAuto(`safeReload: scheduled in ${delay}ms`);
     scheduleAfterIdle(delay, 'safeReload', () => {
+        recordNavTarget(window.location.pathname + window.location.search);
         location.reload();
     });
     return true;
@@ -259,6 +261,7 @@ export function safeNavigateHref(url: string, delay: number = -1): boolean {
     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
     logHHAuto(`safeNavigateHref: ${url} in ${delay}ms`);
     scheduleAfterIdle(delay, 'safeNavigateHref', () => {
+        recordNavTarget(url);
         location.href = url;
     });
     return true;
@@ -291,6 +294,24 @@ export function addNutakuSession(
         togoto['sess'] = hhSession;
     }
     return togoto;
+}
+
+/**
+ * Leave behind where this navigation was sent, so the next page load can tell
+ * whether the game served it (#1925, EventRegistry.wasSentAway, which also
+ * holds the shape). Written by every navigation, so an old target never
+ * outlives the next one.
+ */
+function recordNavTarget(url: string): void {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        const isEvent = parsed.pathname === ConfigHelper.getHHScriptVars("pagesURLEvent");
+        setStoredValue(HHStoredVarPrefixKey + TK.lastNavTarget, JSON.stringify({
+            page: isEvent ? ConfigHelper.getHHScriptVars("pagesIDEvent") : parsed.pathname,
+            tab: isEvent ? queryStringGetParam(parsed.search, 'tab') || null : null,
+            at: Date.now(),
+        }));
+    } catch { /* a navigation is never held up by its bookkeeping */ }
 }
 
 function setLastPageCalled(inPage: string): void {
