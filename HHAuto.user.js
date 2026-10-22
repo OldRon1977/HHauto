@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.2
+// @version      8.21.3
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3179,6 +3179,8 @@ const TK = {
     eventMythicGirl: "Temp_eventMythicGirl",
     eventsGirlz: "Temp_eventsGirlz",
     eventsList: "Temp_eventsList",
+    eventsGone: "Temp_eventsGone", // session: {eventId: ms} tabs the game refused (#1925)
+    lastNavTarget: "Temp_lastNavTarget", // session: {page,tab,at} the last navigation sent (#1925)
     autoChampsEventGirls: "Temp_autoChampsEventGirls",
     loveRaids: "Temp_loveRaids",
     raidGirls: "Temp_raidGirls",
@@ -6094,6 +6096,16 @@ HHStoredVars[HHStoredVarPrefixKey + TK.eventsList] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
+HHStoredVars[HHStoredVarPrefixKey + TK.eventsGone] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars[HHStoredVarPrefixKey + TK.lastNavTarget] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
 HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeamBuild] =
     {
         storage: "sessionStorage",
@@ -8409,6 +8421,7 @@ function gotoPage(page, inArgs = {}, delay = -1) {
         // cancels open XHRs with NS_BINDING_ABORTED, and an aborted
         // state-changing request can make the server answer Forbidden
         // on the next call (issue #1598).
+        recordNavTarget(targetUrl);
         window.location.href = window.location.origin + targetUrl;
     });
     return true;
@@ -8431,6 +8444,7 @@ function safeReload(delay = -1) {
     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
     logHHAuto(`safeReload: scheduled in ${delay}ms`);
     scheduleAfterIdle(delay, 'safeReload', () => {
+        recordNavTarget(window.location.pathname + window.location.search);
         location.reload();
     });
     return true;
@@ -8450,6 +8464,7 @@ function safeNavigateHref(url, delay = -1) {
     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
     logHHAuto(`safeNavigateHref: ${url} in ${delay}ms`);
     scheduleAfterIdle(delay, 'safeNavigateHref', () => {
+        recordNavTarget(url);
         location.href = url;
     });
     return true;
@@ -8471,6 +8486,24 @@ function addNutakuSession(togoto) {
         togoto['sess'] = hhSession;
     }
     return togoto;
+}
+/**
+ * Leave behind where this navigation was sent, so the next page load can tell
+ * whether the game served it (#1925, EventRegistry.wasSentAway, which also
+ * holds the shape). Written by every navigation, so an old target never
+ * outlives the next one.
+ */
+function recordNavTarget(url) {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        const isEvent = parsed.pathname === ConfigHelper.getHHScriptVars("pagesURLEvent");
+        setStoredValue(HHStoredVarPrefixKey + TK.lastNavTarget, JSON.stringify({
+            page: isEvent ? ConfigHelper.getHHScriptVars("pagesIDEvent") : parsed.pathname,
+            tab: isEvent ? queryStringGetParam(parsed.search, 'tab') || null : null,
+            at: Date.now(),
+        }));
+    }
+    catch ( /* a navigation is never held up by its bookkeeping */_a) { /* a navigation is never held up by its bookkeeping */ }
 }
 function setLastPageCalled(inPage) {
     setStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled, JSON.stringify({ page: inPage, dateTime: new Date().getTime() }));
@@ -13309,6 +13342,91 @@ function markEventStale(eventId) {
     list[eventId]["next_refresh"] = 0;
     setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(list));
 }
+/**
+ * Refused ids kept at most. No time limit: a refusal holds until the home page
+ * or the event page shows the event again (forgetEventGone) -- the game says
+ * it is there, so a wrong verdict costs one home visit, not hours. The cap
+ * only keeps the list from growing over a long session.
+ */
+const EVENTS_GONE_MAX = 50;
+/** The page load that answers a navigation starts within this window. */
+const NAV_ANSWER_WINDOW_MS = 30000;
+/**
+ * How far the target may lie after the load start. Firefox with
+ * resistFingerprinting rounds Date.now() and timeOrigin, so the target can
+ * read as a few milliseconds later than the load it caused.
+ */
+const NAV_CLOCK_TOLERANCE_MS = 2000;
+/**
+ * The event tab the game refused, or null.
+ *
+ * Only the first page load after the navigation answers it: the target was
+ * written around the start of this document -- the check runs once, as the
+ * script starts, before this page can navigate itself -- and not longer ago
+ * than the window. A later load -- the player clicking around, a reload an
+ * hour on -- says nothing about that tab. And only home.html is the
+ * refusal: that is where the game sends a dead tab. Landing anywhere else --
+ * the logged-out intro, a maintenance page -- says nothing about the event.
+ */
+function wasSentAway(target, loadStart, currentPage, eventPage, homePage) {
+    if (!target || !target.tab || target.page !== eventPage)
+        return null;
+    if (target.at - loadStart > NAV_CLOCK_TOLERANCE_MS || loadStart - target.at > NAV_ANSWER_WINDOW_MS)
+        return null;
+    return currentPage === homePage ? target.tab : null;
+}
+/** Registry ids the home page no longer shows a widget for. */
+function absentFromHome(registryIds, homeTabs) {
+    const shown = new Set(homeTabs);
+    return registryIds.filter(id => !shown.has(id));
+}
+/** Registry ids whose stored end lies in the past. */
+function expiredIds(eventList, now) {
+    return Object.keys(eventList).filter(id => {
+        var _a;
+        const end = Number((_a = eventList[id]) === null || _a === void 0 ? void 0 : _a.seconds_before_end);
+        return Number.isFinite(end) && end <= now;
+    });
+}
+function readNavTarget() {
+    const t = getStoredJSON(HHStoredVarPrefixKey + TK.lastNavTarget, null);
+    return t && typeof t.at === 'number' ? t : null;
+}
+function clearNavTarget() {
+    deleteStoredValue(HHStoredVarPrefixKey + TK.lastNavTarget);
+}
+function markEventGone(eventId, now = Date.now()) {
+    const gone = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGone, {});
+    gone[eventId] = now;
+    const newestFirst = Object.keys(gone).sort((a, b) => gone[b] - gone[a]);
+    for (const id of newestFirst.slice(EVENTS_GONE_MAX))
+        delete gone[id];
+    setStoredValue(HHStoredVarPrefixKey + TK.eventsGone, JSON.stringify(gone));
+}
+function isEventGone(eventId) {
+    const gone = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGone, {});
+    return Object.prototype.hasOwnProperty.call(gone, eventId);
+}
+/** The game serves the event again: forget that it once refused it. */
+function forgetEventGone(eventId) {
+    const gone = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGone, {});
+    if (!Object.prototype.hasOwnProperty.call(gone, eventId))
+        return;
+    delete gone[eventId];
+    setStoredValue(HHStoredVarPrefixKey + TK.eventsGone, JSON.stringify(gone));
+}
+/** Remove one entry. The caller tidies what hangs off it (clearEventData). */
+function removeEventEntry(eventId) {
+    const list = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+    if (!list || !Object.prototype.hasOwnProperty.call(list, eventId))
+        return false;
+    delete list[eventId];
+    if (Object.keys(list).length === 0)
+        deleteStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+    else
+        setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(list));
+    return true;
+}
 
 ;// ./src/Module/Events/KinkyCumpetition.ts
 // KinkyCumpetition.ts -- Kinky Cumpetition event handling.
@@ -15180,15 +15298,136 @@ class EventModule {
                 || (isDPEvent && wantsDP) || (isPoa && wantsPoa) || (isLivelyScene && wantsLivelyScene)
         };
     }
+    /**
+     * The registered, unfinished events of one type that are still running:
+     * not past their stored end, not refused by the game (#1925). The blocks
+     * that navigate to an event tab ask this in their precondition, and the
+     * scheduler re-asks it on every continuation -- an entry that outlived its
+     * event kept a held run navigating to a dead tab for hours.
+     */
     static getEventIDsByType(inType) {
         const eventIDs = [];
         const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const now = Date.now();
+        const expired = new Set(expiredIds(eventList, now));
         for (const eventID of Object.keys(eventList)) {
-            if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
+            if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]
+                && !expired.has(eventID) && !isEventGone(eventID)) {
                 eventIDs.push(eventID);
             }
         }
         return eventIDs;
+    }
+    /**
+     * Take an event out of the registry and tidy what hangs off it -- its
+     * girls, its champions, the event timers once nothing is left.
+     */
+    static dropEvent(eventID, why) {
+        if (removeEventEntry(eventID)) {
+            logHHAuto(`Event ${eventID} is over (${why}), removed from the event list.`);
+        }
+        EventModule.clearEventData(eventID);
+    }
+    /**
+     * Once per page load: did the game serve the event tab the last navigation
+     * asked for? It sends a tab that no longer exists back to home.html
+     * (measured), so landing there right after asking for event.html?tab=X
+     * means X is over. The id is remembered as gone until the home page or the
+     * event page shows it again (reconcileRegistry, parsePageForEventId), so
+     * the event-page list cannot start the same visit in the meantime.
+     */
+    static checkNavigationAnswer(loadStart) {
+        var _a;
+        if (loadStart === undefined) {
+            // Called once, as the script starts on the new page: if a sandbox
+            // hides timeOrigin, now is still after the navigation was sent.
+            const origin = Number((_a = globalThis.performance) === null || _a === void 0 ? void 0 : _a.timeOrigin);
+            loadStart = Number.isFinite(origin) && origin > 0 ? origin : Date.now();
+        }
+        const target = readNavTarget();
+        if (!target)
+            return;
+        clearNavTarget();
+        const gone = wasSentAway(target, loadStart, getPage(), ConfigHelper.getHHScriptVars("pagesIDEvent"), ConfigHelper.getHHScriptVars("pagesIDHome"));
+        if (!gone)
+            return;
+        markEventGone(gone);
+        EventModule.dropEvent(gone, "the game sent its tab back to the home page");
+    }
+    /**
+     * On every tick, before any block is asked: drop the entries the game no
+     * longer has. Runs whatever block holds the slot -- handleEventParsing's
+     * own pruning is only reached when no block does.
+     *
+     * Past their stored end: dropped on any page. On home.html, when the
+     * widget area itself is there -- a page that did not build it says
+     * nothing about the events: every event shown there is running, so a
+     * refusal of it is taken back and the home scan registers it again; every
+     * registry entry not shown there is dropped.
+     */
+    static reconcileRegistry() {
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const ids = Object.keys(eventList);
+        const expired = expiredIds(eventList, Date.now());
+        for (const id of expired)
+            EventModule.dropEvent(id, "its end time has passed");
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDHome"))
+            return;
+        if ($('#contains_all #homepage .event-widget').length <= 0)
+            return;
+        if (EventModule.pageFromHistory())
+            return;
+        const homeTabs = [];
+        $('#contains_all #homepage .event-widget a[href*="tab="]').each((_i, a) => {
+            const href = a.getAttribute('href') || '';
+            const tab = queryStringGetParam(new URL(href, window.location.origin).search, 'tab');
+            if (tab)
+                homeTabs.push(tab);
+        });
+        for (const tab of homeTabs) {
+            if (isEventGone(tab)) {
+                forgetEventGone(tab);
+                logHHAuto(`Event ${tab} is on the home page again, taken back into account.`);
+            }
+        }
+        const left = ids.filter(id => expired.indexOf(id) < 0);
+        for (const id of absentFromHome(left, homeTabs))
+            EventModule.dropEvent(id, "the home page no longer shows it");
+    }
+    /**
+     * Note a page brought back from the back/forward cache. The script does
+     * not start again there -- the old run carries on -- and the navigation
+     * entry keeps the type of the original load, so only pageshow tells.
+     * Whether a browser keeps a no-store page in that cache differs between
+     * Chromium (Chrome, Edge, Opera) and Firefox and across versions;
+     * pageshow is there in all of them.
+     */
+    static watchHistoryRestore() {
+        try {
+            window.addEventListener('pageshow', (e) => {
+                if (e.persisted)
+                    EventModule.restoredFromCache = true;
+            });
+        }
+        catch ( /* without it, only the navigation type is asked */_a) { /* without it, only the navigation type is asked */ }
+    }
+    /**
+     * Was this page restored from the browser history instead of loaded?
+     * home.html is sent with Cache-Control: no-store (measured), so a load the
+     * script starts always comes from the server; only back/forward or a
+     * restored session can show an old one -- and an old page says nothing
+     * about which events run now.
+     */
+    static pageFromHistory() {
+        if (EventModule.restoredFromCache)
+            return true;
+        try {
+            const nav = performance.getEntriesByType('navigation')[0];
+            return (nav === null || nav === void 0 ? void 0 : nav.type) === 'back_forward';
+        }
+        catch (_a) {
+            return false;
+        }
     }
     static isEventActive(inEventID) {
         const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
@@ -15398,6 +15637,7 @@ class EventModule {
         const livelySceneEventQuery = getEventQuery("lively_scene_event");
         const seasonalEventQuery = '#contains_all #homepage .seasonal-event a, #contains_all #homepage .mega-event a';
         const poaEventQuery = getEventQuery("path_event");
+        EventModule.reconcileRegistry();
         const eventIDs = [];
         const ongoingEventIDs = [];
         const bossBangEventIDs = [];
@@ -15414,7 +15654,7 @@ class EventModule {
                     logHHAuto(`Error: No name displayed for event ${eventId}, ignoring it.`);
                     continue;
                 }
-                if (eventId !== '' && EventModule.checkEvent(eventId)) {
+                if (eventId !== '' && !isEventGone(eventId) && EventModule.checkEvent(eventId)) {
                     eventList.push(eventId);
                 }
                 if (eventId !== '') {
@@ -15424,7 +15664,10 @@ class EventModule {
         }
         if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
             const currentPageEventId = EventModule.getDisplayedIdEventPage();
-            if (currentPageEventId !== null && EventModule.checkEvent(currentPageEventId)) {
+            // The page shows it, so the game has it after all.
+            if (currentPageEventId)
+                forgetEventGone(currentPageEventId);
+            if (currentPageEventId !== null && !isEventGone(currentPageEventId) && EventModule.checkEvent(currentPageEventId)) {
                 eventIDs.push(currentPageEventId);
             }
             let parsedURL;
@@ -15434,7 +15677,7 @@ class EventModule {
             for (let index = 0; index < queryResults.length; index++) {
                 parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
                 eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
-                if (eventId !== '' && EventModule.checkEvent(eventId)) {
+                if (eventId !== '' && !isEventGone(eventId) && EventModule.checkEvent(eventId)) {
                     eventIDs.push(eventId);
                 }
             }
@@ -15483,6 +15726,7 @@ class EventModule {
         return { eventIDs: eventIDs, bossBangEventIDs: bossBangEventIDs };
     }
 }
+EventModule.restoredFromCache = false;
 
 ;// ./src/Utils/PInfoRow.ts
 // PInfoRow.ts
@@ -39326,6 +39570,7 @@ function nextHeroGiveupReloadCount(prevReloadCount) {
 
 
 
+
 var started = false;
 var heroRetryTimer = null;
 var heroRetryCount = 0;
@@ -39872,6 +40117,9 @@ function start() {
         haltScript("game root element missing on startup");
         return;
     }
+    // Did the game serve the event tab the last navigation asked for (#1925)?
+    EventModule.checkNavigationAnswer();
+    EventModule.watchHistoryRestore();
     // Version-gated popups: show but don't block autoLoop
     if (FeaturePopupService.shouldShowPopup()) {
         FeaturePopupService.showPopup();

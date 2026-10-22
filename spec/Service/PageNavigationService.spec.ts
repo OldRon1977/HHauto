@@ -1,3 +1,4 @@
+import { setStoredValue } from "../../src/Helper/StorageHelper";
 import {
     addNutakuSession,
     gotoPage,
@@ -29,6 +30,8 @@ jest.mock("../../src/Service/AjaxTracker", () => ({
 const PAGE_VAR_LOOKUP: Record<string, string | undefined> = {
     pagesIDHome: "home",
     pagesURLHome: "/home.html",
+    pagesIDEvent: "event",
+    pagesURLEvent: "/event.html",
 };
 
 jest.mock("../../src/Helper/ConfigHelper", () => ({
@@ -251,6 +254,44 @@ describe("PageNavigationService", function () {
             // the regex-passthrough check, finds no match, and returns false.
             const result = gotoPage("quest");
             expect(result).toBe(false);
+        });
+    });
+
+    // The next page load compares this with where it landed (#1925).
+    describe("records where a navigation went", function () {
+
+        beforeEach(() => {
+            mockLocation({ origin: "https://example.com", search: "", pathname: "/home.html" });
+            jest.useFakeTimers();
+            (setStoredValue as jest.Mock).mockClear();
+        });
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        async function navTargetWritten(): Promise<any> {
+            jest.advanceTimersByTime(1000);
+            await Promise.resolve(); await Promise.resolve();
+            const call = (setStoredValue as jest.Mock).mock.calls.find(c => String(c[0]).endsWith("Temp_lastNavTarget"));
+            return call ? JSON.parse(call[1]) : undefined;
+        }
+
+        it("an event tab: the event page id and the tab", async function () {
+            gotoPage("event", { tab: "sm_event_49" });
+            const target = await navTargetWritten();
+            expect(target).toMatchObject({ page: "event", tab: "sm_event_49" });
+            expect(typeof target.at).toBe("number");
+        });
+
+        it("a raw event href is read the same way", async function () {
+            safeNavigateHref("/event.html?tab=boss_bang_event_48", 0);
+            expect(await navTargetWritten()).toMatchObject({ page: "event", tab: "boss_bang_event_48" });
+        });
+
+        it("any other page: its path and no tab, so an older event target never survives it", async function () {
+            gotoPage("home");
+            expect(await navTargetWritten()).toMatchObject({ page: "/home.html", tab: null });
         });
     });
 });

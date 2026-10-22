@@ -553,6 +553,8 @@ shown in the info panel as "Auto-Mystery").
 | `eventMythicGirl` | `Temp_eventMythicGirl` | `sessionStorage` | `Temp` | the mythic event girl |
 | `eventsGirlz` | `Temp_eventsGirlz` | `sessionStorage` | `Temp` | event girls (JSON) |
 | `eventsList` | `Temp_eventsList` | `sessionStorage` | `Temp` | active events |
+| `eventsGone` | `Temp_eventsGone` | `sessionStorage` | `Temp` | event ids the game sent back to home.html, with the time (ms epoch); ignored until the home page or the event page shows them again, at most 50 kept |
+| `lastNavTarget` | `Temp_lastNavTarget` | `sessionStorage` | `Temp` | the page id, the `tab` argument and the time of the last navigation the script sent; the next page load compares it with where it landed |
 | `autoChampsEventGirls` | `Temp_autoChampsEventGirls` | `sessionStorage` | `Temp` | champion event girls |
 | `loveRaids` | `Temp_loveRaids` | `sessionStorage` | `Temp` | love raid data |
 | `raidGirls` | `Temp_raidGirls` | `sessionStorage` | `Temp` | raid girls |

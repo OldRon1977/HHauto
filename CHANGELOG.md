@@ -7,6 +7,18 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.3 - An event that has ended no longer holds the script
+
+- When an event had ended but the script still had it in its list, the block
+  that works that event kept opening its page. The game sends a page that no
+  longer exists back to home, and the script tried again a few seconds later,
+  for hours, with nothing else running. Reported with Sultry Mysteries; Boss
+  Bang took the same way. Clearing the Temp storage was the only way out.
+- The script now asks the game whether an event is still there. Being sent
+  back to home after opening an event ends that event for the script, and on
+  the home page every event without its banner is dropped. An event whose end
+  time has passed is dropped on any page, whatever else the script is doing.
+
 ### v8.21.2 - Level-up gear: back to the team page when the material runs out
 
 - **Level-up gear** went home when the material or the money did not cover

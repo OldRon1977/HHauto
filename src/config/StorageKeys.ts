@@ -354,6 +354,8 @@ export const TK = {
     eventMythicGirl: "Temp_eventMythicGirl",
     eventsGirlz: "Temp_eventsGirlz",
     eventsList: "Temp_eventsList",
+    eventsGone: "Temp_eventsGone",              // session: {eventId: ms} tabs the game refused (#1925)
+    lastNavTarget: "Temp_lastNavTarget",        // session: {page,tab,at} the last navigation sent (#1925)
     autoChampsEventGirls: "Temp_autoChampsEventGirls",
     loveRaids: "Temp_loveRaids",
     raidGirls: "Temp_raidGirls",
