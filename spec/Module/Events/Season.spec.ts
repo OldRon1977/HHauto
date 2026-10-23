@@ -636,6 +636,81 @@ describe("Season event", function () {
             expect(navSpy).toHaveBeenCalled();
         });
 
+        describe("with the page's opponent data (#1926)", function () {
+            function setOpponentRewards(rewards: object | undefined) {
+                unsafeWindow.opponents = [{ player: { id_fighter: CHOSEN_ID }, rewards }];
+            }
+
+            afterEach(() => {
+                delete unsafeWindow.opponents;
+            });
+
+            it("girl focus skips a skin-only reward although the stored raid still misses shards", async () => {
+                localStorage.setItem(FOCUS_KEY, "girl");
+                sessionStorage.setItem(LOVE_RAIDS_KEY, JSON.stringify([
+                    { id_girl: 4444, girl_shards: 74, raid_module_type: 'season' }
+                ]));
+                setOpponentRewards({ shards: [{ id_girl: 4444, is_girl_owned: true }], grade_skins: [{ id_girl: 4444 }] });
+                mockArena(GIRL_SLOT);
+
+                const result = await Season.run();
+
+                expect(result).toBe(false);
+                expect(navSpy).not.toHaveBeenCalled();
+                expect(getSecondsLeft('nextSeasonTime')).toBeGreaterThan(29 * 60);
+            });
+
+            it("girl focus skips a skin-only reward with no raid data stored", async () => {
+                localStorage.setItem(FOCUS_KEY, "girl");
+                setOpponentRewards({ shards: [{ id_girl: 4444, is_girl_owned: true }], grade_skins: [{ id_girl: 4444 }] });
+                mockArena(GIRL_SLOT);
+
+                const result = await Season.run();
+
+                expect(result).toBe(false);
+                expect(navSpy).not.toHaveBeenCalled();
+            });
+
+            it("girl focus fights while the game lists the girl as not owned", async () => {
+                localStorage.setItem(FOCUS_KEY, "girl");
+                sessionStorage.setItem(LOVE_RAIDS_KEY, JSON.stringify([
+                    { id_girl: 4444, girl_shards: 100, raid_module_type: 'season' }
+                ]));
+                setOpponentRewards({ shards: [{ id_girl: 4444, is_girl_owned: false }], grade_skins: [{ id_girl: 4444 }] });
+                mockArena(GIRL_SLOT);
+
+                const result = await Season.run();
+
+                expect(result).toBe(true);
+                expect(navSpy).toHaveBeenCalled();
+            });
+
+            it("girl focus falls back to the stored raids when the opponent carries no shard list", async () => {
+                localStorage.setItem(FOCUS_KEY, "girl");
+                sessionStorage.setItem(LOVE_RAIDS_KEY, JSON.stringify([
+                    { id_girl: 4444, girl_shards: 100, raid_module_type: 'season' }
+                ]));
+                setOpponentRewards({ rewards: [], team: [] });
+                mockArena(GIRL_SLOT);
+
+                const result = await Season.run();
+
+                expect(result).toBe(false);
+                expect(navSpy).not.toHaveBeenCalled();
+            });
+
+            it("girlAndSkin focus still fights a skin-only reward", async () => {
+                localStorage.setItem(FOCUS_KEY, "girlAndSkin");
+                setOpponentRewards({ shards: [{ id_girl: 4444, is_girl_owned: true }], grade_skins: [{ id_girl: 4444 }] });
+                mockArena(GIRL_SLOT);
+
+                const result = await Season.run();
+
+                expect(result).toBe(true);
+                expect(navSpy).toHaveBeenCalled();
+            });
+        });
+
         it("girlAndSkin focus fights a skin-only reward", async () => {
             localStorage.setItem(FOCUS_KEY, "girlAndSkin");
             sessionStorage.setItem(LOVE_RAIDS_KEY, JSON.stringify([

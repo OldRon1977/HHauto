@@ -32,7 +32,7 @@ import { SeasonOpponent } from "../../model/SeasonOpponent";
 import { Booster } from "../Booster";
 import { EventModule } from "./EventModule";
 import { LoveRaidManager } from "./LoveRaidManager";
-import { isBlockedOnlyByMissingBooster } from "./Season.pure";
+import { isBlockedOnlyByMissingBooster, seasonGirlReward, SeasonGirlReward } from "./Season.pure";
 import { chooseTargetOpponent } from "./SeasonTarget.pure";
 
 export class Season {
@@ -392,11 +392,24 @@ export class Season {
     }
 
     /**
+     * The girl slot of one arena opponent, from the page's `opponents` list
+     * (#1926). Preferred over isRewardSkinOnly: the page is rebuilt after
+     * every fight, the stored love raids are not.
+     */
+    static getOpponentGirlReward(opponentId: number | string): SeasonGirlReward {
+        const opponentDatas = unsafeWindow.opponents;
+        if (!Array.isArray(opponentDatas)) return "unknown";
+        const opponent = opponentDatas.find(data => String(data?.player?.id_fighter) === String(opponentId));
+        return seasonGirlReward(opponent?.rewards);
+    }
+
+    /**
      * True when every girl in the opponent's fight rewards is already fully
      * owned according to the parsed love-raid data, i.e. the displayed
      * girl reward can only be a skin. Falls back to false (treat the reward
      * as a girl) when the reward format or a girl is unknown or no season
-     * raid data is stored, so stale raid data never blocks fights.
+     * raid data is stored, so stale raid data never blocks fights. Used only
+     * when the page's opponent data carries no shard list.
      */
     static isRewardSkinOnly(dataRewardsList: string[]): boolean {
         const rewardGirls: { id_girl?: number | string }[] = [];
@@ -475,7 +488,11 @@ export class Season {
                 let hasWantedGirlReward = girlShardsReward.length > 0;
                 if (hasWantedGirlReward && seasonFocus === "girl") {
                     const dataRewardsList = girlShardsReward.map((_index, slot) => $(slot).attr('data-rewards') || '').get();
-                    if (Season.isRewardSkinOnly(dataRewardsList)) {
+                    const pageReward = Season.getOpponentGirlReward(chosenID);
+                    if (pageReward === "skinOnly" || pageReward === "none") {
+                        logHHAuto("Season focus 'girl': the game lists the reward girl as owned, remaining fight reward is her skin.");
+                        hasWantedGirlReward = false;
+                    } else if (pageReward === "unknown" && Season.isRewardSkinOnly(dataRewardsList)) {
                         logHHAuto("Season focus 'girl': girl already won, remaining fight reward is her skin.");
                         hasWantedGirlReward = false;
                     }

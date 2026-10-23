@@ -14,6 +14,9 @@
 // storage, or DOM access. Input = data, output = decision. The impure
 // adapter Season.isBlockedOnlyByMissingBooster builds the state from
 // storage/Booster/checkTimer and delegates here.
+//
+// seasonGirlReward reads the girl slot of an arena opponent from the game
+// data, for the "event girl" Season focus.
 
 export type BoosterWaitState = {
     /** checkTimer('nextSeasonTime') -- the season timer has actually expired. */
@@ -44,4 +47,35 @@ export function isBlockedOnlyByMissingBooster(state: BoosterWaitState): boolean 
         && state.needBoosterToFight
         && !state.haveBoosterEquipped
         && state.autoEquipBoostersEnabled;
+}
+
+/**
+ * What the girl slot of a season opponent offers, read from that opponent's
+ * `rewards` object in the page's `opponents` list (#1926).
+ *
+ * This repeats the game's own rule from shared.js on `.page-season_arena`:
+ * the girl slot shows the entries of `rewards.shards` that are not
+ * `is_girl_owned`; when every girl there is owned, it shows
+ * `rewards.grade_skins` instead. So the page says by itself whether only a
+ * skin is left, without the stored love raids, whose shard count can lag
+ * behind the game.
+ *
+ * - "girl"     -- at least one reward girl is not owned yet
+ * - "skinOnly" -- every reward girl is owned, a skin is offered
+ * - "none"     -- shards listed, all girls owned, no skin
+ * - "unknown"  -- no `shards` list on the opponent; the caller falls back
+ *
+ * The rule is read from the game code, not yet from a live season raid.
+ */
+export type SeasonGirlReward = "girl" | "skinOnly" | "none" | "unknown";
+
+type SeasonOpponentRewards = {
+    shards?: readonly { is_girl_owned?: boolean }[];
+    grade_skins?: readonly unknown[];
+} | null | undefined;
+
+export function seasonGirlReward(rewards: SeasonOpponentRewards): SeasonGirlReward {
+    if (!rewards || !Array.isArray(rewards.shards) || rewards.shards.length === 0) return "unknown";
+    if (rewards.shards.some(shard => !shard?.is_girl_owned)) return "girl";
+    return Array.isArray(rewards.grade_skins) && rewards.grade_skins.length > 0 ? "skinOnly" : "none";
 }

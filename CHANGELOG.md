@@ -7,6 +7,16 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.5 - Season focus "event girl" stops at the skin
+
+- **Season focus "event girl"**: once the season raid girl was won, the script
+  kept fighting season opponents for her skin. It took the girl as still
+  missing because its stored shard count only moved after troll fights, not
+  after season fights. The arena page itself says whether the girl is already
+  yours, and the script now reads that first; the stored count is only the
+  fallback, and it now moves after season fights as well. "Girl + skin" still
+  fights for the skin.
+
 ### v8.21.4 - HH Gear reloads the market after equipping
 
 - **HH Gear, Current Best Gear and Possible Best Gear**: after the last item is
