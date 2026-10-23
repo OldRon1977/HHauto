@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.4
+// @version      8.21.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -16835,6 +16835,11 @@ class Booster {
                         Booster.updateEventGirlShards(response);
                         Booster.updateLoveRaidShards(response);
                     }
+                    // A season raid girl drops in season fights, and her
+                    // stored count has to move there too (#1926).
+                    if (action === 'do_battles_seasons') {
+                        Booster.updateLoveRaidShards(response);
+                    }
                     if (sandalwood && action === 'do_battles_trolls') {
                         const isMultibattle = parseInt(number_of_battles || '') > 1;
                         const dosesBeforeFight = sandalwood.usages_remaining;
@@ -17820,6 +17825,10 @@ class Booster {
      * With the count at 100, getRaidToFight drops the selection by itself when
      * skins are off. When skins are wanted, the raid page is re-read, because
      * only it says whether a skin is still open.
+     *
+     * Called for troll and season fights. That a season fight answers with
+     * the same `rewards.data.shards` list is assumed, not measured: no season
+     * raid ran when this was written (#1926).
      */
     static updateLoveRaidShards(response) {
         var _a, _b;
@@ -21086,6 +21095,9 @@ class SeasonOpponent {
 // storage, or DOM access. Input = data, output = decision. The impure
 // adapter Season.isBlockedOnlyByMissingBooster builds the state from
 // storage/Booster/checkTimer and delegates here.
+//
+// seasonGirlReward reads the girl slot of an arena opponent from the game
+// data, for the "event girl" Season focus.
 /**
  * True when the ONLY thing stopping a season fight right now is a missing
  * booster, and auto-equip is on to (probably) fix it shortly. Every other
@@ -21098,6 +21110,13 @@ function isBlockedOnlyByMissingBooster(state) {
         && state.needBoosterToFight
         && !state.haveBoosterEquipped
         && state.autoEquipBoostersEnabled;
+}
+function seasonGirlReward(rewards) {
+    if (!rewards || !Array.isArray(rewards.shards) || rewards.shards.length === 0)
+        return "unknown";
+    if (rewards.shards.some(shard => !(shard === null || shard === void 0 ? void 0 : shard.is_girl_owned)))
+        return "girl";
+    return Array.isArray(rewards.grade_skins) && rewards.grade_skins.length > 0 ? "skinOnly" : "none";
 }
 
 ;// ./src/Module/Events/SeasonTarget.pure.ts
@@ -21560,11 +21579,24 @@ class Season {
         return { numberOfReds, chosenIndex };
     }
     /**
+     * The girl slot of one arena opponent, from the page's `opponents` list
+     * (#1926). Preferred over isRewardSkinOnly: the page is rebuilt after
+     * every fight, the stored love raids are not.
+     */
+    static getOpponentGirlReward(opponentId) {
+        const opponentDatas = unsafeWindow.opponents;
+        if (!Array.isArray(opponentDatas))
+            return "unknown";
+        const opponent = opponentDatas.find(data => { var _a; return String((_a = data === null || data === void 0 ? void 0 : data.player) === null || _a === void 0 ? void 0 : _a.id_fighter) === String(opponentId); });
+        return seasonGirlReward(opponent === null || opponent === void 0 ? void 0 : opponent.rewards);
+    }
+    /**
      * True when every girl in the opponent's fight rewards is already fully
      * owned according to the parsed love-raid data, i.e. the displayed
      * girl reward can only be a skin. Falls back to false (treat the reward
      * as a girl) when the reward format or a girl is unknown or no season
-     * raid data is stored, so stale raid data never blocks fights.
+     * raid data is stored, so stale raid data never blocks fights. Used only
+     * when the page's opponent data carries no shard list.
      */
     static isRewardSkinOnly(dataRewardsList) {
         const rewardGirls = [];
@@ -21638,7 +21670,12 @@ class Season {
                     let hasWantedGirlReward = girlShardsReward.length > 0;
                     if (hasWantedGirlReward && seasonFocus === "girl") {
                         const dataRewardsList = girlShardsReward.map((_index, slot) => $(slot).attr('data-rewards') || '').get();
-                        if (Season.isRewardSkinOnly(dataRewardsList)) {
+                        const pageReward = Season.getOpponentGirlReward(chosenID);
+                        if (pageReward === "skinOnly" || pageReward === "none") {
+                            logHHAuto("Season focus 'girl': the game lists the reward girl as owned, remaining fight reward is her skin.");
+                            hasWantedGirlReward = false;
+                        }
+                        else if (pageReward === "unknown" && Season.isRewardSkinOnly(dataRewardsList)) {
                             logHHAuto("Season focus 'girl': girl already won, remaining fight reward is her skin.");
                             hasWantedGirlReward = false;
                         }

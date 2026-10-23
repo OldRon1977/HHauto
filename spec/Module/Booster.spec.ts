@@ -480,6 +480,14 @@ describe("Booster", function() {
       expect(checkTimer('nextLoveRaidTime')).toBe(false);
     });
 
+    it("also moves a season raid girl, which has no troll (#1926)", function() {
+      sessionStorage.setItem(RAIDS_KEY, JSON.stringify([raid(11, 40), { id_girl: 33, girl_shards: 98, girl_to_win: true, raid_module_type: 'season' }]));
+      Booster.updateLoveRaidShards(response(33, 98, 100));
+      expect(stored()[1].girl_shards).toBe(100);
+      expect(stored()[1].girl_to_win).toBe(false);
+      expect(stored()[0].girl_shards).toBe(40);
+    });
+
     it("ignores a drop for a girl that is not in a raid", function() {
       Booster.updateLoveRaidShards(response(99, 10, 12));
       expect(stored().map((r: { girl_shards: number }) => r.girl_shards)).toEqual([40, 72]);

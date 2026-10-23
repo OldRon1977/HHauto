@@ -146,6 +146,11 @@ export class Booster {
                         Booster.updateEventGirlShards(response);
                         Booster.updateLoveRaidShards(response);
                     }
+                    // A season raid girl drops in season fights, and her
+                    // stored count has to move there too (#1926).
+                    if (action === 'do_battles_seasons') {
+                        Booster.updateLoveRaidShards(response);
+                    }
 
                     if (sandalwood && action === 'do_battles_trolls') {
                         const isMultibattle = parseInt(number_of_battles||'') > 1
@@ -1213,6 +1218,10 @@ export class Booster {
      * With the count at 100, getRaidToFight drops the selection by itself when
      * skins are off. When skins are wanted, the raid page is re-read, because
      * only it says whether a skin is still open.
+     *
+     * Called for troll and season fights. That a season fight answers with
+     * the same `rewards.data.shards` list is assumed, not measured: no season
+     * raid ran when this was written (#1926).
      */
     static updateLoveRaidShards(response: { rewards?: { data?: { shards?: readonly ShardDrop[] } } }): void {
         const drops = response?.rewards?.data?.shards;
