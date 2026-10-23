@@ -34,7 +34,7 @@ import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
-import { addNutakuSession, gotoPage } from "../Service/PageNavigationService";
+import { addNutakuSession, gotoPage, safeReload } from "../Service/PageNavigationService";
 import { endWorkPause, isWorkPauseActive, startWorkPause, workPauseReturnToZone } from "../Service/WorkPause";
 import {
     ArmorItem,
@@ -1431,8 +1431,12 @@ export class EquipmentGear {
         }
 
         if (done === plan.changes.length) {
+            // The game does not redraw the hero's stats after an equip; the
+            // reload shows them, as Best gear does on the team page. The work
+            // pause holds on the market through it (WorkPause.ts).
             $('#HHGearStatus').text(`${getTextForUI('HHGearDoneReload', 'elementText')} ${done}`);
-            logHHAuto(`Gear: finished, ${done} slot(s) changed.`);
+            logHHAuto(`Gear: finished, ${done} slot(s) changed; reloading.`);
+            safeReload(randomInterval(1200, 1800));
         }
     }
 }

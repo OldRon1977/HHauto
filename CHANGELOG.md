@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.4 - HH Gear reloads the market after equipping
+
+- **HH Gear, Current Best Gear and Possible Best Gear**: after the last item is
+  put on, the market page reloads by itself so the new stats show, the way
+  Best gear does on the team page. Before, the script said "Reload the page to
+  see the new stats" and left it to you. When the game refuses an item, the
+  page stays as it is so the message can be read. The automation stays paused
+  through the reload.
+
 ### v8.21.3 - An event that has ended no longer holds the script
 
 - When an event had ended but the script still had it in its list, the block

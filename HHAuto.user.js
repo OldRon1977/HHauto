@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.3
+// @version      8.21.4
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -681,7 +681,7 @@ HHAuto_ToolTips.en['HHGearEquipPlanned'] = { version: "8.13.1", elementText: "Eq
 HHAuto_ToolTips.en['HHGearAjaxMissing'] = { version: "8.13.1", elementText: "The game's request function is unavailable. Nothing was changed.", tooltip: "" };
 HHAuto_ToolTips.en['HHGearEquippingSlot'] = { version: "8.13.1", elementText: "Equipping slot", tooltip: "" };
 HHAuto_ToolTips.en['HHGearRefusedAtSlot'] = { version: "8.13.1", elementText: "The game refused the swap at slot", tooltip: "" };
-HHAuto_ToolTips.en['HHGearDoneReload'] = { version: "8.13.1", elementText: "Done. Reload the page to see the new stats. Slots changed:", tooltip: "" };
+HHAuto_ToolTips.en['HHGearDoneReload'] = { version: "8.21.4", elementText: "Done, reloading. Slots changed:", tooltip: "" };
 HHAuto_ToolTips.en['HHGearMarkedCount'] = { version: "8.13.1", elementText: "Marked to keep", tooltip: "" };
 HHAuto_ToolTips.en['HHGearFreeCount'] = { version: "8.13.1", elementText: "free to use as material by hand", tooltip: "" };
 HHAuto_ToolTips.en['HHGearMarkNote'] = { version: "8.13.1", elementText: "A marked piece is the one to keep for that slot and element. Nothing was changed in the game.", tooltip: "" };
@@ -1281,7 +1281,7 @@ HHAuto_ToolTips.fr['HHGearEquipPlanned'] = { version: "8.13.1", elementText: "É
 HHAuto_ToolTips.fr['HHGearAjaxMissing'] = { version: "8.13.1", elementText: "La fonction de requête du jeu n'est pas disponible. Rien n'a été modifié.", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearEquippingSlot'] = { version: "8.13.1", elementText: "Équipement de l'emplacement", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearRefusedAtSlot'] = { version: "8.13.1", elementText: "Le jeu a refusé l'échange à l'emplacement", tooltip: "" };
-HHAuto_ToolTips.fr['HHGearDoneReload'] = { version: "8.13.1", elementText: "Terminé. Rechargez la page pour voir les nouvelles caractéristiques. Emplacements modifiés :", tooltip: "" };
+HHAuto_ToolTips.fr['HHGearDoneReload'] = { version: "8.21.4", elementText: "Terminé, la page se recharge. Emplacements modifiés :", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearMarkedCount'] = { version: "8.13.1", elementText: "Marqués à garder", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearFreeCount'] = { version: "8.13.1", elementText: "utilisables à la main comme matériau", tooltip: "" };
 HHAuto_ToolTips.fr['HHGearMarkNote'] = { version: "8.13.1", elementText: "Une pièce marquée est celle à garder pour cet emplacement et cet élément. Rien n'a été modifié dans le jeu.", tooltip: "" };
@@ -1837,7 +1837,7 @@ HHAuto_ToolTips.de['HHGearEquipPlanned'] = { version: "8.13.1", elementText: "Ge
 HHAuto_ToolTips.de['HHGearAjaxMissing'] = { version: "8.13.1", elementText: "Die Anfragefunktion des Spiels ist nicht verfügbar. Nichts wurde geändert.", tooltip: "" };
 HHAuto_ToolTips.de['HHGearEquippingSlot'] = { version: "8.13.1", elementText: "Lege an, Platz", tooltip: "" };
 HHAuto_ToolTips.de['HHGearRefusedAtSlot'] = { version: "8.13.1", elementText: "Das Spiel hat den Tausch abgelehnt, Platz", tooltip: "" };
-HHAuto_ToolTips.de['HHGearDoneReload'] = { version: "8.13.1", elementText: "Fertig. Lade die Seite neu, um die neuen Werte zu sehen. Geänderte Plätze:", tooltip: "" };
+HHAuto_ToolTips.de['HHGearDoneReload'] = { version: "8.21.4", elementText: "Fertig, die Seite lädt neu. Geänderte Plätze:", tooltip: "" };
 HHAuto_ToolTips.de['HHGearMarkedCount'] = { version: "8.13.1", elementText: "Zum Behalten markiert", tooltip: "" };
 HHAuto_ToolTips.de['HHGearFreeCount'] = { version: "8.13.1", elementText: "von Hand als Material verwendbar", tooltip: "" };
 HHAuto_ToolTips.de['HHGearMarkNote'] = { version: "8.13.1", elementText: "Ein markiertes Teil ist das, das du für diesen Platz und dieses Element behältst. Im Spiel wurde nichts geändert.", tooltip: "" };
@@ -2312,7 +2312,7 @@ HHAuto_ToolTips.es['HHGearEquipPlanned'] = { version: "8.13.1", elementText: "Eq
 HHAuto_ToolTips.es['HHGearAjaxMissing'] = { version: "8.13.1", elementText: "La función de peticiones del juego no está disponible. No se cambió nada.", tooltip: "" };
 HHAuto_ToolTips.es['HHGearEquippingSlot'] = { version: "8.13.1", elementText: "Equipando la ranura", tooltip: "" };
 HHAuto_ToolTips.es['HHGearRefusedAtSlot'] = { version: "8.13.1", elementText: "El juego rechazó el cambio en la ranura", tooltip: "" };
-HHAuto_ToolTips.es['HHGearDoneReload'] = { version: "8.13.1", elementText: "Hecho. Recarga la página para ver las nuevas características. Ranuras cambiadas:", tooltip: "" };
+HHAuto_ToolTips.es['HHGearDoneReload'] = { version: "8.21.4", elementText: "Hecho, la página se recarga. Ranuras cambiadas:", tooltip: "" };
 HHAuto_ToolTips.es['HHGearMarkedCount'] = { version: "8.13.1", elementText: "Marcados para conservar", tooltip: "" };
 HHAuto_ToolTips.es['HHGearFreeCount'] = { version: "8.13.1", elementText: "utilizables a mano como material", tooltip: "" };
 HHAuto_ToolTips.es['HHGearMarkNote'] = { version: "8.13.1", elementText: "Una pieza marcada es la que conviene conservar para esa ranura y ese elemento. No se cambió nada en el juego.", tooltip: "" };
@@ -30291,8 +30291,12 @@ class EquipmentGear {
                 }
             }
             if (done === plan.changes.length) {
+                // The game does not redraw the hero's stats after an equip; the
+                // reload shows them, as Best gear does on the team page. The work
+                // pause holds on the market through it (WorkPause.ts).
                 $('#HHGearStatus').text(`${getTextForUI('HHGearDoneReload', 'elementText')} ${done}`);
-                logHHAuto(`Gear: finished, ${done} slot(s) changed.`);
+                logHHAuto(`Gear: finished, ${done} slot(s) changed; reloading.`);
+                safeReload(randomInterval(1200, 1800));
             }
         });
     }
