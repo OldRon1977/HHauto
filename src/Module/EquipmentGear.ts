@@ -32,7 +32,7 @@ import { keepKey, keepKeyFromRaw, pickKeepers } from "../Service/EquipmentKeepSe
 import { HeroHelper } from "../Helper/HeroHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
-import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
+import { deleteStoredValue, getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
 import { addNutakuSession, gotoPage, safeReload } from "../Service/PageNavigationService";
 import { endWorkPause, isWorkPauseActive, startWorkPause, workPauseReturnToZone } from "../Service/WorkPause";
@@ -202,6 +202,28 @@ export class EquipmentGear {
         EquipmentGear.resumeUpgradeQueue(HERO_UPGRADE);
         EquipmentGear.watchTabSwitch();
 
+        // After an equip the market reloads, and the reloaded page opens My
+        // Hero on Boosters (measured; no URL parameter picks the tab). The
+        // armor tab is where the new stats show and where HH Gear lives.
+        // Like the manual collect-all flags of the events, the key goes only
+        // once the work is done: the tab clicked on this page and open. An
+        // armor tab open without a click is the page before the reload.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.gearReopenArmorTab) === 'true') {
+            const armorTab = $('.my-hero-switch-tab[type="armor"]');
+            if (EquipmentGear.armorTabClicks > 0 && (armorTab.hasClass('active') || EquipmentGear.armorTabClicks >= 10)) {
+                logHHAuto(`Gear: armor tab ${armorTab.hasClass('active') ? 'open' : 'still closed'} after ${EquipmentGear.armorTabClicks} click(s).`);
+                deleteStoredValue(HHStoredVarPrefixKey + TK.gearReopenArmorTab);
+            } else if (armorTab.length > 0 && !armorTab.hasClass('active')) {
+                if (Date.now() - EquipmentGear.armorTabClickedAt >= 1500) {
+                    EquipmentGear.armorTabClickedAt = Date.now();
+                    EquipmentGear.armorTabClicks++;
+                    logHHAuto(`Gear: opening the armor tab after the reload (try ${EquipmentGear.armorTabClicks}).`);
+                    armorTab.first().trigger('click');
+                }
+                return;
+            }
+        }
+
         // The player's own inventory has its own tab strip
         // (.my-hero-switch-tab: booster / armor / player-stats), separate
         // from the merchant's five .market-menu-switch-tab tabs that Shop.ts
@@ -349,6 +371,8 @@ export class EquipmentGear {
      *  without this the retry budget would be spent waiting for the browser. */
     private static resumeNavigating = false;
 
+    private static armorTabClickedAt = 0;
+    private static armorTabClicks = 0;
     private static tabWatcherBound = false;
 
     private static previewStylesAdded = false;
@@ -1436,6 +1460,7 @@ export class EquipmentGear {
             // pause holds on the market through it (WorkPause.ts).
             $('#HHGearStatus').text(`${getTextForUI('HHGearDoneReload', 'elementText')} ${done}`);
             logHHAuto(`Gear: finished, ${done} slot(s) changed; reloading.`);
+            setStoredValue(HHStoredVarPrefixKey + TK.gearReopenArmorTab, 'true');
             safeReload(randomInterval(1200, 1800));
         }
     }

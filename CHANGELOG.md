@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.6 - HH Gear comes back on My Hero's Equipment tab
+
+- **HH Gear**: after Current Best Gear or Possible Best Gear the reloaded
+  market opens My Hero on the Equipment tab, where the new stats and the HH
+  Gear button are. Before, the reload landed on the Boosters tab.
+
 ### v8.21.5 - Season focus "event girl" stops at the skin
 
 - **Season focus "event girl"**: once the season raid girl was won, the script

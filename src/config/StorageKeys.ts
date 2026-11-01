@@ -313,6 +313,7 @@ export const TK = {
     // stays possible. The id changes on every unequip, so it can only come
     // from the equip response.
     gearSwapLog: "Temp_gearSwapLog",
+    gearReopenArmorTab: "Temp_gearReopenArmorTab",
     // Items "Upgrade Gear" still has to level, worked off across the
     // navigations to the upgrade page.
     gearUpgradeQueue: "Temp_gearUpgradeQueue",
