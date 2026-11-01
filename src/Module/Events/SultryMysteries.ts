@@ -143,9 +143,9 @@ export class SultryMysteries {
     /**
      * Close the reward popup the game shows after each opened square.
      *
-     * Deliberately not RewardHelper.closeRewardPopupIfAny: RewardHelper
-     * imports EventModule, which imports this module, so using it here
-     * would add an import cycle (ARCH-001).
+     * Not RewardPopup.closeRewardPopupIfAny: that one hands a blue
+     * redirect-to-harem button over to the purple one, this one clicks it
+     * (see the header of Helper/RewardPopup.ts).
      */
     static closeSquareRewardPopup(): boolean {
         const rewardQuery = 'div#rewards_popup button.blue_button_L:not([disabled]):visible';

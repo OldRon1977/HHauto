@@ -31,6 +31,7 @@ import { TimeHelper, randomInterval } from "./TimeHelper";
 import { EventModule } from "../Module/Events/EventModule";
 import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
 import { queryStringGetParam } from "./UrlHelper";
+import { closeGirlRewardPopupIfAny, closeRewardPopupIfAny } from "./RewardPopup";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
@@ -312,19 +313,9 @@ export class RewardHelper {
             RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
         }
     }
+    /** RewardPopup.closeRewardPopupIfAny; kept here so spies on RewardHelper see the call. */
     static closeRewardPopupIfAny(logging=true, popupId='') {
-        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.blue_button_L:not([disabled]):visible`;
-        if ($(rewardQuery).length >0 )
-        {
-            if ($(rewardQuery).attr('id') === 'redirect-to-harem') {
-                logHHAuto("Redirect to harem button detected.");
-                return RewardHelper.closeGirlRewardPopupIfAny(logging, popupId);
-            }
-            if (logging) logHHAuto(`Close reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
-            $(rewardQuery).trigger('click');
-            return true;
-        }
-        return false;
+        return closeRewardPopupIfAny(logging, popupId);
     }
 
     /**
@@ -366,15 +357,9 @@ export class RewardHelper {
         safeReload();
     }
 
+    /** RewardPopup.closeGirlRewardPopupIfAny. */
     static closeGirlRewardPopupIfAny(logging=true, popupId='') {
-        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
-        if ($(rewardQuery).length >0 )
-        {
-            if (logging) logHHAuto(`Close girl reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
-            $(rewardQuery).trigger('click');
-            return true;
-        }
-        return false;
+        return closeGirlRewardPopupIfAny(logging, popupId);
     }
     static ObserveAndGetGirlRewards()
     {

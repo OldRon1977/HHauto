@@ -70,6 +70,8 @@ export class BossBang {
     static readonly EVENT_SELECTOR = '#contains_all #events #boss_bang';
     // One claim button per chest that can be opened (issue #1455).
     static readonly PROGRESS_REWARD_SELECTOR = 'button[rel="claim"].progress-bar-claim-reward:not([disabled]):visible';
+    // Any .blue_button_L, not only a button -- the reason this is not
+    // RewardPopup.closeRewardPopupIfAny (see the header of Helper/RewardPopup.ts).
     static readonly REWARD_POPUP_OK_SELECTOR = '#rewards_popup .blue_button_L:not([disabled]):visible';
 
     /** The Boss Bang tab is the one open on the event page. */
