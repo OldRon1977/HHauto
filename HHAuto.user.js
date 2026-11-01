@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.10
+// @version      8.21.11
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -16305,6 +16305,7 @@ var RewardHelper_awaiter = (undefined && undefined.__awaiter) || function (thisA
 
 
 
+
 // closeReloadingRewardPopup: polls rather than a deadline, so a test with a
 // stubbed sleep runs a bounded number of rounds.
 const RELOADING_POPUP_POLL_MS = 250;
@@ -16581,6 +16582,30 @@ class RewardHelper {
             const rewardCountByType = RewardHelper.getPovNotClaimedRewards();
             RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
         }
+    }
+    /**
+     * Claim the given tier buttons one after another, then call onDone.
+     *
+     * The game ignores a claim click while the previous claim is unanswered:
+     * with the server answering after 3 s, one request went out for five
+     * tiers and the rest stayed open (measured on Path of Valor). So each
+     * click waits for its answer before the next one. Path of Valor and Path
+     * of Glory claim this way; the other reward tracks pace their clicks with
+     * fixed pauses (docs/reference/mechanics-catalogue.md, section 6).
+     */
+    static claimInTurn(buttons, onDone) {
+        return RewardHelper_awaiter(this, void 0, void 0, function* () {
+            if (buttons.length > 0) {
+                logHHAuto("Collecting tier : " + buttons[0].getAttribute('tier'));
+                buttons[0].click();
+                buttons.shift();
+                yield waitForGameAnswer();
+                setTimeout(() => { RewardHelper.claimInTurn(buttons, onDone); }, randomInterval(300, 500));
+            }
+            else {
+                onDone();
+            }
+        });
     }
     /** RewardPopup.closeRewardPopupIfAny; kept here so spies on RewardHelper see the call. */
     static closeRewardPopupIfAny(logging = true, popupId = '') {
@@ -30479,15 +30504,6 @@ function fmtSignedPct(value) {
 }
 
 ;// ./src/Module/Events/PathOfGlory.ts
-var PathOfGlory_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 // PathOfGlory.ts -- Path of Glory (PoG) event: tier collection and reward tracking.
 //
 // Path of Glory is a tiered event: points the game counts elsewhere unlock
@@ -30498,7 +30514,6 @@ var PathOfGlory_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 // Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
 //          (the collect block)
 //
-
 
 
 
@@ -30595,27 +30610,11 @@ class PathOfGlory {
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 const buttonsToCollect = PathOfGlory.getRewardButtonToCollect();
                 if (buttonsToCollect.length > 0) {
-                    function collectPoGRewards() {
-                        return PathOfGlory_awaiter(this, void 0, void 0, function* () {
-                            if (buttonsToCollect.length > 0) {
-                                logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                                buttonsToCollect[0].click();
-                                buttonsToCollect.shift();
-                                // The game ignores a claim click while the previous
-                                // claim is unanswered: with the server answering
-                                // after 3 s, one request went out for five tiers and
-                                // the rest stayed open (measured). Wait for it.
-                                yield waitForGameAnswer();
-                                setTimeout(collectPoGRewards, randomInterval(300, 500));
-                            }
-                            else {
-                                logHHAuto("Path of Glory collection finished.");
-                                setTimer('nextPoGCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            }
-                        });
-                    }
-                    collectPoGRewards();
+                    RewardHelper.claimInTurn(buttonsToCollect, () => {
+                        logHHAuto("Path of Glory collection finished.");
+                        setTimer('nextPoGCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    });
                     return true;
                 }
                 else {
@@ -30642,15 +30641,6 @@ class PathOfGlory {
 }
 
 ;// ./src/Module/Events/PathOfValue.ts
-var PathOfValue_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 // PathOfValue.ts -- Path of Value (PoV) event: tier collection and reward tracking.
 //
 // Path of Valor is a tiered event like Path of Glory: points the game counts
@@ -30662,7 +30652,6 @@ var PathOfValue_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 // Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
 //          (the collect block)
 //
-
 
 
 
@@ -30752,27 +30741,11 @@ class PathOfValue {
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 const buttonsToCollect = PathOfValue.getRewardButtonToCollect();
                 if (buttonsToCollect.length > 0) {
-                    function collectPoVRewards() {
-                        return PathOfValue_awaiter(this, void 0, void 0, function* () {
-                            if (buttonsToCollect.length > 0) {
-                                logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                                buttonsToCollect[0].click();
-                                buttonsToCollect.shift();
-                                // The game ignores a claim click while the previous
-                                // claim is unanswered: with the server answering
-                                // after 3 s, one request went out for five tiers and
-                                // the rest stayed open (measured). Wait for it.
-                                yield waitForGameAnswer();
-                                setTimeout(collectPoVRewards, randomInterval(300, 500));
-                            }
-                            else {
-                                logHHAuto("Path of Valor collection finished.");
-                                setTimer('nextPoVCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            }
-                        });
-                    }
-                    collectPoVRewards();
+                    RewardHelper.claimInTurn(buttonsToCollect, () => {
+                        logHHAuto("Path of Valor collection finished.");
+                        setTimer('nextPoVCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    });
                     return true;
                 }
                 else {
