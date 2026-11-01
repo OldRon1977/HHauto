@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.13 - Timed game calls through one function
+
+#### Internal
+
+- Team gear and the team calculation send their game calls through one
+  function; answers, timeouts and results are unchanged.
+
 ### v8.21.12 - Restarting the loop through one function
 
 #### Internal

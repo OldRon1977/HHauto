@@ -38,7 +38,7 @@ import {
 } from '../Service/TeamGearService';
 import { fillHHPopUp } from '../Utils/HHPopup';
 import { logHHAuto } from '../Utils/LogUtils';
-import { getHHAjax } from '../Utils/Utils';
+import { callGame, getHHAjax } from '../Utils/Utils';
 import { HHStoredVarPrefixKey } from '../config/HHStoredVars';
 import { TK } from '../config/StorageKeys';
 
@@ -311,18 +311,7 @@ export class TeamGear {
 
     /** One game call as a promise; null on an error or after 20 s. */
     private static call<T>(params: Record<string, unknown>): Promise<T | null> {
-        const ajax = getHHAjax();
-        if (!ajax) return Promise.resolve(null);
-        return new Promise(resolve => {
-            let settled = false;
-            const settle = (value: T | null) => { if (!settled) { settled = true; resolve(value); } };
-            try {
-                ajax(params, (data: T) => settle(data), () => settle(null));
-            } catch {
-                settle(null);
-            }
-            setTimeout(() => settle(null), 20_000);
-        });
+        return callGame<T>(params, 20_000);
     }
 
     private static describe(item: GirlGearItem | null): string {
