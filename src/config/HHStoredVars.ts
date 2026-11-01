@@ -2722,6 +2722,10 @@ HHStoredVars[HHStoredVarPrefixKey + TK.PoGEndDate] =
     storage:"localStorage",
     HHType:"Temp"
 };
+// The manual collect-all of Path of Attraction and Lively Scene goes on
+// after each claim's reload. These two live in localStorage, so a sweep
+// started in one tab also carries on in another and after a browser restart;
+// they are set to "false" when the sweep ends, not deleted.
 HHStoredVars[HHStoredVarPrefixKey + TK.poaManualCollectAll] =
 {
     default: "false",

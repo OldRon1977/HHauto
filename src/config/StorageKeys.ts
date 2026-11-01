@@ -278,6 +278,15 @@ export const SK = {
 } as const;
 
 // ── Temp_ keys (temporary / runtime data) ─────────────────────────
+//
+// A key that carries work across a reload -- the page is gone, the next one
+// has to go on -- follows one rule: set it before the action that leaves the
+// page, and clear it on the new page once that page shows the work done, not
+// when the action is sent. A flag cleared on the old page is gone before the
+// new page can read it. Examples: poaManualCollectAll, lseManualCollectAll,
+// gearReopenArmorTab, questNextWorld (docs/reference/mechanics-catalogue.md,
+// section 1). Such a key goes to sessionStorage unless it has to outlive the
+// tab.
 export const TK = {
     autoLoop: "Temp_autoLoop",
     autoLoopTimeMili: "Temp_autoLoopTimeMili",

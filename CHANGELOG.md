@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.10 - The rule for keys that outlive a reload
+
+#### Internal
+
+- The storage key list states when a key that carries work across a reload is
+  set and when it is cleared. No code changed.
+
 ### v8.21.9 - Opening a tab through one helper
 
 #### Internal

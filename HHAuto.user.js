@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.9
+// @version      8.21.10
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3109,6 +3109,15 @@ const SK = {
     SeasonalEventMaskRewards: "Setting_SeasonalEventMaskRewards",
 };
 // ── Temp_ keys (temporary / runtime data) ─────────────────────────
+//
+// A key that carries work across a reload -- the page is gone, the next one
+// has to go on -- follows one rule: set it before the action that leaves the
+// page, and clear it on the new page once that page shows the work done, not
+// when the action is sent. A flag cleared on the old page is gone before the
+// new page can read it. Examples: poaManualCollectAll, lseManualCollectAll,
+// gearReopenArmorTab, questNextWorld (docs/reference/mechanics-catalogue.md,
+// section 1). Such a key goes to sessionStorage unless it has to outlive the
+// tab.
 const TK = {
     autoLoop: "Temp_autoLoop",
     autoLoopTimeMili: "Temp_autoLoopTimeMili",
@@ -6242,6 +6251,10 @@ HHStoredVars[HHStoredVarPrefixKey + TK.PoGEndDate] =
         storage: "localStorage",
         HHType: "Temp"
     };
+// The manual collect-all of Path of Attraction and Lively Scene goes on
+// after each claim's reload. These two live in localStorage, so a sweep
+// started in one tab also carries on in another and after a browser restart;
+// they are set to "false" when the sweep ends, not deleted.
 HHStoredVars[HHStoredVarPrefixKey + TK.poaManualCollectAll] =
     {
         default: "false",
