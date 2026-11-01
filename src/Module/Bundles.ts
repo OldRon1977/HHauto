@@ -13,7 +13,7 @@ import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval, convertTimeToInt, TimeHelper } from "../Helper/TimeHelper";
 import { AJAX_IDLE_TIMEOUT_MS } from "../Service/AjaxTracker";
 import { setTimer } from "../Helper/TimerHelper";
-import { kickAutoLoop } from "../Service/AutoLoopKick";
+import { resumeAutoLoop } from "../Service/AutoLoopResume";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -120,9 +120,8 @@ export class Bundles {
                     // element (measured): a click on `.close_cross` left the
                     // shop open over the page, with and without a slow server.
                     $("#common-popups close.closable, #common-popups .close_cross").first().trigger('click');
-                    setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
                     logHHAuto("setting autoloop to true");
-                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
+                    resumeAutoLoop();
                 }
 
                 function parseAndCollectFreeBundles(){

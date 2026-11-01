@@ -16,7 +16,7 @@ import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { TimeHelper, randomInterval, convertTimeToInt, getLimitTimeBeforeEnd } from "../../Helper/TimeHelper";
 import { getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
-import { kickAutoLoop } from "../../Service/AutoLoopKick";
+import { resumeAutoLoop } from "../../Service/AutoLoopResume";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { FeatureGate } from "../../Service/FeatureGate";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
@@ -335,8 +335,7 @@ export class PathOfAttraction {
                 }
 
                 logHHAuto("Path of Attraction collection finished.");
-                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
-                kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
+                resumeAutoLoop();
                 return true;
             }
             else

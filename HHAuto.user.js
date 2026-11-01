@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.11
+// @version      8.21.12
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -12514,9 +12514,8 @@ const LEAGUE_SORT = {
 // the storage read that supplies the delay, which is why the delay is the
 // caller's to pass.
 //
-// Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts, TeamSelectionPopup.ts,
-//   TeamGear.ts, DoublePenetration.ts, PathOfAttraction.ts, WorkPause.ts, RewardHelper.ts;
-//   wired in index.ts
+// Used by: AutoLoopResume.ts, League.ts, Quest.ts, TeamSelectionPopup.ts,
+//   TeamGear.ts, SeasonTarget.ts, WorkPause.ts; wired in index.ts
 let kick = () => { };
 /** Wired once from the boot path with the real autoLoop. */
 function setAutoLoopKick(fn) {
@@ -12530,6 +12529,31 @@ function setAutoLoopKick(fn) {
  */
 function kickAutoLoop(delayMs) {
     setTimeout(() => kick(), delayMs);
+}
+
+;// ./src/Service/AutoLoopResume.ts
+// AutoLoopResume.ts -- Switch the auto-loop back on after an action and start it.
+//
+// Setting Temp_autoLoop to "false" stops autoLoop() from scheduling its next
+// tick; it reads the flag only at its end (AutoLoopHold.ts). Setting it back
+// to "true" therefore restarts nothing once that tick has ended -- the loop
+// stays dead until a reload (#1908). Switching it on and kicking it belong
+// together, which is what this does, with the player's loop interval.
+//
+// Not every place that switches the loop back on uses this. Some kick with a
+// delay of their own, some only when no tick is scheduled, some rely on the
+// navigation that follows: docs/reference/mechanics-catalogue.md, section 8.
+//
+// Depends on: StorageHelper, AutoLoopKick
+// Used by: Bundles.ts, PathOfAttraction.ts, DoublePenetration.ts,
+//   RewardHelper.ts, PlaceOfPower.ts
+
+
+
+/** Temp_autoLoop on, and a tick after the player's loop interval. */
+function resumeAutoLoop() {
+    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
 }
 
 ;// ./src/Module/Events/BossBang.ts
@@ -13271,8 +13295,7 @@ class DoublePenetration {
                         else {
                             logHHAuto("Double penetration collection finished.");
                             setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                            kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                            resumeAutoLoop();
                         }
                     }
                     collectDpEventRewards();
@@ -13281,8 +13304,7 @@ class DoublePenetration {
                 else {
                     logHHAuto("No double penetration reward to collect.");
                     setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                    resumeAutoLoop();
                     return false;
                 }
             }
@@ -14395,8 +14417,7 @@ class PathOfAttraction {
                         }
                     }
                     logHHAuto("Path of Attraction collection finished.");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                    resumeAutoLoop();
                     return true;
                 }
                 else {
@@ -16643,8 +16664,7 @@ class RewardHelper {
             }
             if (!closed) {
                 logHHAuto(`Reward popup did not appear within ${RELOADING_POPUP_POLLS * RELOADING_POPUP_POLL_MS / 1000}s, restarting the loop.`);
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                resumeAutoLoop();
                 return;
             }
             yield TimeHelper.sleep(RELOADING_POPUP_RELOAD_WAIT_MS);
@@ -22573,8 +22593,7 @@ class PlaceOfPower {
                 }
                 logHHAuto("build popToStart : " + PopToStart);
                 setStoredValue(HHStoredVarPrefixKey + TK.PopToStart, JSON.stringify(PopToStart));
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                resumeAutoLoop();
                 return false;
             }
         });
@@ -41359,9 +41378,8 @@ class Bundles {
                     // element (measured): a click on `.close_cross` left the
                     // shop open over the page, with and without a slow server.
                     $("#common-popups close.closable, #common-popups .close_cross").first().trigger('click');
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                     logHHAuto("setting autoloop to true");
-                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                    resumeAutoLoop();
                 }
                 function parseAndCollectFreeBundles() {
                     const freeBundlesNumber = $(freeButtonBundleQuery).length;
