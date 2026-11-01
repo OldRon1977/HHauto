@@ -12,7 +12,7 @@
 //
 // Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
 //          InfoService (display remaining times), HaremGirl (waiting for
-//          the game's popups)
+//          the game's popups, opening its tabs)
 
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -93,6 +93,38 @@ export class TimeHelper {
     // timeout, so a server-side signature change hung the caller. Callers
     // should use AjaxTracker.waitForAjaxIdle (timeout-bounded, signature-
     // independent) instead.
+}
+
+/**
+ * Open a tab of the game and wait until it shows its data: click it unless it
+ * is shown, then wait up to `timeoutMs` for `isLoaded`. False, with a log
+ * line, when the data does not arrive.
+ *
+ * The game loads a tab's content with a request of its own on activation and
+ * asks again on every activation until the first answer is in. Measured on
+ * the girl page (#1915): a click on a tab that is shown but still loading
+ * made the game render its data twice. So a shown tab is not clicked again,
+ * and the wait is for the rendered data, not for a pause. What follows once
+ * the data is there stays with the caller. Places that open tabs differently,
+ * and why: docs/reference/mechanics-catalogue.md, section 4.
+ *
+ * It lives here, beside waitFor, because a file of its own would sit on the
+ * import cycle through LogUtils as a new node (deps:circular:check).
+ */
+export async function openTab(
+    label: string,
+    isShown: () => boolean,
+    click: () => void,
+    isLoaded: () => boolean,
+    timeoutMs: number,
+): Promise<boolean> {
+    if (!isShown()) click();
+    const loaded = await TimeHelper.waitFor(isLoaded, timeoutMs);
+    if (!loaded) {
+        logHHAuto(`Tab ${label} still loading after ${timeoutMs}ms`);
+        return false;
+    }
+    return true;
 }
 
 export function convertTimeToInt(remainingTimer: string, failSafe=true): number {
