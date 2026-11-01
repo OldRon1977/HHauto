@@ -3284,7 +3284,7 @@ const TK = {
 //
 // Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
 //          InfoService (display remaining times), HaremGirl (waiting for
-//          the game's popups)
+//          the game's popups, opening its tabs)
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -3365,6 +3365,34 @@ class TimeHelper {
             }
         });
     }
+}
+/**
+ * Open a tab of the game and wait until it shows its data: click it unless it
+ * is shown, then wait up to `timeoutMs` for `isLoaded`. False, with a log
+ * line, when the data does not arrive.
+ *
+ * The game loads a tab's content with a request of its own on activation and
+ * asks again on every activation until the first answer is in. Measured on
+ * the girl page (#1915): a click on a tab that is shown but still loading
+ * made the game render its data twice. So a shown tab is not clicked again,
+ * and the wait is for the rendered data, not for a pause. What follows once
+ * the data is there stays with the caller. Places that open tabs differently,
+ * and why: docs/reference/mechanics-catalogue.md, section 4.
+ *
+ * It lives here, beside waitFor, because a file of its own would sit on the
+ * import cycle through LogUtils as a new node (deps:circular:check).
+ */
+function openTab(label, isShown, click, isLoaded, timeoutMs) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!isShown())
+            click();
+        const loaded = yield TimeHelper.waitFor(isLoaded, timeoutMs);
+        if (!loaded) {
+            logHHAuto(`Tab ${label} still loading after ${timeoutMs}ms`);
+            return false;
+        }
+        return true;
+    });
 }
 function convertTimeToInt(remainingTimer, failSafe = true) {
     let newTimer = 0;
@@ -9322,52 +9350,6 @@ function parsePrice(princeStr) {
     return ret;
 }
 
-;// ./src/Helper/TabHelper.ts
-var TabHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// TabHelper.ts -- Open a tab of the game and wait until it shows its data.
-//
-// The game loads a tab's content with a request of its own when the tab is
-// activated, and keeps asking on every activation until the first answer is
-// in. Measured on the girl page (#1915): a click on a tab that is shown but
-// still loading made the game render its data twice. So a shown tab is not
-// clicked again, and the wait is for the rendered data, not for a pause.
-//
-// The caller says what "shown" and "loaded" mean on its page. Anything to do
-// after the data is there (the girl page lets follow-up requests settle)
-// stays with the caller.
-//
-// Places that open a tab differently, and why they are not on this:
-// docs/reference/mechanics-catalogue.md, section 4.
-//
-// Depends on: TimeHelper, LogUtils
-// Used by: HaremGirl.ts
-
-
-/**
- * Click the tab unless it is shown, then wait up to `timeoutMs` for its data.
- * False, with a log line, when the data does not arrive.
- */
-function openTab(label, isShown, click, isLoaded, timeoutMs) {
-    return TabHelper_awaiter(this, void 0, void 0, function* () {
-        if (!isShown())
-            click();
-        const loaded = yield TimeHelper.waitFor(isLoaded, timeoutMs);
-        if (!loaded) {
-            logHHAuto(`Tab ${label} still loading after ${timeoutMs}ms`);
-            return false;
-        }
-        return true;
-    });
-}
-
 ;// ./src/Module/Market.pure.ts
 // Market.pure.ts -- parsing and validation of the "Boosters to buy" setting.
 //
@@ -9649,7 +9631,6 @@ var HaremGirl_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 // Used by: Harem.ts (girl list operations), TeamModule.ts and
 //          AutoLoopPageHandlers.ts
 //
-
 
 
 
