@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.6
+// @version      8.21.7
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -8124,15 +8124,18 @@ function waitForAjaxIdle() {
 }
 /**
  * After a click whose handler sends a request: resolve once it is answered,
- * bounded by AJAX_IDLE_TIMEOUT_MS. The game sends from the click handler
- * itself (measured on the girl page, #1915); the short pause only covers a
- * handler that defers it. A fixed pause after a click is what failed under
- * a slow server: the script read or clicked again before the answer.
+ * bounded by `timeoutMs`. The game sends from the click handler itself
+ * (measured on the girl page, #1915); the short pause only covers a handler
+ * that defers it. A fixed pause after a click is what failed under a slow
+ * server: the script read or clicked again before the answer.
+ *
+ * The one wait for "the click has been answered" (mechanics-catalogue.md,
+ * section 2). `timeoutMs` exists for HaremGirl, whose budget the specs lower.
  */
 function waitForGameAnswer() {
-    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
+    return AjaxTracker_awaiter(this, arguments, void 0, function* (timeoutMs = AJAX_IDLE_TIMEOUT_MS) {
         yield sleep(150);
-        return waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, 250);
+        return waitForAjaxIdle(timeoutMs, 250);
     });
 }
 // --- POST mutex ----------------------------------------------------
@@ -9630,13 +9633,10 @@ class HaremGirl {
     static switchTabs(haremItem) {
         $('#girl-leveler-tabs .switch-tab[data-tab="' + haremItem + '"]').trigger('click');
     }
+    /** AjaxTracker.waitForGameAnswer with this module's budget, which the
+     *  specs lower to keep the timeout paths fast. */
     static waitForGameData() {
-        return HaremGirl_awaiter(this, void 0, void 0, function* () {
-            // Measured: the game sends its request in the click handler itself.
-            // The pause only covers a build that defers it.
-            yield TimeHelper.sleep(150);
-            return waitForAjaxIdle(HaremGirl.GAME_DATA_TIMEOUT_MS, 250);
-        });
+        return waitForGameAnswer(HaremGirl.GAME_DATA_TIMEOUT_MS);
     }
     /**
      * True once the game has rendered a tab's data. The game draws the

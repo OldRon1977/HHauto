@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.7 - One wait for the game's answer
+
+#### Internal
+
+- The girl page waits for the game's answer through the same function as the
+  event tracks; timing and limits are unchanged.
+
 ### v8.21.6 - HH Gear comes back on My Hero's Equipment tab
 
 - **HH Gear**: after Current Best Gear or Possible Best Gear the reloaded

@@ -237,14 +237,17 @@ export async function waitForAjaxIdle(
 
 /**
  * After a click whose handler sends a request: resolve once it is answered,
- * bounded by AJAX_IDLE_TIMEOUT_MS. The game sends from the click handler
- * itself (measured on the girl page, #1915); the short pause only covers a
- * handler that defers it. A fixed pause after a click is what failed under
- * a slow server: the script read or clicked again before the answer.
+ * bounded by `timeoutMs`. The game sends from the click handler itself
+ * (measured on the girl page, #1915); the short pause only covers a handler
+ * that defers it. A fixed pause after a click is what failed under a slow
+ * server: the script read or clicked again before the answer.
+ *
+ * The one wait for "the click has been answered" (mechanics-catalogue.md,
+ * section 2). `timeoutMs` exists for HaremGirl, whose budget the specs lower.
  */
-export async function waitForGameAnswer(): Promise<boolean> {
+export async function waitForGameAnswer(timeoutMs: number = AJAX_IDLE_TIMEOUT_MS): Promise<boolean> {
     await sleep(150);
-    return waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, 250);
+    return waitForAjaxIdle(timeoutMs, 250);
 }
 
 // --- POST mutex ----------------------------------------------------
