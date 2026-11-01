@@ -2413,6 +2413,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.teamTheme] =
     storage:"localStorage",
     HHType:"Temp"
 };
+// Set before HH Gear reloads the market; the reloaded page opens My Hero on
+// Boosters, so the gear module clicks the armor tab once and clears it.
+HHStoredVars[HHStoredVarPrefixKey + TK.gearReopenArmorTab] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.gearSwapLog] =
     {
     default:"[]",

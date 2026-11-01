@@ -500,6 +500,7 @@ shown in the info panel as "Auto-Mystery").
 | `blessingsCache` | `Temp_blessingsCache` | `localStorage` | `Temp` | the blessing API cache (`BlessingData` JSON), 12 h lifetime, set in `BlessingService.fetchAndCache` |
 | `teamInfoCollapsed` | `Temp_teamInfoCollapsed` | `localStorage` | `Temp` | the team info panel is collapsed (`TeamModule`) |
 | `teamTheme` | `Temp_teamTheme` | `localStorage` | `Temp` | the theme of the team built last; the gear optimiser needs it on the market page, where the team is not available |
+| `gearReopenArmorTab` | `Temp_gearReopenArmorTab` | `sessionStorage` | `Temp` | set before HH Gear reloads the market after equipping; the reloaded page opens My Hero on Boosters, so the armor tab is clicked once and the key cleared |
 | `gearSwapLog` | `Temp_gearSwapLog` | `localStorage` | `Temp` | the inventory IDs of the items the gear optimiser took off, so a rollback stays possible (the ID changes on every unequip) |
 | `gearUpgradeQueue` | `Temp_gearUpgradeQueue` | `localStorage` | `Temp` | the items "Upgrade Gear" still has to level; worked through across the navigations to the upgrade page |
 | `girlGearUpgradeQueue` | `Temp_girlGearUpgradeQueue` | `localStorage` | `Temp` | the team girls' items "Level-up gear" still has to level, with the money floor; handed on from the girl page the game returns to after each item reaches level 10 |

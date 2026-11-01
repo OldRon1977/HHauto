@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.5
+// @version      8.21.6
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3143,6 +3143,7 @@ const TK = {
     // stays possible. The id changes on every unequip, so it can only come
     // from the equip response.
     gearSwapLog: "Temp_gearSwapLog",
+    gearReopenArmorTab: "Temp_gearReopenArmorTab",
     // Items "Upgrade Gear" still has to level, worked off across the
     // navigations to the upgrade page.
     gearUpgradeQueue: "Temp_gearUpgradeQueue",
@@ -5902,6 +5903,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.teamTheme] =
     {
         default: "",
         storage: "localStorage",
+        HHType: "Temp"
+    };
+// Set before HH Gear reloads the market; the reloaded page opens My Hero on
+// Boosters, so the gear module clicks the armor tab once and clears it.
+HHStoredVars[HHStoredVarPrefixKey + TK.gearReopenArmorTab] =
+    {
+        storage: "sessionStorage",
         HHType: "Temp"
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.gearSwapLog] =
@@ -29148,6 +29156,28 @@ class EquipmentGear {
             return;
         EquipmentGear.resumeUpgradeQueue(HERO_UPGRADE);
         EquipmentGear.watchTabSwitch();
+        // After an equip the market reloads, and the reloaded page opens My
+        // Hero on Boosters (measured; no URL parameter picks the tab). The
+        // armor tab is where the new stats show and where HH Gear lives.
+        // Like the manual collect-all flags of the events, the key goes only
+        // once the work is done: the tab clicked on this page and open. An
+        // armor tab open without a click is the page before the reload.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.gearReopenArmorTab) === 'true') {
+            const armorTab = $('.my-hero-switch-tab[type="armor"]');
+            if (EquipmentGear.armorTabClicks > 0 && (armorTab.hasClass('active') || EquipmentGear.armorTabClicks >= 10)) {
+                logHHAuto(`Gear: armor tab ${armorTab.hasClass('active') ? 'open' : 'still closed'} after ${EquipmentGear.armorTabClicks} click(s).`);
+                deleteStoredValue(HHStoredVarPrefixKey + TK.gearReopenArmorTab);
+            }
+            else if (armorTab.length > 0 && !armorTab.hasClass('active')) {
+                if (Date.now() - EquipmentGear.armorTabClickedAt >= 1500) {
+                    EquipmentGear.armorTabClickedAt = Date.now();
+                    EquipmentGear.armorTabClicks++;
+                    logHHAuto(`Gear: opening the armor tab after the reload (try ${EquipmentGear.armorTabClicks}).`);
+                    armorTab.first().trigger('click');
+                }
+                return;
+            }
+        }
         // The player's own inventory has its own tab strip
         // (.my-hero-switch-tab: booster / armor / player-stats), separate
         // from the merchant's five .market-menu-switch-tab tabs that Shop.ts
@@ -30333,6 +30363,7 @@ class EquipmentGear {
                 // pause holds on the market through it (WorkPause.ts).
                 $('#HHGearStatus').text(`${getTextForUI('HHGearDoneReload', 'elementText')} ${done}`);
                 logHHAuto(`Gear: finished, ${done} slot(s) changed; reloading.`);
+                setStoredValue(HHStoredVarPrefixKey + TK.gearReopenArmorTab, 'true');
                 safeReload(randomInterval(1200, 1800));
             }
         });
@@ -30344,6 +30375,8 @@ EquipmentGear.running = false;
  *  tick, and `location.href` does not take effect before the next one --
  *  without this the retry budget would be spent waiting for the browser. */
 EquipmentGear.resumeNavigating = false;
+EquipmentGear.armorTabClickedAt = 0;
+EquipmentGear.armorTabClicks = 0;
 EquipmentGear.tabWatcherBound = false;
 EquipmentGear.previewStylesAdded = false;
 EquipmentGear.upgradeObserver = null;
