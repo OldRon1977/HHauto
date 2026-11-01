@@ -41,7 +41,7 @@
 
 import { getHHVars } from '../Helper/HHHelper';
 import { logHHAuto } from '../Utils/LogUtils';
-import { getHHAjax } from '../Utils/Utils';
+import { callGame, getHHAjax } from '../Utils/Utils';
 import { ElementType } from './TeamScoringService';
 
 /** Team-side synergy bonus per girl of that element (game payload). */
@@ -163,38 +163,24 @@ export class TeamEvaluationService {
      * is missing or the call fails, so the caller can fall back.
      */
     static measureTeam(girlIds: number[], battleType: string): Promise<{ caracs: TeamCaracs; totalPower: number } | null> {
-        const ajax = getHHAjax();
-        if (!ajax) return Promise.resolve(null);
-        return new Promise((resolve) => {
-            let settled = false;
-            const done = (value: { caracs: TeamCaracs; totalPower: number } | null) => {
-                if (settled) return;
-                settled = true;
-                resolve(value);
-            };
-            setTimeout(() => done(null), 15000);
-            try {
-                ajax({
-                    action: 'team_calculate_caracs',
-                    girls: girlIds.map(String),
-                    battle_type: battleType,
-                }, (data: any) => {
-                    if (!data || !data.caracs) return done(null);
-                    done({
-                        caracs: {
-                            ego: Number(data.caracs.ego) || 0,
-                            damage: Number(data.caracs.damage) || 0,
-                            defense: Number(data.caracs.defense) || 0,
-                            chance: Number(data.caracs.chance) || 0,
-                        },
-                        totalPower: Number(data.total_power) || 0,
-                    });
-                });
-            } catch (err) {
-                logHHAuto('TeamEvaluationService: team_calculate_caracs failed: ' + err);
-                done(null);
-            }
-        });
+        type Answer = { caracs?: Record<string, unknown>; total_power?: unknown };
+        return callGame<Answer>({
+            action: 'team_calculate_caracs',
+            girls: girlIds.map(String),
+            battle_type: battleType,
+        }, 15000, (err) => logHHAuto('TeamEvaluationService: team_calculate_caracs failed: ' + err))
+            .then((data) => {
+                if (!data || !data.caracs) return null;
+                return {
+                    caracs: {
+                        ego: Number(data.caracs.ego) || 0,
+                        damage: Number(data.caracs.damage) || 0,
+                        defense: Number(data.caracs.defense) || 0,
+                        chance: Number(data.caracs.chance) || 0,
+                    },
+                    totalPower: Number(data.total_power) || 0,
+                };
+            });
     }
 
     /**

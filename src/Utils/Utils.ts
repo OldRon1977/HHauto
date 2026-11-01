@@ -20,6 +20,35 @@ export function getHHAjax() {
     return unsafeWindow.shared?.general?.hh_ajax;
 }
 
+/**
+ * One hh_ajax call as a promise: the answer, or null on the error callback,
+ * on a throw, after `timeoutMs`, or when hh_ajax is missing. `onThrow` sees
+ * the error of a throw before null is returned.
+ *
+ * What the game's hh_ajax does (read in its shared.js, not measured): it
+ * calls the success callback only when the answer carries success: true,
+ * never calls the error callback, and shows its own error popup on a
+ * refusal. So a refused call ends here through the timeout. Detecting the
+ * popup instead (HeroHelper.equipBooster does) or a timeout for the calls
+ * that have none would change what those callers do; see
+ * docs/reference/mechanics-catalogue.md, section 3.
+ */
+export function callGame<T>(params: Record<string, unknown>, timeoutMs: number, onThrow?: (err: unknown) => void): Promise<T | null> {
+    const ajax = getHHAjax();
+    if (!ajax) return Promise.resolve(null);
+    return new Promise(resolve => {
+        let settled = false;
+        const settle = (value: T | null) => { if (!settled) { settled = true; resolve(value); } };
+        setTimeout(() => settle(null), timeoutMs);
+        try {
+            ajax(params, (data: T) => settle(data), () => settle(null));
+        } catch (err) {
+            if (onThrow) onThrow(err);
+            settle(null);
+        }
+    });
+}
+
 export function onAjaxResponse(pattern: any, callback: (response: any, opt: any, xhr: any, evt: any) => any) {
     $(document).ajaxComplete((evt, xhr, opt) => {
         if (opt && opt.data && opt.data.search && ~opt.data.search(pattern)) {

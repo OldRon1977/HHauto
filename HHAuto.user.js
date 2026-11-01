@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.12
+// @version      8.21.13
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -8591,6 +8591,40 @@ function callItOnce(fn) {
 function getHHAjax() {
     var _a, _b;
     return (_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.general) === null || _b === void 0 ? void 0 : _b.hh_ajax;
+}
+/**
+ * One hh_ajax call as a promise: the answer, or null on the error callback,
+ * on a throw, after `timeoutMs`, or when hh_ajax is missing. `onThrow` sees
+ * the error of a throw before null is returned.
+ *
+ * What the game's hh_ajax does (read in its shared.js, not measured): it
+ * calls the success callback only when the answer carries success: true,
+ * never calls the error callback, and shows its own error popup on a
+ * refusal. So a refused call ends here through the timeout. Detecting the
+ * popup instead (HeroHelper.equipBooster does) or a timeout for the calls
+ * that have none would change what those callers do; see
+ * docs/reference/mechanics-catalogue.md, section 3.
+ */
+function callGame(params, timeoutMs, onThrow) {
+    const ajax = getHHAjax();
+    if (!ajax)
+        return Promise.resolve(null);
+    return new Promise(resolve => {
+        let settled = false;
+        const settle = (value) => { if (!settled) {
+            settled = true;
+            resolve(value);
+        } };
+        setTimeout(() => settle(null), timeoutMs);
+        try {
+            ajax(params, (data) => settle(data), () => settle(null));
+        }
+        catch (err) {
+            if (onThrow)
+                onThrow(err);
+            settle(null);
+        }
+    });
 }
 function onAjaxResponse(pattern, callback) {
     $(document).ajaxComplete((evt, xhr, opt) => {
@@ -26247,41 +26281,23 @@ class TeamEvaluationService {
      * is missing or the call fails, so the caller can fall back.
      */
     static measureTeam(girlIds, battleType) {
-        const ajax = getHHAjax();
-        if (!ajax)
-            return Promise.resolve(null);
-        return new Promise((resolve) => {
-            let settled = false;
-            const done = (value) => {
-                if (settled)
-                    return;
-                settled = true;
-                resolve(value);
+        return callGame({
+            action: 'team_calculate_caracs',
+            girls: girlIds.map(String),
+            battle_type: battleType,
+        }, 15000, (err) => logHHAuto('TeamEvaluationService: team_calculate_caracs failed: ' + err))
+            .then((data) => {
+            if (!data || !data.caracs)
+                return null;
+            return {
+                caracs: {
+                    ego: Number(data.caracs.ego) || 0,
+                    damage: Number(data.caracs.damage) || 0,
+                    defense: Number(data.caracs.defense) || 0,
+                    chance: Number(data.caracs.chance) || 0,
+                },
+                totalPower: Number(data.total_power) || 0,
             };
-            setTimeout(() => done(null), 15000);
-            try {
-                ajax({
-                    action: 'team_calculate_caracs',
-                    girls: girlIds.map(String),
-                    battle_type: battleType,
-                }, (data) => {
-                    if (!data || !data.caracs)
-                        return done(null);
-                    done({
-                        caracs: {
-                            ego: Number(data.caracs.ego) || 0,
-                            damage: Number(data.caracs.damage) || 0,
-                            defense: Number(data.caracs.defense) || 0,
-                            chance: Number(data.caracs.chance) || 0,
-                        },
-                        totalPower: Number(data.total_power) || 0,
-                    });
-                });
-            }
-            catch (err) {
-                logHHAuto('TeamEvaluationService: team_calculate_caracs failed: ' + err);
-                done(null);
-            }
         });
     }
     /**
@@ -34178,23 +34194,7 @@ class TeamGear {
     }
     /** One game call as a promise; null on an error or after 20 s. */
     static call(params) {
-        const ajax = getHHAjax();
-        if (!ajax)
-            return Promise.resolve(null);
-        return new Promise(resolve => {
-            let settled = false;
-            const settle = (value) => { if (!settled) {
-                settled = true;
-                resolve(value);
-            } };
-            try {
-                ajax(params, (data) => settle(data), () => settle(null));
-            }
-            catch (_a) {
-                settle(null);
-            }
-            setTimeout(() => settle(null), 20000);
-        });
+        return callGame(params, 20000);
     }
     static describe(item) {
         var _a, _b;
