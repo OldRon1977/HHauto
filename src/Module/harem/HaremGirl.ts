@@ -17,7 +17,7 @@ import { parsePrice } from "../../Helper/PriceHelper";
 import { getStoredValue, setStoredValue, getStoredJSON } from "../../Helper/StorageHelper";
 import { randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { Harem } from "./Harem";
-import { AJAX_IDLE_TIMEOUT_MS, waitForAjaxIdle } from "../../Service/AjaxTracker";
+import { AJAX_IDLE_TIMEOUT_MS, waitForGameAnswer } from "../../Service/AjaxTracker";
 import { gotoPage, safeReload } from "../../Service/PageNavigationService";
 import { displayHHPopUp, fillHHPopUp, maskHHPopUp } from "../../Utils/HHPopup";
 import { logHHAuto } from "../../Utils/LogUtils";
@@ -94,11 +94,10 @@ export class HaremGirl {
     // GAME_DATA_TIMEOUT_MS.
     static GAME_DATA_TIMEOUT_MS = AJAX_IDLE_TIMEOUT_MS;
 
-    static async waitForGameData(): Promise<boolean> {
-        // Measured: the game sends its request in the click handler itself.
-        // The pause only covers a build that defers it.
-        await TimeHelper.sleep(150);
-        return waitForAjaxIdle(HaremGirl.GAME_DATA_TIMEOUT_MS, 250);
+    /** AjaxTracker.waitForGameAnswer with this module's budget, which the
+     *  specs lower to keep the timeout paths fast. */
+    static waitForGameData(): Promise<boolean> {
+        return waitForGameAnswer(HaremGirl.GAME_DATA_TIMEOUT_MS);
     }
 
     /**
