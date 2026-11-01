@@ -14,7 +14,6 @@ import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { TimeHelper, convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, collectAllDelay } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
-import { waitForGameAnswer } from "../../Service/AjaxTracker";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { FeatureGate } from "../../Service/FeatureGate";
@@ -120,28 +119,11 @@ export class PathOfGlory {
 
                 if (buttonsToCollect.length >0)
                 {
-                    async function collectPoGRewards()
-                    {
-                        if (buttonsToCollect.length >0)
-                        {
-                            logHHAuto("Collecting tier : "+buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            // The game ignores a claim click while the previous
-                            // claim is unanswered: with the server answering
-                            // after 3 s, one request went out for five tiers and
-                            // the rest stayed open (measured). Wait for it.
-                            await waitForGameAnswer();
-                            setTimeout(collectPoGRewards, randomInterval(300, 500));
-                        }
-                        else
-                        {
-                            logHHAuto("Path of Glory collection finished.");
-                            setTimer('nextPoGCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        }
-                    }
-                    collectPoGRewards();
+                    RewardHelper.claimInTurn(buttonsToCollect, () => {
+                        logHHAuto("Path of Glory collection finished.");
+                        setTimer('nextPoGCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    });
                     return true;
                 }
                 else

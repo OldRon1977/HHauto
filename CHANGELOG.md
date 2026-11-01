@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.11 - Path of Valor and Path of Glory claim through one loop
+
+#### Internal
+
+- Path of Valor and Path of Glory claim their tiers through one shared loop;
+  each claim still waits for the game's answer before the next.
+
 ### v8.21.10 - The rule for keys that outlive a reload
 
 #### Internal

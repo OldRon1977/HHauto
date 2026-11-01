@@ -32,6 +32,7 @@ import { EventModule } from "../Module/Events/EventModule";
 import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
 import { queryStringGetParam } from "./UrlHelper";
 import { closeGirlRewardPopupIfAny, closeRewardPopupIfAny } from "./RewardPopup";
+import { waitForGameAnswer } from "../Service/AjaxTracker";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
@@ -313,6 +314,28 @@ export class RewardHelper {
             RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
         }
     }
+    /**
+     * Claim the given tier buttons one after another, then call onDone.
+     *
+     * The game ignores a claim click while the previous claim is unanswered:
+     * with the server answering after 3 s, one request went out for five
+     * tiers and the rest stayed open (measured on Path of Valor). So each
+     * click waits for its answer before the next one. Path of Valor and Path
+     * of Glory claim this way; the other reward tracks pace their clicks with
+     * fixed pauses (docs/reference/mechanics-catalogue.md, section 6).
+     */
+    static async claimInTurn(buttons: HTMLElement[], onDone: () => void): Promise<void> {
+        if (buttons.length > 0) {
+            logHHAuto("Collecting tier : " + buttons[0].getAttribute('tier'));
+            buttons[0].click();
+            buttons.shift();
+            await waitForGameAnswer();
+            setTimeout(() => { RewardHelper.claimInTurn(buttons, onDone); }, randomInterval(300, 500));
+        } else {
+            onDone();
+        }
+    }
+
     /** RewardPopup.closeRewardPopupIfAny; kept here so spies on RewardHelper see the call. */
     static closeRewardPopupIfAny(logging=true, popupId='') {
         return closeRewardPopupIfAny(logging, popupId);
