@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.7
+// @version      8.21.8
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -12859,6 +12859,8 @@ class BossBang {
 BossBang.EVENT_SELECTOR = '#contains_all #events #boss_bang';
 // One claim button per chest that can be opened (issue #1455).
 BossBang.PROGRESS_REWARD_SELECTOR = 'button[rel="claim"].progress-bar-claim-reward:not([disabled]):visible';
+// Any .blue_button_L, not only a button -- the reason this is not
+// RewardPopup.closeRewardPopupIfAny (see the header of Helper/RewardPopup.ts).
 BossBang.REWARD_POPUP_OK_SELECTOR = '#rewards_popup .blue_button_L:not([disabled]):visible';
 
 ;// ./src/Module/Events/CumbackContests.ts
@@ -14728,9 +14730,9 @@ class SultryMysteries {
     /**
      * Close the reward popup the game shows after each opened square.
      *
-     * Deliberately not RewardHelper.closeRewardPopupIfAny: RewardHelper
-     * imports EventModule, which imports this module, so using it here
-     * would add an import cycle (ARCH-001).
+     * Not RewardPopup.closeRewardPopupIfAny: that one hands a blue
+     * redirect-to-harem button over to the purple one, this one clicks it
+     * (see the header of Helper/RewardPopup.ts).
      */
     static closeSquareRewardPopup() {
         const rewardQuery = 'div#rewards_popup button.blue_button_L:not([disabled]):visible';
@@ -16172,6 +16174,54 @@ class LoveRaidManager {
     }
 }
 
+;// ./src/Helper/RewardPopup.ts
+// RewardPopup.ts -- Close the game's reward popup.
+//
+// The game shows a claimed reward in `#rewards_popup` (or a popup of the
+// page's own, passed as popupId) with a blue OK button; a won girl brings a
+// purple button beside a blue `#redirect-to-harem`, and the blue one would
+// leave the page for the harem.
+//
+// These two functions live apart from RewardHelper on purpose. RewardHelper
+// imports EventModule and LoveRaidManager, so a module that EventModule
+// reaches cannot import it without closing an import cycle (ADR-008); this
+// file imports only the log. RewardHelper keeps its static methods and hands
+// over to these, so the specs that spy on RewardHelper still see every call.
+//
+// Three modules close the popup with code of their own, and each does
+// something these functions do not: Quest clicks the first blue or purple
+// button, Sultry Mysteries clicks a blue redirect-to-harem as well, Boss Bang
+// takes any `.blue_button_L`, not only a button. Moving them here would
+// change what they click.
+//
+// Depends on: LogUtils
+// Used by: RewardHelper.ts
+
+function closeRewardPopupIfAny(logging = true, popupId = '') {
+    const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.blue_button_L:not([disabled]):visible`;
+    if ($(rewardQuery).length > 0) {
+        if ($(rewardQuery).attr('id') === 'redirect-to-harem') {
+            logHHAuto("Redirect to harem button detected.");
+            return closeGirlRewardPopupIfAny(logging, popupId);
+        }
+        if (logging)
+            logHHAuto(`Close reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
+        $(rewardQuery).trigger('click');
+        return true;
+    }
+    return false;
+}
+function closeGirlRewardPopupIfAny(logging = true, popupId = '') {
+    const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
+    if ($(rewardQuery).length > 0) {
+        if (logging)
+            logHHAuto(`Close girl reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
+        $(rewardQuery).trigger('click');
+        return true;
+    }
+    return false;
+}
+
 ;// ./src/Helper/RewardHelper.ts
 var RewardHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -16203,6 +16253,7 @@ var RewardHelper_awaiter = (undefined && undefined.__awaiter) || function (thisA
 //
 // Used by: Event modules (progress tracking), PlaceOfPower, Season,
 //          Troll module (post-fight navigation)
+
 
 
 
@@ -16494,19 +16545,9 @@ class RewardHelper {
             RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
         }
     }
+    /** RewardPopup.closeRewardPopupIfAny; kept here so spies on RewardHelper see the call. */
     static closeRewardPopupIfAny(logging = true, popupId = '') {
-        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.blue_button_L:not([disabled]):visible`;
-        if ($(rewardQuery).length > 0) {
-            if ($(rewardQuery).attr('id') === 'redirect-to-harem') {
-                logHHAuto("Redirect to harem button detected.");
-                return RewardHelper.closeGirlRewardPopupIfAny(logging, popupId);
-            }
-            if (logging)
-                logHHAuto(`Close reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
-            $(rewardQuery).trigger('click');
-            return true;
-        }
-        return false;
+        return closeRewardPopupIfAny(logging, popupId);
     }
     /**
      * Close the reward popup of a claim whose close reloads the page, and make
@@ -16549,15 +16590,9 @@ class RewardHelper {
             safeReload();
         });
     }
+    /** RewardPopup.closeGirlRewardPopupIfAny. */
     static closeGirlRewardPopupIfAny(logging = true, popupId = '') {
-        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
-        if ($(rewardQuery).length > 0) {
-            if (logging)
-                logHHAuto(`Close girl reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
-            $(rewardQuery).trigger('click');
-            return true;
-        }
-        return false;
+        return closeGirlRewardPopupIfAny(logging, popupId);
     }
     static ObserveAndGetGirlRewards() {
         const inCaseTimer = setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 60000); //in case of issue
@@ -22939,9 +22974,9 @@ class QuestHelper {
         // A rewards popup (e.g. a girl earned at the end of a quest) overlays
         // the quest UI; the proceed button underneath then never advances the
         // quest and the loop repeats forever. Claim/close it before looking
-        // for a proceed button. Selectors mirror RewardHelper.closeRewardPopupIfAny
-        // / closeGirlRewardPopupIfAny; importing RewardHelper here would add
-        // new import cycles (RewardHelper -> EventModule -> ... -> Quest).
+        // for a proceed button. Not RewardPopup.closeRewardPopupIfAny: this
+        // clicks the first blue or purple button, which that one does not
+        // (see the header of Helper/RewardPopup.ts).
         const rewardConfirm = $('div#rewards_popup button.blue_button_L:not([disabled]):visible, div#rewards_popup button.purple_button_L:not([disabled]):visible');
         if (rewardConfirm.length > 0) {
             logHHAuto("Close reward popup blocking the quest.");

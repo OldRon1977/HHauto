@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.8 - Reward popup closer in a file of its own
+
+#### Internal
+
+- Closing the reward popup lives in its own file, which any module can import
+  without an import cycle; what it clicks is unchanged.
+
 ### v8.21.7 - One wait for the game's answer
 
 #### Internal

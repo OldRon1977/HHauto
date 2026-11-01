@@ -266,9 +266,9 @@ export class QuestHelper {
         // A rewards popup (e.g. a girl earned at the end of a quest) overlays
         // the quest UI; the proceed button underneath then never advances the
         // quest and the loop repeats forever. Claim/close it before looking
-        // for a proceed button. Selectors mirror RewardHelper.closeRewardPopupIfAny
-        // / closeGirlRewardPopupIfAny; importing RewardHelper here would add
-        // new import cycles (RewardHelper -> EventModule -> ... -> Quest).
+        // for a proceed button. Not RewardPopup.closeRewardPopupIfAny: this
+        // clicks the first blue or purple button, which that one does not
+        // (see the header of Helper/RewardPopup.ts).
         const rewardConfirm = $('div#rewards_popup button.blue_button_L:not([disabled]):visible, div#rewards_popup button.purple_button_L:not([disabled]):visible');
         if (rewardConfirm.length > 0) {
             logHHAuto("Close reward popup blocking the quest.");
