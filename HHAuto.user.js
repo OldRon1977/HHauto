@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.8
+// @version      8.21.9
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -9322,6 +9322,52 @@ function parsePrice(princeStr) {
     return ret;
 }
 
+;// ./src/Helper/TabHelper.ts
+var TabHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// TabHelper.ts -- Open a tab of the game and wait until it shows its data.
+//
+// The game loads a tab's content with a request of its own when the tab is
+// activated, and keeps asking on every activation until the first answer is
+// in. Measured on the girl page (#1915): a click on a tab that is shown but
+// still loading made the game render its data twice. So a shown tab is not
+// clicked again, and the wait is for the rendered data, not for a pause.
+//
+// The caller says what "shown" and "loaded" mean on its page. Anything to do
+// after the data is there (the girl page lets follow-up requests settle)
+// stays with the caller.
+//
+// Places that open a tab differently, and why they are not on this:
+// docs/reference/mechanics-catalogue.md, section 4.
+//
+// Depends on: TimeHelper, LogUtils
+// Used by: HaremGirl.ts
+
+
+/**
+ * Click the tab unless it is shown, then wait up to `timeoutMs` for its data.
+ * False, with a log line, when the data does not arrive.
+ */
+function openTab(label, isShown, click, isLoaded, timeoutMs) {
+    return TabHelper_awaiter(this, void 0, void 0, function* () {
+        if (!isShown())
+            click();
+        const loaded = yield TimeHelper.waitFor(isLoaded, timeoutMs);
+        if (!loaded) {
+            logHHAuto(`Tab ${label} still loading after ${timeoutMs}ms`);
+            return false;
+        }
+        return true;
+    });
+}
+
 ;// ./src/Module/Market.pure.ts
 // Market.pure.ts -- parsing and validation of the "Boosters to buy" setting.
 //
@@ -9619,6 +9665,7 @@ var HaremGirl_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 
 
 
+
 class HaremGirl {
     static getCurrentGirl() {
         // Only called on harem pages where the game defines window.girl.
@@ -9662,13 +9709,9 @@ class HaremGirl {
     // again; the wait is for its rendered data.
     static openTab(haremItem) {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
-            if (!$('#' + haremItem).is(':visible'))
-                HaremGirl.switchTabs(haremItem);
-            const loaded = yield TimeHelper.waitFor(() => HaremGirl.isTabLoaded(haremItem), HaremGirl.GAME_DATA_TIMEOUT_MS);
-            if (!loaded) {
-                logHHAuto(`Tab ${haremItem} still loading after ${HaremGirl.GAME_DATA_TIMEOUT_MS}ms`);
+            const loaded = yield openTab(haremItem, () => $('#' + haremItem).is(':visible'), () => HaremGirl.switchTabs(haremItem), () => HaremGirl.isTabLoaded(haremItem), HaremGirl.GAME_DATA_TIMEOUT_MS);
+            if (!loaded)
                 return false;
-            }
             // Rendering also enables the buttons; let follow-up requests settle.
             yield HaremGirl.waitForGameData();
             return true;

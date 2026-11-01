@@ -17,6 +17,7 @@ import { parsePrice } from "../../Helper/PriceHelper";
 import { getStoredValue, setStoredValue, getStoredJSON } from "../../Helper/StorageHelper";
 import { randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { Harem } from "./Harem";
+import { openTab } from "../../Helper/TabHelper";
 import { AJAX_IDLE_TIMEOUT_MS, waitForGameAnswer } from "../../Service/AjaxTracker";
 import { gotoPage, safeReload } from "../../Service/PageNavigationService";
 import { displayHHPopUp, fillHHPopUp, maskHHPopUp } from "../../Utils/HHPopup";
@@ -124,12 +125,12 @@ export class HaremGirl {
     // to the AjaxTracker. So a tab that is already shown is not clicked
     // again; the wait is for its rendered data.
     static async openTab(haremItem: string): Promise<boolean> {
-        if (!$('#' + haremItem).is(':visible')) HaremGirl.switchTabs(haremItem);
-        const loaded = await TimeHelper.waitFor(() => HaremGirl.isTabLoaded(haremItem), HaremGirl.GAME_DATA_TIMEOUT_MS);
-        if (!loaded) {
-            logHHAuto(`Tab ${haremItem} still loading after ${HaremGirl.GAME_DATA_TIMEOUT_MS}ms`);
-            return false;
-        }
+        const loaded = await openTab(haremItem,
+            () => $('#' + haremItem).is(':visible'),
+            () => HaremGirl.switchTabs(haremItem),
+            () => HaremGirl.isTabLoaded(haremItem),
+            HaremGirl.GAME_DATA_TIMEOUT_MS);
+        if (!loaded) return false;
         // Rendering also enables the buttons; let follow-up requests settle.
         await HaremGirl.waitForGameData();
         return true;
