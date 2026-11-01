@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.21.12 - Restarting the loop through one function
+
+#### Internal
+
+- Six places that switch the auto-loop back on and start it do so through one
+  function; the delay is unchanged.
+
 ### v8.21.11 - Path of Valor and Path of Glory claim through one loop
 
 #### Internal

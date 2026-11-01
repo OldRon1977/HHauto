@@ -21,7 +21,7 @@ import {
     AJAX_IDLE_TIMEOUT_MS,
     AJAX_IDLE_SETTLE_MS,
 } from "../Service/AjaxTracker";
-import { kickAutoLoop } from "../Service/AutoLoopKick";
+import { resumeAutoLoop } from "../Service/AutoLoopResume";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { FeatureGate } from "../Service/FeatureGate";
@@ -347,8 +347,7 @@ export class PlaceOfPower {
             }
             logHHAuto("build popToStart : "+PopToStart);
             setStoredValue(HHStoredVarPrefixKey+TK.PopToStart, JSON.stringify(PopToStart));
-            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
-            kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
+            resumeAutoLoop();
             return false;
         }
     }

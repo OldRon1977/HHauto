@@ -20,13 +20,13 @@
 // Used by: Event modules (progress tracking), PlaceOfPower, Season,
 //          Troll module (post-fight navigation)
 import { gotoPage, safeReload } from "../Service/PageNavigationService";
-import { kickAutoLoop } from "../Service/AutoLoopKick";
+import { resumeAutoLoop } from "../Service/AutoLoopResume";
 import { logHHAuto } from "../Utils/LogUtils";
 import { parsePrice } from "./PriceHelper";
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
 import { NumberHelper } from "./NumberHelper";
-import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
+import { getStoredJSON, setStoredValue } from "./StorageHelper";
 import { TimeHelper, randomInterval } from "./TimeHelper";
 import { EventModule } from "../Module/Events/EventModule";
 import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
@@ -371,8 +371,7 @@ export class RewardHelper {
         }
         if (!closed) {
             logHHAuto(`Reward popup did not appear within ${RELOADING_POPUP_POLLS * RELOADING_POPUP_POLL_MS / 1000}s, restarting the loop.`);
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-            kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+            resumeAutoLoop();
             return;
         }
         await TimeHelper.sleep(RELOADING_POPUP_RELOAD_WAIT_MS);
