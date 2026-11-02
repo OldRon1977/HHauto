@@ -11,50 +11,45 @@ Older entries below were migrated 1:1 from `README.md`.
 
 #### Internal
 
-- Team gear and the team calculation send their game calls through one
-  function; answers, timeouts and results are unchanged.
+- Team gear and the team calculation send their game calls through one function.
 
 ### v8.21.12 - Restarting the loop through one function
 
 #### Internal
 
-- Six places that switch the auto-loop back on and start it do so through one
-  function; the delay is unchanged.
+- Six places restart the auto-loop through one function.
 
 ### v8.21.11 - Path of Valor and Path of Glory claim through one loop
 
 #### Internal
 
-- Path of Valor and Path of Glory claim their tiers through one shared loop;
-  each claim still waits for the game's answer before the next.
+- Path of Valor and Path of Glory claim their tiers through one shared loop.
 
 ### v8.21.10 - The rule for keys that outlive a reload
 
 #### Internal
 
 - The storage key list states when a key that carries work across a reload is
-  set and when it is cleared. No code changed.
+  set and cleared.
 
 ### v8.21.9 - Opening a tab through one helper
 
 #### Internal
 
-- The girl page opens its leveler tabs through a shared helper; what it clicks
-  and how long it waits are unchanged.
+- The girl page opens its leveler tabs through a shared helper.
 
 ### v8.21.8 - Reward popup closer in a file of its own
 
 #### Internal
 
-- Closing the reward popup lives in its own file, which any module can import
-  without an import cycle; what it clicks is unchanged.
+- Closing the reward popup lives in a file of its own.
 
 ### v8.21.7 - One wait for the game's answer
 
 #### Internal
 
 - The girl page waits for the game's answer through the same function as the
-  event tracks; timing and limits are unchanged.
+  event tracks.
 
 ### v8.21.6 - HH Gear comes back on My Hero's Equipment tab
 
