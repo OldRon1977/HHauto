@@ -15,8 +15,11 @@ Older entries below were migrated 1:1 from `README.md`.
   applies, girls whose reset would cross it keep their skills.
 - Why: the team calculation is based on the girls' stats, and skills and items
   are part of them. A girl who holds them today was preferred even where
-  another girl would be stronger with the same skills and items. After the
-  reset the calculation compares the girls themselves.
+  another girl would be stronger with the same skills and items. This is also
+  why the team calculation sometimes did not pick the best team even after
+  Unequip All: that took the items off, but the skills stayed on the girls and
+  skewed the ranking. After the reset the calculation compares the girls
+  themselves.
 - Every rubric now scores each candidate as she will be after Stuff Team:
   - Tier 2 (stats): the flat bonus on the two other stats and the percent
     bonus on her class stat are added to her stats.
