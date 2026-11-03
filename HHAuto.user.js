@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.21.13
+// @version      8.22.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -839,6 +839,15 @@ HHAuto_ToolTips.en['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "No 
 HHAuto_ToolTips.en['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} open fights against {opponents} opponents, read {minutes} min ago", tooltip: "" };
 HHAuto_ToolTips.en['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "The hexagons do not show the saved team. Stuff Team equips the hexagons, the league fights the saved team. Continue?", tooltip: "" };
 HHAuto_ToolTips.en['teamSelGearState'] = { version: "8.14.0", elementText: "Team gear: {pieces} pieces", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSkillNote'] = { version: "8.22.0", elementText: "Includes the skills Stuff Team would give: Tier 2 stats, Tier 3 trait bonus, Tier 4/5 in the fight.", tooltip: "" };
+HHAuto_ToolTips.en['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Takes the gear off every girl and resets every girl's skills, so the calculation compares the girls themselves. Costs money, never kobans." };
+HHAuto_ToolTips.en['prepareCalcExplain'] = { version: "8.22.0", elementText: "Takes the gear off every girl and resets the skills of every girl that has any. The bulbs come back to you. A reset costs money (5M per skill point), never kobans. Girls whose reset would take your money below the limit keep their skills.", tooltip: "" };
+HHAuto_ToolTips.en['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Why: gear and bulbs move to the new team afterwards, so a girl must not win the calculation only because she holds them today. After the reset every rubric scores each candidate as she will be after Stuff Team. Then: calculate, apply, Level-up team, Stuff Team, Best gear.", tooltip: "" };
+HHAuto_ToolTips.en['prepareCalcState'] = { version: "8.22.0", elementText: "Gear on {gear} girls, skills on {skills} girls", tooltip: "" };
+HHAuto_ToolTips.en['prepareCalcBack'] = { version: "8.22.0", elementText: "Back", tooltip: "" };
+HHAuto_ToolTips.en['prepareCalcUnequip'] = { version: "8.22.0", elementText: "Taking the gear off all girls...", tooltip: "" };
+HHAuto_ToolTips.en['prepareCalcResetting'] = { version: "8.22.0", elementText: "Resetting skills: {done}/{total}", tooltip: "" };
+HHAuto_ToolTips.en['prepareCalcDone'] = { version: "8.22.0", elementText: "{done} girls reset, {kept} kept for the money limit. Reloading...", tooltip: "" };
 HHAuto_ToolTips.en['teamSelSaved'] = { version: "8.14.0", elementText: "Hexagons = saved team", tooltip: "" };
 HHAuto_ToolTips.en['teamSelUnsaved'] = { version: "8.14.0", elementText: "Hexagons differ from the saved team", tooltip: "" };
 HHAuto_ToolTips.en['teamSelMeasuring'] = { version: "8.14.0", elementText: "Game calculation {done}/{total} ...", tooltip: "" };
@@ -1416,6 +1425,15 @@ HHAuto_ToolTips.fr['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Pas
 HHAuto_ToolTips.fr['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} combats restants contre {opponents} adversaires, lu il y a {minutes} min", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Les hexagones ne montrent pas l'équipe enregistrée. L'équipement vise les hexagones, la ligue combat avec l'équipe enregistrée. Continuer ?", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelGearState'] = { version: "8.14.0", elementText: "Équipement de l'équipe : {pieces} pièces", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSkillNote'] = { version: "8.22.0", elementText: "Inclut les compétences que Stuff Team donnerait : stats du Tier 2, bonus de trait du Tier 3, Tier 4/5 en combat.", tooltip: "" };
+HHAuto_ToolTips.fr['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Retire l'équipement de toutes les filles et réinitialise les compétences de toutes les filles, pour que le calcul compare les filles elles-mêmes. Coûte de l'argent, jamais de kobans." };
+HHAuto_ToolTips.fr['prepareCalcExplain'] = { version: "8.22.0", elementText: "Retire l'équipement de toutes les filles et réinitialise les compétences de chaque fille qui en a. Les ampoules vous sont rendues. Une réinitialisation coûte de l'argent (5M par point de compétence), jamais de kobans. Les filles dont la réinitialisation ferait passer votre argent sous la limite gardent leurs compétences.", tooltip: "" };
+HHAuto_ToolTips.fr['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Pourquoi : l'équipement et les ampoules passent ensuite à la nouvelle équipe, une fille ne doit donc pas gagner le calcul seulement parce qu'elle les porte aujourd'hui. Après la réinitialisation, chaque rubrique évalue chaque candidate telle qu'elle sera après Stuff Team. Ensuite : calculer, appliquer, Level-up team, Stuff Team, Best gear.", tooltip: "" };
+HHAuto_ToolTips.fr['prepareCalcState'] = { version: "8.22.0", elementText: "Équipement sur {gear} filles, compétences sur {skills} filles", tooltip: "" };
+HHAuto_ToolTips.fr['prepareCalcBack'] = { version: "8.22.0", elementText: "Retour", tooltip: "" };
+HHAuto_ToolTips.fr['prepareCalcUnequip'] = { version: "8.22.0", elementText: "Retrait de l'équipement de toutes les filles...", tooltip: "" };
+HHAuto_ToolTips.fr['prepareCalcResetting'] = { version: "8.22.0", elementText: "Réinitialisation des compétences : {done}/{total}", tooltip: "" };
+HHAuto_ToolTips.fr['prepareCalcDone'] = { version: "8.22.0", elementText: "{done} filles réinitialisées, {kept} gardées à cause de la limite d'argent. Rechargement...", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelSaved'] = { version: "8.14.0", elementText: "Hexagones = équipe enregistrée", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelUnsaved'] = { version: "8.14.0", elementText: "Les hexagones diffèrent de l'équipe enregistrée", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelMeasuring'] = { version: "8.14.0", elementText: "Calcul du jeu {done}/{total} ...", tooltip: "" };
@@ -1994,6 +2012,15 @@ HHAuto_ToolTips.de['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Noc
 HHAuto_ToolTips.de['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} offene Kämpfe gegen {opponents} Gegner, vor {minutes} min gelesen", tooltip: "" };
 HHAuto_ToolTips.de['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Die Sechsecke zeigen nicht das gespeicherte Team. Team bestücken rüstet die Sechsecke aus, gekämpft wird mit dem gespeicherten Team. Fortfahren?", tooltip: "" };
 HHAuto_ToolTips.de['teamSelGearState'] = { version: "8.14.0", elementText: "Ausrüstung im Team: {pieces} Teile", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSkillNote'] = { version: "8.22.0", elementText: "Enthält die Skills, die Stuff Team geben würde: Tier-2-Werte, Tier-3-Merkmalsbonus, Tier 4/5 im Kampf.", tooltip: "" };
+HHAuto_ToolTips.de['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Nimmt allen Mädchen die Ausrüstung ab und setzt bei allen die Skills zurück, damit die Berechnung die Mädchen selbst vergleicht. Kostet Geld, nie Kobans." };
+HHAuto_ToolTips.de['prepareCalcExplain'] = { version: "8.22.0", elementText: "Nimmt allen Mädchen die Ausrüstung ab und setzt bei jedem Mädchen mit Skills die Skills zurück. Die Bulbs bekommst du zurück. Ein Reset kostet Geld (5M je Skillpunkt), nie Kobans. Mädchen, deren Reset dein Geld unter die Grenze bringen würde, behalten ihre Skills.", tooltip: "" };
+HHAuto_ToolTips.de['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Wozu: Ausrüstung und Bulbs wandern danach ins neue Team, also darf ein Mädchen die Berechnung nicht nur gewinnen, weil sie sie heute trägt. Nach dem Reset bewertet jede Rubrik jede Kandidatin so, wie sie nach Stuff Team sein wird. Danach: berechnen, übernehmen, Level-up team, Stuff Team, Best gear.", tooltip: "" };
+HHAuto_ToolTips.de['prepareCalcState'] = { version: "8.22.0", elementText: "Ausrüstung an {gear} Mädchen, Skills an {skills} Mädchen", tooltip: "" };
+HHAuto_ToolTips.de['prepareCalcBack'] = { version: "8.22.0", elementText: "Zurück", tooltip: "" };
+HHAuto_ToolTips.de['prepareCalcUnequip'] = { version: "8.22.0", elementText: "Nehme allen Mädchen die Ausrüstung ab...", tooltip: "" };
+HHAuto_ToolTips.de['prepareCalcResetting'] = { version: "8.22.0", elementText: "Setze Skills zurück: {done}/{total}", tooltip: "" };
+HHAuto_ToolTips.de['prepareCalcDone'] = { version: "8.22.0", elementText: "{done} Mädchen zurückgesetzt, {kept} wegen der Geldgrenze behalten. Lade neu...", tooltip: "" };
 HHAuto_ToolTips.de['teamSelSaved'] = { version: "8.14.0", elementText: "Sechsecke = gespeichertes Team", tooltip: "" };
 HHAuto_ToolTips.de['teamSelUnsaved'] = { version: "8.14.0", elementText: "Sechsecke weichen vom gespeicherten Team ab", tooltip: "" };
 HHAuto_ToolTips.de['teamSelMeasuring'] = { version: "8.14.0", elementText: "Nachrechnung durch das Spiel {done}/{total} ...", tooltip: "" };
@@ -2571,6 +2598,15 @@ HHAuto_ToolTips.es['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Aú
 HHAuto_ToolTips.es['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} combates pendientes contra {opponents} rivales, leído hace {minutes} min", tooltip: "" };
 HHAuto_ToolTips.es['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Los hexágonos no muestran el equipo guardado. Equipar actúa sobre los hexágonos, la liga lucha con el equipo guardado. ¿Continuar?", tooltip: "" };
 HHAuto_ToolTips.es['teamSelGearState'] = { version: "8.14.0", elementText: "Equipo de la escuadra: {pieces} piezas", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSkillNote'] = { version: "8.22.0", elementText: "Incluye las habilidades que daría Stuff Team: stats del Tier 2, bonus de rasgo del Tier 3, Tier 4/5 en combate.", tooltip: "" };
+HHAuto_ToolTips.es['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Quita el equipo a todas las chicas y reinicia las habilidades de todas, para que el cálculo compare a las chicas mismas. Cuesta dinero, nunca kobans." };
+HHAuto_ToolTips.es['prepareCalcExplain'] = { version: "8.22.0", elementText: "Quita el equipo a todas las chicas y reinicia las habilidades de cada chica que las tenga. Las bombillas te son devueltas. Un reinicio cuesta dinero (5M por punto de habilidad), nunca kobans. Las chicas cuyo reinicio dejaría tu dinero por debajo del límite conservan sus habilidades.", tooltip: "" };
+HHAuto_ToolTips.es['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Por qué: el equipo y las bombillas pasan después al nuevo equipo, así que una chica no debe ganar el cálculo solo porque hoy los lleva. Tras el reinicio cada rúbrica evalúa a cada candidata como será después de Stuff Team. Después: calcular, aplicar, Level-up team, Stuff Team, Best gear.", tooltip: "" };
+HHAuto_ToolTips.es['prepareCalcState'] = { version: "8.22.0", elementText: "Equipo en {gear} chicas, habilidades en {skills} chicas", tooltip: "" };
+HHAuto_ToolTips.es['prepareCalcBack'] = { version: "8.22.0", elementText: "Volver", tooltip: "" };
+HHAuto_ToolTips.es['prepareCalcUnequip'] = { version: "8.22.0", elementText: "Quitando el equipo a todas las chicas...", tooltip: "" };
+HHAuto_ToolTips.es['prepareCalcResetting'] = { version: "8.22.0", elementText: "Reiniciando habilidades: {done}/{total}", tooltip: "" };
+HHAuto_ToolTips.es['prepareCalcDone'] = { version: "8.22.0", elementText: "{done} chicas reiniciadas, {kept} conservadas por el límite de dinero. Recargando...", tooltip: "" };
 HHAuto_ToolTips.es['teamSelSaved'] = { version: "8.14.0", elementText: "Hexágonos = equipo guardado", tooltip: "" };
 HHAuto_ToolTips.es['teamSelUnsaved'] = { version: "8.14.0", elementText: "Los hexágonos difieren del equipo guardado", tooltip: "" };
 HHAuto_ToolTips.es['teamSelMeasuring'] = { version: "8.14.0", elementText: "Cálculo del juego {done}/{total} ...", tooltip: "" };
@@ -25640,7 +25676,7 @@ Spreadsheet.POPUP_SELECTOR = '#blessings_popup .blessings_wrapper';
 // them via AJAX on the Home page and caches the result in localStorage.
 // The team builder reads from cache to make blessing-aware decisions.
 //
-// Used by: AutoLoopPageHandlers.ts (Home page), TeamBuilderService.ts
+// Used by: AutoLoopPageHandlers.ts (Home page), TeamBuilderService.ts, TeamSelectionPopup.ts
 //
 
 
@@ -33117,6 +33153,165 @@ class BlessingForecast {
     }
 }
 
+;// ./src/Service/SkillModelService.ts
+// SkillModelService.ts -- The girls' skill tiers as the team calculation
+// counts them: every candidate is scored as if Stuff Team had filled her
+// skills, whatever she holds today.
+//
+// Why: bulbs move between girls (Stuff Team resets other girls and spends
+// them on the team), so a girl who holds bulbs today must not beat one who
+// does not. "Prepare for Calculation" resets everyone; this model then adds
+// back what Stuff Team would give the team. A girl who still holds her
+// skills gets only what she is missing, so the model also works without
+// the reset.
+//
+// Measured on a live account (team_calculate_caracs, girl_skills_list):
+// - Tier 1 (income) does not touch the stats.
+// - Tier 2 is in the girl's caracs: per point up to five +70 on each of the
+//   two caracs that are not her class carac (node 5, which Stuff Team takes
+//   first), then +1 % of her class carac per point (node 4). The league
+//   blessing multiplies both (factor 14.831 = 10.593 x 1.4).
+// - Tier 3 is NOT in the girl's caracs but in the team's damage: per point
+//   +0.2 % for every teammate who shares her trait value, from the first
+//   match on (no threshold), the bonuses of all girls summed and applied
+//   once: damage x (1 + sum). Model against measurement within 0.7 % over
+//   six teams and three skill states. The trait is the one of her element
+//   pair; teammates of any element count.
+// - Tier 4 and 5 act in the fight only; BDSMHelper reads their points
+//   (tier 4 of all girls, tier 5 of the leader).
+// - Points per tier: mythic 6/10/5/5/5, legendary 6/9/4/4/4. A tier needs
+//   grade t and the level of TIER_LEVEL.
+//
+// Depends on: TeamScoringService.ts (GirlData, Tier-3 category)
+// Used by: TeamSelectionPopup.ts, TeamModule.ts
+
+const MAX_POINTS = {
+    mythic: { 1: 6, 2: 10, 3: 5, 4: 5, 5: 5 },
+    legendary: { 1: 6, 2: 9, 3: 4, 4: 4, 5: 4 },
+};
+const TIER_LEVEL = { 1: 10, 2: 200, 3: 350, 4: 500, 5: 650 };
+const FULL_LEVEL = 750;
+/** Tier 2: the flat node first (5 points, +70 per point), then the percent node. */
+const T2_FLAT_POINTS = 5;
+const T2_FLAT_PER_POINT = 70;
+const T2_PERCENT_PER_POINT = 0.01;
+/** Tier 3, attack node: per point and per matching teammate. */
+const T3_PER_POINT = 0.002;
+/** The game charges this much money per skill point for a reset (155M for a full mythic). */
+const RESET_COST_PER_POINT = 5000000;
+class SkillModelService {
+    static prepareSummary(raw) {
+        var _a;
+        let withGear = 0;
+        const skilled = [];
+        for (const g of raw) {
+            const armor = g.armor;
+            if (Array.isArray(armor) ? armor.length > 0 : !!armor && Object.keys(armor).length > 0)
+                withGear++;
+            const tiers = Object.values(((_a = g.skill_tiers_info) !== null && _a !== void 0 ? _a : {}));
+            const points = tiers.reduce((sum, t) => sum + (Number(t === null || t === void 0 ? void 0 : t.skill_points_used) || 0), 0);
+            if (points > 0)
+                skilled.push({ id: Number(g.id_girl), points });
+        }
+        skilled.sort((a, b) => b.points - a.points);
+        return { withGear, withSkills: skilled.length, skilled, points: skilled.reduce((s, g) => s + g.points, 0) };
+    }
+    static maxPoints(rarity, tier) {
+        var _a, _b;
+        return (_b = (_a = MAX_POINTS[rarity]) === null || _a === void 0 ? void 0 : _a[tier]) !== null && _b !== void 0 ? _b : 0;
+    }
+    static isUnlocked(girl, tier, horizon) {
+        if (SkillModelService.maxPoints(girl.rarity, tier) === 0)
+            return false;
+        const level = horizon === 'full' ? FULL_LEVEL : Number(girl.level) || 0;
+        const grades = horizon === 'full' ? Number(girl.nb_grades) || 0 : Number(girl.graded) || 0;
+        return level >= TIER_LEVEL[tier] && grades >= tier;
+    }
+    static currentPoints(girl, tier) {
+        var _a;
+        const info = girl.skill_tiers_info;
+        return Number((_a = info === null || info === void 0 ? void 0 : info[tier]) === null || _a === void 0 ? void 0 : _a.skill_points_used) || 0;
+    }
+    /** Points the girl holds after Stuff Team: the maximum of every unlocked tier. */
+    static targetPoints(girl, tier, horizon) {
+        const current = SkillModelService.currentPoints(girl, tier);
+        const target = SkillModelService.isUnlocked(girl, tier, horizon) ? SkillModelService.maxPoints(girl.rarity, tier) : 0;
+        return Math.max(current, target);
+    }
+    /**
+     * The girl with the Tier-2 stats she is missing added to her caracs.
+     * `blessing` is the multiplier her league blessing gives in the week the
+     * caracs belong to (1 without blessing).
+     */
+    static withTier2(girl, horizon, blessing) {
+        var _a;
+        const cls = Number(girl.class);
+        if (cls !== 1 && cls !== 2 && cls !== 3)
+            return girl;
+        const current = SkillModelService.currentPoints(girl, 2);
+        const target = SkillModelService.targetPoints(girl, 2, horizon);
+        if (target <= current)
+            return girl;
+        const flatPoints = Math.min(target, T2_FLAT_POINTS) - Math.min(current, T2_FLAT_POINTS);
+        const percentPoints = Math.max(0, target - T2_FLAT_POINTS) - Math.max(0, current - T2_FLAT_POINTS);
+        const src = (_a = girl.caracs) !== null && _a !== void 0 ? _a : { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
+        const caracs = { carac1: Number(src.carac1) || 0, carac2: Number(src.carac2) || 0, carac3: Number(src.carac3) || 0 };
+        const mult = blessing > 0 ? blessing : 1;
+        const own = ('carac' + cls);
+        for (const key of ['carac1', 'carac2', 'carac3']) {
+            if (key === own)
+                caracs[key] *= 1 + percentPoints * T2_PERCENT_PER_POINT;
+            else
+                caracs[key] += flatPoints * T2_FLAT_PER_POINT * mult;
+        }
+        return Object.assign(Object.assign({}, girl), { caracs, carac1: caracs.carac1, carac2: caracs.carac2, carac3: caracs.carac3 });
+    }
+    static traitValue(girl, category) {
+        switch (category) {
+            case 'eyeColor': return girl.eyeColor;
+            case 'hairColor': return girl.hairColor;
+            case 'zodiac': return girl.zodiac;
+            case 'position': return girl.position;
+        }
+    }
+    /** Teammates sharing the girl's own Tier-3 trait value. */
+    static traitMatches(girl, team) {
+        const category = TeamScoringService.getTier3Category(girl.element);
+        const value = SkillModelService.traitValue(girl, category);
+        if (!value)
+            return 0;
+        return team.filter(o => o.id_girl !== girl.id_girl && SkillModelService.traitValue(o, category) === value).length;
+    }
+    /** Sum of the team's Tier-3 damage bonuses for the given points. */
+    static tier3Bonus(team, points) {
+        return team.reduce((sum, g) => sum + points(g) * T3_PER_POINT * SkillModelService.traitMatches(g, team), 0);
+    }
+    /**
+     * Factor from the damage the game measured (the Tier-3 points held
+     * today) to the damage after Stuff Team.
+     */
+    static tier3DamageFactor(team, horizon) {
+        const today = SkillModelService.tier3Bonus(team, g => SkillModelService.currentPoints(g, 3));
+        const after = SkillModelService.tier3Bonus(team, g => SkillModelService.targetPoints(g, 3, horizon));
+        return (1 + after) / (1 + today);
+    }
+    /**
+     * The skill tiers the fight simulation reads, as after Stuff Team:
+     * Tier 4 for every girl, Tier 5 for the leader (position 0).
+     */
+    static fightSkillTiers(team, horizon) {
+        return team.map((g, index) => {
+            var _a, _b;
+            const info = Object.assign({}, ((_a = g.skill_tiers_info) !== null && _a !== void 0 ? _a : {}));
+            const tiers = index === 0 ? [4, 5] : [4];
+            for (const tier of tiers) {
+                info[tier] = Object.assign(Object.assign({}, ((_b = info[tier]) !== null && _b !== void 0 ? _b : {})), { skill_points_used: SkillModelService.targetPoints(g, tier, horizon) });
+            }
+            return info;
+        });
+    }
+}
+
 ;// ./src/Module/TeamSelectionPopup.ts
 // TeamSelectionPopup.ts -- The "Team optimization" popup on the edit-team
 // page: the team selection rubrics, and the team's gear.
@@ -33150,6 +33345,14 @@ class BlessingForecast {
 // (TeamSelectionService.projectCaracs). Measurements are shared between the
 // rubrics, so a later rubric pays only for teams not yet measured.
 //
+// Every rubric scores a candidate as she will be after Stuff Team: the
+// skill tiers she is missing are added (SkillModelService) -- Tier 2 to her
+// caracs, Tier 3 to the team's damage, Tier 4/5 to the fight simulation;
+// today's rubrics count the tiers her level and grades unlock today, the
+// "possibly best" ones every tier. "Prepare for Calculation" above the
+// groups takes the gear off and resets the skills of every girl first, so
+// that what a girl holds today does not decide who gets into the team.
+//
 // The right-hand column holds Unequip All, Level-up team and Stuff Team.
 // Unequip All and Stuff Team show the state they act on: the gear on the
 // team, and whether the hexagons match the saved team (Level-up team and
@@ -33166,7 +33369,8 @@ class BlessingForecast {
 // import TeamModule (which opens it).
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
-//   BlessingForecast.ts, LeagueOpponentSnapshot.ts, AutoLoopHold.ts, WorkPause.ts
+//   BlessingForecast.ts, BlessingService.ts, SkillModelService.ts, LeagueOpponentSnapshot.ts,
+//   AutoLoopHold.ts, WorkPause.ts
 // Used by: TeamModule.ts
 var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -33177,6 +33381,8 @@ var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
+
 
 
 
@@ -33234,6 +33440,8 @@ class TeamSelectionPopup {
             + '#hhTeamSel .tsSub{color:#555;font-size:calc(11px + 1pt);}'
             + '#hhTeamSel .tsOut{font-size:calc(12px + 1pt);line-height:1.45;}'
             + '#hhTeamSel .tsGood{color:#1b6e2a;} #hhTeamSel .tsBad{color:#b3261e;} #hhTeamSel .tsWarn{color:#9a5a00;}'
+            + '#hhTeamSel .tsPrep{display:flex;align-items:center;gap:8px;}'
+            + '#hhTeamSel .tsPrep .myButton{padding:4px 12px;}'
             + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #999;padding-left:10px;}'
             + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:calc(13px + 1pt);}'
             + '#hhTeamSel .tsState{font-size:calc(11px + 1pt);color:#555;margin-top:3px;}'
@@ -33266,7 +33474,13 @@ class TeamSelectionPopup {
             : '';
         const group = (g) => `<div class="tsGroup tsGroup-${g}">${hint(g)}${RUBRICS.filter(r => r.group === g).map(r => TeamSelectionPopup.rubricHtml(r)).join('')}</div>`;
         return `<div id="hhTeamSel">
-            <div class="tsGroups">${group('stats')}${group('league')}${group('next')}</div>
+            <div class="tsGroups">
+                <div class="tsPrep">
+                    <label class="myButton" id="hhTsPrepare" title="${getTextForUI('PrepareCalc', 'tooltip')}">${getTextForUI('PrepareCalc', 'elementText')}</label>
+                    <span class="tsState" id="hhTsPrepState"></span>
+                </div>
+                ${group('stats')}${group('league')}${group('next')}
+            </div>
             <div class="tsSide">
                 <div>
                     <label class="myButton" id="hhTsUnequip">${getTextForUI('UnequipAll', 'elementText')}</label>
@@ -33297,6 +33511,7 @@ class TeamSelectionPopup {
         }
         $('#hhTsSlowInfoToggle').on('click', () => $('#hhTsSlowInfo').toggle());
         $('#hhTsUnequip').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.unequipAll(); });
+        $('#hhTsPrepare').on('click', () => { var _a; return (_a = TeamSelectionPopup.actions) === null || _a === void 0 ? void 0 : _a.prepareCalc(); });
         // No question before the run (the player asked for none): the
         // tooltip says what it spends.
         $('#hhTsLevelUp').on('click', () => {
@@ -33338,6 +33553,9 @@ class TeamSelectionPopup {
             return sum + (Array.isArray(armor) ? armor.length : (armor ? Object.keys(armor).length : 0));
         }, 0);
         $('#hhTsGearState').html(getTextForUI('teamSelGearState', 'elementText').replace('{pieces}', String(pieces)));
+        const prep = SkillModelService.prepareSummary(raw);
+        $('#hhTsPrepState').html(getTextForUI('prepareCalcState', 'elementText')
+            .replace('{gear}', String(prep.withGear)).replace('{skills}', String(prep.withSkills)));
         $('#hhTsSavedState').html(TeamSelectionPopup.hexagonsMatchSaved()
             ? `<span class="tsGood">${getTextForUI('teamSelSaved', 'elementText')}</span>`
             : `<span class="tsWarn">${getTextForUI('teamSelUnsaved', 'elementText')}</span>`);
@@ -33432,6 +33650,10 @@ class TeamSelectionPopup {
             return { conditions, info: list + when + miss };
         });
     }
+    /** Which skill tiers count as filled: today's unlocks, or full development. */
+    static horizon(r) {
+        return r.possible ? 'full' : 'now';
+    }
     /** The girls a rubric evaluates. */
     static pool(r) {
         return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
@@ -33454,8 +33676,19 @@ class TeamSelectionPopup {
                     return Object.assign(Object.assign({}, g), { caracs, carac1: caracs.carac1, carac2: caracs.carac2, carac3: caracs.carac3 });
                 });
             }
-            const transformed = r.week === 'next' || r.possible;
-            return { today, evaluated: transformed ? raw.map(g => a.mapGirl(g)) : today, transformed, info };
+            // Every girl is scored with the Tier-2 stats Stuff Team would give
+            // her (SkillModelService); a girl who holds them already gets nothing.
+            const horizon = TeamSelectionPopup.horizon(r);
+            let skillsAdded = false;
+            const evaluated = raw.map(g => {
+                const girl = a.mapGirl(g);
+                const withSkills = SkillModelService.withTier2(girl, horizon, BlessingService.getEffectiveMultiplier(girl, 'league'));
+                if (withSkills !== girl)
+                    skillsAdded = true;
+                return withSkills;
+            });
+            const transformed = r.week === 'next' || r.possible || skillsAdded;
+            return { today, evaluated: transformed ? evaluated : today, transformed, info };
         });
     }
     /**
@@ -33581,13 +33814,14 @@ class TeamSelectionPopup {
             }
             const harem = TeamEvaluationService.getHaremSynergies();
             const slopes = pool.transformed ? TeamSelectionPopup.fitSlopes(pool.today, harem) : {};
+            const horizon = TeamSelectionPopup.horizon(r);
             const statsOf = (ids) => {
                 const measured = TeamSelectionPopup.measured.get(TeamSelectionService.teamKey(ids)).caracs;
-                if (!pool.transformed)
-                    return measured;
                 const today = TeamSelectionPopup.girlsById(pool.today, ids);
-                const evaluated = TeamSelectionPopup.girlsById(pool.evaluated, ids);
-                return TeamSelectionService.projectCaracs(measured, TeamSelectionService.caracSums(today), TeamSelectionService.caracSums(evaluated), TeamSelectionService.countElements(today), harem, slopes);
+                const caracs = !pool.transformed ? Object.assign({}, measured) : TeamSelectionService.projectCaracs(measured, TeamSelectionService.caracSums(today), TeamSelectionService.caracSums(TeamSelectionPopup.girlsById(pool.evaluated, ids)), TeamSelectionService.countElements(today), harem, slopes);
+                // Tier 3 lives in the team's damage, not in the girls' caracs.
+                caracs.damage *= SkillModelService.tier3DamageFactor(today, horizon);
+                return caracs;
             };
             const score = (ids) => TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
                 const caracs = statsOf(ids);
@@ -33595,7 +33829,9 @@ class TeamSelectionPopup {
                 if (r.scoring === 'effective') {
                     return { ids, caracs, score: TeamEvaluationService.computeEffectivePower(caracs, TeamSelectionService.countElements(teamGirls), harem), detail: '' };
                 }
-                const s = yield TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, teamGirls, harem), snap.opponents);
+                const tiers = SkillModelService.fightSkillTiers(teamGirls, horizon);
+                const fighters = teamGirls.map((g, i) => (Object.assign(Object.assign({}, g), { skill_tiers_info: tiers[i] })));
+                const s = yield TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, fighters, harem), snap.opponents);
                 return { ids, caracs, score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
             });
             // Every candidate is scored, and in the league rubrics every candidate
@@ -33641,7 +33877,10 @@ class TeamSelectionPopup {
                 : ` <span class="tsSub">(${getTextForUI('teamSelIsCurrent', 'elementText')})</span>`;
         }
         const infoLine = info ? `<div class="tsSub">${info}</div>` : '';
-        const note = estimated ? `<div class="tsSub">${getTextForUI('teamSelModelNote', 'elementText')}</div>` : '';
+        // Next week and full development are estimated from today's stats;
+        // this week's rubrics only add the skills Stuff Team would give.
+        const noteKey = r.week === 'next' || r.possible ? 'teamSelModelNote' : 'teamSelSkillNote';
+        const note = estimated ? `<div class="tsSub">${getTextForUI(noteKey, 'elementText')}</div>` : '';
         return `${infoLine}<div>${headline}${delta}</div><div class="tsSub">${caracs} &middot; ${candidates} ${getTextForUI('teamSelCandidates', 'elementText')}</div>${note}<div>${names}</div>`;
     }
     // ---- Apply -----------------------------------------------------------
@@ -34393,7 +34632,8 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 //
 // Puts the "Team optimization" button on the edit-team page and hands the
 // popup behind it (TeamSelectionPopup) its actions: read the hexagons and
-// the saved team, save a team in place, Unequip All, Level-up team (grades
+// the saved team, save a team in place, Unequip All, Prepare for Calculation
+// (gear off and skills reset for every girl), Level-up team (grades
 // and levels), Stuff Team (skill scrolls), and the Team gear block: Best gear and Possibly best gear (run
 // by TeamGear), Level-up gear (the girls' worn mythics, run by
 // EquipmentGear). The team list (teams.html) gets only the scroll hint; its
@@ -34403,6 +34643,8 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 //
 // Used by: AutoLoopPageHandlers.ts (team building on the fight pages)
 //
+
+
 
 
 
@@ -34564,6 +34806,84 @@ class TeamModule {
         if (displayTooltip)
             $('.team-right-part-container').append(scrollTooltip);
         return team;
+    }
+    /**
+     * "Prepare for Calculation": takes every girl's gear off and resets every
+     * girl's skills, so the team calculation compares the girls on what they
+     * are and not on what they hold -- gear and bulbs move to the new team
+     * afterwards (Best gear, Stuff Team). The rubrics add the skills Stuff
+     * Team will give (SkillModelService). A reset costs money (RESET_COST_PER_POINT
+     * per point), never kobans; girls whose reset would take the money below
+     * the limit keep their skills.
+     */
+    static buildPrepareCalcPopUp() {
+        const available = getHHVars('availableGirls', false);
+        const summary = SkillModelService.prepareSummary(Array.isArray(available) ? available : []);
+        const cost = summary.points * RESET_COST_PER_POINT;
+        const menu = `<div style="padding:5px; display:flex;flex-direction:column;gap:6px;font-size:15px; max-width:560px" class="HHAutoScriptMenu">
+            <div class="rowLine"><p>${getTextForUI("prepareCalcExplain", "elementText")}</p></div>
+            <div class="rowLine"><p>${getTextForUI("prepareCalcBenefit", "elementText")}</p></div>
+            <hr style="border: 1px solid #ffa23e; width:100%"/>
+            <div class="rowLine">${getTextForUI("prepareCalcState", "elementText").replace('{gear}', String(summary.withGear)).replace('{skills}', String(summary.withSkills))}</div>
+            <div class="rowLine">${getTextForUI("stuffTeaEstimatedCost", "elementText")}<span class="hudSC_mix_icn"></span>${Math.round(cost / 1000000)}M</div>
+            <div class="rowLine">
+                <span class="hudSC_mix_icn"></span>
+                <div style="padding:10px;" class="tooltipHH">
+                    <span class="tooltipHHtext">${getTextForUI("StuffTeamMoney", "tooltip")}</span>
+                    <label for="prepareCalcMoneyToKeep">${getTextForUI("StuffTeamMoney", "elementText")}</label>
+                    <input id="prepareCalcMoneyToKeep" class="maxMoneyInputField" style="width:150px;height:20px" required pattern="[0-9 ]+" type="text" value="500000000">
+                </div>
+            </div>
+            <hr style="border: 1px solid #ffa23e; width:100%"/>
+            <div class="rowLine">
+                <div style="padding:10px;width:50%"><label class="myButton" id="prepareCalcBack" style="font-size:15px; width:100%;text-align:center">${getTextForUI("prepareCalcBack", "elementText")}</label></div>
+                <div style="padding:10px;width:50%"><label class="myButton" id="prepareCalcSubmit" style="font-size:15px; width:100%;text-align:center">${getTextForUI("Launch", "elementText")}</label></div>
+            </div>
+            <p id="prepareCalcProgress"></p>
+        </div>`;
+        fillHHPopUp("prepareCalcMenu", getTextForUI("PrepareCalc", "elementText"), menu);
+        $("#prepareCalcBack").on("click", () => TeamModule.openTeamSelection());
+        $("#prepareCalcSubmit").on("click", () => {
+            const keep = Number(String($("#prepareCalcMoneyToKeep").val() || '0').replace(/\s/g, '')) || 0;
+            $("#prepareCalcSubmit, #prepareCalcBack").attr('disabled', 'disabled').css('pointer-events', 'none').css('opacity', '0.45');
+            void TeamModule.prepareForCalculation(summary.skilled, keep);
+        });
+    }
+    static prepareForCalculation(skilled, moneyToKeep) {
+        return TeamModule_awaiter(this, void 0, void 0, function* () {
+            const progress = (text) => $("#prepareCalcProgress").html(text);
+            holdAutoLoop('prepare for calculation');
+            logHHAuto(`Prepare for calculation: ${skilled.length} girls with skills, money to keep ${moneyToKeep}`);
+            progress(getTextForUI("prepareCalcUnequip", "elementText"));
+            yield new Promise(resolve => TeamModule.unequipAllGirls(() => resolve()));
+            let money = Number(HeroHelper.getMoney()) || 0;
+            let done = 0;
+            let kept = 0;
+            const currentPage = window.location.pathname + window.location.search;
+            for (const girl of skilled) {
+                const cost = girl.points * RESET_COST_PER_POINT;
+                if (money - cost < moneyToKeep) {
+                    kept++;
+                    continue;
+                }
+                progress(getTextForUI("prepareCalcResetting", "elementText").replace('{done}', String(done)).replace('{total}', String(skilled.length)));
+                // The game checks the referer: the reset is sent from the girl's skill page.
+                window.history.replaceState(null, '', addNutakuSession('/girl/' + girl.id + '?resource=skills'));
+                const answer = yield callGame({ action: 'girl_skills_reset', id_girl: girl.id }, 20000, (err) => logHHAuto('Prepare for calculation: girl_skills_reset failed: ' + err));
+                window.history.replaceState(null, '', addNutakuSession(currentPage));
+                if (!answer) {
+                    logHHAuto(`Prepare for calculation: no answer to the reset of girl ${girl.id}, stopping.`);
+                    break;
+                }
+                money -= cost;
+                done++;
+                yield new Promise(r => setTimeout(r, randomInterval(250, 500)));
+            }
+            logHHAuto(`Prepare for calculation: ${done} girls reset, ${kept} kept for the money limit.`);
+            progress(getTextForUI("prepareCalcDone", "elementText").replace('{done}', String(done)).replace('{kept}', String(kept)));
+            releaseAutoLoopHold();
+            safeReload(randomInterval(1500, 2500));
+        });
     }
     static buildStuffTeamSelectPopUp() {
         const teamGirls = TeamModule.getSelectedGirls();
@@ -34883,6 +35203,7 @@ class TeamModule {
                 safeReload(randomInterval(800, 1200));
             }),
             unequipAll: () => TeamModule.unequipAllGirls(),
+            prepareCalc: () => TeamModule.buildPrepareCalcPopUp(),
             levelUpTeam: () => TeamModule.levelUpTeam(),
             stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
             bestGear: () => { void TeamGear.preview('best', TeamModule.getHexagonGirlsWithGear()); },

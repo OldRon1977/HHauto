@@ -524,6 +524,15 @@ HHAuto_ToolTips.de['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Noc
 HHAuto_ToolTips.de['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} offene Kämpfe gegen {opponents} Gegner, vor {minutes} min gelesen", tooltip: ""};
 HHAuto_ToolTips.de['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Die Sechsecke zeigen nicht das gespeicherte Team. Team bestücken rüstet die Sechsecke aus, gekämpft wird mit dem gespeicherten Team. Fortfahren?", tooltip: ""};
 HHAuto_ToolTips.de['teamSelGearState'] = { version: "8.14.0", elementText: "Ausrüstung im Team: {pieces} Teile", tooltip: ""};
+HHAuto_ToolTips.de['teamSelSkillNote'] = { version: "8.22.0", elementText: "Enthält die Skills, die Stuff Team geben würde: Tier-2-Werte, Tier-3-Merkmalsbonus, Tier 4/5 im Kampf.", tooltip: ""};
+HHAuto_ToolTips.de['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Nimmt allen Mädchen die Ausrüstung ab und setzt bei allen die Skills zurück, damit die Berechnung die Mädchen selbst vergleicht. Kostet Geld, nie Kobans."};
+HHAuto_ToolTips.de['prepareCalcExplain'] = { version: "8.22.0", elementText: "Nimmt allen Mädchen die Ausrüstung ab und setzt bei jedem Mädchen mit Skills die Skills zurück. Die Bulbs bekommst du zurück. Ein Reset kostet Geld (5M je Skillpunkt), nie Kobans. Mädchen, deren Reset dein Geld unter die Grenze bringen würde, behalten ihre Skills.", tooltip: ""};
+HHAuto_ToolTips.de['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Wozu: Ausrüstung und Bulbs wandern danach ins neue Team, also darf ein Mädchen die Berechnung nicht nur gewinnen, weil sie sie heute trägt. Nach dem Reset bewertet jede Rubrik jede Kandidatin so, wie sie nach Stuff Team sein wird. Danach: berechnen, übernehmen, Level-up team, Stuff Team, Best gear.", tooltip: ""};
+HHAuto_ToolTips.de['prepareCalcState'] = { version: "8.22.0", elementText: "Ausrüstung an {gear} Mädchen, Skills an {skills} Mädchen", tooltip: ""};
+HHAuto_ToolTips.de['prepareCalcBack'] = { version: "8.22.0", elementText: "Zurück", tooltip: ""};
+HHAuto_ToolTips.de['prepareCalcUnequip'] = { version: "8.22.0", elementText: "Nehme allen Mädchen die Ausrüstung ab...", tooltip: ""};
+HHAuto_ToolTips.de['prepareCalcResetting'] = { version: "8.22.0", elementText: "Setze Skills zurück: {done}/{total}", tooltip: ""};
+HHAuto_ToolTips.de['prepareCalcDone'] = { version: "8.22.0", elementText: "{done} Mädchen zurückgesetzt, {kept} wegen der Geldgrenze behalten. Lade neu...", tooltip: ""};
 HHAuto_ToolTips.de['teamSelSaved'] = { version: "8.14.0", elementText: "Sechsecke = gespeichertes Team", tooltip: ""};
 HHAuto_ToolTips.de['teamSelUnsaved'] = { version: "8.14.0", elementText: "Sechsecke weichen vom gespeicherten Team ab", tooltip: ""};
 HHAuto_ToolTips.de['teamSelMeasuring'] = { version: "8.14.0", elementText: "Nachrechnung durch das Spiel {done}/{total} ...", tooltip: ""};
