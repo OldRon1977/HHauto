@@ -31,7 +31,9 @@ refactoring with a long run of feature work:
 - **Much more stable** — fewer navigation loops, "Forbidden" errors and
   stuck-script situations.
 - **Smarter team building** — blessing- and synergy-aware League / Edit Team
-  selection.
+  selection; *Prepare for Calculation* resets skills and items so the girls
+  are compared on their own stats, with the skills Stuff Team will give
+  counted in.
 - **Better equipment** — a Team gear block in the Team optimization popup
   that plans the whole team's gear, best now or best after levelling, and
   levels the worn mythics to level 10; auto-equip boosters and smarter
