@@ -522,6 +522,15 @@ HHAuto_ToolTips.fr['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "Pas
 HHAuto_ToolTips.fr['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} combats restants contre {opponents} adversaires, lu il y a {minutes} min", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "Les hexagones ne montrent pas l'équipe enregistrée. L'équipement vise les hexagones, la ligue combat avec l'équipe enregistrée. Continuer ?", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelGearState'] = { version: "8.14.0", elementText: "Équipement de l'équipe : {pieces} pièces", tooltip: ""};
+HHAuto_ToolTips.fr['teamSelSkillNote'] = { version: "8.22.0", elementText: "Inclut les compétences que Stuff Team donnerait : stats du Tier 2, bonus de trait du Tier 3, Tier 4/5 en combat.", tooltip: ""};
+HHAuto_ToolTips.fr['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Retire l'équipement de toutes les filles et réinitialise les compétences de toutes les filles, pour que le calcul compare les filles elles-mêmes. Coûte de l'argent, jamais de kobans."};
+HHAuto_ToolTips.fr['prepareCalcExplain'] = { version: "8.22.0", elementText: "Retire l'équipement de toutes les filles et réinitialise les compétences de chaque fille qui en a. Les ampoules vous sont rendues. Une réinitialisation coûte de l'argent (5M par point de compétence), jamais de kobans. Les filles dont la réinitialisation ferait passer votre argent sous la limite gardent leurs compétences.", tooltip: ""};
+HHAuto_ToolTips.fr['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Pourquoi : l'équipement et les ampoules passent ensuite à la nouvelle équipe, une fille ne doit donc pas gagner le calcul seulement parce qu'elle les porte aujourd'hui. Après la réinitialisation, chaque rubrique évalue chaque candidate telle qu'elle sera après Stuff Team. Ensuite : calculer, appliquer, Level-up team, Stuff Team, Best gear.", tooltip: ""};
+HHAuto_ToolTips.fr['prepareCalcState'] = { version: "8.22.0", elementText: "Équipement sur {gear} filles, compétences sur {skills} filles", tooltip: ""};
+HHAuto_ToolTips.fr['prepareCalcBack'] = { version: "8.22.0", elementText: "Retour", tooltip: ""};
+HHAuto_ToolTips.fr['prepareCalcUnequip'] = { version: "8.22.0", elementText: "Retrait de l'équipement de toutes les filles...", tooltip: ""};
+HHAuto_ToolTips.fr['prepareCalcResetting'] = { version: "8.22.0", elementText: "Réinitialisation des compétences : {done}/{total}", tooltip: ""};
+HHAuto_ToolTips.fr['prepareCalcDone'] = { version: "8.22.0", elementText: "{done} filles réinitialisées, {kept} gardées à cause de la limite d'argent. Rechargement...", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelSaved'] = { version: "8.14.0", elementText: "Hexagones = équipe enregistrée", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelUnsaved'] = { version: "8.14.0", elementText: "Les hexagones diffèrent de l'équipe enregistrée", tooltip: ""};
 HHAuto_ToolTips.fr['teamSelMeasuring'] = { version: "8.14.0", elementText: "Calcul du jeu {done}/{total} ...", tooltip: ""};

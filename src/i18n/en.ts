@@ -523,6 +523,15 @@ HHAuto_ToolTips.en['teamSelNoSnapshot'] = { version: "8.14.0", elementText: "No 
 HHAuto_ToolTips.en['teamSelSnapshot'] = { version: "8.14.0", elementText: "{fights} open fights against {opponents} opponents, read {minutes} min ago", tooltip: ""};
 HHAuto_ToolTips.en['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "The hexagons do not show the saved team. Stuff Team equips the hexagons, the league fights the saved team. Continue?", tooltip: ""};
 HHAuto_ToolTips.en['teamSelGearState'] = { version: "8.14.0", elementText: "Team gear: {pieces} pieces", tooltip: ""};
+HHAuto_ToolTips.en['teamSelSkillNote'] = { version: "8.22.0", elementText: "Includes the skills Stuff Team would give: Tier 2 stats, Tier 3 trait bonus, Tier 4/5 in the fight.", tooltip: ""};
+HHAuto_ToolTips.en['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Takes the gear off every girl and resets every girl's skills, so the calculation compares the girls themselves. Costs money, never kobans."};
+HHAuto_ToolTips.en['prepareCalcExplain'] = { version: "8.22.0", elementText: "Takes the gear off every girl and resets the skills of every girl that has any. The bulbs come back to you. A reset costs money (5M per skill point), never kobans. Girls whose reset would take your money below the limit keep their skills.", tooltip: ""};
+HHAuto_ToolTips.en['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Why: gear and bulbs move to the new team afterwards, so a girl must not win the calculation only because she holds them today. After the reset every rubric scores each candidate as she will be after Stuff Team. Then: calculate, apply, Level-up team, Stuff Team, Best gear.", tooltip: ""};
+HHAuto_ToolTips.en['prepareCalcState'] = { version: "8.22.0", elementText: "Gear on {gear} girls, skills on {skills} girls", tooltip: ""};
+HHAuto_ToolTips.en['prepareCalcBack'] = { version: "8.22.0", elementText: "Back", tooltip: ""};
+HHAuto_ToolTips.en['prepareCalcUnequip'] = { version: "8.22.0", elementText: "Taking the gear off all girls...", tooltip: ""};
+HHAuto_ToolTips.en['prepareCalcResetting'] = { version: "8.22.0", elementText: "Resetting skills: {done}/{total}", tooltip: ""};
+HHAuto_ToolTips.en['prepareCalcDone'] = { version: "8.22.0", elementText: "{done} girls reset, {kept} kept for the money limit. Reloading...", tooltip: ""};
 HHAuto_ToolTips.en['teamSelSaved'] = { version: "8.14.0", elementText: "Hexagons = saved team", tooltip: ""};
 HHAuto_ToolTips.en['teamSelUnsaved'] = { version: "8.14.0", elementText: "Hexagons differ from the saved team", tooltip: ""};
 HHAuto_ToolTips.en['teamSelMeasuring'] = { version: "8.14.0", elementText: "Game calculation {done}/{total} ...", tooltip: ""};

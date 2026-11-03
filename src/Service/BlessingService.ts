@@ -4,7 +4,7 @@
 // them via AJAX on the Home page and caches the result in localStorage.
 // The team builder reads from cache to make blessing-aware decisions.
 //
-// Used by: AutoLoopPageHandlers.ts (Home page), TeamBuilderService.ts
+// Used by: AutoLoopPageHandlers.ts (Home page), TeamBuilderService.ts, TeamSelectionPopup.ts
 //
 import { setStoredValue, getStoredJSON } from "../Helper/StorageHelper";
 import { logHHAuto } from "../Utils/LogUtils";

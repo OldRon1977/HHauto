@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.22.0 - Prepare for Calculation
+
+- **Prepare for Calculation** (Team optimization popup, above the rubrics): takes the gear off every girl and resets every girl's skills, after a confirmation window that shows the estimated cost. Costs money (5M per skill point), never kobans; the Stuff Team money limit applies.
+- Every team rubric now scores each candidate with the skills Stuff Team would give her: Tier 2 stats, the Tier 3 trait bonus on the team's damage, Tier 4 for every girl and Tier 5 for the leader in the league simulation.
+- Today's rubrics count the tiers a girl's level and grades unlock today, the "possibly best" rubrics every tier.
+
 ### v8.21.13 - Timed game calls through one function
 
 #### Internal

@@ -3,7 +3,8 @@
 //
 // Puts the "Team optimization" button on the edit-team page and hands the
 // popup behind it (TeamSelectionPopup) its actions: read the hexagons and
-// the saved team, save a team in place, Unequip All, Level-up team (grades
+// the saved team, save a team in place, Unequip All, Prepare for Calculation
+// (gear off and skills reset for every girl), Level-up team (grades
 // and levels), Stuff Team (skill scrolls), and the Team gear block: Best gear and Possibly best gear (run
 // by TeamGear), Level-up gear (the girls' worn mythics, run by
 // EquipmentGear). The team list (teams.html) gets only the scroll hint; its
@@ -34,7 +35,9 @@ import { GirlData, ElementType, RarityType, PlayerClass } from '../Service/TeamS
 import { TraitMappings } from '../Service/TraitMappings';
 import { fillHHPopUp } from "../Utils/HHPopup";
 import { logHHAuto } from "../Utils/LogUtils";
-import { getHHAjax } from "../Utils/Utils";
+import { callGame, getHHAjax } from "../Utils/Utils";
+import { RESET_COST_PER_POINT, SkillModelService } from '../Service/SkillModelService';
+import { holdAutoLoop, releaseAutoLoopHold } from '../Service/AutoLoopHold';
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";
 import { KKTeamGirl } from "../model/KK/KKTeamGirl";
@@ -194,6 +197,86 @@ export class TeamModule {
         
         if (displayTooltip) $('.team-right-part-container').append(scrollTooltip);
         return team;
+    }
+
+    /**
+     * "Prepare for Calculation": takes every girl's gear off and resets every
+     * girl's skills, so the team calculation compares the girls on what they
+     * are and not on what they hold -- gear and bulbs move to the new team
+     * afterwards (Best gear, Stuff Team). The rubrics add the skills Stuff
+     * Team will give (SkillModelService). A reset costs money (RESET_COST_PER_POINT
+     * per point), never kobans; girls whose reset would take the money below
+     * the limit keep their skills.
+     */
+    static buildPrepareCalcPopUp() {
+        const available = getHHVars('availableGirls', false);
+        const summary = SkillModelService.prepareSummary(Array.isArray(available) ? available : []);
+        const cost = summary.points * RESET_COST_PER_POINT;
+        const menu = `<div style="padding:5px; display:flex;flex-direction:column;gap:6px;font-size:15px; max-width:560px" class="HHAutoScriptMenu">
+            <div class="rowLine"><p>${getTextForUI("prepareCalcExplain", "elementText")}</p></div>
+            <div class="rowLine"><p>${getTextForUI("prepareCalcBenefit", "elementText")}</p></div>
+            <hr style="border: 1px solid #ffa23e; width:100%"/>
+            <div class="rowLine">${getTextForUI("prepareCalcState", "elementText").replace('{gear}', String(summary.withGear)).replace('{skills}', String(summary.withSkills))}</div>
+            <div class="rowLine">${getTextForUI("stuffTeaEstimatedCost", "elementText")}<span class="hudSC_mix_icn"></span>${Math.round(cost / 1000000)}M</div>
+            <div class="rowLine">
+                <span class="hudSC_mix_icn"></span>
+                <div style="padding:10px;" class="tooltipHH">
+                    <span class="tooltipHHtext">${getTextForUI("StuffTeamMoney", "tooltip")}</span>
+                    <label for="prepareCalcMoneyToKeep">${getTextForUI("StuffTeamMoney", "elementText")}</label>
+                    <input id="prepareCalcMoneyToKeep" class="maxMoneyInputField" style="width:150px;height:20px" required pattern="[0-9 ]+" type="text" value="500000000">
+                </div>
+            </div>
+            <hr style="border: 1px solid #ffa23e; width:100%"/>
+            <div class="rowLine">
+                <div style="padding:10px;width:50%"><label class="myButton" id="prepareCalcBack" style="font-size:15px; width:100%;text-align:center">${getTextForUI("prepareCalcBack", "elementText")}</label></div>
+                <div style="padding:10px;width:50%"><label class="myButton" id="prepareCalcSubmit" style="font-size:15px; width:100%;text-align:center">${getTextForUI("Launch", "elementText")}</label></div>
+            </div>
+            <p id="prepareCalcProgress"></p>
+        </div>`;
+        fillHHPopUp("prepareCalcMenu", getTextForUI("PrepareCalc", "elementText"), menu);
+        $("#prepareCalcBack").on("click", () => TeamModule.openTeamSelection());
+        $("#prepareCalcSubmit").on("click", () => {
+            const keep = Number(String($("#prepareCalcMoneyToKeep").val() || '0').replace(/\s/g, '')) || 0;
+            $("#prepareCalcSubmit, #prepareCalcBack").attr('disabled', 'disabled').css('pointer-events', 'none').css('opacity', '0.45');
+            void TeamModule.prepareForCalculation(summary.skilled, keep);
+        });
+    }
+
+    private static async prepareForCalculation(skilled: { id: number; points: number }[], moneyToKeep: number): Promise<void> {
+        const progress = (text: string) => $("#prepareCalcProgress").html(text);
+        holdAutoLoop('prepare for calculation');
+        logHHAuto(`Prepare for calculation: ${skilled.length} girls with skills, money to keep ${moneyToKeep}`);
+        progress(getTextForUI("prepareCalcUnequip", "elementText"));
+        await new Promise<void>(resolve => TeamModule.unequipAllGirls(() => resolve()));
+
+        let money = Number(HeroHelper.getMoney()) || 0;
+        let done = 0;
+        let kept = 0;
+        const currentPage = window.location.pathname + window.location.search;
+        for (const girl of skilled) {
+            const cost = girl.points * RESET_COST_PER_POINT;
+            if (money - cost < moneyToKeep) {
+                kept++;
+                continue;
+            }
+            progress(getTextForUI("prepareCalcResetting", "elementText").replace('{done}', String(done)).replace('{total}', String(skilled.length)));
+            // The game checks the referer: the reset is sent from the girl's skill page.
+            window.history.replaceState(null, '', addNutakuSession('/girl/' + girl.id + '?resource=skills') as string);
+            const answer = await callGame<{ success?: boolean }>({ action: 'girl_skills_reset', id_girl: girl.id }, 20000,
+                (err) => logHHAuto('Prepare for calculation: girl_skills_reset failed: ' + err));
+            window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
+            if (!answer) {
+                logHHAuto(`Prepare for calculation: no answer to the reset of girl ${girl.id}, stopping.`);
+                break;
+            }
+            money -= cost;
+            done++;
+            await new Promise(r => setTimeout(r, randomInterval(250, 500)));
+        }
+        logHHAuto(`Prepare for calculation: ${done} girls reset, ${kept} kept for the money limit.`);
+        progress(getTextForUI("prepareCalcDone", "elementText").replace('{done}', String(done)).replace('{kept}', String(kept)));
+        releaseAutoLoopHold();
+        safeReload(randomInterval(1500, 2500));
     }
 
     static buildStuffTeamSelectPopUp() {
@@ -523,6 +606,7 @@ export class TeamModule {
                 safeReload(randomInterval(800, 1200));
             }),
             unequipAll: () => TeamModule.unequipAllGirls(),
+            prepareCalc: () => TeamModule.buildPrepareCalcPopUp(),
             levelUpTeam: () => TeamModule.levelUpTeam(),
             stuffTeam: () => TeamModule.buildStuffTeamSelectPopUp(),
             bestGear: () => { void TeamGear.preview('best', TeamModule.getHexagonGirlsWithGear()); },

@@ -30,6 +30,14 @@
 // (TeamSelectionService.projectCaracs). Measurements are shared between the
 // rubrics, so a later rubric pays only for teams not yet measured.
 //
+// Every rubric scores a candidate as she will be after Stuff Team: the
+// skill tiers she is missing are added (SkillModelService) -- Tier 2 to her
+// caracs, Tier 3 to the team's damage, Tier 4/5 to the fight simulation;
+// today's rubrics count the tiers her level and grades unlock today, the
+// "possibly best" ones every tier. "Prepare for Calculation" above the
+// groups takes the gear off and resets the skills of every girl first, so
+// that what a girl holds today does not decide who gets into the team.
+//
 // The right-hand column holds Unequip All, Level-up team and Stuff Team.
 // Unequip All and Stuff Team show the state they act on: the gear on the
 // team, and whether the hexagons match the saved team (Level-up team and
@@ -46,13 +54,16 @@
 // import TeamModule (which opens it).
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
-//   BlessingForecast.ts, LeagueOpponentSnapshot.ts, AutoLoopHold.ts, WorkPause.ts
+//   BlessingForecast.ts, BlessingService.ts, SkillModelService.ts, LeagueOpponentSnapshot.ts,
+//   AutoLoopHold.ts, WorkPause.ts
 // Used by: TeamModule.ts
 
 import { getHHVars } from '../Helper/HHHelper';
 import { HeroHelper } from '../Helper/HeroHelper';
 import { getTextForUI } from '../Helper/LanguageHelper';
 import { BlessingForecast, BlessingsResponse, ForecastCondition, GameTables, RawGirl } from '../Service/BlessingForecast';
+import { BlessingService } from '../Service/BlessingService';
+import { SkillHorizon, SkillModelService } from '../Service/SkillModelService';
 import { LeagueOpponentSnapshot, OpponentSnapshot } from '../Service/LeagueOpponentSnapshot';
 import { TeamBuilderService } from '../Service/TeamBuilderService';
 import { TeamCaracs, TeamEvaluationService } from '../Service/TeamEvaluationService';
@@ -78,6 +89,8 @@ export interface TeamSelectionActions {
     /** Save the given team; reports success or the game's message. */
     saveTeam: (ids: number[], onDone: (ok: boolean, message: string) => void) => void;
     unequipAll: () => void;
+    /** Info window of "Prepare for Calculation" (TeamModule.buildPrepareCalcPopUp). */
+    prepareCalc: () => void;
     /** Grades and levels for the hexagon girls (TeamModule.levelUpTeam);
      *  false when none of them needs any. */
     levelUpTeam: () => boolean;
@@ -172,6 +185,8 @@ export class TeamSelectionPopup {
             + '#hhTeamSel .tsSub{color:#555;font-size:calc(11px + 1pt);}'
             + '#hhTeamSel .tsOut{font-size:calc(12px + 1pt);line-height:1.45;}'
             + '#hhTeamSel .tsGood{color:#1b6e2a;} #hhTeamSel .tsBad{color:#b3261e;} #hhTeamSel .tsWarn{color:#9a5a00;}'
+            + '#hhTeamSel .tsPrep{display:flex;align-items:center;gap:8px;}'
+            + '#hhTeamSel .tsPrep .myButton{padding:4px 12px;}'
             + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #999;padding-left:10px;}'
             + '#hhTeamSel .tsSide .myButton{display:block;text-align:center;padding:6px 4px;font-size:calc(13px + 1pt);}'
             + '#hhTeamSel .tsState{font-size:calc(11px + 1pt);color:#555;margin-top:3px;}'
@@ -207,7 +222,13 @@ export class TeamSelectionPopup {
             : '';
         const group = (g: Rubric['group']) => `<div class="tsGroup tsGroup-${g}">${hint(g)}${RUBRICS.filter(r => r.group === g).map(r => TeamSelectionPopup.rubricHtml(r)).join('')}</div>`;
         return `<div id="hhTeamSel">
-            <div class="tsGroups">${group('stats')}${group('league')}${group('next')}</div>
+            <div class="tsGroups">
+                <div class="tsPrep">
+                    <label class="myButton" id="hhTsPrepare" title="${getTextForUI('PrepareCalc', 'tooltip')}">${getTextForUI('PrepareCalc', 'elementText')}</label>
+                    <span class="tsState" id="hhTsPrepState"></span>
+                </div>
+                ${group('stats')}${group('league')}${group('next')}
+            </div>
             <div class="tsSide">
                 <div>
                     <label class="myButton" id="hhTsUnequip">${getTextForUI('UnequipAll', 'elementText')}</label>
@@ -238,6 +259,7 @@ export class TeamSelectionPopup {
         }
         $('#hhTsSlowInfoToggle').on('click', () => $('#hhTsSlowInfo').toggle());
         $('#hhTsUnequip').on('click', () => TeamSelectionPopup.actions?.unequipAll());
+        $('#hhTsPrepare').on('click', () => TeamSelectionPopup.actions?.prepareCalc());
         // No question before the run (the player asked for none): the
         // tooltip says what it spends.
         $('#hhTsLevelUp').on('click', () => {
@@ -275,6 +297,9 @@ export class TeamSelectionPopup {
             return sum + (Array.isArray(armor) ? armor.length : (armor ? Object.keys(armor).length : 0));
         }, 0);
         $('#hhTsGearState').html(getTextForUI('teamSelGearState', 'elementText').replace('{pieces}', String(pieces)));
+        const prep = SkillModelService.prepareSummary(raw);
+        $('#hhTsPrepState').html(getTextForUI('prepareCalcState', 'elementText')
+            .replace('{gear}', String(prep.withGear)).replace('{skills}', String(prep.withSkills)));
         $('#hhTsSavedState').html(TeamSelectionPopup.hexagonsMatchSaved()
             ? `<span class="tsGood">${getTextForUI('teamSelSaved', 'elementText')}</span>`
             : `<span class="tsWarn">${getTextForUI('teamSelUnsaved', 'elementText')}</span>`);
@@ -364,6 +389,11 @@ export class TeamSelectionPopup {
         return { conditions, info: list + when + miss };
     }
 
+    /** Which skill tiers count as filled: today's unlocks, or full development. */
+    private static horizon(r: Rubric): SkillHorizon {
+        return r.possible ? 'full' : 'now';
+    }
+
     /** The girls a rubric evaluates. */
     private static async pool(r: Rubric): Promise<Pool | string> {
         const a = TeamSelectionPopup.actions!;
@@ -384,8 +414,18 @@ export class TeamSelectionPopup {
                 return { ...g, caracs, carac1: caracs.carac1, carac2: caracs.carac2, carac3: caracs.carac3 };
             });
         }
-        const transformed = r.week === 'next' || r.possible;
-        return { today, evaluated: transformed ? raw.map(g => a.mapGirl(g)) : today, transformed, info };
+        // Every girl is scored with the Tier-2 stats Stuff Team would give
+        // her (SkillModelService); a girl who holds them already gets nothing.
+        const horizon = TeamSelectionPopup.horizon(r);
+        let skillsAdded = false;
+        const evaluated = raw.map(g => {
+            const girl = a.mapGirl(g);
+            const withSkills = SkillModelService.withTier2(girl, horizon, BlessingService.getEffectiveMultiplier(girl, 'league'));
+            if (withSkills !== girl) skillsAdded = true;
+            return withSkills;
+        });
+        const transformed = r.week === 'next' || r.possible || skillsAdded;
+        return { today, evaluated: transformed ? evaluated : today, transformed, info };
     }
 
     /**
@@ -494,13 +534,15 @@ export class TeamSelectionPopup {
         }
         const harem = TeamEvaluationService.getHaremSynergies();
         const slopes = pool.transformed ? TeamSelectionPopup.fitSlopes(pool.today, harem) : {};
+        const horizon = TeamSelectionPopup.horizon(r);
         const statsOf = (ids: number[]): TeamCaracs => {
             const measured = TeamSelectionPopup.measured.get(TeamSelectionService.teamKey(ids))!.caracs;
-            if (!pool.transformed) return measured;
             const today = TeamSelectionPopup.girlsById(pool.today, ids);
-            const evaluated = TeamSelectionPopup.girlsById(pool.evaluated, ids);
-            return TeamSelectionService.projectCaracs(measured, TeamSelectionService.caracSums(today),
-                TeamSelectionService.caracSums(evaluated), TeamSelectionService.countElements(today), harem, slopes);
+            const caracs = !pool.transformed ? { ...measured } : TeamSelectionService.projectCaracs(measured, TeamSelectionService.caracSums(today),
+                TeamSelectionService.caracSums(TeamSelectionPopup.girlsById(pool.evaluated, ids)), TeamSelectionService.countElements(today), harem, slopes);
+            // Tier 3 lives in the team's damage, not in the girls' caracs.
+            caracs.damage *= SkillModelService.tier3DamageFactor(today, horizon);
+            return caracs;
         };
         const score = async (ids: number[]): Promise<RubricResult> => {
             const caracs = statsOf(ids);
@@ -508,7 +550,9 @@ export class TeamSelectionPopup {
             if (r.scoring === 'effective') {
                 return { ids, caracs, score: TeamEvaluationService.computeEffectivePower(caracs, TeamSelectionService.countElements(teamGirls), harem), detail: '' };
             }
-            const s = await TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, teamGirls, harem), snap!.opponents);
+            const tiers = SkillModelService.fightSkillTiers(teamGirls, horizon);
+            const fighters = teamGirls.map((g, i) => ({ ...g, skill_tiers_info: tiers[i] }));
+            const s = await TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, fighters, harem), snap!.opponents);
             return { ids, caracs, score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
         };
         // Every candidate is scored, and in the league rubrics every candidate
@@ -555,7 +599,10 @@ export class TeamSelectionPopup {
                 : ` <span class="tsSub">(${getTextForUI('teamSelIsCurrent', 'elementText')})</span>`;
         }
         const infoLine = info ? `<div class="tsSub">${info}</div>` : '';
-        const note = estimated ? `<div class="tsSub">${getTextForUI('teamSelModelNote', 'elementText')}</div>` : '';
+        // Next week and full development are estimated from today's stats;
+        // this week's rubrics only add the skills Stuff Team would give.
+        const noteKey = r.week === 'next' || r.possible ? 'teamSelModelNote' : 'teamSelSkillNote';
+        const note = estimated ? `<div class="tsSub">${getTextForUI(noteKey, 'elementText')}</div>` : '';
         return `${infoLine}<div>${headline}${delta}</div><div class="tsSub">${caracs} &middot; ${candidates} ${getTextForUI('teamSelCandidates', 'elementText')}</div>${note}<div>${names}</div>`;
     }
 
