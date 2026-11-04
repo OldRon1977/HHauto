@@ -22,16 +22,21 @@ import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
+import { PassHelper } from "../../Helper/PassHelper";
 
 export class SeasonalEvent {
     static SEASONAL_REWARD_PATH = '.mega-tier.unclaimed';
     static SEASONAL_REWARD_MEGA_PATH = '.mega-tier-container:has(.free-slot button.mega-claim-reward)';
 
+    // The game draws the two-row track (free row + pass row, one claim
+    // button per tier inside .free-slot) whenever the event offers a pass,
+    // owned or not. The pass purchase button only exists while the pass is
+    // not owned and is removed on purchase, so it cannot tell the layout.
     static isMegaSeasonalEvent() {
-        return $('#get_mega_pass_kobans_btn').length > 0
+        return $('.mega-tier-container.double-tier').length > 0
     }
     static isMegaPassPaid() {
-        return $('#get_mega_pass_kobans_btn:visible').length <= 0
+        return PassHelper.ownsPass('seasonalEvent');
     }
     static isActiveEvent() {
         return unsafeWindow.seasonal_event_active || unsafeWindow.seasonal_time_remaining > 0 || unsafeWindow.mega_event_active || unsafeWindow.mega_event_time_remaining > 0
@@ -70,10 +75,8 @@ export class SeasonalEvent {
     }
     static getMegaSeasonalNotClaimedRewards(){
         const arrayz = $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH);
-        const freeSlotSelectors = ".free-slot .slot";
-        const paidSlotSelectors = SeasonalEvent.isMegaPassPaid() ? ".paid-unclaimed .slot" : "";
-
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+        const halves = PassHelper.TRACK_HALVES.seasonalEvent;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, SeasonalEvent.isMegaPassPaid() ? halves.paid : "");
     }
     static goAndCollect(manualCollectAll = false)
     {
@@ -95,10 +98,8 @@ export class SeasonalEvent {
 
             const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
             const megaSeasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-section div.mega-tier-container:has(.free-slot button.mega-claim-reward)";
-            const seasonalFreeSlotQuery = ".mega-slot .slot,.mega-slot .slot_girl_shards";
-            const seasonalPaidSlotQuery = ""; // N/A
-            const megaSeasonalFreeSlotQuery = ".free-slot .slot";
-            const megaSeasonalPaidSlotQuery = ".pass-slot.paid-unclaimed .slot";
+            // The one-row track (an event without a pass) has no pass half.
+            const seasonalHalves = { free: ".mega-slot .slot,.mega-slot .slot_girl_shards", paid: "" };
 
             if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll)
             {
@@ -110,32 +111,16 @@ export class SeasonalEvent {
                 const buttonsToCollect:HTMLElement[] = [];
 
                 const listSeasonalEventTiersToClaim = isMegaSeasonalEvent ? $(megaSeasonalTierQuery) : $(seasonalTierQuery);
-                const freeSlotQuery =  isMegaSeasonalEvent ? megaSeasonalFreeSlotQuery : seasonalFreeSlotQuery;
-                const paidSlotQuery =  isMegaSeasonalEvent ? megaSeasonalPaidSlotQuery : seasonalPaidSlotQuery;
+                const halves = isMegaSeasonalEvent ? PassHelper.TRACK_HALVES.seasonalEvent : seasonalHalves;
                 const isPassPaid = isMegaSeasonalEvent && SeasonalEvent.isMegaPassPaid();
+                const collectAnyway = needToCollectAllBeforeEnd || manualCollectAll;
 
                 for (let currentTier = 0 ; currentTier < listSeasonalEventTiersToClaim.length ; currentTier++)
                 {
                     const currentButton = $("button[rel='claim']", listSeasonalEventTiersToClaim[currentTier])[0];
-                    const currentTierNb = currentButton.getAttribute("tier");
-                    const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery,listSeasonalEventTiersToClaim[currentTier])[0]);
-                    if (rewardsToCollect.includes(freeSlotType) || needToCollectAllBeforeEnd || manualCollectAll)
+                    if (RewardHelper.pickTier(listSeasonalEventTiersToClaim[currentTier], halves, isPassPaid, rewardsToCollect, collectAnyway, currentButton.getAttribute("tier")))
                     {
-                        
-                        if (isPassPaid) {
-                            // One button for both
-                            const paidSlotType = RewardHelper.getRewardTypeBySlot($(paidSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
-                            if (rewardsToCollect.includes(paidSlotType) || needToCollectAllBeforeEnd || manualCollectAll)
-                            {
-                                buttonsToCollect.push(currentButton);
-                                logHHAuto("Adding for collection tier (free + paid) : "+currentTierNb);
-                            } else {
-                                logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                            }
-                        } else {
-                            buttonsToCollect.push(currentButton);
-                            logHHAuto("Adding for collection tier (only free) : "+currentTierNb);
-                        }
+                        buttonsToCollect.push(currentButton);
                     }
                 }
 

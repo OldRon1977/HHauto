@@ -4,8 +4,10 @@ import { TimeHelper } from '../../../src/Helper/TimeHelper';
 import { logHHAuto } from '../../../src/Utils/LogUtils';
 import { gotoPage } from '../../../src/Service/PageNavigationService';
 import { MockHelper } from '../../testHelpers/MockHelpers';
-import { getSecondsLeft } from '../../../src/Helper/TimerHelper';
+import { clearTimer, getSecondsLeft } from '../../../src/Helper/TimerHelper';
 import * as AjaxTracker from '../../../src/Service/AjaxTracker';
+import { HHStoredVarPrefixKey } from '../../../src/config/HHStoredVars';
+import { SK } from '../../../src/config/StorageKeys';
 
 // PageNavigationService is mocked so the navigation branch does not touch
 // window.location (see Shop.spec.ts for the same pattern).
@@ -122,6 +124,111 @@ describe("SeasonalEvent", function () {
             expect(result).toBe(false);
             expect(gotoPageMock).not.toHaveBeenCalled();
             expect(logHHAuto).toHaveBeenCalledWith("No SeasonalEvent active.");
+        });
+    });
+
+    describe("the two-row track of an event with a pass (#1931)", function () {
+        // Built after the tier template of the game's seasonal.js: the claim
+        // button sits in .free-slot whenever the free half is open, or the
+        // pass is owned and the pass half is open; a claimed free half carries
+        // claimed-slot. The purchase button exists only while the pass is not
+        // owned.
+        type Tier = { tier: number, free: "unclaimed" | "claimed" | "available", paid: "unclaimed" | "claimed" | "available", freeType?: string, paidType?: string };
+        function renderTrack(tiers: Tier[], passOwned: boolean) {
+            const html = tiers.map(t => {
+                const button = (t.free === "unclaimed" || (passOwned && t.paid === "unclaimed"))
+                    ? `<button rel="claim" class="purple_button_L button_glow mega-claim-reward double-claim" tier="${t.tier}">Claim</button>` : "";
+                return `<div id="tier-${t.tier}" class="mega-tier-container double-tier">
+                    <div class="mega-tier free-slot ${t.free === "claimed" ? "claimed-slot" : ""}">${button}
+                        <div class="tier-level"><p>0</p></div>
+                        <div class="slot slot_${t.freeType ?? "gems"} size_small"></div>
+                    </div>
+                    <div class="mega-tier pass-slot paid-${t.paid}">
+                        <div class="paid-slots-inner"><div class="slot slot_${t.paidType ?? "gems"} size_small paid-slot"></div></div>
+                    </div>
+                </div>`;
+            }).join("");
+            const buy = passOwned ? "" : `<div class="mega-event-pass gsp_btn_holder"><button id="get_mega_pass_kobans_btn"></button></div>`;
+            document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="${ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")}">
+                <div id="home_tab_container"><div class="bottom-container"><div class="right-part-container">
+                <div class="mega-progress-bar-section"><div class="mega-progress-bar-tiers double-mega-event">${html}</div>${buy}</div>
+                </div></div></div></div>`;
+            (unsafeWindow as unknown as Record<string, unknown>).hero_has_mega_pass = passOwned ? 1 : 0;
+        }
+        const added = () => (logHHAuto as jest.Mock).mock.calls.map(c => String(c[0])).filter(s => s.startsWith("Adding for collection tier"));
+
+        beforeEach(() => {
+            MockHelper.mockDomain("www.hentaiheroes.com");
+            jest.useFakeTimers();
+            (logHHAuto as jest.Mock).mockClear();
+            clearTimer('nextSeasonalEventCollectTime');
+            localStorage.setItem(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect, "true");
+            localStorage.setItem(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList, JSON.stringify(["gems"]));
+        });
+        afterEach(() => {
+            jest.useRealTimers();
+            document.body.innerHTML = '';
+            localStorage.clear();
+            sessionStorage.clear();
+            delete (unsafeWindow as unknown as Record<string, unknown>).hero_has_mega_pass;
+        });
+
+        it("is read as the two-row track with the pass owned, though the purchase button is gone", function () {
+            renderTrack([{ tier: 1, free: "claimed", paid: "unclaimed" }], true);
+            expect(SeasonalEvent.isMegaSeasonalEvent()).toBe(true);
+            expect(SeasonalEvent.isMegaPassPaid()).toBe(true);
+            expect(SeasonalEvent.hasUnclaimedRewards()).toBe(true);
+        });
+
+        it("is read as the two-row track without the pass as well", function () {
+            renderTrack([{ tier: 1, free: "unclaimed", paid: "unclaimed" }], false);
+            expect(SeasonalEvent.isMegaSeasonalEvent()).toBe(true);
+            expect(SeasonalEvent.isMegaPassPaid()).toBe(false);
+        });
+
+        it("collect all claims the pass half of tiers whose free half was claimed before the purchase", function () {
+            renderTrack([
+                { tier: 1, free: "claimed", paid: "unclaimed" },
+                { tier: 2, free: "claimed", paid: "unclaimed" },
+                { tier: 3, free: "unclaimed", paid: "unclaimed" },
+                { tier: 4, free: "available", paid: "available" },
+            ], true);
+            expect(SeasonalEvent.goAndCollect(true)).toBe(true);
+            expect(added()).toEqual([
+                "Adding for collection tier (paid) : 1",
+                "Adding for collection tier (paid) : 2",
+                "Adding for collection tier (free + paid) : 3",
+            ]);
+        });
+
+        it("counts only the open halves for the rewards recap", function () {
+            renderTrack([
+                { tier: 1, free: "claimed", paid: "unclaimed", freeType: "orbs", paidType: "gems" },
+                { tier: 2, free: "unclaimed", paid: "unclaimed", freeType: "orbs", paidType: "gems" },
+            ], true);
+            const counts = SeasonalEvent.getMegaSeasonalNotClaimedRewards() as any;
+            expect(counts.all).toBe(2);
+            expect(counts.orbs).toBe(1);
+            expect(counts.gems).toBe(2);
+        });
+
+        it("the collect list decides on the pass half alone once the free half is claimed", function () {
+            renderTrack([
+                { tier: 1, free: "claimed", paid: "unclaimed", freeType: "orbs", paidType: "gems" },
+                { tier: 2, free: "claimed", paid: "unclaimed", freeType: "gems", paidType: "orbs" },
+                { tier: 3, free: "unclaimed", paid: "unclaimed", freeType: "orbs", paidType: "gems" },
+            ], true);
+            SeasonalEvent.goAndCollect();
+            expect(added()).toEqual(["Adding for collection tier (paid) : 1 (gems)"]);
+        });
+
+        it("without the pass, the free half alone decides", function () {
+            renderTrack([
+                { tier: 1, free: "unclaimed", paid: "unclaimed", freeType: "gems", paidType: "orbs" },
+                { tier: 2, free: "unclaimed", paid: "unclaimed", freeType: "orbs", paidType: "gems" },
+            ], false);
+            SeasonalEvent.goAndCollect();
+            expect(added()).toEqual(["Adding for collection tier (free) : 1 (gems)"]);
         });
     });
 
