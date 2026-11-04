@@ -24,6 +24,7 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { KKPentaDrillOpponents } from "../model/KK/KKPentaDrillOpponents";
 import { Booster } from "./Booster";
+import { PassHelper } from "../Helper/PassHelper";
 
 export class PentaDrill {
 
@@ -213,13 +214,8 @@ export class PentaDrill {
 
     static getNotClaimedRewards() {
         const arrayz = $('.rewards_pair');
-        const freeSlotSelectors = ".free_reward.reward_is_claimable .slot";
-        let paidSlotSelectors = "";
-        if ($("#get_penta_pass_btn[style='display: none;']").length) {
-            // PentaDrill pass paid
-            paidSlotSelectors = ".pass_reward.reward_is_claimable .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+        const halves = PassHelper.TRACK_HALVES.pentaDrill;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, PassHelper.ownsPass('pentaDrill') ? halves.paid : "");
     }
 
     static goAndCollect()
@@ -260,9 +256,8 @@ export class PentaDrill {
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
 
-                const isPassPaid = $("#get_penta_pass_btn:visible").length === 0;
-                const freeSlotQuery = ".free_reward .slot";
-                const paidSlotQuery = ".pass_reward .slot";
+                const isPassPaid = PassHelper.ownsPass('pentaDrill');
+                const halves = PassHelper.TRACK_HALVES.pentaDrill;
 
                 const buttonsToCollect: HTMLElement[] = [];
                 const listPentaDrillTiersToClaim = $(".rewards_container_penta_drill .rewards_pair:has(.btn_claim)");
@@ -270,23 +265,8 @@ export class PentaDrill {
 
                 for (let currentTier = 0; currentTier < listPentaDrillTiersToClaim.length; currentTier++) {
                     const currentButton = $("button[rel='claim']", listPentaDrillTiersToClaim[currentTier])[0];
-                    const currentTierNb = currentButton.getAttribute("tier");
-                    const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listPentaDrillTiersToClaim[currentTier])[0]);
-                    if (rewardsToCollect.includes(freeSlotType)) {
-
-                        if (isPassPaid) {
-                            // One button for both
-                            const paidSlotType = RewardHelper.getRewardTypeBySlot($(paidSlotQuery, listPentaDrillTiersToClaim[currentTier])[0]);
-                            if (rewardsToCollect.includes(paidSlotType)) {
-                                buttonsToCollect.push(currentButton);
-                                logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
-                            } else {
-                                logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                            }
-                        } else {
-                            buttonsToCollect.push(currentButton);
-                            logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
-                        }
+                    if (RewardHelper.pickTier(listPentaDrillTiersToClaim[currentTier], halves, isPassPaid, rewardsToCollect, false, currentButton.getAttribute("tier"))) {
+                        buttonsToCollect.push(currentButton);
                     }
                 }
 

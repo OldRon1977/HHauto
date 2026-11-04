@@ -7,6 +7,17 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.22.1 - Reward tracks with a pass
+
+- Seasonal event: with the Mega Pass bought, Collect all and the automatic collection found nothing to claim. Both claim the pass rewards again.
+- Seasonal event, Path of Valor, Path of Glory, Penta Drill, Double Penetration: once the free reward of a tier is claimed, the collect list decides on the pass reward alone.
+- Season and Penta Drill: the rewards recap counts the pass rewards again when the pass is owned.
+- Path of Attraction: without the pass, a fully claimed event counts as completed; before, it also waited for the pass rewards.
+- Double Penetration: without the pass, a tier is collected when its free reward is on the collect list; before, the locked pass reward had to be on it too.
+- Path of Valor and Path of Glory: the rewards recap no longer counts free rewards that are already claimed.
+- Every reward track reads pass ownership the same way: from the game's own value, else from the pass purchase button.
+- Prepare for Calculation: a red notice at the top of its window says that all skills are removed, that the reset can cost a large part of the money, and that the step is optional.
+
 ### v8.22.0 - Prepare for Calculation
 
 - **Prepare for Calculation** (Team optimization popup, above the rubrics):

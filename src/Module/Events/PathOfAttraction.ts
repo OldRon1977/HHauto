@@ -22,6 +22,7 @@ import { FeatureGate } from "../../Service/FeatureGate";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
+import { PassHelper } from "../../Helper/PassHelper";
 
 class PoaReward {
     tier=0;
@@ -226,11 +227,7 @@ export class PathOfAttraction {
     static getNotClaimedRewards() {
         const arrayz = $('.nc-poa-reward-pair');
         const freeSlotSelectors = ".nc-poa-free-reward.claimable .slot";
-        let paidSlotSelectors = "";
-        if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Pass bought: the paid slots count too
-            paidSlotSelectors = ".nc-poa-locked-reward.claimable .slot";
-        }
+        const paidSlotSelectors = PassHelper.ownsPass('pathOfAttraction') ? ".nc-poa-locked-reward.claimable .slot" : "";
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
     }
 
@@ -256,22 +253,20 @@ export class PathOfAttraction {
     }
 
     static getPaidClaimableRewards(): PoaReward[] {
-        if($("#nc-poa-tape-blocker").length) {
+        if (!PassHelper.ownsPass('pathOfAttraction')) {
             return [];
-        }else {
-            return PathOfAttraction._getClaimableRewards(PathOfAttraction.paidSlotPath+ ".claimable");
         }
+        return PathOfAttraction._getClaimableRewards(PathOfAttraction.paidSlotPath+ ".claimable");
     }
 
     static isCompleted():boolean {
         const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
         const numberClaimedFree = $(PathOfAttraction.freeSlotPath + ".claimed").length;
         const numberClaimedPaid = $(PathOfAttraction.paidSlotPath + ".claimed").length;
-        if($("#nc-poa-tape-blocker").length) {
+        if (!PassHelper.ownsPass('pathOfAttraction')) {
             return numberClaimedFree >= numberTiers;
-        }else {
-            return numberClaimedFree >= numberTiers && numberClaimedPaid >= numberTiers;
         }
+        return numberClaimedFree >= numberTiers && numberClaimedPaid >= numberTiers;
     }
 
     static async goAndCollect(manualCollectAll = false, needToCollectAllBeforeEnd = false)
@@ -353,15 +348,8 @@ export class PathOfAttraction {
             let arrayz;
             let nbReward;
             arrayz = $('.nc-poa-reward-pair:not([style*="display:none"]):not([style*="display: none"])');
-            if ($("#nc-poa-tape-blocker").length)
-            {
-                nbReward=1;
-            }
-            else
-            {
-                nbReward=2;
-            }
-    
+            nbReward = PassHelper.ownsPass('pathOfAttraction') ? 2 : 1;
+
             var obj;
             if (arrayz.length > 0) {
                 for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {

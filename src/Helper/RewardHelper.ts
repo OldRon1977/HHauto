@@ -36,6 +36,7 @@ import { waitForGameAnswer } from "../Service/AjaxTracker";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
+import { PassHelper } from "./PassHelper";
 
 // closeReloadingRewardPopup: polls rather than a deadline, so a test with a
 // stubbed sleep runs a bounded number of rounds.
@@ -176,10 +177,35 @@ export class RewardHelper {
     }
     static getPovNotClaimedRewards(){
         const arrayz = $('.potions-paths-tiers-section .potions-paths-tier.unclaimed');
-        const freeSlotSelectors = ".free-slot:not(.claimed-locked) .slot,.free-slot:not(.claimed-locked) .shards_girl_ico";
-        const paidSlotSelectors = ".paid-slots:not(.paid-locked):not(.claimed-locked) .slot,.paid-slots:not(.paid-locked):not(.claimed-locked) .shards_girl_ico";
+        const halves = PassHelper.TRACK_HALVES.potionsPath;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, PassHelper.ownsPass('potionsPath') ? halves.paid : "");
+    }
 
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    /**
+     * Whether a tier whose one claim button takes both halves is to be
+     * collected: every slot of every open half must be on the collect list.
+     * A tier with no open half that can be read is left alone.
+     */
+    static pickTier(tier: HTMLElement, halves: { free: string, paid: string }, ownsPass: boolean,
+                    rewardsToCollect: string[], collectAnyway: boolean, tierNb: string | null): boolean {
+        const freeSlots = $(halves.free, tier).toArray();
+        const paidSlots = ownsPass && halves.paid ? $(halves.paid, tier).toArray() : [];
+        const parts = [freeSlots.length ? "free" : "", paidSlots.length ? "paid" : ""].filter(Boolean).join(" + ");
+        if (collectAnyway) {
+            logHHAuto("Adding for collection tier (" + (parts || "all") + ") : " + tierNb);
+            return true;
+        }
+        if (!parts) {
+            logHHAuto("Can't add tier " + tierNb + " as no open reward was found in it");
+            return false;
+        }
+        const types = freeSlots.concat(paidSlots).map(slot => RewardHelper.getRewardTypeBySlot(slot));
+        if (types.every(type => rewardsToCollect.includes(type))) {
+            logHHAuto("Adding for collection tier (" + parts + ") : " + tierNb + " (" + types.join(", ") + ")");
+            return true;
+        }
+        logHHAuto("Can't add tier " + tierNb + " as not every reward of its " + parts + " half is to be collected (" + types.join(", ") + ")");
+        return false;
     }
     static computeRewardsCount(arrayz: any, freeSlotSelectors: string, paidSlotSelectors: string):Map<string,number> {
         const rewardCountByType:Map<string,number> = new Map();

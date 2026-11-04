@@ -21,6 +21,7 @@ import { MythicEvent } from "./MythicEvent";
 import { PathOfAttraction } from "./PathOfAttraction";
 import { PlusEvent } from "./PlusEvents";
 import { SultryMysteries } from "./SultryMysteries";
+import { PassHelper } from "../../Helper/PassHelper";
 
 export class EventModule {
     /**
@@ -791,17 +792,8 @@ export class EventModule {
         var nbReward;
         let modified = false;
         arrayz = $('.potions-paths-tier:not([style*="display:none"]):not([style*="display: none"])');
-        // A visible pass-purchase button means the pass is not bought: one
-        // reward per tier then, two with the pass. Whether that button is
-        // shown reliably on every account is unverified.
-        if ($('#'+containerId+' .potions-paths-second-row .purchase-pass:not([style*="display:none"]):not([style*="display: none"])').length)
-        {
-            nbReward = 1;
-        }
-        else
-        {
-            nbReward = 2;
-        }
+        // One reward per tier without the pass, two with it.
+        nbReward = PassHelper.ownsPass('potionsPath') ? 2 : 1;
         var obj;
         if (arrayz.length > 0)
         {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.22.0
+// @version      8.22.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -841,6 +841,7 @@ HHAuto_ToolTips.en['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "T
 HHAuto_ToolTips.en['teamSelGearState'] = { version: "8.14.0", elementText: "Team gear: {pieces} pieces", tooltip: "" };
 HHAuto_ToolTips.en['teamSelSkillNote'] = { version: "8.22.0", elementText: "Includes the skills Stuff Team would give: Tier 2 stats, Tier 3 trait bonus, Tier 4/5 in the fight.", tooltip: "" };
 HHAuto_ToolTips.en['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Resets the skills of every girl and takes off all items, so the calculation works on the girls' own stats. Costs money." };
+HHAuto_ToolTips.en['prepareCalcWarning'] = { version: "8.22.1", elementText: "Optional step. It removes ALL skills of every girl, and the reset can cost a large part of your money. You do not have to do it: without it the team calculation works as usual, the team it picks may only be somewhat weaker. Prepare for Calculation is there for a better result.", tooltip: "" };
 HHAuto_ToolTips.en['prepareCalcExplain'] = { version: "8.22.0", elementText: "Resets the skills of every girl and takes off all items. This costs money (5M per skill point). Girls whose reset would take your money below the limit keep their skills.", tooltip: "" };
 HHAuto_ToolTips.en['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Why: the calculation is based on the girls' stats. Skills and items a girl holds today are part of those stats, so the calculation would prefer her even where another girl would be stronger once she gets them. After the reset every candidate is scored as she will be after Stuff Team. Then: calculate, apply, Level-up team, Stuff Team, Best gear.", tooltip: "" };
 HHAuto_ToolTips.en['prepareCalcState'] = { version: "8.22.0", elementText: "Gear on {gear} girls, skills on {skills} girls", tooltip: "" };
@@ -1427,6 +1428,7 @@ HHAuto_ToolTips.fr['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "L
 HHAuto_ToolTips.fr['teamSelGearState'] = { version: "8.14.0", elementText: "Équipement de l'équipe : {pieces} pièces", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelSkillNote'] = { version: "8.22.0", elementText: "Inclut les compétences que Stuff Team donnerait : stats du Tier 2, bonus de trait du Tier 3, Tier 4/5 en combat.", tooltip: "" };
 HHAuto_ToolTips.fr['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Réinitialise les compétences de toutes les filles et retire tous les objets, pour que le calcul utilise les stats propres des filles. Coûte de l'argent." };
+HHAuto_ToolTips.fr['prepareCalcWarning'] = { version: "8.22.1", elementText: "Étape facultative. Elle retire TOUTES les compétences de toutes les filles, et la réinitialisation peut coûter une part importante de votre argent. Vous n'êtes pas obligé de la faire : sans elle, le calcul d'équipe fonctionne comme d'habitude, l'équipe choisie peut seulement être un peu plus faible. Prepare for Calculation sert à obtenir un meilleur résultat.", tooltip: "" };
 HHAuto_ToolTips.fr['prepareCalcExplain'] = { version: "8.22.0", elementText: "Réinitialise les compétences de toutes les filles et retire tous les objets. Cela coûte de l'argent (5M par point de compétence). Les filles dont la réinitialisation ferait passer votre argent sous la limite gardent leurs compétences.", tooltip: "" };
 HHAuto_ToolTips.fr['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Pourquoi : le calcul repose sur les stats des filles. Les compétences et objets qu'une fille possède aujourd'hui en font partie, et le calcul la préfère alors même là où une autre fille serait plus forte une fois équipée de la même façon. Après la réinitialisation, chaque candidate est évaluée telle qu'elle sera après Stuff Team. Ensuite : calculer, appliquer, Level-up team, Stuff Team, Best gear.", tooltip: "" };
 HHAuto_ToolTips.fr['prepareCalcState'] = { version: "8.22.0", elementText: "Équipement sur {gear} filles, compétences sur {skills} filles", tooltip: "" };
@@ -2014,6 +2016,7 @@ HHAuto_ToolTips.de['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "D
 HHAuto_ToolTips.de['teamSelGearState'] = { version: "8.14.0", elementText: "Ausrüstung im Team: {pieces} Teile", tooltip: "" };
 HHAuto_ToolTips.de['teamSelSkillNote'] = { version: "8.22.0", elementText: "Enthält die Skills, die Stuff Team geben würde: Tier-2-Werte, Tier-3-Merkmalsbonus, Tier 4/5 im Kampf.", tooltip: "" };
 HHAuto_ToolTips.de['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Setzt bei allen Mädchen die Skills zurück und nimmt alle Items ab, damit die Berechnung mit den eigenen Werten der Mädchen arbeitet. Kostet Geld." };
+HHAuto_ToolTips.de['prepareCalcWarning'] = { version: "8.22.1", elementText: "Optionaler Schritt. Er entfernt ALLE Skills aller Mädchen, und der Reset kann einen erheblichen Teil deines Geldes kosten. Du musst ihn nicht ausführen: Ohne ihn arbeitet die Teamberechnung wie gewohnt, das gewählte Team kann dann nur etwas schwächer sein. Prepare for Calculation dient einem besseren Ergebnis.", tooltip: "" };
 HHAuto_ToolTips.de['prepareCalcExplain'] = { version: "8.22.0", elementText: "Setzt bei allen Mädchen die Skills zurück und nimmt alle Items ab. Das kostet Geld (5M je Skillpunkt). Mädchen, deren Reset dein Geld unter die Grenze bringen würde, behalten ihre Skills.", tooltip: "" };
 HHAuto_ToolTips.de['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Warum: Die Berechnung beruht auf den Werten der Mädchen. Skills und Items, die ein Mädchen heute hat, stecken in diesen Werten. Die Berechnung bevorzugt sie dann auch dort, wo ein anderes Mädchen mit denselben Skills und Items stärker wäre. Nach dem Reset wird jede Kandidatin so bewertet, wie sie nach Stuff Team sein wird. Danach: berechnen, übernehmen, Level-up team, Stuff Team, Best gear.", tooltip: "" };
 HHAuto_ToolTips.de['prepareCalcState'] = { version: "8.22.0", elementText: "Ausrüstung an {gear} Mädchen, Skills an {skills} Mädchen", tooltip: "" };
@@ -2600,6 +2603,7 @@ HHAuto_ToolTips.es['teamSelStuffUnsaved'] = { version: "8.14.0", elementText: "L
 HHAuto_ToolTips.es['teamSelGearState'] = { version: "8.14.0", elementText: "Equipo de la escuadra: {pieces} piezas", tooltip: "" };
 HHAuto_ToolTips.es['teamSelSkillNote'] = { version: "8.22.0", elementText: "Incluye las habilidades que daría Stuff Team: stats del Tier 2, bonus de rasgo del Tier 3, Tier 4/5 en combate.", tooltip: "" };
 HHAuto_ToolTips.es['PrepareCalc'] = { version: "8.22.0", elementText: "Prepare for Calculation", tooltip: "Reinicia las habilidades de todas las chicas y quita todos los objetos, para que el cálculo use las stats propias de las chicas. Cuesta dinero." };
+HHAuto_ToolTips.es['prepareCalcWarning'] = { version: "8.22.1", elementText: "Paso opcional. Quita TODAS las habilidades de todas las chicas, y el reinicio puede costar una parte importante de tu dinero. No es obligatorio: sin él, el cálculo de equipo funciona como siempre; el equipo elegido solo puede ser algo más débil. Prepare for Calculation sirve para obtener un mejor resultado.", tooltip: "" };
 HHAuto_ToolTips.es['prepareCalcExplain'] = { version: "8.22.0", elementText: "Reinicia las habilidades de todas las chicas y quita todos los objetos. Esto cuesta dinero (5M por punto de habilidad). Las chicas cuyo reinicio dejaría tu dinero por debajo del límite conservan sus habilidades.", tooltip: "" };
 HHAuto_ToolTips.es['prepareCalcBenefit'] = { version: "8.22.0", elementText: "Por qué: el cálculo se basa en las stats de las chicas. Las habilidades y objetos que una chica tiene hoy forman parte de ellas, y el cálculo la prefiere incluso donde otra chica sería más fuerte con lo mismo. Tras el reinicio cada candidata se evalúa como será después de Stuff Team. Después: calcular, aplicar, Level-up team, Stuff Team, Best gear.", tooltip: "" };
 HHAuto_ToolTips.es['prepareCalcState'] = { version: "8.22.0", elementText: "Equipo en {gear} chicas, habilidades en {skills} chicas", tooltip: "" };
@@ -13256,6 +13260,78 @@ class FeatureGate {
     }
 }
 
+;// ./src/Helper/PassHelper.ts
+// PassHelper.ts -- whether the player owns the pass of a reward track, and
+// which slots of a tier are still to claim.
+//
+// Reward tracks with a pass: a free row and a pass row. Every track
+// reads pass ownership the same way and names its open halves with one
+// selector pair, used both for the rewards recap and for picking tiers.
+//
+// The pass row's state class cannot stand for ownership: measured on the
+// test account without any pass, the pass half reads "claimable" on the
+// Seasonal event (paid-unclaimed), the Season and Penta Drill
+// (reward_is_claimable); only PoV/PoG lock it (paid-locked). So a pass half
+// counts as open only when the pass is owned AND its state says open.
+//
+// Ownership comes from the game's own global (measured on the test
+// account: hero_has_mega_pass 0, owned_passes {pass,passplus} false,
+// season_has_pass false, penta_drill_data.progression.has_pass 0). Only
+// where it is missing does the purchase element decide: the game renders
+// it only while the pass is not owned (seasonal.js, season.js,
+// penta_drill.js, the PoA chunk), and after a purchase on the page it
+// hides or removes it -- so absent means owned, and a hidden one does not
+// count. PoA's bonus_rewards_unlocked is read from the game's script, not
+// measured (no PoA ran). Double Penetration has no global of its own in
+// the game's script that could be checked, so only its blocker decides.
+// The PoA/DP blocker is a class (nc-poa-tape-blocker); no element carries
+// it as an id.
+//
+// Depends on: HHHelper (the game's globals)
+// Used by: RewardHelper, Seasonal, PathOfValue, PathOfGlory, Season,
+//          PentaDrill, PathOfAttraction, DoublePenetration, EventModule
+
+class PassHelper {
+    static ownsPass(source) {
+        const { globals, purchase } = PassHelper.PASS_SOURCES[source];
+        let known = false;
+        for (const name of globals) {
+            const value = getHHVars(name, false);
+            if (value === null || value === undefined)
+                continue;
+            known = true;
+            if (value === true || Number(value) === 1)
+                return true;
+        }
+        if (known)
+            return false;
+        // The game hides it with .hide(), an inline display:none.
+        return $(purchase).filter((_, e) => e.style.display !== 'none').length === 0;
+    }
+}
+PassHelper.PASS_SOURCES = {
+    seasonalEvent: { globals: ['hero_has_mega_pass'], purchase: '#get_mega_pass_kobans_btn' },
+    potionsPath: { globals: ['owned_passes.pass', 'owned_passes.passplus'], purchase: '.potions-paths-second-row .purchase-pass' },
+    season: { globals: ['season_has_pass'], purchase: '#gsp_btn_holder' },
+    pentaDrill: { globals: ['penta_drill_data.progression.has_pass'], purchase: '#get_penta_pass_btn' },
+    pathOfAttraction: { globals: ['bonus_rewards_unlocked'], purchase: '.scroll-area.poa .nc-poa-tape-blocker' },
+    doublePenetration: { globals: [], purchase: '#dp-content .nc-poa-tape-blocker' },
+};
+// Slots of the halves still to claim, inside one tier. The pass half
+// still needs ownsPass() on top (see above). Double Penetration: its
+// claimed-state classes are not in any script the game served while no
+// DP event ran, so its halves carry no state filter.
+PassHelper.TRACK_HALVES = {
+    seasonalEvent: { free: ".free-slot:not(.claimed-slot) .slot", paid: ".pass-slot.paid-unclaimed .slot" },
+    potionsPath: {
+        free: ".free-slot:not(.claimed-slot) .slot,.free-slot:not(.claimed-slot) .shards_girl_ico",
+        paid: ".paid-slots.paid-unclaimed .slot,.paid-slots.paid-unclaimed .shards_girl_ico",
+    },
+    pentaDrill: { free: ".free_reward.reward_is_claimable .slot", paid: ".pass_reward.reward_is_claimable .slot" },
+    season: { free: ".free_reward.reward_is_claimable .slot", paid: ".pass_reward.reward_is_claimable .slot" },
+    doublePenetration: { free: ".free-slot .slot,.free-slot .slot_girl_shards", paid: ".paid-slot .slot,.paid-slot .slot_girl_shards" },
+};
+
 ;// ./src/Module/Events/DoublePenetration.ts
 // DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
 //
@@ -13267,6 +13343,7 @@ class FeatureGate {
 // Depends on: RewardHelper (reward parsing), PageNavigationService, ButtonHelper
 // Used by: EventModule.ts (called when Double Penetration event is active)
 //
+
 
 
 
@@ -13312,9 +13389,7 @@ class DoublePenetration {
             const needToCollectAll = dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true";
             const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true");
             const dPTierQuery = "#dp-content .tiers-container .player-progression-container .tier-container:has(button.display-block)";
-            const dPFreeSlotQuery = ".free-slot .slot,.free-slot .slot_girl_shards";
-            const dPPaidSlotQuery = ".paid-slot .slot,.paid-slot .slot_girl_shards";
-            const isPassPaid = $("#nc-poa-tape-blocker button.unlock-poa-bonus-rewards:visible").length <= 0;
+            const isPassPaid = PassHelper.ownsPass('doublePenetration');
             if (needToCollect || needToCollectAll || manualCollectAll) {
                 logHHAuto("Checking double penetration event for collectable rewards.");
                 logHHAuto("setting autoloop to false");
@@ -13324,33 +13399,8 @@ class DoublePenetration {
                 for (let currentTier = 0; currentTier < listDpEventTiersToClaim.length; currentTier++) {
                     const currentButton = $("button[rel='reward-claim']", listDpEventTiersToClaim[currentTier])[0];
                     const currentTierNb = currentButton.getAttribute("tier");
-                    if (needToCollectAll) {
-                        logHHAuto("Adding for collection tier before end of event: " + currentTierNb);
+                    if (RewardHelper.pickTier(listDpEventTiersToClaim[currentTier], PassHelper.TRACK_HALVES.doublePenetration, isPassPaid, rewardsToCollect, needToCollectAll || manualCollectAll, currentTierNb)) {
                         buttonsToCollect.push(currentButton);
-                    }
-                    else if (manualCollectAll) {
-                        logHHAuto("Adding for collection tier from manual collect all: " + currentTierNb);
-                        buttonsToCollect.push(currentButton);
-                    }
-                    else {
-                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(dPFreeSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
-                        if (rewardsToCollect.includes(freeSlotType)) {
-                            if (isPassPaid) {
-                                // One button for both
-                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(dPPaidSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
-                                if (rewardsToCollect.includes(paidSlotType)) {
-                                    buttonsToCollect.push(currentButton);
-                                    logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
-                                }
-                                else {
-                                    logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                                }
-                            }
-                            else {
-                                buttonsToCollect.push(currentButton);
-                                logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
-                            }
-                        }
                     }
                 }
                 if (buttonsToCollect.length > 0) {
@@ -13425,13 +13475,8 @@ class DoublePenetration {
     }
     static getNotClaimedRewards() {
         const arrayz = $('#dp-content .tier-container:has(.tier-level button[rel="reward-claim"]:visible)');
-        const freeSlotSelectors = ".free-slot .slot";
-        let paidSlotSelectors = "";
-        if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Pass bought: the paid slots count too
-            paidSlotSelectors = ".paid-slot  .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+        const halves = PassHelper.TRACK_HALVES.doublePenetration;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, PassHelper.ownsPass('doublePenetration') ? halves.paid : "");
     }
     static displayCollectAllButton() {
         if (DoublePenetration.hasUnclaimedRewards() && $('#dpCollectAll').length == 0) {
@@ -14224,6 +14269,7 @@ var PathOfAttraction_awaiter = (undefined && undefined.__awaiter) || function (t
 
 
 
+
 class PoaReward {
     constructor(tier, type, slot) {
         this.tier = 0;
@@ -14394,11 +14440,7 @@ class PathOfAttraction {
     static getNotClaimedRewards() {
         const arrayz = $('.nc-poa-reward-pair');
         const freeSlotSelectors = ".nc-poa-free-reward.claimable .slot";
-        let paidSlotSelectors = "";
-        if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Pass bought: the paid slots count too
-            paidSlotSelectors = ".nc-poa-locked-reward.claimable .slot";
-        }
+        const paidSlotSelectors = PassHelper.ownsPass('pathOfAttraction') ? ".nc-poa-locked-reward.claimable .slot" : "";
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
     }
     static _getClaimableRewards(path) {
@@ -14419,23 +14461,19 @@ class PathOfAttraction {
         return PathOfAttraction._getClaimableRewards(PathOfAttraction.freeSlotPath + ".claimable");
     }
     static getPaidClaimableRewards() {
-        if ($("#nc-poa-tape-blocker").length) {
+        if (!PassHelper.ownsPass('pathOfAttraction')) {
             return [];
         }
-        else {
-            return PathOfAttraction._getClaimableRewards(PathOfAttraction.paidSlotPath + ".claimable");
-        }
+        return PathOfAttraction._getClaimableRewards(PathOfAttraction.paidSlotPath + ".claimable");
     }
     static isCompleted() {
         const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
         const numberClaimedFree = $(PathOfAttraction.freeSlotPath + ".claimed").length;
         const numberClaimedPaid = $(PathOfAttraction.paidSlotPath + ".claimed").length;
-        if ($("#nc-poa-tape-blocker").length) {
+        if (!PassHelper.ownsPass('pathOfAttraction')) {
             return numberClaimedFree >= numberTiers;
         }
-        else {
-            return numberClaimedFree >= numberTiers && numberClaimedPaid >= numberTiers;
-        }
+        return numberClaimedFree >= numberTiers && numberClaimedPaid >= numberTiers;
     }
     static goAndCollect() {
         return PathOfAttraction_awaiter(this, arguments, void 0, function* (manualCollectAll = false, needToCollectAllBeforeEnd = false) {
@@ -14503,12 +14541,7 @@ class PathOfAttraction {
             let arrayz;
             let nbReward;
             arrayz = $('.nc-poa-reward-pair:not([style*="display:none"]):not([style*="display: none"])');
-            if ($("#nc-poa-tape-blocker").length) {
-                nbReward = 1;
-            }
-            else {
-                nbReward = 2;
-            }
+            nbReward = PassHelper.ownsPass('pathOfAttraction') ? 2 : 1;
             var obj;
             if (arrayz.length > 0) {
                 for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
@@ -15034,6 +15067,7 @@ var EventModule_awaiter = (undefined && undefined.__awaiter) || function (thisAr
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 
 
 
@@ -15728,15 +15762,8 @@ class EventModule {
         var nbReward;
         let modified = false;
         arrayz = $('.potions-paths-tier:not([style*="display:none"]):not([style*="display: none"])');
-        // A visible pass-purchase button means the pass is not bought: one
-        // reward per tier then, two with the pass. Whether that button is
-        // shown reliably on every account is unverified.
-        if ($('#' + containerId + ' .potions-paths-second-row .purchase-pass:not([style*="display:none"]):not([style*="display: none"])').length) {
-            nbReward = 1;
-        }
-        else {
-            nbReward = 2;
-        }
+        // One reward per tier without the pass, two with it.
+        nbReward = PassHelper.ownsPass('potionsPath') ? 2 : 1;
         var obj;
         if (arrayz.length > 0) {
             for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
@@ -16397,6 +16424,7 @@ var RewardHelper_awaiter = (undefined && undefined.__awaiter) || function (thisA
 
 
 
+
 // closeReloadingRewardPopup: polls rather than a deadline, so a test with a
 // stubbed sleep runs a bounded number of rounds.
 const RELOADING_POPUP_POLL_MS = 250;
@@ -16514,9 +16542,33 @@ class RewardHelper {
     }
     static getPovNotClaimedRewards() {
         const arrayz = $('.potions-paths-tiers-section .potions-paths-tier.unclaimed');
-        const freeSlotSelectors = ".free-slot:not(.claimed-locked) .slot,.free-slot:not(.claimed-locked) .shards_girl_ico";
-        const paidSlotSelectors = ".paid-slots:not(.paid-locked):not(.claimed-locked) .slot,.paid-slots:not(.paid-locked):not(.claimed-locked) .shards_girl_ico";
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+        const halves = PassHelper.TRACK_HALVES.potionsPath;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, PassHelper.ownsPass('potionsPath') ? halves.paid : "");
+    }
+    /**
+     * Whether a tier whose one claim button takes both halves is to be
+     * collected: every slot of every open half must be on the collect list.
+     * A tier with no open half that can be read is left alone.
+     */
+    static pickTier(tier, halves, ownsPass, rewardsToCollect, collectAnyway, tierNb) {
+        const freeSlots = $(halves.free, tier).toArray();
+        const paidSlots = ownsPass && halves.paid ? $(halves.paid, tier).toArray() : [];
+        const parts = [freeSlots.length ? "free" : "", paidSlots.length ? "paid" : ""].filter(Boolean).join(" + ");
+        if (collectAnyway) {
+            logHHAuto("Adding for collection tier (" + (parts || "all") + ") : " + tierNb);
+            return true;
+        }
+        if (!parts) {
+            logHHAuto("Can't add tier " + tierNb + " as no open reward was found in it");
+            return false;
+        }
+        const types = freeSlots.concat(paidSlots).map(slot => RewardHelper.getRewardTypeBySlot(slot));
+        if (types.every(type => rewardsToCollect.includes(type))) {
+            logHHAuto("Adding for collection tier (" + parts + ") : " + tierNb + " (" + types.join(", ") + ")");
+            return true;
+        }
+        logHHAuto("Can't add tier " + tierNb + " as not every reward of its " + parts + " half is to be collected (" + types.join(", ") + ")");
+        return false;
     }
     static computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors) {
         const rewardCountByType = new Map();
@@ -21466,6 +21518,7 @@ var Season_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 
 
 
+
 class Season {
     static getRemainingTime() {
         const seasonTimer = unsafeWindow.season_sec_untill_event_end;
@@ -21974,12 +22027,8 @@ class Season {
     }
     static getNotClaimedRewards() {
         const arrayz = $('.rewards_pair');
-        const freeSlotSelectors = ".free_reward.reward_is_claimable .slot";
-        let paidSlotSelectors = "";
-        if ($("div#gsp_btn_holder[style='display: none;']").length) {
-            paidSlotSelectors = ".pass_reward.reward_is_claimable .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+        const halves = PassHelper.TRACK_HALVES.season;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, PassHelper.ownsPass('season') ? halves.paid : "");
     }
     static goAndCollect() {
         const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoSeasonCollectablesList);
@@ -22010,10 +22059,10 @@ class Season {
                 logHHAuto("Going to collect Season.");
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                let limitClassPass = "";
-                if ($("div#gsp_btn_holder:visible").length) {
-                    limitClassPass = ".free_reward"; // without season pass
-                }
+                // Each reward claims on its own here. Without the pass the
+                // pass rewards read claimable too (measured), so only the free
+                // ones are taken.
+                const limitClassPass = PassHelper.ownsPass('season') ? "" : ".free_reward";
                 const buttonsToCollect = [];
                 const listSeasonTiersToClaim = $("#seasons_tab_container .rewards_pair .reward_wrapper.reward_is_claimable" + limitClassPass);
                 logHHAuto('Found ' + listSeasonTiersToClaim.length + ' rewards available for collection before filtering');
@@ -22132,12 +22181,7 @@ class Season {
         var nbReward;
         let modified = false;
         arrayz = $('.rewards_pair:not([style*="display:none"]):not([style*="display: none"])');
-        if ($("div#gsp_btn_holder[style='display: none;']").length) {
-            nbReward = 2;
-        }
-        else {
-            nbReward = 1;
-        }
+        nbReward = PassHelper.ownsPass('season') ? 2 : 1;
         var obj;
         if (arrayz.length > 0) {
             for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
@@ -23367,6 +23411,7 @@ var PentaDrill_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
+
 class PentaDrill {
     static getRemainingTime() {
         var _a, _b;
@@ -23532,13 +23577,8 @@ class PentaDrill {
     }
     static getNotClaimedRewards() {
         const arrayz = $('.rewards_pair');
-        const freeSlotSelectors = ".free_reward.reward_is_claimable .slot";
-        let paidSlotSelectors = "";
-        if ($("#get_penta_pass_btn[style='display: none;']").length) {
-            // PentaDrill pass paid
-            paidSlotSelectors = ".pass_reward.reward_is_claimable .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+        const halves = PassHelper.TRACK_HALVES.pentaDrill;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, PassHelper.ownsPass('pentaDrill') ? halves.paid : "");
     }
     static goAndCollect() {
         const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPentaDrillCollectablesList);
@@ -23569,32 +23609,15 @@ class PentaDrill {
                 logHHAuto("Going to collect PentaDrill.");
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                const isPassPaid = $("#get_penta_pass_btn:visible").length === 0;
-                const freeSlotQuery = ".free_reward .slot";
-                const paidSlotQuery = ".pass_reward .slot";
+                const isPassPaid = PassHelper.ownsPass('pentaDrill');
+                const halves = PassHelper.TRACK_HALVES.pentaDrill;
                 const buttonsToCollect = [];
                 const listPentaDrillTiersToClaim = $(".rewards_container_penta_drill .rewards_pair:has(.btn_claim)");
                 logHHAuto('Found ' + listPentaDrillTiersToClaim.length + ' rewards available for collection before filtering');
                 for (let currentTier = 0; currentTier < listPentaDrillTiersToClaim.length; currentTier++) {
                     const currentButton = $("button[rel='claim']", listPentaDrillTiersToClaim[currentTier])[0];
-                    const currentTierNb = currentButton.getAttribute("tier");
-                    const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listPentaDrillTiersToClaim[currentTier])[0]);
-                    if (rewardsToCollect.includes(freeSlotType)) {
-                        if (isPassPaid) {
-                            // One button for both
-                            const paidSlotType = RewardHelper.getRewardTypeBySlot($(paidSlotQuery, listPentaDrillTiersToClaim[currentTier])[0]);
-                            if (rewardsToCollect.includes(paidSlotType)) {
-                                buttonsToCollect.push(currentButton);
-                                logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
-                            }
-                            else {
-                                logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                            }
-                        }
-                        else {
-                            buttonsToCollect.push(currentButton);
-                            logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
-                        }
+                    if (RewardHelper.pickTier(listPentaDrillTiersToClaim[currentTier], halves, isPassPaid, rewardsToCollect, false, currentButton.getAttribute("tier"))) {
+                        buttonsToCollect.push(currentButton);
                     }
                 }
                 if (buttonsToCollect.length > 0) {
@@ -23698,12 +23721,17 @@ var Seasonal_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+
 class SeasonalEvent {
+    // The game draws the two-row track (free row + pass row, one claim
+    // button per tier inside .free-slot) whenever the event offers a pass,
+    // owned or not. The pass purchase button only exists while the pass is
+    // not owned and is removed on purchase, so it cannot tell the layout.
     static isMegaSeasonalEvent() {
-        return $('#get_mega_pass_kobans_btn').length > 0;
+        return $('.mega-tier-container.double-tier').length > 0;
     }
     static isMegaPassPaid() {
-        return $('#get_mega_pass_kobans_btn:visible').length <= 0;
+        return PassHelper.ownsPass('seasonalEvent');
     }
     static isActiveEvent() {
         return unsafeWindow.seasonal_event_active || unsafeWindow.seasonal_time_remaining > 0 || unsafeWindow.mega_event_active || unsafeWindow.mega_event_time_remaining > 0;
@@ -23736,9 +23764,8 @@ class SeasonalEvent {
     }
     static getMegaSeasonalNotClaimedRewards() {
         const arrayz = $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH);
-        const freeSlotSelectors = ".free-slot .slot";
-        const paidSlotSelectors = SeasonalEvent.isMegaPassPaid() ? ".paid-unclaimed .slot" : "";
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+        const halves = PassHelper.TRACK_HALVES.seasonalEvent;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, SeasonalEvent.isMegaPassPaid() ? halves.paid : "");
     }
     static goAndCollect(manualCollectAll = false) {
         const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList);
@@ -23756,10 +23783,8 @@ class SeasonalEvent {
                 const needToCollectAllBeforeEnd = ((seasonalEventEnd > 0 || checkTimer('nextSeasonalEventCollectAllTime')) && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true");
                 const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
                 const megaSeasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-section div.mega-tier-container:has(.free-slot button.mega-claim-reward)";
-                const seasonalFreeSlotQuery = ".mega-slot .slot,.mega-slot .slot_girl_shards";
-                const seasonalPaidSlotQuery = ""; // N/A
-                const megaSeasonalFreeSlotQuery = ".free-slot .slot";
-                const megaSeasonalPaidSlotQuery = ".pass-slot.paid-unclaimed .slot";
+                // The one-row track (an event without a pass) has no pass half.
+                const seasonalHalves = { free: ".mega-slot .slot,.mega-slot .slot_girl_shards", paid: "" };
                 if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
                     if (needToCollect)
                         logHHAuto("Checking SeasonalEvent for collectable rewards.");
@@ -23771,29 +23796,13 @@ class SeasonalEvent {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     const buttonsToCollect = [];
                     const listSeasonalEventTiersToClaim = isMegaSeasonalEvent ? $(megaSeasonalTierQuery) : $(seasonalTierQuery);
-                    const freeSlotQuery = isMegaSeasonalEvent ? megaSeasonalFreeSlotQuery : seasonalFreeSlotQuery;
-                    const paidSlotQuery = isMegaSeasonalEvent ? megaSeasonalPaidSlotQuery : seasonalPaidSlotQuery;
+                    const halves = isMegaSeasonalEvent ? PassHelper.TRACK_HALVES.seasonalEvent : seasonalHalves;
                     const isPassPaid = isMegaSeasonalEvent && SeasonalEvent.isMegaPassPaid();
+                    const collectAnyway = needToCollectAllBeforeEnd || manualCollectAll;
                     for (let currentTier = 0; currentTier < listSeasonalEventTiersToClaim.length; currentTier++) {
                         const currentButton = $("button[rel='claim']", listSeasonalEventTiersToClaim[currentTier])[0];
-                        const currentTierNb = currentButton.getAttribute("tier");
-                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
-                        if (rewardsToCollect.includes(freeSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
-                            if (isPassPaid) {
-                                // One button for both
-                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(paidSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
-                                if (rewardsToCollect.includes(paidSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
-                                    buttonsToCollect.push(currentButton);
-                                    logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
-                                }
-                                else {
-                                    logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                                }
-                            }
-                            else {
-                                buttonsToCollect.push(currentButton);
-                                logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
-                            }
+                        if (RewardHelper.pickTier(listSeasonalEventTiersToClaim[currentTier], halves, isPassPaid, rewardsToCollect, collectAnyway, currentButton.getAttribute("tier"))) {
+                            buttonsToCollect.push(currentButton);
                         }
                     }
                     if (buttonsToCollect.length > 0) {
@@ -30597,6 +30606,7 @@ function fmtSignedPct(value) {
 
 
 
+
 class PathOfGlory {
     static getRemainingTime() {
         const poGTimerRequest = '#pog_tab_container > div.potions-paths-first-row .potions-paths-timer span[rel=expires]';
@@ -30616,24 +30626,12 @@ class PathOfGlory {
         const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPoGCollectablesList);
         const buttonsToCollect = [];
         const listPoGTiersToClaim = $("#pog_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
+        const halves = PassHelper.TRACK_HALVES.potionsPath;
+        const ownsPass = PassHelper.ownsPass('potionsPath');
         for (let currentTier = 0; currentTier < listPoGTiersToClaim.length; currentTier++) {
             const currentButton = $("button[rel='claim']", listPoGTiersToClaim[currentTier])[0];
-            const currentTierNb = currentButton.getAttribute("tier");
-            const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoGTiersToClaim[currentTier])[0]);
-            if (rewardsToCollect.includes(freeSlotType)) {
-                const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoGTiersToClaim[currentTier]);
-                if (paidSlots.length > 0) {
-                    const passSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[0]);
-                    const passPlusSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[1]);
-                    if (rewardsToCollect.includes(passSlotType) && (paidSlots.length > 1 ? rewardsToCollect.includes(passPlusSlotType) : true)) {
-                        buttonsToCollect.push(currentButton);
-                        logHHAuto(`Adding for collection tier (with paid) : ${currentTierNb} (Free: ${freeSlotType}, Pass: ${passSlotType}, Pass+: ${paidSlots.length > 1 ? passPlusSlotType : 'locked'})`);
-                    }
-                }
-                else {
-                    buttonsToCollect.push(currentButton);
-                    logHHAuto(`Adding for collection tier (only free) : ${currentTierNb} (${freeSlotType})`);
-                }
+            if (RewardHelper.pickTier(listPoGTiersToClaim[currentTier], halves, ownsPass, rewardsToCollect, false, currentButton.getAttribute("tier"))) {
+                buttonsToCollect.push(currentButton);
             }
         }
         return buttonsToCollect;
@@ -30735,6 +30733,7 @@ class PathOfGlory {
 
 
 
+
 class PathOfValue {
     static getRemainingTime() {
         const poVTimerRequest = '#pov_tab_container > div.potions-paths-first-row .potions-paths-timer span[rel=expires]';
@@ -30754,24 +30753,12 @@ class PathOfValue {
         const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPoVCollectablesList);
         const buttonsToCollect = [];
         const listPoVTiersToClaim = $("#pov_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
+        const halves = PassHelper.TRACK_HALVES.potionsPath;
+        const ownsPass = PassHelper.ownsPass('potionsPath');
         for (let currentTier = 0; currentTier < listPoVTiersToClaim.length; currentTier++) {
             const currentButton = $("button[rel='claim']", listPoVTiersToClaim[currentTier])[0];
-            const currentTierNb = currentButton.getAttribute("tier");
-            const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoVTiersToClaim[currentTier])[0]);
-            if (rewardsToCollect.includes(freeSlotType)) {
-                const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoVTiersToClaim[currentTier]);
-                if (paidSlots.length > 0) {
-                    const passSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[0]);
-                    const passPlusSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[1]);
-                    if (rewardsToCollect.includes(passSlotType) && (paidSlots.length > 1 ? rewardsToCollect.includes(passPlusSlotType) : true)) {
-                        buttonsToCollect.push(currentButton);
-                        logHHAuto(`Adding for collection tier (with paid) : ${currentTierNb} (Free: ${freeSlotType}, Pass: ${passSlotType}, Pass+: ${paidSlots.length > 1 ? passPlusSlotType : 'locked'})`);
-                    }
-                }
-                else {
-                    buttonsToCollect.push(currentButton);
-                    logHHAuto(`Adding for collection tier (only free) : ${currentTierNb} (${freeSlotType})`);
-                }
+            if (RewardHelper.pickTier(listPoVTiersToClaim[currentTier], halves, ownsPass, rewardsToCollect, false, currentButton.getAttribute("tier"))) {
+                buttonsToCollect.push(currentButton);
             }
         }
         return buttonsToCollect;
@@ -34821,6 +34808,7 @@ class TeamModule {
         const summary = SkillModelService.prepareSummary(Array.isArray(available) ? available : []);
         const cost = summary.points * RESET_COST_PER_POINT;
         const menu = `<div style="padding:5px; display:flex;flex-direction:column;gap:6px;font-size:15px; max-width:560px" class="HHAutoScriptMenu">
+            <div class="rowLine"><p id="prepareCalcWarning" style="color: red; font-weight: bold; border: 2px solid red; padding: 6px;">${getTextForUI("prepareCalcWarning", "elementText")}</p></div>
             <div class="rowLine"><p>${getTextForUI("prepareCalcExplain", "elementText")}</p></div>
             <div class="rowLine"><p>${getTextForUI("prepareCalcBenefit", "elementText")}</p></div>
             <hr style="border: 1px solid #ffa23e; width:100%"/>

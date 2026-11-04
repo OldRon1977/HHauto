@@ -213,6 +213,7 @@ export class TeamModule {
         const summary = SkillModelService.prepareSummary(Array.isArray(available) ? available : []);
         const cost = summary.points * RESET_COST_PER_POINT;
         const menu = `<div style="padding:5px; display:flex;flex-direction:column;gap:6px;font-size:15px; max-width:560px" class="HHAutoScriptMenu">
+            <div class="rowLine"><p id="prepareCalcWarning" style="color: red; font-weight: bold; border: 2px solid red; padding: 6px;">${getTextForUI("prepareCalcWarning", "elementText")}</p></div>
             <div class="rowLine"><p>${getTextForUI("prepareCalcExplain", "elementText")}</p></div>
             <div class="rowLine"><p>${getTextForUI("prepareCalcBenefit", "elementText")}</p></div>
             <hr style="border: 1px solid #ffa23e; width:100%"/>

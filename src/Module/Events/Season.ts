@@ -34,6 +34,7 @@ import { EventModule } from "./EventModule";
 import { LoveRaidManager } from "./LoveRaidManager";
 import { isBlockedOnlyByMissingBooster, seasonGirlReward, SeasonGirlReward } from "./Season.pure";
 import { chooseTargetOpponent } from "./SeasonTarget.pure";
+import { PassHelper } from "../../Helper/PassHelper";
 
 export class Season {
     static LAST_SEASON_LEVEL = 63;
@@ -597,12 +598,8 @@ export class Season {
 
     static getNotClaimedRewards() {
         const arrayz = $('.rewards_pair');
-        const freeSlotSelectors = ".free_reward.reward_is_claimable .slot";
-        let paidSlotSelectors = "";
-        if ($("div#gsp_btn_holder[style='display: none;']").length) {
-            paidSlotSelectors = ".pass_reward.reward_is_claimable .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+        const halves = PassHelper.TRACK_HALVES.season;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, PassHelper.ownsPass('season') ? halves.paid : "");
     }
 
     static goAndCollect()
@@ -643,11 +640,10 @@ export class Season {
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
 
-                let limitClassPass = "";
-                if ($("div#gsp_btn_holder:visible").length)
-                {
-                    limitClassPass = ".free_reward"; // without season pass
-                }
+                // Each reward claims on its own here. Without the pass the
+                // pass rewards read claimable too (measured), so only the free
+                // ones are taken.
+                const limitClassPass = PassHelper.ownsPass('season') ? "" : ".free_reward";
 
                 const buttonsToCollect:{reward: string; button: HTMLElement; tier: string; paid: boolean}[] = [];
                 const listSeasonTiersToClaim = $("#seasons_tab_container .rewards_pair .reward_wrapper.reward_is_claimable"+limitClassPass);
@@ -807,14 +803,7 @@ export class Season {
         var nbReward;
         let modified=false;
         arrayz = $('.rewards_pair:not([style*="display:none"]):not([style*="display: none"])');
-        if ($("div#gsp_btn_holder[style='display: none;']").length)
-        {
-            nbReward=2;
-        }
-        else
-        {
-            nbReward=1;
-        }
+        nbReward = PassHelper.ownsPass('season') ? 2 : 1;
 
         var obj;
         if (arrayz.length > 0) {

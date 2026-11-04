@@ -21,6 +21,7 @@ import { FeatureGate } from "../../Service/FeatureGate";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { EventModule } from "./EventModule";
+import { PassHelper } from "../../Helper/PassHelper";
 
 export class PathOfValue {
     static getRemainingTime(){
@@ -45,25 +46,12 @@ export class PathOfValue {
 
         const buttonsToCollect: HTMLElement[] = [];
         const listPoVTiersToClaim = $("#pov_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
+        const halves = PassHelper.TRACK_HALVES.potionsPath;
+        const ownsPass = PassHelper.ownsPass('potionsPath');
         for (let currentTier = 0; currentTier < listPoVTiersToClaim.length; currentTier++) {
-            const currentButton = $("button[rel='claim']", listPoVTiersToClaim[currentTier])[0];
-            const currentTierNb = currentButton.getAttribute("tier");
-            const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoVTiersToClaim[currentTier])[0]);
-            if (rewardsToCollect.includes(freeSlotType)) {
-                const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoVTiersToClaim[currentTier]);
-                if (paidSlots.length > 0) {
-                    const passSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[0]);
-                    const passPlusSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[1]);
-
-                    if (rewardsToCollect.includes(passSlotType) && (paidSlots.length > 1 ? rewardsToCollect.includes(passPlusSlotType) : true)) {
-                        buttonsToCollect.push(currentButton);
-                        logHHAuto(`Adding for collection tier (with paid) : ${currentTierNb} (Free: ${freeSlotType}, Pass: ${passSlotType}, Pass+: ${paidSlots.length > 1 ? passPlusSlotType : 'locked'})`);
-                    }
-                }
-                else {
-                    buttonsToCollect.push(currentButton);
-                    logHHAuto(`Adding for collection tier (only free) : ${currentTierNb} (${freeSlotType})`);
-                }
+            const currentButton: HTMLElement = $("button[rel='claim']", listPoVTiersToClaim[currentTier])[0];
+            if (RewardHelper.pickTier(listPoVTiersToClaim[currentTier], halves, ownsPass, rewardsToCollect, false, currentButton.getAttribute("tier"))) {
+                buttonsToCollect.push(currentButton);
             }
         }
         return buttonsToCollect;

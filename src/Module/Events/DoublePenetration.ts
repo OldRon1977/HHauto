@@ -22,6 +22,7 @@ import { FeatureGate } from "../../Service/FeatureGate";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
+import { PassHelper } from "../../Helper/PassHelper";
 
 export class DoublePenetration {
 
@@ -64,9 +65,7 @@ export class DoublePenetration {
             const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect) === "true");
 
             const dPTierQuery = "#dp-content .tiers-container .player-progression-container .tier-container:has(button.display-block)";
-            const dPFreeSlotQuery = ".free-slot .slot,.free-slot .slot_girl_shards";
-            const dPPaidSlotQuery = ".paid-slot .slot,.paid-slot .slot_girl_shards";
-            const isPassPaid = $("#nc-poa-tape-blocker button.unlock-poa-bonus-rewards:visible").length <= 0;
+            const isPassPaid = PassHelper.ownsPass('doublePenetration');
 
             if (needToCollect || needToCollectAll || manualCollectAll)
             {
@@ -80,32 +79,9 @@ export class DoublePenetration {
                 {
                     const currentButton = $("button[rel='reward-claim']", listDpEventTiersToClaim[currentTier])[0];
                     const currentTierNb = currentButton.getAttribute("tier");
-                    if(needToCollectAll) {
-                        logHHAuto("Adding for collection tier before end of event: "+currentTierNb);
+                    if (RewardHelper.pickTier(listDpEventTiersToClaim[currentTier], PassHelper.TRACK_HALVES.doublePenetration, isPassPaid, rewardsToCollect, needToCollectAll || manualCollectAll, currentTierNb))
+                    {
                         buttonsToCollect.push(currentButton);
-                    } else if (manualCollectAll) {
-                        logHHAuto("Adding for collection tier from manual collect all: "+currentTierNb);
-                        buttonsToCollect.push(currentButton);
-                    } else {
-                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(dPFreeSlotQuery,listDpEventTiersToClaim[currentTier])[0]);
-                        if (rewardsToCollect.includes(freeSlotType))
-                        {
-                            
-                            if (isPassPaid) {
-                                // One button for both
-                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(dPPaidSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
-                                if (rewardsToCollect.includes(paidSlotType))
-                                {
-                                    buttonsToCollect.push(currentButton);
-                                    logHHAuto("Adding for collection tier (free + paid) : "+currentTierNb);
-                                } else {
-                                    logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                                }
-                            } else {
-                                buttonsToCollect.push(currentButton);
-                                logHHAuto("Adding for collection tier (only free) : "+currentTierNb);
-                            }
-                        }
                     }
                 }
 
@@ -189,13 +165,8 @@ export class DoublePenetration {
 
     static getNotClaimedRewards() {
         const arrayz = $('#dp-content .tier-container:has(.tier-level button[rel="reward-claim"]:visible)');
-        const freeSlotSelectors = ".free-slot .slot";
-        let paidSlotSelectors = "";
-        if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Pass bought: the paid slots count too
-            paidSlotSelectors = ".paid-slot  .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+        const halves = PassHelper.TRACK_HALVES.doublePenetration;
+        return RewardHelper.computeRewardsCount(arrayz, halves.free, PassHelper.ownsPass('doublePenetration') ? halves.paid : "");
     }
 
     static displayCollectAllButton() {
