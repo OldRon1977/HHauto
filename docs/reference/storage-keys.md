@@ -498,6 +498,7 @@ shown in the info panel as "Auto-Mystery").
 | `haremTeamScrolls` | `Temp_haremTeamScrolls` | `sessionStorage` | `Temp` | team scrolls |
 | `haremTeamSettings` | `Temp_haremTeamSettings` | `sessionStorage` | `Temp` | the team settings |
 | `blessingsCache` | `Temp_blessingsCache` | `localStorage` | `Temp` | the blessing API cache (`BlessingData` JSON), 12 h lifetime, set in `BlessingService.fetchAndCache` |
+| `girlDefinitions` | `Temp_girlDefinitions` | `localStorage` | `Temp` | the girls' definition caracs from `get_girls_list` (`{id: [c1, c2, c3]}`), read by `BaseStatsService` for the stats without gear and skills; never expire |
 | `teamInfoCollapsed` | `Temp_teamInfoCollapsed` | `localStorage` | `Temp` | the team info panel is collapsed (`TeamModule`) |
 | `teamTheme` | `Temp_teamTheme` | `localStorage` | `Temp` | the theme of the team built last; the gear optimiser needs it on the market page, where the team is not available |
 | `gearReopenArmorTab` | `Temp_gearReopenArmorTab` | `sessionStorage` | `Temp` | set before HH Gear reloads the market after equipping; the reloaded page opens My Hero on Boosters, so the armor tab is clicked once and the key cleared |

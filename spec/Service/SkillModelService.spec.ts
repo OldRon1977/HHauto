@@ -77,24 +77,28 @@ describe('SkillModelService Tier 3', () => {
         expect(SkillModelService.traitMatches(team[0], team)).toBe(2);
     });
 
-    it('sums the bonuses of all girls and applies them once (measured: 4 skilled + 3 matching = 21.6 %)', () => {
+    it('counts every girl with the trait, herself included, and applies the sum once', () => {
         const team = [black(1, 'nature', 'mythic', 5), black(2, 'nature', 'mythic', 5), black(3, 'nature', 'legendary', 4), black(4, 'nature', 'legendary', 4),
             black(5, 'darkness', 'legendary', 0), black(6, 'water', 'legendary', 0), black(7, 'darkness', 'legendary', 0)];
-        expect(SkillModelService.tier3Bonus(team, g => SkillModelService.currentPoints(g, 3))).toBeCloseTo(0.216);
-        // The three darkness/water girls count as matches, but their own
-        // Tier-3 trait is eye colour / position: Stuff Team adds nothing.
-        expect(SkillModelService.tier3DamageFactor(team, 'now')).toBeCloseTo(1);
+        // (5 + 5 + 4 + 4) points x 7 girls with black hair x 0.2 %
+        expect(SkillModelService.tier3Bonus(team, g => SkillModelService.currentPoints(g, 3))).toBeCloseTo(0.252);
     });
 
-    it('adds the Tier 3 a girl without bulbs will get', () => {
+    it('gives a skilled girl her bonus without any match (measured: 1 % for a full mythic)', () => {
+        const team = [black(1, 'nature', 'mythic', 5), girl(2, { element: 'nature', hairColor: 'FFF' })];
+        expect(SkillModelService.tier3Bonus(team, g => SkillModelService.currentPoints(g, 3))).toBeCloseTo(0.01);
+    });
+
+    it('adds the Tier 3 a girl without bulbs will get after Stuff Team', () => {
         const team = [black(1, 'nature', 'mythic', 5), black(2, 'nature', 'mythic', 0), black(3, 'darkness', 'legendary', 0)];
-        // Today: girl 1 with 2 matches = 2 %. After Stuff Team: girl 2 adds 2 x 1 %.
-        expect(SkillModelService.tier3DamageFactor(team, 'now')).toBeCloseTo(1.04 / 1.02);
+        // Each nature mythic: 5 points x 3 girls with black hair x 0.2 % = 3 %;
+        // the darkness legendary: 4 points on her own eye colour x 0.2 % = 0.8 %.
+        expect(SkillModelService.tier3Bonus(team, g => SkillModelService.targetPoints(g, 3, 'now'))).toBeCloseTo(0.068);
     });
 
-    it('gives a team without shared traits no Tier-3 bonus', () => {
-        const team = [1, 2, 3].map(id => girl(id, { element: 'nature', hairColor: String(id) }));
-        expect(SkillModelService.tier3DamageFactor(team, 'full')).toBe(1);
+    it('gives a team without skills no Tier-3 bonus', () => {
+        const team = [1, 2, 3].map(id => girl(id, { element: 'nature', hairColor: String(id), skill_tiers_info: tiers(0, 0, 0, 0, 0), level: 100 }));
+        expect(SkillModelService.tier3Bonus(team, g => SkillModelService.targetPoints(g, 3, 'now'))).toBe(0);
     });
 });
 

@@ -265,3 +265,34 @@ describe("BlessingService reading the blessing text", () => {
         expect(cached.blessedValues.rarity).toBe('legendary');
     });
 });
+
+describe('BlessingService.detectActiveBlessings -- two blessings with the same percent', () => {
+    // Shape of a measured week: hair Blond +25 % and zodiac Scorpio +25 %.
+    // Blond girls far outnumber the Scorpio ones, and a girl with both carries
+    // [25, 25]. All carriers of 25 fall into one group, in which only the hair
+    // colour is dominant.
+    function buildPool(): Record<string, unknown>[] {
+        const pool: Record<string, unknown>[] = [];
+        const signs = ['Aries', 'Leo', 'Virgo', 'Libra', 'Pisces', 'Gemini'];
+        for (let i = 0; i < 60; i++) {
+            pool.push(leagueBlessed([25], [25], { id_girl: 100 + i, hair_color1: 'FF0', zodiac: signs[i % signs.length] }));
+        }
+        for (let i = 0; i < 8; i++) {
+            pool.push(leagueBlessed([25, 25], [25, 25], { id_girl: 200 + i, hair_color1: 'FF0', zodiac: 'Scorpio' }));
+        }
+        const hair = ['000', 'F00', 'FFF', 'A55'];
+        for (let i = 0; i < 6; i++) {
+            pool.push(leagueBlessed([25], [25], { id_girl: 300 + i, hair_color1: hair[i % hair.length], zodiac: 'Scorpio' }));
+        }
+        for (let i = 0; i < 40; i++) {
+            pool.push(rawGirl({ id_girl: 400 + i, blessing_bonuses: {}, can_be_blessed: false, can_be_blessed_pvp4: false,
+                hair_color1: hair[i % hair.length], zodiac: signs[i % signs.length] }));
+        }
+        return pool;
+    }
+
+    it('finds both blessings', () => {
+        const found = BlessingService.detectActiveBlessings(buildPool());
+        expect(found.map(b => `${b.kind}=${b.value}+${b.percent}`).sort()).toEqual(['hairColor=FF0+25', 'zodiac=Scorpio+25']);
+    });
+});

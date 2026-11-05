@@ -16,11 +16,13 @@
 //   first), then +1 % of her class carac per point (node 4). The league
 //   blessing multiplies both (factor 14.831 = 10.593 x 1.4).
 // - Tier 3 is NOT in the girl's caracs but in the team's damage: per point
-//   +0.2 % for every teammate who shares her trait value, from the first
-//   match on (no threshold), the bonuses of all girls summed and applied
-//   once: damage x (1 + sum). Model against measurement within 0.7 % over
-//   six teams and three skill states. The trait is the one of her element
-//   pair; teammates of any element count.
+//   +0.2 % for every girl in the team who has her trait value -- the girl
+//   herself included, so a full mythic gives 1 % with no match at all. The
+//   bonuses of all girls are summed and applied once: damage x (1 + sum).
+//   Measured on two games (40 teams on one, 10 on the other): within 0.1
+//   percentage points. Counting only the teammates came out 1 % short per
+//   full mythic. The trait is the one of her element pair (first hair or eye
+//   colour); teammates of any element count.
 // - Tier 4 and 5 act in the fight only; BDSMHelper reads their points
 //   (tier 4 of all girls, tier 5 of the leader).
 // - Points per tier: mythic 6/10/5/5/5, legendary 6/9/4/4/4. A tier needs
@@ -139,7 +141,7 @@ export class SkillModelService {
         }
     }
 
-    /** Teammates sharing the girl's own Tier-3 trait value. */
+    /** Teammates sharing the girl's own Tier-3 trait value (the girl herself not counted). */
     static traitMatches(girl: GirlData, team: GirlData[]): number {
         const category = TeamScoringService.getTier3Category(girl.element);
         const value = SkillModelService.traitValue(girl, category);
@@ -147,19 +149,12 @@ export class SkillModelService {
         return team.filter(o => o.id_girl !== girl.id_girl && SkillModelService.traitValue(o, category) === value).length;
     }
 
-    /** Sum of the team's Tier-3 damage bonuses for the given points. */
-    static tier3Bonus(team: GirlData[], points: (g: GirlData) => number): number {
-        return team.reduce((sum, g) => sum + points(g) * T3_PER_POINT * SkillModelService.traitMatches(g, team), 0);
-    }
-
     /**
-     * Factor from the damage the game measured (the Tier-3 points held
-     * today) to the damage after Stuff Team.
+     * Sum of the team's Tier-3 damage bonuses for the given points: each
+     * girl's points times every girl with her trait value, herself included.
      */
-    static tier3DamageFactor(team: GirlData[], horizon: SkillHorizon): number {
-        const today = SkillModelService.tier3Bonus(team, g => SkillModelService.currentPoints(g, 3));
-        const after = SkillModelService.tier3Bonus(team, g => SkillModelService.targetPoints(g, 3, horizon));
-        return (1 + after) / (1 + today);
+    static tier3Bonus(team: GirlData[], points: (g: GirlData) => number): number {
+        return team.reduce((sum, g) => sum + points(g) * T3_PER_POINT * (1 + SkillModelService.traitMatches(g, team)), 0);
     }
 
     /**
