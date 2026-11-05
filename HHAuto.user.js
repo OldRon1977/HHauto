@@ -872,6 +872,7 @@ HHAuto_ToolTips.en['teamSelIsCurrent'] = { version: "8.14.0", elementText: "no b
 HHAuto_ToolTips.en['teamSelModelNote'] = { version: "8.23.0", elementText: "Next week and full development: with those blessings and levels.", tooltip: "" };
 HHAuto_ToolTips.en['teamSelReadingGear'] = { version: "8.23.2", elementText: "Reading the girl equipment…", tooltip: "" };
 HHAuto_ToolTips.en['teamSelGearTie'] = { version: "8.23.2", elementText: "Same strength, more resonance with Best gear (as after Unequip All): {before} &rarr; {after} matches. Swapped for an equal girl: {swaps}", tooltip: "" };
+HHAuto_ToolTips.en['teamSelSameMoreResonance'] = { version: "8.23.2", elementText: "as strong as the hexagons, more resonance with Best gear", tooltip: "" };
 HHAuto_ToolTips.en['teamSelCandidates'] = { version: "8.14.0", elementText: "candidates", tooltip: "" };
 HHAuto_ToolTips.en['teamSelApplied'] = { version: "8.14.0", elementText: "Saved. The page reloads.", tooltip: "" };
 HHAuto_ToolTips.en['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Not saved", tooltip: "" };
@@ -1464,6 +1465,7 @@ HHAuto_ToolTips.fr['teamSelIsCurrent'] = { version: "8.14.0", elementText: "pas 
 HHAuto_ToolTips.fr['teamSelModelNote'] = { version: "8.23.0", elementText: "Semaine prochaine et développement complet : avec ces bénédictions et ces niveaux.", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelReadingGear'] = { version: "8.23.2", elementText: "Lecture de l'équipement des filles…", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelGearTie'] = { version: "8.23.2", elementText: "Même force, plus de résonance avec Best gear (comme après Unequip All) : {before} &rarr; {after} correspondances. Échangée contre une fille équivalente : {swaps}", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelSameMoreResonance'] = { version: "8.23.2", elementText: "aussi fort que les hexagones, plus de résonance avec Best gear", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelCandidates'] = { version: "8.14.0", elementText: "candidats", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelApplied'] = { version: "8.14.0", elementText: "Enregistré. La page se recharge.", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Non enregistré", tooltip: "" };
@@ -2057,6 +2059,7 @@ HHAuto_ToolTips.de['teamSelIsCurrent'] = { version: "8.14.0", elementText: "nich
 HHAuto_ToolTips.de['teamSelModelNote'] = { version: "8.23.0", elementText: "Nächste Woche und volle Entwicklung: mit diesen Blessings und Leveln.", tooltip: "" };
 HHAuto_ToolTips.de['teamSelReadingGear'] = { version: "8.23.2", elementText: "Lese die Mädchen-Ausrüstung…", tooltip: "" };
 HHAuto_ToolTips.de['teamSelGearTie'] = { version: "8.23.2", elementText: "Gleich stark, mehr Resonanz mit Best gear (wie nach Unequip All): {before} &rarr; {after} Treffer. Gegen ein gleichwertiges Mädchen getauscht: {swaps}", tooltip: "" };
+HHAuto_ToolTips.de['teamSelSameMoreResonance'] = { version: "8.23.2", elementText: "so stark wie die Hexagone, mehr Resonanz mit Best gear", tooltip: "" };
 HHAuto_ToolTips.de['teamSelCandidates'] = { version: "8.14.0", elementText: "Kandidaten", tooltip: "" };
 HHAuto_ToolTips.de['teamSelApplied'] = { version: "8.14.0", elementText: "Gespeichert. Die Seite lädt neu.", tooltip: "" };
 HHAuto_ToolTips.de['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Nicht gespeichert", tooltip: "" };
@@ -2649,6 +2652,7 @@ HHAuto_ToolTips.es['teamSelIsCurrent'] = { version: "8.14.0", elementText: "no m
 HHAuto_ToolTips.es['teamSelModelNote'] = { version: "8.23.0", elementText: "Semana próxima y desarrollo completo: con esas bendiciones y niveles.", tooltip: "" };
 HHAuto_ToolTips.es['teamSelReadingGear'] = { version: "8.23.2", elementText: "Leyendo el equipo de las chicas…", tooltip: "" };
 HHAuto_ToolTips.es['teamSelGearTie'] = { version: "8.23.2", elementText: "Misma fuerza, más resonancia con Best gear (como tras Unequip All): {before} &rarr; {after} coincidencias. Cambiada por una chica equivalente: {swaps}", tooltip: "" };
+HHAuto_ToolTips.es['teamSelSameMoreResonance'] = { version: "8.23.2", elementText: "tan fuerte como los hexágonos, más resonancia con Best gear", tooltip: "" };
 HHAuto_ToolTips.es['teamSelCandidates'] = { version: "8.14.0", elementText: "candidatos", tooltip: "" };
 HHAuto_ToolTips.es['teamSelApplied'] = { version: "8.14.0", elementText: "Guardado. La página se recarga.", tooltip: "" };
 HHAuto_ToolTips.es['teamSelApplyFailed'] = { version: "8.14.0", elementText: "No guardado", tooltip: "" };
@@ -34605,9 +34609,14 @@ class TeamSelectionPopup {
         let delta = '';
         if (current && current.score > 0) {
             const pct = (res.score / current.score - 1) * 100;
+            // As strong as the hexagons but other girls: only the gear
+            // tie-break makes that, and then applying it is worth something.
+            const otherGirls = TeamSelectionService.teamKey(res.ids) !== TeamSelectionService.teamKey([...hex]);
             delta = pct > 0.005
                 ? ` <span class="tsGood">(+${pct.toFixed(2)} % ${getTextForUI('teamSelVsCurrent', 'elementText')})</span>`
-                : ` <span class="tsSub">(${getTextForUI('teamSelIsCurrent', 'elementText')})</span>`;
+                : tieLine && otherGirls
+                    ? ` <span class="tsGood">(${getTextForUI('teamSelSameMoreResonance', 'elementText')})</span>`
+                    : ` <span class="tsSub">(${getTextForUI('teamSelIsCurrent', 'elementText')})</span>`;
         }
         const infoLine = info ? `<div class="tsSub">${info}</div>` : '';
         // Every rubric scores the girls without today's gear and skills; next

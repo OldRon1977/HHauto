@@ -688,9 +688,14 @@ export class TeamSelectionPopup {
         let delta = '';
         if (current && current.score > 0) {
             const pct = (res.score / current.score - 1) * 100;
+            // As strong as the hexagons but other girls: only the gear
+            // tie-break makes that, and then applying it is worth something.
+            const otherGirls = TeamSelectionService.teamKey(res.ids) !== TeamSelectionService.teamKey([...hex]);
             delta = pct > 0.005
                 ? ` <span class="tsGood">(+${pct.toFixed(2)} % ${getTextForUI('teamSelVsCurrent', 'elementText')})</span>`
-                : ` <span class="tsSub">(${getTextForUI('teamSelIsCurrent', 'elementText')})</span>`;
+                : tieLine && otherGirls
+                    ? ` <span class="tsGood">(${getTextForUI('teamSelSameMoreResonance', 'elementText')})</span>`
+                    : ` <span class="tsSub">(${getTextForUI('teamSelIsCurrent', 'elementText')})</span>`;
         }
         const infoLine = info ? `<div class="tsSub">${info}</div>` : '';
         // Every rubric scores the girls without today's gear and skills; next
