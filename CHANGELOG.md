@@ -9,14 +9,14 @@ Older entries below were migrated 1:1 from `README.md`.
 
 ### v8.23.1 - Upgrade Gear comes back on My Hero's Equipment tab
 
-- **Upgrade Gear**: when the run ends back on the market -- every item done, or the material or money used up -- My Hero opens on the Equipment tab, where the new stats and the HH Gear button are. Before, it opened on the Boosters tab.
-- **Seasonal event rank rewards**: in a seasonal event without the top ranking, the next visit follows the event ranking's reset timer instead of coming back after about seven hours.
-- **Stat buying**: with two accounts in the same browser, the script no longer aims at the other account's stat cap. It kept the highest hero level it had seen for the browser, not for the account, and the game answered "over your maximum" on every page load.
+- **Upgrade Gear**: when the run ends back on the market, My Hero opens on the Equipment tab.
+- **Seasonal event rank rewards**: without a top ranking, the next visit follows the event ranking's reset timer.
+- **Stat buying**: the highest hero level seen counts per account, not per browser.
 
 #### Internal
 
-- Build tooling: eslint and typescript-eslint use minimatch 11, which closes a denial-of-service advisory.
-- `deps:unused` runs knip instead of depcheck, which is removed.
+- Build tooling: eslint and typescript-eslint use minimatch 11.
+- `deps:unused` runs knip; depcheck is removed.
 
 ### v8.23.0 - Team calculation without reset
 
