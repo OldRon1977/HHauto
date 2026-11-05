@@ -4,24 +4,34 @@
 // stats), each as the best team now and the possibly best one.
 //
 // Why a wider candidate set: the builder ranks girls by caracs_sum, which
-// weighs carac1, carac2 and carac3 alike. The game does not -- measured on a
-// live account (2026-09-19), a class-1 mythic with 2,270 LESS caracs_sum
-// raised the team's damage by 5,374, and the team with her won 80.3 % of the
-// simulated league fights against 79.3 % for the stat-sum pick. She stood
-// 14th by caracs_sum. One round of single swaps around the stat-sum pick,
-// measured by the game, finds such girls; 373 measured teams found nothing a
-// single swap could still improve.
+// weighs carac1, carac2 and carac3 alike, and so does the game's team
+// calculation (below). What caracs_sum misses is the element synergy and the
+// Tier-3 trait bonus; one round of single swaps around the stat-sum pick
+// finds girls who win on those.
 //
 // Why the opponents are weighed by open fights: a league opponent can be
 // fought exactly three times. One who has been fought three times no longer
 // matters for the team, one with a single fight left matters a third.
 //
-// Why next week and full development need a model: the game calculates the
-// girls as they are today, with today's blessings. Ego is exactly additive in
-// the girls' caracs (measured: 0.07 % over 173 teams); damage and defense are
-// not (up to 5 %). The projection therefore starts from the stats the game
-// measured TODAY for the same seven girls and adds only the change of their
-// carac sum, times a slope fitted over all measured candidates (fitSumSlope).
+// The team stats: the game's own calculation (team_calculate_caracs) is, per
+// stat, linear in the sum of the seven girls' caracs, times the element
+// synergy of that stat:
+//
+//   stat = (a + b x sum of carac1..3) x (1 + synergy)     damage also x (1 + Tier 3)
+//
+// Measured on two games, 200 and 70 teams of girls without gear: within
+// 0.06 % and 0.09 %; carac1, carac2 and carac3 count alike, the hero class
+// does not enter. a and b belong to the account and its boosters (the hero's
+// stats, the boosters active) -- measured, an expiring booster moved ego by
+// 18 % -- so they are fitted on teams the game calculates when the popup
+// needs them (fitTeamModel), not fixed. Harmony (chance) does not depend on
+// the girls (slope 0). Gear does not fit this formula: an item adds ego,
+// damage and defense of its own on top of its caracs, with resonance -- the
+// calibration teams therefore hold no girl with gear.
+//
+// With the model the girls can be scored in a state the game cannot
+// calculate: without their gear and skills (BaseStatsService), fully
+// developed, or with next week's blessings.
 //
 // Depends on: BDSMHelper.ts (league fight simulation), TeamEvaluationService.ts (synergies)
 // Used by: TeamSelectionPopup.ts
@@ -39,11 +49,15 @@ export const FIGHTS_PER_OPPONENT = 3;
 const ELEMENTS: ElementType[] = ['fire', 'water', 'nature', 'stone', 'sun', 'darkness', 'light', 'psychic'];
 
 /** Element whose team synergy multiplies each stat (game `synergies` payload). */
-const STAT_SYNERGY: Partial<Record<keyof TeamCaracs, ElementType>> = {
+const STAT_SYNERGY: Record<keyof TeamCaracs, ElementType> = {
     ego: 'nature',
     damage: 'darkness',
     defense: 'light',
+    chance: 'psychic',
 };
+
+/** Calibration teams the game calculates for the team model. */
+export const CALIBRATION_TEAMS = 10;
 
 /** Skill tiers as the game sends them, reduced to the points used. */
 export type SkillTiers = Record<string, { skill_points_used?: number } | undefined>;
@@ -66,6 +80,24 @@ export interface FighterData {
 export interface SnapshotOpponent {
     openFights: number;
     player: FighterData;
+}
+
+/** Per stat: stat = (a + b x carac sum) x (1 + synergy); harmony has no slope. */
+export interface TeamStatModel {
+    ego: [number, number];
+    damage: [number, number];
+    defense: [number, number];
+    chance: [number, number];
+}
+
+/** One team the game calculated, reduced to what the model is fitted on. */
+export interface CalibrationSample {
+    /** Sum of carac1..3 over the seven girls, as the game holds them today. */
+    sum: number;
+    counts: ElementCounts;
+    /** Tier-3 bonus the girls hold today (it sits in the measured damage). */
+    tier3: number;
+    caracs: TeamCaracs;
 }
 
 export interface OpponentScore {
@@ -238,89 +270,86 @@ export class TeamSelectionService {
         return { points, winChance: fights > 0 ? wins / fights : 0, fights };
     }
 
-    // ---- Next-week projection -------------------------------------------
+    // ---- Team stat model ---------------------------------------------------
 
-    /** Sum of each carac over the team. */
-    static caracSums(girls: GirlData[]): [number, number, number] {
-        const sums: [number, number, number] = [0, 0, 0];
-        for (const g of girls) {
-            const c = g.caracs ?? { carac1: g.carac1, carac2: g.carac2, carac3: g.carac3 };
-            sums[0] += Number(c.carac1) || 0;
-            sums[1] += Number(c.carac2) || 0;
-            sums[2] += Number(c.carac3) || 0;
+    /**
+     * Teams for the calibration of the team model: from girls without gear
+     * (Tier 2 and Tier 3 are fine -- Tier 2 sits in the caracs, Tier 3 is
+     * divided out), strongest first. The strongest seven and the weakest
+     * seven of the pool spread the carac sums; the rest are shuffled with a
+     * fixed seed, so the same harem gives the same teams.
+     */
+    static calibrationTeams(pool: GirlData[], count: number = CALIBRATION_TEAMS): number[][] {
+        if (pool.length < 7) return [];
+        const sorted = [...pool].sort((a, b) => TeamScoringService.caracsSum(b) - TeamScoringService.caracsSum(a)).slice(0, 120);
+        const ids = sorted.map(g => g.id_girl);
+        const teams: number[][] = [ids.slice(0, 7), ids.slice(-7)];
+        let seed = 12345;
+        const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+        for (let tries = 0; teams.length < count && tries < count * 20; tries++) {
+            const team = new Set<number>();
+            while (team.size < 7) team.add(ids[Math.floor(next() * ids.length)]);
+            teams.push([...team]);
         }
-        return sums;
+        const seen = new Set<string>();
+        return teams.filter(t => { const k = TeamSelectionService.teamKey(t); if (seen.has(k)) return false; seen.add(k); return true; });
     }
 
     /**
-     * Least-squares slope of `stat / (1 + synergy)` against the team's carac
-     * sum, over every team the game has measured; null when the samples
-     * cannot carry it. One slope, not one per carac: the candidates are
-     * single swaps of one another, so their carac1/2/3 sums move together and
-     * three separate slopes came out unstable -- measured live, the same team
-     * read 3 % weaker fully developed than as it is, because the slopes had
-     * tipped when new candidates joined the fit. Never negative: more caracs
-     * cannot cost stats.
+     * Least-squares fit of the team model on teams the game calculated;
+     * null when the samples cannot carry a slope (fewer than three, or all
+     * with the same carac sum).
      */
-    static fitSumSlope(samples: { sum: number; value: number }[]): number | null {
-        if (samples.length < 6) return null;
-        const n = samples.length;
-        const mx = samples.reduce((s, x) => s + x.sum, 0) / n;
-        const my = samples.reduce((s, x) => s + x.value, 0) / n;
-        let sxx = 0;
-        let sxy = 0;
-        for (const x of samples) {
-            sxx += (x.sum - mx) * (x.sum - mx);
-            sxy += (x.sum - mx) * (x.value - my);
-        }
-        if (sxx <= 1e-9 * n * Math.max(1, mx * mx)) return null;
-        return Math.max(0, sxy / sxx);
+    static fitTeamModel(samples: CalibrationSample[], harem: Record<ElementType, number>): TeamStatModel | null {
+        if (samples.length < 3) return null;
+        const fit = (stat: keyof TeamCaracs): [number, number] | null => {
+            const el = STAT_SYNERGY[stat];
+            const xs = samples.map(s => s.sum);
+            const ys = samples.map(s => s.caracs[stat] / (1 + TeamEvaluationService.getSynergy(s.counts, el, harem))
+                / (stat === 'damage' ? 1 + s.tier3 : 1));
+            const n = xs.length;
+            const mx = xs.reduce((a, b) => a + b, 0) / n;
+            const my = ys.reduce((a, b) => a + b, 0) / n;
+            let sxx = 0;
+            let sxy = 0;
+            for (let i = 0; i < n; i++) {
+                sxx += (xs[i] - mx) * (xs[i] - mx);
+                sxy += (xs[i] - mx) * (ys[i] - my);
+            }
+            if (stat === 'chance') return [my, 0];
+            if (sxx <= 1e-9 * n * Math.max(1, mx * mx)) return null;
+            const b = sxy / sxx;
+            return [my - b * mx, b];
+        };
+        const ego = fit('ego');
+        const damage = fit('damage');
+        const defense = fit('defense');
+        const chance = fit('chance');
+        if (!ego || !damage || !defense || !chance) return null;
+        return { ego, damage, defense, chance };
     }
 
-    /**
-     * Next week's stats for a team: the stats the game measured today for
-     * the same girls, plus the fitted effect of the carac change. Harmony
-     * does not follow the girls' caracs (measured slope 0), so it stays.
-     */
-    static projectCaracs(
-        measuredToday: TeamCaracs,
-        sumsToday: [number, number, number],
-        sumsNext: [number, number, number],
-        counts: ElementCounts,
-        harem: Record<ElementType, number>,
-        slopes: Partial<Record<keyof TeamCaracs, number | null>>,
-    ): TeamCaracs {
-        const out: TeamCaracs = { ...measuredToday };
-        for (const stat of ['ego', 'damage', 'defense'] as const) {
-            const synergyElement = STAT_SYNERGY[stat]!;
-            const multiplier = 1 + TeamEvaluationService.getSynergy(counts, synergyElement, harem);
-            const slope = slopes[stat];
-            if (slope !== null && slope !== undefined) {
-                const delta = (sumsNext[0] + sumsNext[1] + sumsNext[2]) - (sumsToday[0] + sumsToday[1] + sumsToday[2]);
-                out[stat] = measuredToday[stat] + multiplier * slope * delta;
-            } else {
-                // No fit: scale with the total, the rough share the girls carry.
-                const today = sumsToday[0] + sumsToday[1] + sumsToday[2];
-                const next = sumsNext[0] + sumsNext[1] + sumsNext[2];
-                out[stat] = today > 0 ? measuredToday[stat] * (next / today) : measuredToday[stat];
+    /** Largest relative miss of the model on the samples it was fitted on. */
+    static modelError(model: TeamStatModel, samples: CalibrationSample[], harem: Record<ElementType, number>): number {
+        let worst = 0;
+        for (const s of samples) {
+            const c = TeamSelectionService.modelCaracs(model, s.sum, s.counts, s.tier3, harem);
+            for (const stat of ['ego', 'damage', 'defense'] as const) {
+                if (s.caracs[stat] > 0) worst = Math.max(worst, Math.abs(c[stat] / s.caracs[stat] - 1));
             }
         }
-        return out;
+        return worst;
     }
 
-    /**
-     * Factor from today's caracs to a girl's caracs at full development
-     * (level 750, every grade) -- the projection of "Best Possible"
-     * (TeamScoringService.scoreBestPossible), as a multiplier on the caracs.
-     */
-    static developmentFactor(girl: GirlData): number {
-        const today = TeamScoringService.caracsSum(girl);
-        if (today <= 0) return 1;
-        return TeamScoringService.scoreBestPossible(girl) / today;
+    /** Team stats for a carac sum, the team's elements and its Tier-3 bonus. */
+    static modelCaracs(model: TeamStatModel, sum: number, counts: ElementCounts, tier3: number, harem: Record<ElementType, number>): TeamCaracs {
+        const stat = (k: keyof TeamCaracs) =>
+            (model[k][0] + model[k][1] * sum) * (1 + TeamEvaluationService.getSynergy(counts, STAT_SYNERGY[k], harem));
+        return { ego: stat('ego'), damage: stat('damage') * (1 + tier3), defense: stat('defense'), chance: stat('chance') };
     }
 
-    /** Which stat a synergy element scales, for the fit in the popup. */
-    static synergyElementOf(stat: keyof TeamCaracs): ElementType | undefined {
-        return STAT_SYNERGY[stat];
+    /** Sum of carac1..3 over the girls. */
+    static caracSum(girls: GirlData[]): number {
+        return girls.reduce((sum, g) => sum + TeamScoringService.caracsSum(g), 0);
     }
 }

@@ -2395,6 +2395,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.blessingsCache] =
     storage:"localStorage",
     HHType:"Temp"
 };
+// The girls' definition caracs from the harem list. localStorage: they never
+// change for a girl, and reading them costs one request per 24 girls.
+HHStoredVars[HHStoredVarPrefixKey + TK.girlDefinitions] =
+    {
+    default:"",
+    storage:"localStorage",
+    HHType:"Temp"
+};
 // Collapsed state of the team-selection summary on the edit-team page.
 // localStorage: "Unequip All" reloads the page, and the player should not
 // have to fold the panel away again on every pass through the workflow.

@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.23.0 - Team calculation without reset
+
+- Team optimization: every girl is scored without the gear and the skills she holds today, calculated from her base stats (read once from the harem list and kept). Nothing has to be reset for it.
+- Team optimization: the team stats come from the game's team formula, fitted on ten teams the game calculates; the candidates are no longer calculated one by one.
+- Team optimization: the Tier-3 trait bonus counts the girl herself (1 % for a full mythic without any match).
+- Team optimization: two league blessings with the same percent are both recognised.
+- Prepare for Calculation is renamed Unequip & Unskill and moved to the right-hand column under Unequip All; its window says that it removes all items and all skills, can cost a lot of money, is optional and does not necessarily give a better team.
+
 ### v8.22.1 - Reward tracks with a pass
 
 - Seasonal event: Collect all and the automatic collection claim the rewards again when the Mega Pass is owned.

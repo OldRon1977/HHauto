@@ -314,6 +314,8 @@ export const TK = {
     haremTeamScrolls: "Temp_haremTeamScrolls",
     haremTeamSettings: "Temp_haremTeamSettings",
     blessingsCache: "Temp_blessingsCache",
+    // A girl's definition caracs (harem list), for the stats without gear and skills.
+    girlDefinitions: "Temp_girlDefinitions",
     teamInfoCollapsed: "Temp_teamInfoCollapsed",
     // Theme of the team that was last built, for the gear optimiser on the
     // market page -- the team is not available there.

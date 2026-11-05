@@ -19,11 +19,11 @@ The script menu speaks English, German, French and Spanish; the wiki is English 
   club champion, places of power, Penta Drill and the labyrinth, each with its
   own thresholds. A season target fights until a number of wins is reached.
 - **Team building** — the Team optimization popup on the edit-team page scores
-  teams by the game's own calculation: this week, against your league
-  opponents, and for next week's blessings. *Prepare for Calculation* resets
-  skills and items, so the girls are compared on their own stats with the
-  skills Stuff Team will give counted in. Level-up team, Stuff Team and the
-  Team gear block finish the team.
+  teams by the game's own team formula: this week, against your league
+  opponents, and for next week's blessings. Every girl is compared without the
+  gear and skills she holds today, with the skills Stuff Team will give counted
+  in -- nothing has to be reset for it. Level-up team, Stuff Team and the Team
+  gear block finish the team.
 - **Gear for your hero** — the HH Gear menu on the market page picks the best
   armor for your six slots, now or after levelling, levels the worn mythics
   and marks the mythics worth keeping.

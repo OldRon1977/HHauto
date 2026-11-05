@@ -72,43 +72,68 @@ describe('TeamSelectionService.buildHeroFighter', () => {
     });
 });
 
-describe('TeamSelectionService next-week projection', () => {
-    it('recovers the slope of an exactly linear stat', () => {
-        const samples = Array.from({ length: 12 }, (_, i) => ({ sum: 200000 + i * 4000, value: 5000 + 2.33 * (200000 + i * 4000) }));
-        expect(TeamSelectionService.fitSumSlope(samples)).toBeCloseTo(2.33, 6);
+describe('TeamSelectionService team model', () => {
+    // A game that follows the measured shape exactly: per stat (a + b x sum) x (1 + synergy),
+    // damage also x (1 + Tier 3).
+    const game = { ego: [336771, 2.0], damage: [64932, 0.28], defense: [27774, 0.12], chance: [104631, 0] } as const;
+    const harem = noHarem({ nature: 0.1, darkness: 0.07, light: 0.07, psychic: 0.07 });
+    const sample = (sum: number, counts: Partial<Record<ElementType, number>>, tier3: number) => {
+        const syn = (e: ElementType, per: number, cap: number) => 1 + Math.min((counts[e] || 0) * per, cap) + harem[e];
+        return {
+            sum, counts, tier3,
+            caracs: {
+                ego: (game.ego[0] + game.ego[1] * sum) * syn('nature', 0.03, 0.21),
+                damage: (game.damage[0] + game.damage[1] * sum) * syn('darkness', 0.02, 0.14) * (1 + tier3),
+                defense: (game.defense[0] + game.defense[1] * sum) * syn('light', 0.02, 0.14),
+                chance: game.chance[0] * syn('psychic', 0.02, 0.14),
+            },
+        };
+    };
+    const samples = [
+        sample(150000, { nature: 3, fire: 4 }, 0), sample(220000, { darkness: 7 }, 0.04),
+        sample(90000, { light: 2, psychic: 2, sun: 3 }, 0.01), sample(180000, { water: 7 }, 0),
+    ];
+
+    it('recovers a and b of every stat, with synergy and Tier 3 divided out', () => {
+        const model = TeamSelectionService.fitTeamModel(samples, harem)!;
+        expect(model.ego[0]).toBeCloseTo(336771, 0);
+        expect(model.ego[1]).toBeCloseTo(2.0, 6);
+        expect(model.damage[1]).toBeCloseTo(0.28, 6);
+        expect(model.defense[1]).toBeCloseTo(0.12, 6);
+        expect(model.chance).toEqual([expect.closeTo(104631, 0), 0]);
+        expect(TeamSelectionService.modelError(model, samples, harem)).toBeLessThan(1e-9);
     });
 
-    it('refuses a fit it cannot carry, and never answers a negative slope', () => {
-        expect(TeamSelectionService.fitSumSlope([])).toBeNull();
-        expect(TeamSelectionService.fitSumSlope(Array.from({ length: 8 }, () => ({ sum: 1000, value: 1 })))).toBeNull();
-        const falling = Array.from({ length: 8 }, (_, i) => ({ sum: 1000 + i * 10, value: 500 - i }));
-        expect(TeamSelectionService.fitSumSlope(falling)).toBe(0);
+    it('calculates a team the game did not see', () => {
+        const model = TeamSelectionService.fitTeamModel(samples, harem)!;
+        const other = sample(200000, { nature: 4, darkness: 3 }, 0.05);
+        const c = TeamSelectionService.modelCaracs(model, other.sum, other.counts, other.tier3, harem);
+        expect(c.ego).toBeCloseTo(other.caracs.ego, 3);
+        expect(c.damage).toBeCloseTo(other.caracs.damage, 3);
+        expect(c.defense).toBeCloseTo(other.caracs.defense, 3);
     });
 
-    it("adds only the change to today's measured stats, synergy included", () => {
-        const harem = noHarem({ nature: 0.1 });
-        const out = TeamSelectionService.projectCaracs(
-            { ego: 1000, damage: 500, defense: 200, chance: 50 },
-            [100, 100, 100], [110, 100, 100], { nature: 1 }, harem,
-            { ego: 2, damage: null, defense: 0 },
-        );
-        // ego: 1000 + (1 + 0.03 + 0.1) * 2 * 10
-        expect(out.ego).toBeCloseTo(1000 + 1.13 * 20);
-        // damage without a fit: scaled with the total (310 / 300)
-        expect(out.damage).toBeCloseTo(500 * 310 / 300);
-        expect(out.chance).toBe(50);
+    it('refuses a fit without a spread of carac sums', () => {
+        expect(TeamSelectionService.fitTeamModel(samples.slice(0, 2), harem)).toBeNull();
+        const same = [sample(1000, {}, 0), sample(1000, { fire: 1 }, 0), sample(1000, { water: 1 }, 0)];
+        expect(TeamSelectionService.fitTeamModel(same, harem)).toBeNull();
     });
 });
 
-describe('TeamSelectionService.developmentFactor', () => {
-    it('is the Best Possible projection as a multiplier on the caracs', () => {
-        // level 375 of 750, 2 of 6 grades: 2 * (1 + 0.3 * 6) / (1 + 0.3 * 2)
-        const g = girl(1, 3000, 'fire', { level: 375, graded: 2, nb_grades: 6 });
-        expect(TeamSelectionService.developmentFactor(g)).toBeCloseTo(2 * 2.8 / 1.6);
+describe('TeamSelectionService.calibrationTeams', () => {
+    it('gives distinct teams of seven, the strongest and the weakest seven among them', () => {
+        const pool = Array.from({ length: 40 }, (_, i) => girl(i + 1, 10000 - i * 100));
+        const teams = TeamSelectionService.calibrationTeams(pool);
+        expect(teams.length).toBe(10);
+        expect(teams.every(t => t.length === 7 && new Set(t).size === 7)).toBe(true);
+        expect(new Set(teams.map(t => TeamSelectionService.teamKey(t))).size).toBe(teams.length);
+        expect(teams[0]).toEqual([1, 2, 3, 4, 5, 6, 7]);
+        expect(teams[1]).toEqual([34, 35, 36, 37, 38, 39, 40]);
+        expect(TeamSelectionService.calibrationTeams(pool)).toEqual(teams);
     });
 
-    it('leaves a fully developed girl as she is', () => {
-        expect(TeamSelectionService.developmentFactor(girl(1, 3000))).toBeCloseTo(1);
+    it('needs seven girls', () => {
+        expect(TeamSelectionService.calibrationTeams([girl(1, 1), girl(2, 1)])).toEqual([]);
     });
 });
 

@@ -472,11 +472,9 @@ export class BlessingService {
         //      pick up correlations (e.g. "all 40%-blessed girls happen
         //      to be legendary" doesn't mean rarity=legendary IS the
         //      blessing condition).
-        for (const percent of percents) {
-            const carrying = blessed.filter(g =>
-                BlessingService.getContextPercentList(g, context).includes(percent));
-            if (carrying.length === 0) continue;
-
+        // One (kind, value) per percent that explains the girls in `carrying`.
+        const findIn = (carrying: typeof blessed, percent: number): Cand[] => {
+            const found: Cand[] = [];
             for (const kind of kinds) {
                 const valueCounts = new Map<string, number>();
                 for (const g of carrying) {
@@ -500,8 +498,33 @@ export class BlessingService {
                 const specificity = samevalAll.length === 0 ? 0 : samevalBlessed.length / samevalAll.length;
                 if (specificity < 0.8) continue;
 
-                candidates.push({ kind, value: topVal, percent, pool_size: samevalAll.length });
+                found.push({ kind, value: topVal, percent, pool_size: samevalAll.length });
             }
+            return found;
+        };
+
+        for (const percent of percents) {
+            const carrying = blessed.filter(g =>
+                BlessingService.getContextPercentList(g, context).includes(percent));
+            if (carrying.length === 0) continue;
+            const found = findIn(carrying, percent);
+            candidates.push(...found);
+
+            // Both league blessings can carry the same percent (measured: Blond
+            // +25 % and Scorpio +25 % in one week). The girls of both then sit
+            // in one `carrying` group, and only the larger blessing passes the
+            // dominance check. The girls the found blessings do not explain --
+            // the percent appears more often in her list than found blessings
+            // match her -- form the rest, and the rest is searched again.
+            if (found.length === 0) continue;
+            const rest = carrying.filter(g => {
+                const times = BlessingService.getContextPercentList(g, context).filter(n => n === percent).length;
+                const explained = found.filter(c => String(fieldOf(g, c.kind) ?? '') === c.value).length;
+                return times > explained;
+            });
+            if (rest.length === 0) continue;
+            const known = new Set(found.map(c => c.kind + '=' + c.value));
+            candidates.push(...findIn(rest, percent).filter(c => !known.has(c.kind + '=' + c.value)));
         }
 
         // De-duplicate: a single (kind, value) might appear with two different
