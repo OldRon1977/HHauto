@@ -10,7 +10,7 @@ Older entries below were migrated 1:1 from `README.md`.
 ### v8.23.0 - Team calculation without reset
 
 - Team optimization: every girl is scored without the gear and the skills she holds today, calculated from her base stats (read once from the harem list and kept). Nothing has to be reset for it.
-- Team optimization is faster: the game calculates ten teams once per page instead of about a hundred candidates per rubric; after the first run, which reads the harem list once, a rubric takes a few seconds.
+- Team optimization is faster: the game calculates ten teams once per page instead of about a hundred candidates per rubric; after the first run, which reads the harem list once, a rubric takes a few seconds. Ten are enough because the team stats follow a fixed formula of the girls' stats, which the game's own calculation matches within 0.1 %; the ten teams only fit its two numbers per stat for the account.
 - Team optimization: the Tier-3 trait bonus counts the girl herself (1 % for a full mythic without any match).
 - Team optimization: two league blessings with the same percent are both recognised.
 - Prepare for Calculation is renamed Unequip & Unskill and moved to the right-hand column under Unequip All; its window says that it removes all items and all skills, can cost a lot of money, is optional and does not necessarily give a better team.
