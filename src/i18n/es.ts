@@ -554,6 +554,7 @@ HHAuto_ToolTips.es['teamSelIsCurrent'] = { version: "8.14.0", elementText: "no m
 HHAuto_ToolTips.es['teamSelModelNote'] = { version: "8.23.0", elementText: "Semana próxima y desarrollo completo: con esas bendiciones y niveles.", tooltip: ""};
 HHAuto_ToolTips.es['teamSelReadingGear'] = { version: "8.23.2", elementText: "Leyendo el equipo de las chicas…", tooltip: ""};
 HHAuto_ToolTips.es['teamSelGearTie'] = { version: "8.23.2", elementText: "Misma fuerza, más resonancia con Best gear (como tras Unequip All): {before} &rarr; {after} coincidencias. Cambiada por una chica equivalente: {swaps}", tooltip: ""};
+HHAuto_ToolTips.es['teamSelSameMoreResonance'] = { version: "8.23.2", elementText: "tan fuerte como los hexágonos, más resonancia con Best gear", tooltip: ""};
 HHAuto_ToolTips.es['teamSelCandidates'] = { version: "8.14.0", elementText: "candidatos", tooltip: ""};
 HHAuto_ToolTips.es['teamSelApplied'] = { version: "8.14.0", elementText: "Guardado. La página se recarga.", tooltip: ""};
 HHAuto_ToolTips.es['teamSelApplyFailed'] = { version: "8.14.0", elementText: "No guardado", tooltip: ""};
