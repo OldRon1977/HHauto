@@ -7,6 +7,10 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.23.1 - Upgrade Gear comes back on My Hero's Equipment tab
+
+- **Upgrade Gear**: when the run ends back on the market -- every item done, or the material or money used up -- My Hero opens on the Equipment tab, where the new stats and the HH Gear button are. Before, it opened on the Boosters tab.
+
 ### v8.23.0 - Team calculation without reset
 
 - Team optimization: every girl is scored without the gear and the skills she holds today, calculated from her base stats (read once from the harem list and kept). Nothing has to be reset for it.
