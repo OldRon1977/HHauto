@@ -51,12 +51,18 @@
 // team, so they ask nothing. Unequip All is not repeated there -- it stands
 // right above, in the same popup.
 //
+// Where the stats-and-blessings rubrics find several teams of exactly the same
+// score -- girls the team model cannot tell apart -- they take the one Best
+// gear can give the most resonance (TeamGearTieBreakService). The league
+// rubrics do not: their fight simulation reads the girls' skills, which the
+// tie check does not compare. The girl inventory for it is read once per page.
+//
 // The actions that live in TeamModule are handed in, so this file does not
 // import TeamModule (which opens it).
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
 //   BlessingForecast.ts, BlessingService.ts, SkillModelService.ts, BaseStatsService.ts,
-//   LeagueOpponentSnapshot.ts, AutoLoopHold.ts, WorkPause.ts
+//   LeagueOpponentSnapshot.ts, TeamGearTieBreakService.ts, AutoLoopHold.ts, WorkPause.ts
 // Used by: TeamModule.ts
 
 import { getHHVars } from '../Helper/HHHelper';
@@ -71,6 +77,8 @@ import { TeamBuilderService } from '../Service/TeamBuilderService';
 import { TeamCaracs, TeamEvaluationService } from '../Service/TeamEvaluationService';
 import { GirlData, PlayerClass, TeamScoringService } from '../Service/TeamScoringService';
 import { CalibrationSample, TeamSelectionService, TeamStatModel } from '../Service/TeamSelectionService';
+import { GearWearerRaw, TeamGearTieBreakService, TieBreakResult } from '../Service/TeamGearTieBreakService';
+import type { GirlGearItem } from '../Service/TeamGearService';
 import { kickAutoLoop } from '../Service/AutoLoopKick';
 import { holdAutoLoop, releaseAutoLoopHold } from '../Service/AutoLoopHold';
 import { touchWorkPause } from '../Service/WorkPause';
@@ -102,6 +110,8 @@ export interface TeamSelectionActions {
     possibleGear: () => void;
     /** Level the hexagon girls' worn mythics (EquipmentGear.previewGirlUpgrade). */
     levelUpGear: () => void;
+    /** Every girl item not worn by anyone (TeamGear.fetchInventory); null when unreadable. */
+    readGearInventory: () => Promise<GirlGearItem[] | null>;
 }
 
 interface Rubric {
@@ -159,6 +169,8 @@ export class TeamSelectionPopup {
     /** The player chose to go on despite a large miss (once per page). */
     private static modelAccepted = false;
     private static definitions: Map<number, Definition> | null = null;
+    /** The free girl items, read once per page for the gear tie-break. */
+    private static inventory: GirlGearItem[] | null = null;
     private static results: Record<string, RubricResult> = {};
     private static busy = false;
 
@@ -604,17 +616,64 @@ export class TeamSelectionPopup {
             if (!best || s.score > best.score) best = s;
             done++;
         }
+        let tieLine = '';
+        if (r.scoring === 'effective' && best) {
+            const tie = await TeamSelectionPopup.gearTieBreak(r, best.ids, pool, horizon);
+            if (tie && tie.swaps.length > 0) {
+                const swapped = await score(tie.ids);
+                // The swap partners leave every model input unchanged; the
+                // score is compared once more so a drift can never trade
+                // strength for resonance.
+                if (Math.abs(swapped.score - best.score) <= 1e-9 * Math.abs(best.score)) {
+                    best = swapped;
+                    tieLine = TeamSelectionPopup.describeTie(tie, pool.evaluated);
+                    logHHAuto(`Team selection ${r.id}: same score, Best gear resonance ${tie.before.matches} -> ${tie.after.matches} matches, swapped `
+                        + tie.swaps.map(s => `${s.position + 1}: ${s.from} -> ${s.to}`).join(', '));
+                } else {
+                    logHHAuto(`Team selection ${r.id}: gear tie-break dropped, score ${best.score} -> ${swapped.score}`);
+                }
+            }
+        }
         const currentScore = current.length === 7 ? await score(current) : null;
         TeamSelectionPopup.results[r.id] = best!;
-        TeamSelectionPopup.out(r.id, TeamSelectionPopup.describe(r, best!, pool.evaluated, currentScore, teams.length, info));
+        TeamSelectionPopup.out(r.id, TeamSelectionPopup.describe(r, best!, pool.evaluated, currentScore, teams.length, info, tieLine));
         if (r.canApply) $('#hhTsApply' + r.id).removeClass('tsDisabled');
         logHHAuto(`Team selection ${r.id}: ${teams.length} candidates, best ${best!.ids.join(',')} score ${best!.score}`);
+    }
+
+    /**
+     * Swaps against girls the team model cannot tell apart, for more
+     * resonance with Best gear; null when the girl inventory cannot be read.
+     */
+    private static async gearTieBreak(r: Rubric, ids: number[], pool: Pool, horizon: SkillHorizon): Promise<TieBreakResult | null> {
+        if (!TeamSelectionPopup.inventory) {
+            TeamSelectionPopup.out(r.id, getTextForUI('teamSelReadingGear', 'elementText'));
+            TeamSelectionPopup.inventory = await TeamSelectionPopup.actions!.readGearInventory();
+            if (!TeamSelectionPopup.inventory) {
+                logHHAuto('Team selection: the girl equipment could not be read, no gear tie-break');
+                return null;
+            }
+        }
+        const raw = TeamSelectionPopup.rawGirls() as unknown as GearWearerRaw[];
+        const wearers = new Map(raw.map(g => [Number(g.id_girl), g] as [number, GearWearerRaw]));
+        const inventory = TeamGearTieBreakService.unequippedInventory(TeamSelectionPopup.inventory, raw);
+        const mode = r.possible ? 'possible' : 'best';
+        return TeamGearTieBreakService.improve(ids, pool, horizon,
+            team => TeamGearTieBreakService.tally(team, wearers, inventory, mode));
+    }
+
+    private static describeTie(tie: TieBreakResult, girls: GirlData[]): string {
+        const name = (id: number) => girls.find(g => g.id_girl === id)?.name ?? String(id);
+        const swaps = tie.swaps.map(s => `${s.position + 1}. ${name(s.from)} &rarr; ${name(s.to)}`).join(', ');
+        return `<div class="tsGood">${getTextForUI('teamSelGearTie', 'elementText')
+            .replace('{before}', String(tie.before.matches)).replace('{after}', String(tie.after.matches))
+            .replace('{swaps}', swaps)}</div>`;
     }
 
     // ---- Output ----------------------------------------------------------
 
     private static describe(r: Rubric, res: RubricResult, girls: GirlData[], current: RubricResult | null,
-        candidates: number, info: string): string {
+        candidates: number, info: string, tieLine = ''): string {
         const hex = new Set(TeamSelectionPopup.actions!.getHexagonIds());
         const names = TeamSelectionPopup.girlsById(girls, res.ids).map((g, i) => {
             const label = `${i === 0 ? '&#9733; ' : ''}${g.name} <span class="tsSub">(${g.element}, ${g.rarity})</span>`;
@@ -638,7 +697,7 @@ export class TeamSelectionPopup {
         // week and full development also change their blessings or level.
         const model = r.week === 'next' || r.possible ? ` ${getTextForUI('teamSelModelNote', 'elementText')}` : '';
         const note = `<div class="tsSub">${getTextForUI('teamSelSkillNote', 'elementText')}${model}</div>`;
-        return `${infoLine}<div>${headline}${delta}</div><div class="tsSub">${caracs} &middot; ${candidates} ${getTextForUI('teamSelCandidates', 'elementText')}</div>${note}<div>${names}</div>`;
+        return `${infoLine}<div>${headline}${delta}</div><div class="tsSub">${caracs} &middot; ${candidates} ${getTextForUI('teamSelCandidates', 'elementText')}</div>${note}${tieLine}<div>${names}</div>`;
     }
 
     // ---- Apply -----------------------------------------------------------

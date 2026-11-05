@@ -613,6 +613,12 @@ export class TeamModule {
             bestGear: () => { void TeamGear.preview('best', TeamModule.getHexagonGirlsWithGear()); },
             possibleGear: () => { void TeamGear.preview('possible', TeamModule.getHexagonGirlsWithGear()); },
             levelUpGear: () => EquipmentGear.previewGirlUpgrade(TeamModule.getHexagonGirlsWithGear()),
+            readGearInventory: () => {
+                // The list does not depend on the girl asked for (TeamGear.ts).
+                const available = getHHVars('availableGirls', false);
+                const id = Array.isArray(available) && available.length > 0 ? Number(available[0].id_girl) : 0;
+                return id > 0 ? TeamGear.fetchInventory(id) : Promise.resolve(null);
+            },
         });
     }
 
