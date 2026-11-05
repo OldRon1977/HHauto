@@ -272,4 +272,36 @@ describe("SeasonalEvent", function () {
             expect(getSecondsLeft('nextMegaEventRankCollectTime')).toBeGreaterThan(2 * 24 * 3600);
         });
     });
+    describe("getGlobalRankRemainingTime", function () {
+        const timer = (t: string) => `<div class="ranking-timer-reset"><div class="ranking-timer"><span rel="expires">${t}</span></div></div>`;
+        beforeEach(() => { MockHelper.mockDomain("www.hentaiheroes.com"); });
+        afterEach(() => { document.body.innerHTML = ''; });
+
+        it("reads the event ranking of a seasonal event that is not a mega event", function () {
+            // Measured: no top ranking tab, its container hidden and empty,
+            // the timer in the event ranking container.
+            document.body.innerHTML = `<div id="top_ranking_tab_container"></div>
+                <div id="event_ranking_tab_container"><div class="event_ranking-container">${timer('1d 20h')}</div></div>`;
+            expect(SeasonalEvent.getGlobalRankRemainingTime()).toBe(86400 + 20 * 3600);
+        });
+
+        it("reads the top ranking", function () {
+            document.body.innerHTML = `<div id="top_ranking_tab_container">${timer('2d 23h')}</div>`;
+            expect(SeasonalEvent.getGlobalRankRemainingTime()).toBe(2 * 86400 + 23 * 3600);
+        });
+
+        it("takes the earlier reset when both rankings carry a timer", function () {
+            document.body.innerHTML = `<div id="top_ranking_tab_container">${timer('2d 23h')}</div>
+                <div id="event_ranking_tab_container">${timer('1d 20h')}</div>`;
+            expect(SeasonalEvent.getGlobalRankRemainingTime()).toBe(86400 + 20 * 3600);
+        });
+
+        it("falls back to maxCollectionDelay without any timer", function () {
+            document.body.innerHTML = `<div id="top_ranking_tab_container"></div><div id="event_ranking_tab_container"></div>`;
+            const max = ConfigHelper.getHHScriptVars("maxCollectionDelay");
+            const t = SeasonalEvent.getGlobalRankRemainingTime();
+            expect(t).toBeGreaterThanOrEqual(max + 60);
+            expect(t).toBeLessThanOrEqual(max + 180);
+        });
+    });
 });
