@@ -173,17 +173,28 @@ export class HeroHelper {
      * of Glory and League -- no error, no log, just three modules that do
      * nothing.
      *
-     * A level never decreases, so remembering the maximum is safe and costs
-     * one stored number. The raw global stays available for callers that
-     * want exactly what this page was served -- `Pipeline.config` reads it
-     * directly for its shop-refresh comparison, where a stale-low value only
-     * delays a check.
+     * A level never decreases, so remembering the maximum is safe. The raw
+     * global stays available for callers that want exactly what this page
+     * was served -- `Pipeline.config` reads it directly for its shop-refresh
+     * comparison, where a stale-low value only delays a check.
+     *
+     * The maximum is stored as `<hero id>:<level>` and only counts for that
+     * hero. The key lives in localStorage, one per browser and game site,
+     * and a second account in the same browser otherwise inherits the first
+     * one's level: stat buying then aims at the other account's cap and the
+     * game answers "over your maximum" on every page load. A value without
+     * a matching id -- another account, or a page without hero data -- is
+     * not used.
      */
     static getLevel():number {
         const live = Number(getHHVars('Hero.infos.level'));
-        const seen = Number(getStoredValue(HHStoredVarPrefixKey + TK.heroMaxLevel) ?? 0);
+        const id = String(getHHVars('Hero.infos.id', false) ?? '');
+        if (id === '' || id === 'undefined' || id === 'null') return live;
+
+        const [seenId, seenLevel] = String(getStoredValue(HHStoredVarPrefixKey + TK.heroMaxLevel) ?? '').split(':');
+        const seen = seenId === id ? Number(seenLevel) || 0 : 0;
         if (Number.isFinite(live) && live > seen) {
-            setStoredValue(HHStoredVarPrefixKey + TK.heroMaxLevel, String(live));
+            setStoredValue(HHStoredVarPrefixKey + TK.heroMaxLevel, id + ':' + live);
             return live;
         }
         return seen > 0 ? seen : live;
