@@ -202,9 +202,10 @@ export class EquipmentGear {
         EquipmentGear.resumeUpgradeQueue(HERO_UPGRADE);
         EquipmentGear.watchTabSwitch();
 
-        // After an equip the market reloads, and the reloaded page opens My
-        // Hero on Boosters (measured; no URL parameter picks the tab). The
-        // armor tab is where the new stats show and where HH Gear lives.
+        // After an equip the market reloads, and an upgrade run ends by
+        // opening it again; either way it opens My Hero on Boosters
+        // (measured; no URL parameter picks the tab). The armor tab is where
+        // the new stats show and where HH Gear lives.
         // Like the manual collect-all flags of the events, the key goes only
         // once the work is done: the tab clicked on this page and open. An
         // armor tab open without a click is the page before the reload.
@@ -1102,12 +1103,23 @@ export class EquipmentGear {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
     }
 
+    /** Upgrade Gear ends on the market, which opens My Hero on Boosters
+     *  (measured: the return after the material ran out landed there, with
+     *  no click on the armor tab). The key has the market page open the
+     *  armor tab, where the new stats and HH Gear are -- the same key the
+     *  reload after an equip sets. Level-up gear ends on edit-team. */
+    private static reopenArmorTabAfterRun(profile: UpgradeProfile): void {
+        if (profile !== HERO_UPGRADE) return;
+        setStoredValue(HHStoredVarPrefixKey + TK.gearReopenArmorTab, 'true');
+    }
+
     /** The regular end: every queued item is done or skipped. The run goes
      *  back where it started under the work pause -- Level-up gear to
      *  edit-team, Upgrade Gear to the market. */
     private static finishRun(profile: UpgradeProfile, msg: string): void {
         setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
         EquipmentGear.releaseAutoLoop();
+        EquipmentGear.reopenArmorTabAfterRun(profile);
         workPauseReturnToZone();
         logHHAuto('Gear: upgrade run finished -- ' + msg);
     }
@@ -1125,6 +1137,7 @@ export class EquipmentGear {
     private static stopShort(profile: UpgradeProfile, msg: string): void {
         setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
         EquipmentGear.releaseAutoLoop();
+        EquipmentGear.reopenArmorTabAfterRun(profile);
         workPauseReturnToZone();
         logHHAuto('Gear: upgrade run stopped -- ' + msg + ' Back to where it started.');
     }

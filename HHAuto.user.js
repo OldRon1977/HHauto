@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.23.0
+// @version      8.23.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -29398,9 +29398,10 @@ class EquipmentGear {
             return;
         EquipmentGear.resumeUpgradeQueue(HERO_UPGRADE);
         EquipmentGear.watchTabSwitch();
-        // After an equip the market reloads, and the reloaded page opens My
-        // Hero on Boosters (measured; no URL parameter picks the tab). The
-        // armor tab is where the new stats show and where HH Gear lives.
+        // After an equip the market reloads, and an upgrade run ends by
+        // opening it again; either way it opens My Hero on Boosters
+        // (measured; no URL parameter picks the tab). The armor tab is where
+        // the new stats show and where HH Gear lives.
         // Like the manual collect-all flags of the events, the key goes only
         // once the work is done: the tab clicked on this page and open. An
         // armor tab open without a click is the page before the reload.
@@ -30256,12 +30257,23 @@ class EquipmentGear {
     static releaseAutoLoop() {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
     }
+    /** Upgrade Gear ends on the market, which opens My Hero on Boosters
+     *  (measured: the return after the material ran out landed there, with
+     *  no click on the armor tab). The key has the market page open the
+     *  armor tab, where the new stats and HH Gear are -- the same key the
+     *  reload after an equip sets. Level-up gear ends on edit-team. */
+    static reopenArmorTabAfterRun(profile) {
+        if (profile !== HERO_UPGRADE)
+            return;
+        setStoredValue(HHStoredVarPrefixKey + TK.gearReopenArmorTab, 'true');
+    }
     /** The regular end: every queued item is done or skipped. The run goes
      *  back where it started under the work pause -- Level-up gear to
      *  edit-team, Upgrade Gear to the market. */
     static finishRun(profile, msg) {
         setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
         EquipmentGear.releaseAutoLoop();
+        EquipmentGear.reopenArmorTabAfterRun(profile);
         workPauseReturnToZone();
         logHHAuto('Gear: upgrade run finished -- ' + msg);
     }
@@ -30278,6 +30290,7 @@ class EquipmentGear {
     static stopShort(profile, msg) {
         setStoredValue(HHStoredVarPrefixKey + profile.queueKey, '[]');
         EquipmentGear.releaseAutoLoop();
+        EquipmentGear.reopenArmorTabAfterRun(profile);
         workPauseReturnToZone();
         logHHAuto('Gear: upgrade run stopped -- ' + msg + ' Back to where it started.');
     }
