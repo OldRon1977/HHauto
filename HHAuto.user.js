@@ -853,6 +853,8 @@ HHAuto_ToolTips.en['teamSelSaved'] = { version: "8.14.0", elementText: "Hexagons
 HHAuto_ToolTips.en['teamSelUnsaved'] = { version: "8.14.0", elementText: "Hexagons differ from the saved team", tooltip: "" };
 HHAuto_ToolTips.en['teamSelMeasuring'] = { version: "8.14.0", elementText: "Game calculation {done}/{total} ...", tooltip: "" };
 HHAuto_ToolTips.en['teamSelReadingHarem'] = { version: "8.23.0", elementText: "Reading the harem list, page {page} (only the first time) ...", tooltip: "" };
+HHAuto_ToolTips.en['teamSelModelWarn'] = { version: "8.23.0", elementText: "The team stats differ by {miss} % from the game's own calculation, so the result may be off. Most common reason: a booster ran out during the calculation. Reload the page and calculate again, or go on anyway.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelModelGoOn'] = { version: "8.23.0", elementText: "Understood, calculate anyway", tooltip: "" };
 HHAuto_ToolTips.en['teamSelSimulating'] = { version: "8.14.0", elementText: "Simulating {done}/{total} ...", tooltip: "" };
 HHAuto_ToolTips.en['teamSelNoAjax'] = { version: "8.14.0", elementText: "The game's request function is not available on this page.", tooltip: "" };
 HHAuto_ToolTips.en['teamSelNoCandidates'] = { version: "8.14.0", elementText: "Not enough eligible girls for a team.", tooltip: "" };
@@ -1441,6 +1443,8 @@ HHAuto_ToolTips.fr['teamSelSaved'] = { version: "8.14.0", elementText: "Hexagone
 HHAuto_ToolTips.fr['teamSelUnsaved'] = { version: "8.14.0", elementText: "Les hexagones diffèrent de l'équipe enregistrée", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelMeasuring'] = { version: "8.14.0", elementText: "Calcul du jeu {done}/{total} ...", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelReadingHarem'] = { version: "8.23.0", elementText: "Lecture de la liste du harem, page {page} (seulement la première fois) ...", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelModelWarn'] = { version: "8.23.0", elementText: "Les stats d'équipe s'écartent de {miss} % du calcul du jeu, le résultat peut être faussé. Raison la plus fréquente : un booster a expiré pendant le calcul. Rechargez la page et recalculez, ou continuez quand même.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelModelGoOn'] = { version: "8.23.0", elementText: "Compris, calculer quand même", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelSimulating'] = { version: "8.14.0", elementText: "Simulation {done}/{total} ...", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelNoAjax'] = { version: "8.14.0", elementText: "La fonction de requête du jeu n'est pas disponible sur cette page.", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelNoCandidates'] = { version: "8.14.0", elementText: "Pas assez de filles éligibles pour une équipe.", tooltip: "" };
@@ -2030,6 +2034,8 @@ HHAuto_ToolTips.de['teamSelSaved'] = { version: "8.14.0", elementText: "Sechseck
 HHAuto_ToolTips.de['teamSelUnsaved'] = { version: "8.14.0", elementText: "Sechsecke weichen vom gespeicherten Team ab", tooltip: "" };
 HHAuto_ToolTips.de['teamSelMeasuring'] = { version: "8.14.0", elementText: "Nachrechnung durch das Spiel {done}/{total} ...", tooltip: "" };
 HHAuto_ToolTips.de['teamSelReadingHarem'] = { version: "8.23.0", elementText: "Lese die Haremliste, Seite {page} (nur beim ersten Mal) ...", tooltip: "" };
+HHAuto_ToolTips.de['teamSelModelWarn'] = { version: "8.23.0", elementText: "Die Teamwerte weichen um {miss} % von der Rechnung des Spiels ab, das Ergebnis kann daneben liegen. Häufigster Grund: Ein Booster ist während der Berechnung abgelaufen. Seite neu laden und noch einmal berechnen, oder trotzdem fortfahren.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelModelGoOn'] = { version: "8.23.0", elementText: "Verstanden, trotzdem berechnen", tooltip: "" };
 HHAuto_ToolTips.de['teamSelSimulating'] = { version: "8.14.0", elementText: "Simulation {done}/{total} ...", tooltip: "" };
 HHAuto_ToolTips.de['teamSelNoAjax'] = { version: "8.14.0", elementText: "Die Anfragefunktion des Spiels fehlt auf dieser Seite.", tooltip: "" };
 HHAuto_ToolTips.de['teamSelNoCandidates'] = { version: "8.14.0", elementText: "Nicht genug wählbare Mädels für ein Team.", tooltip: "" };
@@ -2618,6 +2624,8 @@ HHAuto_ToolTips.es['teamSelSaved'] = { version: "8.14.0", elementText: "Hexágon
 HHAuto_ToolTips.es['teamSelUnsaved'] = { version: "8.14.0", elementText: "Los hexágonos difieren del equipo guardado", tooltip: "" };
 HHAuto_ToolTips.es['teamSelMeasuring'] = { version: "8.14.0", elementText: "Cálculo del juego {done}/{total} ...", tooltip: "" };
 HHAuto_ToolTips.es['teamSelReadingHarem'] = { version: "8.23.0", elementText: "Leyendo la lista del harén, página {page} (solo la primera vez) ...", tooltip: "" };
+HHAuto_ToolTips.es['teamSelModelWarn'] = { version: "8.23.0", elementText: "Las stats de equipo difieren un {miss} % del cálculo del juego, el resultado puede no ser exacto. Motivo más frecuente: un potenciador caducó durante el cálculo. Recarga la página y calcula de nuevo, o continúa igualmente.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelModelGoOn'] = { version: "8.23.0", elementText: "Entendido, calcular igualmente", tooltip: "" };
 HHAuto_ToolTips.es['teamSelSimulating'] = { version: "8.14.0", elementText: "Simulación {done}/{total} ...", tooltip: "" };
 HHAuto_ToolTips.es['teamSelNoAjax'] = { version: "8.14.0", elementText: "La función de petición del juego no está disponible en esta página.", tooltip: "" };
 HHAuto_ToolTips.es['teamSelNoCandidates'] = { version: "8.14.0", elementText: "No hay suficientes chicas elegibles para un equipo.", tooltip: "" };
@@ -33616,6 +33624,14 @@ const RUBRICS = [
     { id: 'N2', group: 'next', titleKey: 'teamSelNextStatsPossible', week: 'next', possible: true, scoring: 'effective', canApply: true },
 ];
 const TeamSelectionPopup_MEASURE_DELAY_MS = 350;
+/** Miss of the team model on its own calibration teams above which it is fitted once more (normal: under 0.1 %). */
+const MODEL_RETRY = 0.005;
+/**
+ * Miss above which the rubric asks before it calculates: larger than the gap
+ * between the script's pick and a good hand-made team (measured 3.5 %), so the
+ * pick could be worse than the team the player has.
+ */
+const MODEL_WARN = 0.05;
 class TeamSelectionPopup {
     static open(actions) {
         TeamSelectionPopup.actions = actions;
@@ -33780,14 +33796,34 @@ class TeamSelectionPopup {
      * Fit the team model once per page: the game calculates a few teams of
      * girls without gear (TeamSelectionService.calibrationTeams), and without
      * Tier 3 where the harem allows -- the Tier-3 model is itself off by up to
-     * 0.7 %, and measured live it took the fit from 0.06 % to 1.6 %. A
-     * calculation that does not answer is tried again twice before the rubric
-     * gives up.
+     * 0.7 %, and measured live it took the fit from 0.06 % to 1.6 %.
+     *
+     * A fit that misses its own teams by more than MODEL_RETRY is fitted once
+     * more and the better one kept: a booster that runs out during the
+     * calibration moves every stat (measured: ego by 18 %). Beyond MODEL_WARN
+     * the rubric asks before it calculates (see evaluate); the player can go
+     * on anyway, once per page.
      */
     static ensureModel(id) {
         return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
-            if (TeamSelectionPopup.model)
-                return true;
+            if (!TeamSelectionPopup.model) {
+                let fit = yield TeamSelectionPopup.calibrate(id);
+                if (!fit)
+                    return 'fail';
+                if (fit.error > MODEL_RETRY) {
+                    const second = yield TeamSelectionPopup.calibrate(id);
+                    if (second && second.error < fit.error)
+                        fit = second;
+                }
+                TeamSelectionPopup.model = fit.model;
+                TeamSelectionPopup.modelMiss = fit.error;
+            }
+            return TeamSelectionPopup.modelMiss > MODEL_WARN && !TeamSelectionPopup.modelAccepted ? 'warn' : 'ok';
+        });
+    }
+    /** One calibration: the game calculates the teams, the model is fitted on them. */
+    static calibrate(id) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
             const a = TeamSelectionPopup.actions;
             const noGear = TeamSelectionPopup.rawGirls().filter(g => BaseStatsService.gearPieces(g) === 0);
             const noTier3 = noGear.filter(g => BaseStatsService.tierPoints(g, 3) === 0);
@@ -33795,7 +33831,7 @@ class TeamSelectionPopup {
             const girls = raw.map(g => a.mapGirl(g));
             const teams = TeamSelectionService.calibrationTeams(girls);
             if (teams.length < 3)
-                return false;
+                return null;
             const battleType = TeamEvaluationService.getBattleType();
             const harem = TeamEvaluationService.getHaremSynergies();
             const samples = [];
@@ -33809,7 +33845,7 @@ class TeamSelectionPopup {
                 }
                 if (!result) {
                     logHHAuto('Team selection: the game calculated no stats for a calibration team, stopping.');
-                    return false;
+                    return null;
                 }
                 const members = TeamSelectionPopup.girlsById(girls, team);
                 samples.push({
@@ -33822,10 +33858,10 @@ class TeamSelectionPopup {
             }
             const model = TeamSelectionService.fitTeamModel(samples, harem);
             if (!model)
-                return false;
-            logHHAuto(`Team selection: team model from ${samples.length} teams, largest miss ${(TeamSelectionService.modelError(model, samples, harem) * 100).toFixed(2)} %`);
-            TeamSelectionPopup.model = model;
-            return true;
+                return null;
+            const error = TeamSelectionService.modelError(model, samples, harem);
+            logHHAuto(`Team selection: team model from ${samples.length} teams, largest miss ${(error * 100).toFixed(2)} %`);
+            return { model, error };
         });
     }
     /**
@@ -33984,8 +34020,19 @@ class TeamSelectionPopup {
                     .replace('{opponents}', String(snap.opponents.filter(o => o.openFights > 0).length))
                     .replace('{minutes}', String(Math.max(0, Math.round((Date.now() - snap.timestamp) / 60000))));
             }
-            if (!(yield TeamSelectionPopup.ensureModel(r.id))) {
+            const modelState = yield TeamSelectionPopup.ensureModel(r.id);
+            if (modelState === 'fail') {
                 TeamSelectionPopup.out(r.id, `<span class="tsBad">${getTextForUI('teamSelMeasureFailed', 'elementText')}</span>`);
+                return;
+            }
+            if (modelState === 'warn') {
+                const miss = (TeamSelectionPopup.modelMiss * 100).toFixed(1);
+                TeamSelectionPopup.out(r.id, `<div class="tsWarn">${getTextForUI('teamSelModelWarn', 'elementText').replace('{miss}', miss)}</div>`
+                    + `<label class="myButton" id="hhTsGoOn${r.id}">${getTextForUI('teamSelModelGoOn', 'elementText')}</label>`);
+                $('#hhTsGoOn' + r.id).on('click', () => {
+                    TeamSelectionPopup.modelAccepted = true;
+                    void TeamSelectionPopup.run(r);
+                });
                 return;
             }
             const pool = yield TeamSelectionPopup.pool(r, r.id);
@@ -33996,6 +34043,24 @@ class TeamSelectionPopup {
             if (pool.info)
                 info = info ? info + ' &middot; ' + pool.info : pool.info;
             const teams = TeamSelectionPopup.candidates(pool.evaluated);
+            if (r.possible) {
+                // The builder picks its candidates from the girls as the rubric
+                // sees them; fully developed, other girls look strong, and the
+                // pick of "best now" can be missing -- measured, the possibly-best
+                // rubric then chose a team its own score put below that pick. Its
+                // candidates are added, so the possibly-best team is never below it.
+                const now = yield TeamSelectionPopup.pool(Object.assign(Object.assign({}, r), { possible: false }), r.id);
+                if (typeof now !== 'string') {
+                    const seen = new Set(teams.map(t => TeamSelectionService.teamKey(t)));
+                    for (const t of TeamSelectionPopup.candidates(now.evaluated)) {
+                        const key = TeamSelectionService.teamKey(t);
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            teams.push(t);
+                        }
+                    }
+                }
+            }
             if (teams.length === 0) {
                 TeamSelectionPopup.out(r.id, `<span class="tsBad">${getTextForUI('teamSelNoCandidates', 'elementText')}</span>`);
                 return;
@@ -34091,6 +34156,10 @@ class TeamSelectionPopup {
 TeamSelectionPopup.actions = null;
 /** The team model, fitted once per page (boosters and hero stats are the page's). */
 TeamSelectionPopup.model = null;
+/** Largest miss of the model on its calibration teams. */
+TeamSelectionPopup.modelMiss = 0;
+/** The player chose to go on despite a large miss (once per page). */
+TeamSelectionPopup.modelAccepted = false;
 TeamSelectionPopup.definitions = null;
 TeamSelectionPopup.results = {};
 TeamSelectionPopup.busy = false;
