@@ -51,15 +51,26 @@ export class SeasonalEvent {
             setStoredValue(HHStoredVarPrefixKey+TK.SeasonalEventEndDate,Math.ceil(new Date().getTime()/1000)+seasonalEventTimer);
         }
     }
+    /**
+     * Seconds until the next rank reset, read after both rank tabs were
+     * clicked and answered. Each tab draws its timer into its own container:
+     * a seasonal event that is not a mega event has only the event ranking
+     * (measured: no #top_ranking_tab, #top_ranking_tab_container hidden and
+     * empty, the timer in #event_ranking_tab_container). With both timers on
+     * the page the earlier reset wins, so no rank reward waits for the later
+     * one; whether the two resets ever differ is not measured.
+     */
     static getGlobalRankRemainingTime(){
-        const rankTimerRequest = `#top_ranking_tab_container .ranking-timer-reset .ranking-timer span[rel=expires]`
+        const containers = ['#top_ranking_tab_container', '#event_ranking_tab_container'];
+        const timers = containers
+            .map(c => $(`${c} .ranking-timer-reset .ranking-timer span[rel=expires]`))
+            .filter(el => el.length > 0)
+            .map(el => Number(convertTimeToInt(el.first().text())))
+            .filter(t => Number.isFinite(t) && t > 0);
 
-        if ( $(rankTimerRequest).length > 0)
-        {
-            const rankTimer = Number(convertTimeToInt($(rankTimerRequest).text()));
-            return rankTimer;
-        }
-        logHHAuto('ERROR: can\'t get seasonal rank timer, default to maxCollectionDelay');
+        if (timers.length > 0) return Math.min(...timers);
+        logHHAuto('ERROR: can\'t get seasonal rank timer in ' + containers.join(' or ')
+            + ', default to maxCollectionDelay');
         return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
     }
     static displayRemainingTime()
