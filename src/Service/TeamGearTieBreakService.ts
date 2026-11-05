@@ -11,9 +11,8 @@
 // most resonance matches.
 //
 // Measured on one account: in one week the positions 6 and 7 had five to six
-// such partners each and the swaps raised the matches from 37 to 47
-// (possibly best 49 to 61); in the next week no position had any partner and
-// nothing changed.
+// such partners each and the swaps raised the matches from 37 to 47; in the
+// next week no position had any partner and nothing changed.
 //
 // Two rules that are not obvious:
 //
