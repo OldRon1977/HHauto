@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.23.1
+// @version      8.23.2
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -870,6 +870,8 @@ HHAuto_ToolTips.en['teamSelEff'] = { version: "8.14.0", elementText: "Effective 
 HHAuto_ToolTips.en['teamSelVsCurrent'] = { version: "8.14.0", elementText: "vs. the hexagons", tooltip: "" };
 HHAuto_ToolTips.en['teamSelIsCurrent'] = { version: "8.14.0", elementText: "no better than the hexagons", tooltip: "" };
 HHAuto_ToolTips.en['teamSelModelNote'] = { version: "8.23.0", elementText: "Next week and full development: with those blessings and levels.", tooltip: "" };
+HHAuto_ToolTips.en['teamSelReadingGear'] = { version: "8.23.2", elementText: "Reading the girl equipment…", tooltip: "" };
+HHAuto_ToolTips.en['teamSelGearTie'] = { version: "8.23.2", elementText: "Same strength, more resonance with Best gear (as after Unequip All): {before} &rarr; {after} matches. Swapped for an equal girl: {swaps}", tooltip: "" };
 HHAuto_ToolTips.en['teamSelCandidates'] = { version: "8.14.0", elementText: "candidates", tooltip: "" };
 HHAuto_ToolTips.en['teamSelApplied'] = { version: "8.14.0", elementText: "Saved. The page reloads.", tooltip: "" };
 HHAuto_ToolTips.en['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Not saved", tooltip: "" };
@@ -1460,6 +1462,8 @@ HHAuto_ToolTips.fr['teamSelEff'] = { version: "8.14.0", elementText: "Puissance 
 HHAuto_ToolTips.fr['teamSelVsCurrent'] = { version: "8.14.0", elementText: "par rapport aux hexagones", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelIsCurrent'] = { version: "8.14.0", elementText: "pas mieux que les hexagones", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelModelNote'] = { version: "8.23.0", elementText: "Semaine prochaine et développement complet : avec ces bénédictions et ces niveaux.", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelReadingGear'] = { version: "8.23.2", elementText: "Lecture de l'équipement des filles…", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelGearTie'] = { version: "8.23.2", elementText: "Même force, plus de résonance avec Best gear (comme après Unequip All) : {before} &rarr; {after} correspondances. Échangée contre une fille équivalente : {swaps}", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelCandidates'] = { version: "8.14.0", elementText: "candidats", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelApplied'] = { version: "8.14.0", elementText: "Enregistré. La page se recharge.", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Non enregistré", tooltip: "" };
@@ -2051,6 +2055,8 @@ HHAuto_ToolTips.de['teamSelEff'] = { version: "8.14.0", elementText: "Effektive 
 HHAuto_ToolTips.de['teamSelVsCurrent'] = { version: "8.14.0", elementText: "gegenüber den Sechsecken", tooltip: "" };
 HHAuto_ToolTips.de['teamSelIsCurrent'] = { version: "8.14.0", elementText: "nicht besser als die Sechsecke", tooltip: "" };
 HHAuto_ToolTips.de['teamSelModelNote'] = { version: "8.23.0", elementText: "Nächste Woche und volle Entwicklung: mit diesen Blessings und Leveln.", tooltip: "" };
+HHAuto_ToolTips.de['teamSelReadingGear'] = { version: "8.23.2", elementText: "Lese die Mädchen-Ausrüstung…", tooltip: "" };
+HHAuto_ToolTips.de['teamSelGearTie'] = { version: "8.23.2", elementText: "Gleich stark, mehr Resonanz mit Best gear (wie nach Unequip All): {before} &rarr; {after} Treffer. Gegen ein gleichwertiges Mädchen getauscht: {swaps}", tooltip: "" };
 HHAuto_ToolTips.de['teamSelCandidates'] = { version: "8.14.0", elementText: "Kandidaten", tooltip: "" };
 HHAuto_ToolTips.de['teamSelApplied'] = { version: "8.14.0", elementText: "Gespeichert. Die Seite lädt neu.", tooltip: "" };
 HHAuto_ToolTips.de['teamSelApplyFailed'] = { version: "8.14.0", elementText: "Nicht gespeichert", tooltip: "" };
@@ -2641,6 +2647,8 @@ HHAuto_ToolTips.es['teamSelEff'] = { version: "8.14.0", elementText: "Poder efec
 HHAuto_ToolTips.es['teamSelVsCurrent'] = { version: "8.14.0", elementText: "frente a los hexágonos", tooltip: "" };
 HHAuto_ToolTips.es['teamSelIsCurrent'] = { version: "8.14.0", elementText: "no mejor que los hexágonos", tooltip: "" };
 HHAuto_ToolTips.es['teamSelModelNote'] = { version: "8.23.0", elementText: "Semana próxima y desarrollo completo: con esas bendiciones y niveles.", tooltip: "" };
+HHAuto_ToolTips.es['teamSelReadingGear'] = { version: "8.23.2", elementText: "Leyendo el equipo de las chicas…", tooltip: "" };
+HHAuto_ToolTips.es['teamSelGearTie'] = { version: "8.23.2", elementText: "Misma fuerza, más resonancia con Best gear (como tras Unequip All): {before} &rarr; {after} coincidencias. Cambiada por una chica equivalente: {swaps}", tooltip: "" };
 HHAuto_ToolTips.es['teamSelCandidates'] = { version: "8.14.0", elementText: "candidatos", tooltip: "" };
 HHAuto_ToolTips.es['teamSelApplied'] = { version: "8.14.0", elementText: "Guardado. La página se recarga.", tooltip: "" };
 HHAuto_ToolTips.es['teamSelApplyFailed'] = { version: "8.14.0", elementText: "No guardado", tooltip: "" };
@@ -33562,6 +33570,386 @@ class SkillModelService {
     }
 }
 
+;// ./src/Service/TeamGearService.ts
+// TeamGearService.ts -- Pure planning for "Best gear" and "Possibly best
+// gear": which item each team girl should wear in each of her six slots.
+//
+// The whole team is planned at once, slot by slot. For one slot the pool is
+// every item in the inventory plus what the team girls wear there; items
+// other girls wear are not in play (a player who wants them pressed Unequip
+// All first). Two rules decide, in this order:
+//
+//   1. The stats go down the team in order. The girl in position 1 gets an
+//      item of the highest stat sum in the pool, position 2 the next, and so
+//      on -- so the girls get L10 mythics in team order, as many as there
+//      are, and when they run out the later girls get legendaries, epics.
+//      The stat sum is scoreItem's (HaremGirl.pure): all six stats added
+//      up. Within one rarity and level every item has the same sum
+//      (measured: every L10 mythic 1545), so rule 1 fixes which rarity and
+//      level each girl gets.
+//   2. Among the items of the same sum, the girls get the distribution with
+//      the most resonance matches for the team. On a tie the earlier girls'
+//      matches count first, then the higher real level (less to level up),
+//      then keeping what a girl already wears.
+//
+// Rule 2 is why this is not decided girl by girl: every L10 mythic has the
+// same stats, and a leader who takes the first one that fits her equally
+// well takes the one a later girl would have matched on two axes.
+//
+// In "possibly best" every mythic sits in the level 10 tier, so resonance
+// decides before the real level: a low mythic that fits an earlier girl
+// better replaces her finished one, which goes to a later girl. That is the
+// player's decision, not an oversight -- the plan is the team after Level-up
+// gear, even if it is weaker until the material for that is there.
+//
+// "Possibly best" ranks a mythic below level 10 by the stats it will have at
+// level 10, because Level-up gear takes worn mythics there. The game stores
+// an item's base stats (`armor`) and shows base times level, rounded
+// (measured: a legendary with damage 6.5 shows 7 at level 1 and 13 at level
+// 2), so the level 10 value is the base times 10 -- not the shown level 1
+// value times 10, which rounds a mythic's 7.5 damage up to 8 and made an L1
+// mythic look 5 points better than a real L10 one. Every other rarity counts
+// as it is: nothing in the script levels it.
+//
+// Used by: Module/TeamGear.ts
+
+/** Level-up gear's cap on girl items (upgradeable_item_max_level). */
+const GIRL_GEAR_CAP = 10;
+const GIRL_GEAR_SLOTS = [1, 2, 3, 4, 5, 6];
+/**
+ * The item as the chosen mode ranks it. In 'possible' mode a mythic below
+ * level 10 gets its level 10 stats; everything else is unchanged.
+ */
+function rankedItem(item, mode) {
+    const level = Number(item.level);
+    if (mode !== 'possible' || item.rarity !== 'mythic' || !(level > 0) || level >= GIRL_GEAR_CAP)
+        return item;
+    const base = item.armor;
+    const at10 = (key) => {
+        var _a;
+        const b = base === null || base === void 0 ? void 0 : base[key];
+        if (typeof b === 'number')
+            return Math.round(b * GIRL_GEAR_CAP);
+        const shown = (_a = item.caracs) === null || _a === void 0 ? void 0 : _a[key];
+        return shown === undefined ? undefined : shown * GIRL_GEAR_CAP / level;
+    };
+    return Object.assign(Object.assign({}, item), { caracs: {
+            carac1: at10('carac1'), carac2: at10('carac2'), carac3: at10('carac3'),
+            damage: at10('damage'), defense: at10('defense'), ego: at10('ego'),
+        } });
+}
+/**
+ * The plan for the whole team.
+ *
+ * `girls` in team order, leader first, with what they wear now. `inventory`
+ * is every item not worn by anyone, all six slots.
+ */
+function planTeamGear(girls, inventory, mode) {
+    const plans = girls.map((g, position) => ({ position, id_girl: g.id_girl, name: g.name, slots: [] }));
+    for (const slot of GIRL_GEAR_SLOTS) {
+        const worn = girls.map(g => { var _a, _b; return (_b = ((_a = g.armor) !== null && _a !== void 0 ? _a : []).find(a => Number(a.slot_index) === slot)) !== null && _b !== void 0 ? _b : null; });
+        const chosen = planSlot(slot, girls, worn, inventory, mode);
+        girls.forEach((girl, i) => {
+            const current = worn[i];
+            const pick = chosen[i];
+            const keeps = pick !== null && pick.source.kind === 'worn' && pick.source.fromGirl === girl.id_girl;
+            const change = keeps ? false : (pick !== null || current !== null);
+            plans[i].slots.push({
+                slot,
+                current,
+                chosen: pick ? pick.item : null,
+                change,
+                source: change && pick ? pick.source : null,
+                currentScore: current ? scoreItem(rankedItem(current, mode), girl) : null,
+                chosenScore: pick ? scoreItem(rankedItem(pick.item, mode), girl) : null,
+            });
+        });
+    }
+    return plans;
+}
+/** The item each girl gets in one slot, by the two rules in the file
+ *  header; null where the pool has run out. */
+function planSlot(slot, girls, worn, inventory, mode) {
+    const pool = [];
+    const sumOf = (item) => {
+        var _a;
+        const c = (_a = rankedItem(item, mode).caracs) !== null && _a !== void 0 ? _a : {};
+        return (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
+    };
+    for (const item of inventory) {
+        if (Number(item.slot_index) !== slot)
+            continue;
+        pool.push({ item, source: { kind: 'inventory', id: Number(item.id_girl_armor) }, sum: sumOf(item), order: 0 });
+    }
+    worn.forEach((item, i) => {
+        if (!item)
+            return;
+        pool.push({
+            item, sum: sumOf(item), order: 0,
+            source: { kind: 'worn', fromGirl: girls[i].id_girl, slot, idEquipped: Number(item.id_girl_armor_equipped) },
+        });
+    });
+    // Rule 1: the i-th girl gets the i-th highest stat sum. Stable order for
+    // the ties so the plan does not depend on the order the game sent.
+    pool.sort((a, b) => b.sum - a.sum || sourceKey(a.source) - sourceKey(b.source));
+    pool.forEach((p, i) => { p.order = i; });
+    const result = girls.map(() => null);
+    const served = Math.min(girls.length, pool.length);
+    let i = 0;
+    while (i < served) {
+        // One tier: the girls whose target sum is the same.
+        const sum = pool[i].sum;
+        let j = i;
+        while (j < served && pool[j].sum === sum)
+            j++;
+        const tierGirls = Array.from({ length: j - i }, (_, k) => i + k);
+        const tierItems = pool.filter(p => p.sum === sum);
+        const picks = assignTier(tierGirls, tierItems, (g, p) => weight(girls[g], g, p, mode));
+        tierGirls.forEach((g, k) => { result[g] = tierItems[picks[k]]; });
+        i = j;
+    }
+    return result;
+}
+function sourceKey(s) {
+    return s.kind === 'inventory' ? s.id : Number.MAX_SAFE_INTEGER - s.idEquipped;
+}
+/**
+ * Rule 2 as one additive number, so the best assignment is the one with the
+ * largest sum. The parts, from most to least important: resonance matches
+ * (up to 3 per girl, 21 per team); the same matches weighted by position
+ * with base 4 -- more than a later girl can make up, so the earlier girls
+ * win a tie; the real level; keeping the own item. Each part's team total
+ * stays below the step of the part above it, so they never mix.
+ */
+function weight(girl, position, p, mode) {
+    const res = scoreItem(rankedItem(p.item, mode), girl).resonanceMatches;
+    const byPosition = res * Math.pow(4, Math.max(0, 6 - position));
+    const level = Number(p.item.level) || 0;
+    const keeps = p.source.kind === 'worn' && p.source.fromGirl === girl.id_girl ? 1 : 0;
+    return res * 1e9 + byPosition * 1e4 + level * 10 + keeps;
+}
+/**
+ * Best assignment of `girls` (at most 7) to distinct `items` by `w`, as a
+ * dynamic program over the items with the set of served girls as state:
+ * items x 2^girls x girls steps, a few hundred thousand for a full tier.
+ * Returns, per girl, the index of her item. There are always at least as
+ * many items as girls in a tier.
+ */
+function assignTier(girls, items, w) {
+    const k = girls.length;
+    const full = (1 << k) - 1;
+    const states = 1 << k;
+    const n = items.length;
+    const dp = new Float64Array((n + 1) * states).fill(-Infinity);
+    const from = new Int8Array((n + 1) * states).fill(-2);
+    dp[0] = 0;
+    const weights = girls.map(g => items.map(p => w(g, p)));
+    for (let i = 0; i < n; i++) {
+        for (let mask = 0; mask < states; mask++) {
+            const here = dp[i * states + mask];
+            if (here === -Infinity)
+                continue;
+            const skip = (i + 1) * states + mask;
+            if (here > dp[skip]) {
+                dp[skip] = here;
+                from[skip] = -1;
+            }
+            for (let g = 0; g < k; g++) {
+                if (mask & (1 << g))
+                    continue;
+                const next = (i + 1) * states + (mask | (1 << g));
+                const v = here + weights[g][i];
+                if (v > dp[next]) {
+                    dp[next] = v;
+                    from[next] = g;
+                }
+            }
+        }
+    }
+    const picks = new Array(k).fill(-1);
+    let mask = full;
+    for (let i = n; i > 0; i--) {
+        const g = from[i * states + mask];
+        if (g >= 0) {
+            picks[g] = i - 1;
+            mask &= ~(1 << g);
+        }
+    }
+    return picks;
+}
+/** How many girl slots the plan changes. */
+function countChanges(plan) {
+    return plan.reduce((n, g) => n + g.slots.filter(s => s.change).length, 0);
+}
+
+;// ./src/Service/TeamGearTieBreakService.ts
+// TeamGearTieBreakService.ts -- Among the teams the team calculation cannot
+// tell apart, the one Best gear can give the most resonance.
+//
+// The team calculation scores girls without gear (TeamSelectionPopup), so
+// it does not see which girls the player's equipment fits. Many girls are
+// exactly alike for it: same stats, same element, same Tier-3 trait value.
+// Swapping one of them for another leaves every input of the team model
+// unchanged -- the stat sum, the element counts, the Tier-3 bonus -- and so
+// the score. Which of them is picked was left to candidate order. Here it is
+// the one for which Best gear (TeamGearService.planTeamGear) hands out the
+// most resonance matches.
+//
+// Measured on one account: in one week the positions 6 and 7 had five to six
+// such partners each and the swaps raised the matches from 37 to 47
+// (possibly best 49 to 61); in the next week no position had any partner and
+// nothing changed.
+//
+// Two rules that are not obvious:
+//
+//   1. Only an exact tie counts. How much a resonance percent is worth
+//      against stats is not measurable client-side (equipment-resonance.md:
+//      every before/after path reads 0.00 %), so resonance never outweighs
+//      any stat difference. A swap whose model inputs differ at all is
+//      rejected, whatever the prefilter said.
+//   2. The gear is planned as after Unequip All: every item any girl wears
+//      is in the pool and the team girls wear nothing. The team calculation
+//      itself scores the girls as Unequip & Unskill would leave them.
+//
+// The objective is planTeamGear's own: the count of resonance matches, then
+// the sum of their bonus percent. The leader stays.
+//
+// Depends on: TeamGearService.ts, TeamScoringService.ts, TeamSelectionService.ts,
+//   SkillModelService.ts
+// Used by: Module/TeamSelectionPopup.ts
+
+
+
+
+/** Rounds of single swaps at most; each round tries every partner on every position. */
+const MAX_ROUNDS = 10;
+class TeamGearTieBreakService {
+    /** What the team model reads of a team (TeamSelectionPopup.statsOf). */
+    static modelInputs(pool, ids, horizon) {
+        const evaluated = ids.map(id => pool.evaluated.find(g => g.id_girl === id));
+        const base = ids.map(id => pool.base.find(g => g.id_girl === id));
+        return {
+            sum: TeamSelectionService.caracSum(evaluated),
+            counts: JSON.stringify(TeamSelectionService.countElements(evaluated)),
+            tier3: SkillModelService.tier3Bonus(base, g => SkillModelService.targetPoints(g, 3, horizon)),
+        };
+    }
+    static sameInputs(a, b) {
+        return Math.abs(a.sum - b.sum) <= 1e-9 * Math.max(1, Math.abs(a.sum))
+            && a.counts === b.counts
+            && Math.abs(a.tier3 - b.tier3) <= 1e-12;
+    }
+    /**
+     * Girls outside the team that could stand on `position` without changing
+     * anything the team model reads: same element, rarity, stat sum, Tier-3
+     * trait value and Tier-3 points. Only the eligible pool counts.
+     */
+    static partners(pool, ids, position, horizon) {
+        const x = pool.evaluated.find(g => g.id_girl === ids[position]);
+        const xb = pool.base.find(g => g.id_girl === ids[position]);
+        if (!x || !xb)
+            return [];
+        const xSum = TeamScoringService.caracsSum(x);
+        const xTrait = TeamScoringService.getTraitValue(xb);
+        const xPoints = SkillModelService.targetPoints(xb, 3, horizon);
+        const baseById = new Map(pool.base.map(g => [g.id_girl, g]));
+        return TeamScoringService.filterEligible(pool.evaluated)
+            .filter(y => !ids.includes(y.id_girl)
+            && y.element === x.element
+            && y.rarity === x.rarity
+            && Math.abs(TeamScoringService.caracsSum(y) - xSum) <= 1e-9 * Math.max(1, xSum))
+            .filter(y => {
+            const yb = baseById.get(y.id_girl);
+            return !!yb && TeamScoringService.getTraitValue(yb) === xTrait
+                && SkillModelService.targetPoints(yb, 3, horizon) === xPoints;
+        })
+            .map(y => y.id_girl);
+    }
+    /**
+     * The pool after Unequip All: the free items plus every item any girl
+     * wears. A worn item has only id_girl_armor_equipped; it gets a negative
+     * id_girl_armor of its own so the plan can tell the pieces apart.
+     */
+    static unequippedInventory(free, wearers) {
+        const out = free.slice();
+        for (const w of wearers) {
+            const armor = Array.isArray(w.armor) ? w.armor : [];
+            for (const a of armor)
+                out.push(Object.assign(Object.assign({}, a), { id_girl_armor: -Math.abs(Number(a.id_girl_armor_equipped) || 0) }));
+        }
+        return out;
+    }
+    /** The matches Best gear hands this team out of `inventory`, the girls wearing nothing. */
+    static tally(ids, wearers, inventory, mode) {
+        const girls = ids.map(id => {
+            var _a;
+            const w = wearers.get(id);
+            return { id_girl: id, name: String((_a = w === null || w === void 0 ? void 0 : w.name) !== null && _a !== void 0 ? _a : id), class: w === null || w === void 0 ? void 0 : w.class, element: w === null || w === void 0 ? void 0 : w.element, figure: w === null || w === void 0 ? void 0 : w.figure, armor: [] };
+        });
+        const t = { matches: 0, figure: 0, cls: 0, element: 0, bonus: 0 };
+        planTeamGear(girls, inventory, mode).forEach((plan, i) => {
+            var _a;
+            const girl = girls[i];
+            for (const s of plan.slots) {
+                const rb = (_a = s.chosen) === null || _a === void 0 ? void 0 : _a.resonance_bonuses;
+                if (!rb || Array.isArray(rb))
+                    continue;
+                if (rb.figure && String(rb.figure.identifier) === String(girl.figure)) {
+                    t.figure++;
+                    t.bonus += Number(rb.figure.bonus) || 0;
+                }
+                if (rb.class && String(rb.class.identifier) === String(girl.class)) {
+                    t.cls++;
+                    t.bonus += Number(rb.class.bonus) || 0;
+                }
+                if (rb.element && String(rb.element.identifier) === String(girl.element)) {
+                    t.element++;
+                    t.bonus += Number(rb.element.bonus) || 0;
+                }
+            }
+        });
+        t.matches = t.figure + t.cls + t.element;
+        return t;
+    }
+    static better(a, b) {
+        return a.matches > b.matches || (a.matches === b.matches && a.bonus > b.bonus + 1e-9);
+    }
+    /**
+     * Single swaps against exact partners, kept while Best gear gets more
+     * out of them, until no swap helps. `gearOf` scores a team.
+     */
+    static improve(ids, pool, horizon, gearOf) {
+        const reference = TeamGearTieBreakService.modelInputs(pool, ids, horizon);
+        const partners = ids.map((_, pos) => (pos === 0 ? [] : TeamGearTieBreakService.partners(pool, ids, pos, horizon)));
+        const before = gearOf(ids);
+        let bestIds = ids.slice();
+        let best = before;
+        for (let round = 0; round < MAX_ROUNDS; round++) {
+            let changed = false;
+            for (let pos = 1; pos < ids.length; pos++) {
+                for (const candidate of [ids[pos], ...partners[pos]]) {
+                    if (candidate === bestIds[pos] || bestIds.includes(candidate))
+                        continue;
+                    const team = bestIds.slice();
+                    team[pos] = candidate;
+                    if (!TeamGearTieBreakService.sameInputs(TeamGearTieBreakService.modelInputs(pool, team, horizon), reference))
+                        continue;
+                    const g = gearOf(team);
+                    if (TeamGearTieBreakService.better(g, best)) {
+                        best = g;
+                        bestIds = team;
+                        changed = true;
+                    }
+                }
+            }
+            if (!changed)
+                break;
+        }
+        const swaps = bestIds.map((to, position) => ({ position, from: ids[position], to })).filter(s => s.from !== s.to);
+        return { ids: bestIds, swaps, before, after: best };
+    }
+}
+
 ;// ./src/Module/TeamSelectionPopup.ts
 // TeamSelectionPopup.ts -- The "Team optimization" popup on the edit-team
 // page: the team selection rubrics, and the team's gear.
@@ -33616,12 +34004,18 @@ class SkillModelService {
 // team, so they ask nothing. Unequip All is not repeated there -- it stands
 // right above, in the same popup.
 //
+// Where the stats-and-blessings rubrics find several teams of exactly the same
+// score -- girls the team model cannot tell apart -- they take the one Best
+// gear can give the most resonance (TeamGearTieBreakService). The league
+// rubrics do not: their fight simulation reads the girls' skills, which the
+// tie check does not compare. The girl inventory for it is read once per page.
+//
 // The actions that live in TeamModule are handed in, so this file does not
 // import TeamModule (which opens it).
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
 //   BlessingForecast.ts, BlessingService.ts, SkillModelService.ts, BaseStatsService.ts,
-//   LeagueOpponentSnapshot.ts, AutoLoopHold.ts, WorkPause.ts
+//   LeagueOpponentSnapshot.ts, TeamGearTieBreakService.ts, AutoLoopHold.ts, WorkPause.ts
 // Used by: TeamModule.ts
 var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -33632,6 +34026,7 @@ var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 
 
 
@@ -34139,16 +34534,63 @@ class TeamSelectionPopup {
                     best = s;
                 done++;
             }
+            let tieLine = '';
+            if (r.scoring === 'effective' && best) {
+                const tie = yield TeamSelectionPopup.gearTieBreak(r, best.ids, pool, horizon);
+                if (tie && tie.swaps.length > 0) {
+                    const swapped = yield score(tie.ids);
+                    // The swap partners leave every model input unchanged; the
+                    // score is compared once more so a drift can never trade
+                    // strength for resonance.
+                    if (Math.abs(swapped.score - best.score) <= 1e-9 * Math.abs(best.score)) {
+                        best = swapped;
+                        tieLine = TeamSelectionPopup.describeTie(tie, pool.evaluated);
+                        logHHAuto(`Team selection ${r.id}: same score, Best gear resonance ${tie.before.matches} -> ${tie.after.matches} matches, swapped `
+                            + tie.swaps.map(s => `${s.position + 1}: ${s.from} -> ${s.to}`).join(', '));
+                    }
+                    else {
+                        logHHAuto(`Team selection ${r.id}: gear tie-break dropped, score ${best.score} -> ${swapped.score}`);
+                    }
+                }
+            }
             const currentScore = current.length === 7 ? yield score(current) : null;
             TeamSelectionPopup.results[r.id] = best;
-            TeamSelectionPopup.out(r.id, TeamSelectionPopup.describe(r, best, pool.evaluated, currentScore, teams.length, info));
+            TeamSelectionPopup.out(r.id, TeamSelectionPopup.describe(r, best, pool.evaluated, currentScore, teams.length, info, tieLine));
             if (r.canApply)
                 $('#hhTsApply' + r.id).removeClass('tsDisabled');
             logHHAuto(`Team selection ${r.id}: ${teams.length} candidates, best ${best.ids.join(',')} score ${best.score}`);
         });
     }
+    /**
+     * Swaps against girls the team model cannot tell apart, for more
+     * resonance with Best gear; null when the girl inventory cannot be read.
+     */
+    static gearTieBreak(r, ids, pool, horizon) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            if (!TeamSelectionPopup.inventory) {
+                TeamSelectionPopup.out(r.id, getTextForUI('teamSelReadingGear', 'elementText'));
+                TeamSelectionPopup.inventory = yield TeamSelectionPopup.actions.readGearInventory();
+                if (!TeamSelectionPopup.inventory) {
+                    logHHAuto('Team selection: the girl equipment could not be read, no gear tie-break');
+                    return null;
+                }
+            }
+            const raw = TeamSelectionPopup.rawGirls();
+            const wearers = new Map(raw.map(g => [Number(g.id_girl), g]));
+            const inventory = TeamGearTieBreakService.unequippedInventory(TeamSelectionPopup.inventory, raw);
+            const mode = r.possible ? 'possible' : 'best';
+            return TeamGearTieBreakService.improve(ids, pool, horizon, team => TeamGearTieBreakService.tally(team, wearers, inventory, mode));
+        });
+    }
+    static describeTie(tie, girls) {
+        const name = (id) => { var _a, _b; return (_b = (_a = girls.find(g => g.id_girl === id)) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : String(id); };
+        const swaps = tie.swaps.map(s => `${s.position + 1}. ${name(s.from)} &rarr; ${name(s.to)}`).join(', ');
+        return `<div class="tsGood">${getTextForUI('teamSelGearTie', 'elementText')
+            .replace('{before}', String(tie.before.matches)).replace('{after}', String(tie.after.matches))
+            .replace('{swaps}', swaps)}</div>`;
+    }
     // ---- Output ----------------------------------------------------------
-    static describe(r, res, girls, current, candidates, info) {
+    static describe(r, res, girls, current, candidates, info, tieLine = '') {
         const hex = new Set(TeamSelectionPopup.actions.getHexagonIds());
         const names = TeamSelectionPopup.girlsById(girls, res.ids).map((g, i) => {
             const label = `${i === 0 ? '&#9733; ' : ''}${g.name} <span class="tsSub">(${g.element}, ${g.rarity})</span>`;
@@ -34172,7 +34614,7 @@ class TeamSelectionPopup {
         // week and full development also change their blessings or level.
         const model = r.week === 'next' || r.possible ? ` ${getTextForUI('teamSelModelNote', 'elementText')}` : '';
         const note = `<div class="tsSub">${getTextForUI('teamSelSkillNote', 'elementText')}${model}</div>`;
-        return `${infoLine}<div>${headline}${delta}</div><div class="tsSub">${caracs} &middot; ${candidates} ${getTextForUI('teamSelCandidates', 'elementText')}</div>${note}<div>${names}</div>`;
+        return `${infoLine}<div>${headline}${delta}</div><div class="tsSub">${caracs} &middot; ${candidates} ${getTextForUI('teamSelCandidates', 'elementText')}</div>${note}${tieLine}<div>${names}</div>`;
     }
     // ---- Apply -----------------------------------------------------------
     static apply(r) {
@@ -34199,222 +34641,12 @@ TeamSelectionPopup.modelMiss = 0;
 /** The player chose to go on despite a large miss (once per page). */
 TeamSelectionPopup.modelAccepted = false;
 TeamSelectionPopup.definitions = null;
+/** The free girl items, read once per page for the gear tie-break. */
+TeamSelectionPopup.inventory = null;
 TeamSelectionPopup.results = {};
 TeamSelectionPopup.busy = false;
 // ---- Rendering -------------------------------------------------------
 TeamSelectionPopup.stylesAdded = false;
-
-;// ./src/Service/TeamGearService.ts
-// TeamGearService.ts -- Pure planning for "Best gear" and "Possibly best
-// gear": which item each team girl should wear in each of her six slots.
-//
-// The whole team is planned at once, slot by slot. For one slot the pool is
-// every item in the inventory plus what the team girls wear there; items
-// other girls wear are not in play (a player who wants them pressed Unequip
-// All first). Two rules decide, in this order:
-//
-//   1. The stats go down the team in order. The girl in position 1 gets an
-//      item of the highest stat sum in the pool, position 2 the next, and so
-//      on -- so the girls get L10 mythics in team order, as many as there
-//      are, and when they run out the later girls get legendaries, epics.
-//      The stat sum is scoreItem's (HaremGirl.pure): all six stats added
-//      up. Within one rarity and level every item has the same sum
-//      (measured: every L10 mythic 1545), so rule 1 fixes which rarity and
-//      level each girl gets.
-//   2. Among the items of the same sum, the girls get the distribution with
-//      the most resonance matches for the team. On a tie the earlier girls'
-//      matches count first, then the higher real level (less to level up),
-//      then keeping what a girl already wears.
-//
-// Rule 2 is why this is not decided girl by girl: every L10 mythic has the
-// same stats, and a leader who takes the first one that fits her equally
-// well takes the one a later girl would have matched on two axes.
-//
-// In "possibly best" every mythic sits in the level 10 tier, so resonance
-// decides before the real level: a low mythic that fits an earlier girl
-// better replaces her finished one, which goes to a later girl. That is the
-// player's decision, not an oversight -- the plan is the team after Level-up
-// gear, even if it is weaker until the material for that is there.
-//
-// "Possibly best" ranks a mythic below level 10 by the stats it will have at
-// level 10, because Level-up gear takes worn mythics there. The game stores
-// an item's base stats (`armor`) and shows base times level, rounded
-// (measured: a legendary with damage 6.5 shows 7 at level 1 and 13 at level
-// 2), so the level 10 value is the base times 10 -- not the shown level 1
-// value times 10, which rounds a mythic's 7.5 damage up to 8 and made an L1
-// mythic look 5 points better than a real L10 one. Every other rarity counts
-// as it is: nothing in the script levels it.
-//
-// Used by: Module/TeamGear.ts
-
-/** Level-up gear's cap on girl items (upgradeable_item_max_level). */
-const GIRL_GEAR_CAP = 10;
-const GIRL_GEAR_SLOTS = [1, 2, 3, 4, 5, 6];
-/**
- * The item as the chosen mode ranks it. In 'possible' mode a mythic below
- * level 10 gets its level 10 stats; everything else is unchanged.
- */
-function rankedItem(item, mode) {
-    const level = Number(item.level);
-    if (mode !== 'possible' || item.rarity !== 'mythic' || !(level > 0) || level >= GIRL_GEAR_CAP)
-        return item;
-    const base = item.armor;
-    const at10 = (key) => {
-        var _a;
-        const b = base === null || base === void 0 ? void 0 : base[key];
-        if (typeof b === 'number')
-            return Math.round(b * GIRL_GEAR_CAP);
-        const shown = (_a = item.caracs) === null || _a === void 0 ? void 0 : _a[key];
-        return shown === undefined ? undefined : shown * GIRL_GEAR_CAP / level;
-    };
-    return Object.assign(Object.assign({}, item), { caracs: {
-            carac1: at10('carac1'), carac2: at10('carac2'), carac3: at10('carac3'),
-            damage: at10('damage'), defense: at10('defense'), ego: at10('ego'),
-        } });
-}
-/**
- * The plan for the whole team.
- *
- * `girls` in team order, leader first, with what they wear now. `inventory`
- * is every item not worn by anyone, all six slots.
- */
-function planTeamGear(girls, inventory, mode) {
-    const plans = girls.map((g, position) => ({ position, id_girl: g.id_girl, name: g.name, slots: [] }));
-    for (const slot of GIRL_GEAR_SLOTS) {
-        const worn = girls.map(g => { var _a, _b; return (_b = ((_a = g.armor) !== null && _a !== void 0 ? _a : []).find(a => Number(a.slot_index) === slot)) !== null && _b !== void 0 ? _b : null; });
-        const chosen = planSlot(slot, girls, worn, inventory, mode);
-        girls.forEach((girl, i) => {
-            const current = worn[i];
-            const pick = chosen[i];
-            const keeps = pick !== null && pick.source.kind === 'worn' && pick.source.fromGirl === girl.id_girl;
-            const change = keeps ? false : (pick !== null || current !== null);
-            plans[i].slots.push({
-                slot,
-                current,
-                chosen: pick ? pick.item : null,
-                change,
-                source: change && pick ? pick.source : null,
-                currentScore: current ? scoreItem(rankedItem(current, mode), girl) : null,
-                chosenScore: pick ? scoreItem(rankedItem(pick.item, mode), girl) : null,
-            });
-        });
-    }
-    return plans;
-}
-/** The item each girl gets in one slot, by the two rules in the file
- *  header; null where the pool has run out. */
-function planSlot(slot, girls, worn, inventory, mode) {
-    const pool = [];
-    const sumOf = (item) => {
-        var _a;
-        const c = (_a = rankedItem(item, mode).caracs) !== null && _a !== void 0 ? _a : {};
-        return (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
-    };
-    for (const item of inventory) {
-        if (Number(item.slot_index) !== slot)
-            continue;
-        pool.push({ item, source: { kind: 'inventory', id: Number(item.id_girl_armor) }, sum: sumOf(item), order: 0 });
-    }
-    worn.forEach((item, i) => {
-        if (!item)
-            return;
-        pool.push({
-            item, sum: sumOf(item), order: 0,
-            source: { kind: 'worn', fromGirl: girls[i].id_girl, slot, idEquipped: Number(item.id_girl_armor_equipped) },
-        });
-    });
-    // Rule 1: the i-th girl gets the i-th highest stat sum. Stable order for
-    // the ties so the plan does not depend on the order the game sent.
-    pool.sort((a, b) => b.sum - a.sum || sourceKey(a.source) - sourceKey(b.source));
-    pool.forEach((p, i) => { p.order = i; });
-    const result = girls.map(() => null);
-    const served = Math.min(girls.length, pool.length);
-    let i = 0;
-    while (i < served) {
-        // One tier: the girls whose target sum is the same.
-        const sum = pool[i].sum;
-        let j = i;
-        while (j < served && pool[j].sum === sum)
-            j++;
-        const tierGirls = Array.from({ length: j - i }, (_, k) => i + k);
-        const tierItems = pool.filter(p => p.sum === sum);
-        const picks = assignTier(tierGirls, tierItems, (g, p) => weight(girls[g], g, p, mode));
-        tierGirls.forEach((g, k) => { result[g] = tierItems[picks[k]]; });
-        i = j;
-    }
-    return result;
-}
-function sourceKey(s) {
-    return s.kind === 'inventory' ? s.id : Number.MAX_SAFE_INTEGER - s.idEquipped;
-}
-/**
- * Rule 2 as one additive number, so the best assignment is the one with the
- * largest sum. The parts, from most to least important: resonance matches
- * (up to 3 per girl, 21 per team); the same matches weighted by position
- * with base 4 -- more than a later girl can make up, so the earlier girls
- * win a tie; the real level; keeping the own item. Each part's team total
- * stays below the step of the part above it, so they never mix.
- */
-function weight(girl, position, p, mode) {
-    const res = scoreItem(rankedItem(p.item, mode), girl).resonanceMatches;
-    const byPosition = res * Math.pow(4, Math.max(0, 6 - position));
-    const level = Number(p.item.level) || 0;
-    const keeps = p.source.kind === 'worn' && p.source.fromGirl === girl.id_girl ? 1 : 0;
-    return res * 1e9 + byPosition * 1e4 + level * 10 + keeps;
-}
-/**
- * Best assignment of `girls` (at most 7) to distinct `items` by `w`, as a
- * dynamic program over the items with the set of served girls as state:
- * items x 2^girls x girls steps, a few hundred thousand for a full tier.
- * Returns, per girl, the index of her item. There are always at least as
- * many items as girls in a tier.
- */
-function assignTier(girls, items, w) {
-    const k = girls.length;
-    const full = (1 << k) - 1;
-    const states = 1 << k;
-    const n = items.length;
-    const dp = new Float64Array((n + 1) * states).fill(-Infinity);
-    const from = new Int8Array((n + 1) * states).fill(-2);
-    dp[0] = 0;
-    const weights = girls.map(g => items.map(p => w(g, p)));
-    for (let i = 0; i < n; i++) {
-        for (let mask = 0; mask < states; mask++) {
-            const here = dp[i * states + mask];
-            if (here === -Infinity)
-                continue;
-            const skip = (i + 1) * states + mask;
-            if (here > dp[skip]) {
-                dp[skip] = here;
-                from[skip] = -1;
-            }
-            for (let g = 0; g < k; g++) {
-                if (mask & (1 << g))
-                    continue;
-                const next = (i + 1) * states + (mask | (1 << g));
-                const v = here + weights[g][i];
-                if (v > dp[next]) {
-                    dp[next] = v;
-                    from[next] = g;
-                }
-            }
-        }
-    }
-    const picks = new Array(k).fill(-1);
-    let mask = full;
-    for (let i = n; i > 0; i--) {
-        const g = from[i * states + mask];
-        if (g >= 0) {
-            picks[g] = i - 1;
-            mask &= ~(1 << g);
-        }
-    }
-    return picks;
-}
-/** How many girl slots the plan changes. */
-function countChanges(plan) {
-    return plan.reduce((n, g) => n + g.slots.filter(s => s.change).length, 0);
-}
 
 ;// ./src/Module/TeamGear.ts
 // TeamGear.ts -- "Best gear" and "Possibly best gear" on the edit-team
@@ -34510,7 +34742,8 @@ class TeamGear {
         });
     }
     /** Every item not worn by anyone, all six slots. Null when an answer
-     *  does not have the expected shape. */
+     *  does not have the expected shape. Also read by the team selection
+     *  (TeamSelectionPopup, gear tie-break). */
     static fetchInventory(idGirl) {
         return TeamGear_awaiter(this, void 0, void 0, function* () {
             const byId = new Map();
@@ -35505,6 +35738,12 @@ class TeamModule {
             bestGear: () => { void TeamGear.preview('best', TeamModule.getHexagonGirlsWithGear()); },
             possibleGear: () => { void TeamGear.preview('possible', TeamModule.getHexagonGirlsWithGear()); },
             levelUpGear: () => EquipmentGear.previewGirlUpgrade(TeamModule.getHexagonGirlsWithGear()),
+            readGearInventory: () => {
+                // The list does not depend on the girl asked for (TeamGear.ts).
+                const available = getHHVars('availableGirls', false);
+                const id = Array.isArray(available) && available.length > 0 ? Number(available[0].id_girl) : 0;
+                return id > 0 ? TeamGear.fetchInventory(id) : Promise.resolve(null);
+            },
         });
     }
     /**

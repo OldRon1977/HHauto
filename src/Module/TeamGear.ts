@@ -108,8 +108,9 @@ export class TeamGear {
     }
 
     /** Every item not worn by anyone, all six slots. Null when an answer
-     *  does not have the expected shape. */
-    private static async fetchInventory(idGirl: number): Promise<GirlGearItem[] | null> {
+     *  does not have the expected shape. Also read by the team selection
+     *  (TeamSelectionPopup, gear tie-break). */
+    static async fetchInventory(idGirl: number): Promise<GirlGearItem[] | null> {
         const byId = new Map<number, GirlGearItem>();
         for (const slot of GIRL_GEAR_SLOTS) {
             let got = 0;

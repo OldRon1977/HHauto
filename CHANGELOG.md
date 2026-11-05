@@ -7,6 +7,10 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.23.2 - Team selection: better decision between equivalent positions
+
+- **Team optimization**: optimised decision between equivalent positions. Where several girls are exactly equal for the team calculation (same stats, element and Tier-3 trait), the rubrics "by stats and blessings" now pick the one Best gear can give the most resonance; the team score stays the same.
+
 ### v8.23.1 - Upgrade Gear comes back on My Hero's Equipment tab
 
 - **Upgrade Gear**: when the run ends back on the market, My Hero opens on the Equipment tab.
