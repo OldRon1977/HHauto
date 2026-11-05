@@ -9,7 +9,7 @@ Older entries below were migrated 1:1 from `README.md`.
 
 ### v8.23.2 - Team selection: better decision between equivalent positions
 
-- **Team optimization**: optimised decision between equivalent positions. Where several girls are exactly equal for the team calculation (same stats, element and Tier-3 trait), the rubrics "by stats and blessings" now pick the one Best gear can give the most resonance; the team score stays the same.
+- **Team optimization**: optimised decision between equivalent positions. Where several girls are exactly equal for the team calculation (same stats, element and Tier-3 trait), the rubrics "by stats and blessings" now pick the one Best gear can give the most resonance; the team score stays the same. A team already in the hexagons is kept unless a swap gives it more resonance.
 
 ### v8.23.1 - Upgrade Gear comes back on My Hero's Equipment tab
 
