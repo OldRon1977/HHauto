@@ -24,7 +24,7 @@ describe("HeroHelper", function() {
 
     beforeEach(function() {
       localStorage.removeItem(KEY);
-      unsafeWindow.shared!.Hero = { infos: { level: 36 } } as never;
+      unsafeWindow.shared!.Hero = { infos: { id: 1, level: 36 } } as never;
     });
 
     afterEach(function() {
@@ -33,30 +33,57 @@ describe("HeroHelper", function() {
 
     it("returns the live level and remembers it", function() {
       expect(HeroHelper.getLevel()).toBe(36);
-      expect(localStorage.getItem(KEY)).toBe("36");
+      expect(localStorage.getItem(KEY)).toBe("1:36");
     });
 
     it("ignores a page that serves a lower level", function() {
       expect(HeroHelper.getLevel()).toBe(36);
 
-      unsafeWindow.shared!.Hero = { infos: { level: 17 } } as never;
+      unsafeWindow.shared!.Hero = { infos: { id: 1, level: 17 } } as never;
 
       expect(HeroHelper.getLevel()).toBe(36);
-      expect(localStorage.getItem(KEY)).toBe("36");
+      expect(localStorage.getItem(KEY)).toBe("1:36");
     });
 
     it("follows a real level-up upwards", function() {
       HeroHelper.getLevel();
-      unsafeWindow.shared!.Hero = { infos: { level: 37 } } as never;
+      unsafeWindow.shared!.Hero = { infos: { id: 1, level: 37 } } as never;
 
       expect(HeroHelper.getLevel()).toBe(37);
-      expect(localStorage.getItem(KEY)).toBe("37");
+      expect(localStorage.getItem(KEY)).toBe("1:37");
     });
 
     it("returns the live level when nothing has been remembered", function() {
-      unsafeWindow.shared!.Hero = { infos: { level: 3 } } as never;
+      unsafeWindow.shared!.Hero = { infos: { id: 1, level: 3 } } as never;
 
       expect(HeroHelper.getLevel()).toBe(3);
+    });
+
+    // The key is one per browser and game site; a second account in the
+    // same browser must not inherit the first one's level.
+    it("does not carry a level over to another account", function() {
+      expect(HeroHelper.getLevel()).toBe(36);
+
+      unsafeWindow.shared!.Hero = { infos: { id: 1000, level: 12 } } as never;
+
+      expect(HeroHelper.getLevel()).toBe(12);
+      expect(localStorage.getItem(KEY)).toBe("1000:12");
+    });
+
+    it("drops a stored level without a hero id", function() {
+      localStorage.setItem(KEY, "36");
+      unsafeWindow.shared!.Hero = { infos: { id: 1000, level: 12 } } as never;
+
+      expect(HeroHelper.getLevel()).toBe(12);
+      expect(localStorage.getItem(KEY)).toBe("1000:12");
+    });
+
+    it("uses the live level and stores nothing on a page without a hero id", function() {
+      HeroHelper.getLevel();
+      unsafeWindow.shared!.Hero = { infos: { level: 17 } } as never;
+
+      expect(HeroHelper.getLevel()).toBe(17);
+      expect(localStorage.getItem(KEY)).toBe("1:36");
     });
   });
 

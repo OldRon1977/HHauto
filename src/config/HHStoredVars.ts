@@ -2332,7 +2332,8 @@ HHStoredVars[HHStoredVarPrefixKey + TK.charLevel] =
     HHType:"Temp"
 };
 // localStorage, not sessionStorage: the highest level seen has to survive a
-// new tab. It only grows and is never reset.
+// new tab. Stored with the hero id, so it only counts for that account; for
+// one account it only grows.
 HHStoredVars[HHStoredVarPrefixKey + TK.heroMaxLevel] =
     {
     storage:"localStorage",

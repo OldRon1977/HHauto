@@ -515,7 +515,7 @@ shown in the info panel as "Auto-Mystery").
 | `haveBooster` | `Temp_haveBooster` | `sessionStorage` | `Temp` | boosters available |
 | `haveExp` | `Temp_haveExp` | `sessionStorage` | `Temp` | experience available |
 | `charLevel` | `Temp_charLevel` | `sessionStorage` | `Temp` | the character level |
-| `heroMaxLevel` | `Temp_heroMaxLevel` | `localStorage` | `Temp` | the highest level ever seen; `HeroHelper.getLevel` never falls below it, because the game delivers a stale `Hero.infos.level` on some page loads |
+| `heroMaxLevel` | `Temp_heroMaxLevel` | `localStorage` | `Temp` | `<hero id>:<level>`, the highest level seen for that hero; `HeroHelper.getLevel` never falls below it, because the game delivers a stale `Hero.infos.level` on some page loads. A value for another hero id is not used, since the key is shared by every account in the browser |
 | `storeContents` | `Temp_storeContents` | `sessionStorage` | `Temp` | the shop contents |
 | `boosterStatus` | `Temp_boosterStatus` | `sessionStorage` | `Temp` | the booster status |
 | `boosterStatusLastUpdate` | `Temp_boosterStatusLastUpdate` | `sessionStorage` | `Temp` | the timestamp of the last booster status update |

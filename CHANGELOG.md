@@ -10,10 +10,12 @@ Older entries below were migrated 1:1 from `README.md`.
 ### v8.23.1 - Upgrade Gear comes back on My Hero's Equipment tab
 
 - **Upgrade Gear**: when the run ends back on the market -- every item done, or the material or money used up -- My Hero opens on the Equipment tab, where the new stats and the HH Gear button are. Before, it opened on the Boosters tab.
+- **Stat buying**: with two accounts in the same browser, the script no longer aims at the other account's stat cap. It kept the highest hero level it had seen for the browser, not for the account, and the game answered "over your maximum" on every page load.
 
 #### Internal
 
 - Build tooling: eslint and typescript-eslint use minimatch 11, which closes a denial-of-service advisory.
+- `deps:unused` runs knip instead of depcheck, which is removed.
 
 ### v8.23.0 - Team calculation without reset
 
