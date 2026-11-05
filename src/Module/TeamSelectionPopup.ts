@@ -55,7 +55,10 @@
 // score -- girls the team model cannot tell apart -- they take the one Best
 // gear can give the most resonance (TeamGearTieBreakService). The league
 // rubrics do not: their fight simulation reads the girls' skills, which the
-// tie check does not compare. The girl inventory for it is read once per page.
+// tie check does not compare. Hexagons of the same score are one of those
+// teams and the start: a swap is proposed only for more resonance than they
+// get, so an applied proposal is not swapped again. The girl inventory for it
+// is read once per page.
 //
 // The actions that live in TeamModule are handed in, so this file does not
 // import TeamModule (which opens it).
@@ -616,25 +619,35 @@ export class TeamSelectionPopup {
             if (!best || s.score > best.score) best = s;
             done++;
         }
+        const currentScore = current.length === 7 ? await score(current) : null;
         let tieLine = '';
         if (r.scoring === 'effective' && best) {
-            const tie = await TeamSelectionPopup.gearTieBreak(r, best.ids, pool, horizon);
+            const same = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.abs(b);
+            // Hexagons as strong as the pick are one of the equal teams: they
+            // are the start and the bar. A swap is proposed only for more
+            // resonance than they get, and on a tie they stay -- otherwise the
+            // best-now and possibly-best rubrics swap the same position back
+            // and forth.
+            const fromHexagons = currentScore !== null && same(currentScore.score, best.score);
+            const tie = await TeamSelectionPopup.gearTieBreak(r, fromHexagons ? current : best.ids, pool, horizon);
             if (tie && tie.swaps.length > 0) {
                 const swapped = await score(tie.ids);
                 // The swap partners leave every model input unchanged; the
                 // score is compared once more so a drift can never trade
                 // strength for resonance.
-                if (Math.abs(swapped.score - best.score) <= 1e-9 * Math.abs(best.score)) {
+                if (same(swapped.score, best.score)) {
                     best = swapped;
                     tieLine = TeamSelectionPopup.describeTie(tie, pool.evaluated);
-                    logHHAuto(`Team selection ${r.id}: same score, Best gear resonance ${tie.before.matches} -> ${tie.after.matches} matches, swapped `
+                    logHHAuto(`Team selection ${r.id}: same score, Best gear resonance ${tie.before.matches} -> ${tie.after.matches} matches`
+                        + `${fromHexagons ? ' (from the hexagons)' : ''}, swapped `
                         + tie.swaps.map(s => `${s.position + 1}: ${s.from} -> ${s.to}`).join(', '));
                 } else {
                     logHHAuto(`Team selection ${r.id}: gear tie-break dropped, score ${best.score} -> ${swapped.score}`);
                 }
+            } else if (tie && fromHexagons) {
+                best = currentScore!;
             }
         }
-        const currentScore = current.length === 7 ? await score(current) : null;
         TeamSelectionPopup.results[r.id] = best!;
         TeamSelectionPopup.out(r.id, TeamSelectionPopup.describe(r, best!, pool.evaluated, currentScore, teams.length, info, tieLine));
         if (r.canApply) $('#hhTsApply' + r.id).removeClass('tsDisabled');
