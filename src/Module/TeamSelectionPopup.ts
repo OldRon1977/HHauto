@@ -140,12 +140,24 @@ interface Pool {
 }
 
 const MEASURE_DELAY_MS = 350;
+/** Miss of the team model on its own calibration teams above which it is fitted once more (normal: under 0.1 %). */
+const MODEL_RETRY = 0.005;
+/**
+ * Miss above which the rubric asks before it calculates: larger than the gap
+ * between the script's pick and a good hand-made team (measured 3.5 %), so the
+ * pick could be worse than the team the player has.
+ */
+const MODEL_WARN = 0.05;
 
 export class TeamSelectionPopup {
 
     private static actions: TeamSelectionActions | null = null;
     /** The team model, fitted once per page (boosters and hero stats are the page's). */
     private static model: TeamStatModel | null = null;
+    /** Largest miss of the model on its calibration teams. */
+    private static modelMiss = 0;
+    /** The player chose to go on despite a large miss (once per page). */
+    private static modelAccepted = false;
     private static definitions: Map<number, Definition> | null = null;
     private static results: Record<string, RubricResult> = {};
     private static busy = false;
@@ -321,19 +333,37 @@ export class TeamSelectionPopup {
      * Fit the team model once per page: the game calculates a few teams of
      * girls without gear (TeamSelectionService.calibrationTeams), and without
      * Tier 3 where the harem allows -- the Tier-3 model is itself off by up to
-     * 0.7 %, and measured live it took the fit from 0.06 % to 1.6 %. A
-     * calculation that does not answer is tried again twice before the rubric
-     * gives up.
+     * 0.7 %, and measured live it took the fit from 0.06 % to 1.6 %.
+     *
+     * A fit that misses its own teams by more than MODEL_RETRY is fitted once
+     * more and the better one kept: a booster that runs out during the
+     * calibration moves every stat (measured: ego by 18 %). Beyond MODEL_WARN
+     * the rubric asks before it calculates (see evaluate); the player can go
+     * on anyway, once per page.
      */
-    private static async ensureModel(id: string): Promise<boolean> {
-        if (TeamSelectionPopup.model) return true;
+    private static async ensureModel(id: string): Promise<'ok' | 'warn' | 'fail'> {
+        if (!TeamSelectionPopup.model) {
+            let fit = await TeamSelectionPopup.calibrate(id);
+            if (!fit) return 'fail';
+            if (fit.error > MODEL_RETRY) {
+                const second = await TeamSelectionPopup.calibrate(id);
+                if (second && second.error < fit.error) fit = second;
+            }
+            TeamSelectionPopup.model = fit.model;
+            TeamSelectionPopup.modelMiss = fit.error;
+        }
+        return TeamSelectionPopup.modelMiss > MODEL_WARN && !TeamSelectionPopup.modelAccepted ? 'warn' : 'ok';
+    }
+
+    /** One calibration: the game calculates the teams, the model is fitted on them. */
+    private static async calibrate(id: string): Promise<{ model: TeamStatModel; error: number } | null> {
         const a = TeamSelectionPopup.actions!;
         const noGear = TeamSelectionPopup.rawGirls().filter(g => BaseStatsService.gearPieces(g) === 0);
         const noTier3 = noGear.filter(g => BaseStatsService.tierPoints(g, 3) === 0);
         const raw = noTier3.length >= 7 ? noTier3 : noGear;
         const girls = raw.map(g => a.mapGirl(g));
         const teams = TeamSelectionService.calibrationTeams(girls);
-        if (teams.length < 3) return false;
+        if (teams.length < 3) return null;
         const battleType = TeamEvaluationService.getBattleType();
         const harem = TeamEvaluationService.getHaremSynergies();
         const samples: CalibrationSample[] = [];
@@ -347,7 +377,7 @@ export class TeamSelectionPopup {
             }
             if (!result) {
                 logHHAuto('Team selection: the game calculated no stats for a calibration team, stopping.');
-                return false;
+                return null;
             }
             const members = TeamSelectionPopup.girlsById(girls, team);
             samples.push({
@@ -359,10 +389,10 @@ export class TeamSelectionPopup {
             await new Promise(r => setTimeout(r, MEASURE_DELAY_MS));
         }
         const model = TeamSelectionService.fitTeamModel(samples, harem);
-        if (!model) return false;
-        logHHAuto(`Team selection: team model from ${samples.length} teams, largest miss ${(TeamSelectionService.modelError(model, samples, harem) * 100).toFixed(2)} %`);
-        TeamSelectionPopup.model = model;
-        return true;
+        if (!model) return null;
+        const error = TeamSelectionService.modelError(model, samples, harem);
+        logHHAuto(`Team selection: team model from ${samples.length} teams, largest miss ${(error * 100).toFixed(2)} %`);
+        return { model, error };
     }
 
     /**
@@ -501,8 +531,19 @@ export class TeamSelectionPopup {
                 .replace('{opponents}', String(snap.opponents.filter(o => o.openFights > 0).length))
                 .replace('{minutes}', String(Math.max(0, Math.round((Date.now() - snap.timestamp) / 60000))));
         }
-        if (!(await TeamSelectionPopup.ensureModel(r.id))) {
+        const modelState = await TeamSelectionPopup.ensureModel(r.id);
+        if (modelState === 'fail') {
             TeamSelectionPopup.out(r.id, `<span class="tsBad">${getTextForUI('teamSelMeasureFailed', 'elementText')}</span>`);
+            return;
+        }
+        if (modelState === 'warn') {
+            const miss = (TeamSelectionPopup.modelMiss * 100).toFixed(1);
+            TeamSelectionPopup.out(r.id, `<div class="tsWarn">${getTextForUI('teamSelModelWarn', 'elementText').replace('{miss}', miss)}</div>`
+                + `<label class="myButton" id="hhTsGoOn${r.id}">${getTextForUI('teamSelModelGoOn', 'elementText')}</label>`);
+            $('#hhTsGoOn' + r.id).on('click', () => {
+                TeamSelectionPopup.modelAccepted = true;
+                void TeamSelectionPopup.run(r);
+            });
             return;
         }
         const pool = await TeamSelectionPopup.pool(r, r.id);
@@ -510,6 +551,21 @@ export class TeamSelectionPopup {
         if (pool.info) info = info ? info + ' &middot; ' + pool.info : pool.info;
 
         const teams = TeamSelectionPopup.candidates(pool.evaluated);
+        if (r.possible) {
+            // The builder picks its candidates from the girls as the rubric
+            // sees them; fully developed, other girls look strong, and the
+            // pick of "best now" can be missing -- measured, the possibly-best
+            // rubric then chose a team its own score put below that pick. Its
+            // candidates are added, so the possibly-best team is never below it.
+            const now = await TeamSelectionPopup.pool({ ...r, possible: false }, r.id);
+            if (typeof now !== 'string') {
+                const seen = new Set(teams.map(t => TeamSelectionService.teamKey(t)));
+                for (const t of TeamSelectionPopup.candidates(now.evaluated)) {
+                    const key = TeamSelectionService.teamKey(t);
+                    if (!seen.has(key)) { seen.add(key); teams.push(t); }
+                }
+            }
+        }
         if (teams.length === 0) { TeamSelectionPopup.out(r.id, `<span class="tsBad">${getTextForUI('teamSelNoCandidates', 'elementText')}</span>`); return; }
         const current = a.getHexagonIds();
 
