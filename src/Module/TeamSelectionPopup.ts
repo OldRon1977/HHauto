@@ -670,9 +670,12 @@ export class TeamSelectionPopup {
         const raw = TeamSelectionPopup.rawGirls() as unknown as GearWearerRaw[];
         const wearers = new Map(raw.map(g => [Number(g.id_girl), g] as [number, GearWearerRaw]));
         const inventory = TeamGearTieBreakService.unequippedInventory(TeamSelectionPopup.inventory, raw);
-        const mode = r.possible ? 'possible' : 'best';
+        // Every rubric measures with Best gear on today's item levels: what
+        // pressing Best gear gives. With 'possible' for the possibly-best
+        // rubrics the two rubrics of a week proposed opposite swaps on the
+        // same position.
         return TeamGearTieBreakService.improve(ids, pool, horizon,
-            team => TeamGearTieBreakService.tally(team, wearers, inventory, mode));
+            team => TeamGearTieBreakService.tally(team, wearers, inventory, 'best'));
     }
 
     private static describeTie(tie: TieBreakResult, girls: GirlData[]): string {

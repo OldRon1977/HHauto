@@ -33800,9 +33800,8 @@ function countChanges(plan) {
 // most resonance matches.
 //
 // Measured on one account: in one week the positions 6 and 7 had five to six
-// such partners each and the swaps raised the matches from 37 to 47
-// (possibly best 49 to 61); in the next week no position had any partner and
-// nothing changed.
+// such partners each and the swaps raised the matches from 37 to 47; in the
+// next week no position had any partner and nothing changed.
 //
 // Two rules that are not obvious:
 //
@@ -34596,8 +34595,11 @@ class TeamSelectionPopup {
             const raw = TeamSelectionPopup.rawGirls();
             const wearers = new Map(raw.map(g => [Number(g.id_girl), g]));
             const inventory = TeamGearTieBreakService.unequippedInventory(TeamSelectionPopup.inventory, raw);
-            const mode = r.possible ? 'possible' : 'best';
-            return TeamGearTieBreakService.improve(ids, pool, horizon, team => TeamGearTieBreakService.tally(team, wearers, inventory, mode));
+            // Every rubric measures with Best gear on today's item levels: what
+            // pressing Best gear gives. With 'possible' for the possibly-best
+            // rubrics the two rubrics of a week proposed opposite swaps on the
+            // same position.
+            return TeamGearTieBreakService.improve(ids, pool, horizon, team => TeamGearTieBreakService.tally(team, wearers, inventory, 'best'));
         });
     }
     static describeTie(tie, girls) {
