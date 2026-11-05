@@ -685,12 +685,16 @@ export class TeamSelectionPopup {
         const headline = r.scoring === 'opponents'
             ? getTextForUI('teamSelPoints', 'elementText').replace('{points}', res.score.toFixed(0)).replace('{win}', res.detail)
             : getTextForUI('teamSelEff', 'elementText').replace('{eff}', res.score.toExponential(3));
+        // The tie-break line names swaps against the calculation's own pick.
+        // When the hexagons already hold the proposed girls, those swaps are
+        // done, and the line would ask for them again.
+        const otherGirls = TeamSelectionService.teamKey(res.ids) !== TeamSelectionService.teamKey([...hex]);
+        if (!otherGirls) tieLine = '';
         let delta = '';
         if (current && current.score > 0) {
             const pct = (res.score / current.score - 1) * 100;
             // As strong as the hexagons but other girls: only the gear
             // tie-break makes that, and then applying it is worth something.
-            const otherGirls = TeamSelectionService.teamKey(res.ids) !== TeamSelectionService.teamKey([...hex]);
             delta = pct > 0.005
                 ? ` <span class="tsGood">(+${pct.toFixed(2)} % ${getTextForUI('teamSelVsCurrent', 'elementText')})</span>`
                 : tieLine && otherGirls
