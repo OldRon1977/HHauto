@@ -714,6 +714,24 @@ describe("Troll module", function () {
             });
         });
 
+        // What a side troll's pre-battle page said, as probeSideTroll stores it.
+        const probed = (answers: Record<number, boolean>, at = Date.now()) => {
+            const seen: Record<string, { open: boolean, at: number }> = {};
+            for (const [id, open] of Object.entries(answers)) seen[id] = { open, at };
+            sessionStorage.setItem(HHStoredVarPrefixKey + TK.sideTrollsOpen, JSON.stringify(seen));
+        };
+        let fetchMock: jest.Mock;
+        beforeEach(() => {
+            // Never answers unless a test says so.
+            fetchMock = jest.fn(() => new Promise(() => {}));
+            (globalThis as { fetch?: unknown }).fetch = fetchMock;
+            Troll.sideTrollProbe = null;
+        });
+        afterEach(() => {
+            delete (globalThis as { fetch?: unknown }).fetch;
+            Troll.sideTrollProbe = null;
+        });
+
         // Issue #1875: on world 24 the last available troll is 22, so a side
         // troll (20, 21) passes the unlock check. Navigating there gets
         // "Troll not available yet!" from the game and the run loops.
@@ -722,7 +740,7 @@ describe("Troll module", function () {
                 unsafeWindow.shared!.Hero!.infos.questing = { id_world: 24, choices_adventure: 0 };
             };
 
-            it("does not pick a side troll left over in a trollWithGirls snapshot", function () {
+            it("does not pick a side troll the game has not opened from a trollWithGirls snapshot", function () {
                 world24();
                 localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
                 localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '99');
@@ -735,12 +753,14 @@ describe("Troll module", function () {
                 expect(Troll.getTrollIdToFight(false)).toBe(18);
             });
 
-            it("falls back to the last available troll when a side troll is selected in the menu", function () {
+            it("falls back to the last available troll when the selected side troll is closed", function () {
                 world24();
+                probed({ 21: false });
                 localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
                 localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '21');
 
                 expect(Troll.getTrollIdToFight(false)).toBe(22);
+                expect(fetchMock).not.toHaveBeenCalled();
             });
 
             it("keeps the side troll while the player is on that side adventure", function () {
@@ -749,15 +769,20 @@ describe("Troll module", function () {
                 localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '21');
 
                 expect(Troll.getTrollIdToFight(false)).toBe(21);
+                expect(fetchMock).not.toHaveBeenCalled();
             });
         });
 
         // Issue #1940: Stheno (troll 23) lives in "Monster Dames & Castles",
         // world 25. Measured: questing there reads {id_world: 25,
-        // choices_adventure: 0}; /world/25 answers "You can't access this
-        // world yet." from the main adventure; troll 22 stays "Troll not
-        // available yet!" for a world-5 account inside world 25.
+        // choices_adventure: 0}; troll 22 stays "Troll not available yet!" for
+        // a world-5 account inside world 25. A player's log: on the main
+        // adventure the script fought Daddy instead, and Stheno was then
+        // fought by hand from the main adventure.
         describe("Stheno and Monster Dames & Castles", function () {
+            const world24 = () => {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 24, choices_adventure: 0 };
+            };
             const world25 = () => {
                 unsafeWindow.shared!.Hero!.infos.questing = { id_world: 25, choices_adventure: 0 };
             };
@@ -776,27 +801,72 @@ describe("Troll module", function () {
                 expect(Troll.getTrollIdToFight(false)).toBe(23);
             });
 
-            it("does not fight Stheno from the main adventure", function () {
-                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 24, choices_adventure: 0 };
+            it("asks the game and waits instead of fighting Daddy from the main adventure", function () {
+                world24();
                 localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
                 localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '23');
 
-                expect(Troll.isTrollAvailable(23, 22)).toBe(false);
-                expect(Troll.getTrollIdToFight(false)).toBe(22);
+                expect(Troll.getTrollIdToFight(false)).toBe(-1);
+                expect(fetchMock).toHaveBeenCalledTimes(1);
+                expect(fetchMock.mock.calls[0][0]).toBe('/troll-pre-battle.html?id_opponent=23');
             });
 
-            it("does not fight the trolls of Bunny Who? from world 25", function () {
-                world25();
+            it("fights Stheno from the main adventure once the game has opened her", function () {
+                world24();
+                probed({ 23: true });
                 localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
-                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '21');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '23');
 
                 expect(Troll.getTrollIdToFight(false)).toBe(23);
             });
 
-            it("does not fight Stheno from Bunny Who?", function () {
-                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 23, choices_adventure: 1 };
-                expect(Troll.getReachedSideTrolls()).toEqual([20, 21]);
-                expect(Troll.isTrollAvailable(23, 21)).toBe(false);
+            it("falls back to the last main troll when the game has not opened her", function () {
+                world24();
+                probed({ 23: false });
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '23');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(22);
+            });
+
+            it("asks again an hour after a no", function () {
+                probed({ 23: false }, Date.now() - Troll.SIDE_TROLL_RECHECK_MS - 1000);
+                expect(Troll.getProbedSideTroll(23)).toBeUndefined();
+            });
+
+            it("reads an open troll off her pre-battle page", async function () {
+                fetchMock.mockResolvedValue({ ok: true, text: async () => '<script>var opponent_fighter = {"player":{}};</script>' });
+                Troll.probeSideTroll(23);
+                await Troll.sideTrollProbe;
+
+                expect(Troll.getProbedSideTroll(23)).toBe(true);
+            });
+
+            it("reads a closed troll off the game's notice", async function () {
+                fetchMock.mockResolvedValue({ ok: true, text: async () => '<body>Troll not available yet!</body>' });
+                Troll.probeSideTroll(20);
+                await Troll.sideTrollProbe;
+
+                expect(Troll.getProbedSideTroll(20)).toBe(false);
+            });
+
+            it("treats a fetch without an answer as no for a minute", async function () {
+                fetchMock.mockRejectedValue(new Error('offline'));
+                Troll.probeSideTroll(23);
+                await Troll.sideTrollProbe;
+
+                expect(Troll.getProbedSideTroll(23)).toBe(false);
+                const seen = JSON.parse(sessionStorage.getItem(HHStoredVarPrefixKey + TK.sideTrollsOpen) as string);
+                expect(Date.now() - seen[23].at).toBeGreaterThan(Troll.SIDE_TROLL_RECHECK_MS - Troll.SIDE_TROLL_RETRY_MS - 1000);
+            });
+
+            it("fights Arthur from world 25 once the game has opened him", function () {
+                world25();
+                probed({ 20: true });
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '20');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(20);
             });
 
             it("bounds the main trolls by the stored main world while in world 25", function () {

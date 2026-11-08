@@ -2836,6 +2836,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.questNextWorld] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// Per side troll: whether its pre-battle page offered a fight, and when it
+// was asked (Troll.ts).
+HHStoredVars[HHStoredVarPrefixKey + TK.sideTrollsOpen] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 
 HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
     {

@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.24.1 - Side trolls from any adventure
+
+- **Troll battles**: a side troll (Stheno, Arthur, Venam Kharney) is fought from any adventure once the game has opened it; the script reads that off the troll's page.
+- **Troll battles**: while that answer is pending, no other troll is fought instead.
+- **Troll battles**: the log names side trolls.
+
 ### v8.24.0 - Stheno
 
 - **Troll battles**: Stheno (troll 23) is fought from Monster Dames & Castles once her world is reached; her girls count for "first/last troll with girls".
