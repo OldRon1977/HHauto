@@ -128,6 +128,7 @@ HHEnvVariables["global"].sideTrollzList = [];
 
 HHEnvVariables["global"].trollIdMapping =  []; // Empty means no specific mapping
 HHEnvVariables["global"].sideTrollIdMapping =  []; // Empty means no specific mapping
+HHEnvVariables["global"].sideAdventureWorlds = [];
 
 HHEnvVariables["global"].trollGirlsID = HentaiHeroes.getTrollGirlsId();
 HHEnvVariables["global"].sideTrollGirlsID = [];
@@ -481,6 +482,7 @@ for (const key in HentaiHeroes.getEnv()) {
     HHEnvVariables[element].spreadsheet = HentaiHeroes.spreadsheet;
     HHEnvVariables[element].trollIdMapping = HentaiHeroes.trollIdMapping;
     HHEnvVariables[element].sideTrollIdMapping = HentaiHeroes.sideTrollIdMapping;
+    HHEnvVariables[element].sideAdventureWorlds = HentaiHeroes.sideAdventureWorlds;
     HHEnvVariables[element].sideTrollzList = HentaiHeroes.getSideTrolls(getLanguageCode());
     HHEnvVariables[element].sideTrollGirlsID = HentaiHeroes.getSideTrollGirlsId();
 }

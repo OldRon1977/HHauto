@@ -165,8 +165,20 @@ export class Troll {
         )
     }
 
+    /**
+     * `choices_adventure` alone does not say it: "Monster Dames & Castles"
+     * (world 25 on hentaiheroes) has no choices and reports 0 like the main
+     * adventure. Its worlds are listed in sideAdventureWorlds.
+     */
     static isMainAdventure(): boolean {
-        return Number(getHHVars('Hero.infos.questing.choices_adventure')) === 0;
+        if (Number(getHHVars('Hero.infos.questing.choices_adventure')) !== 0) return false;
+        return Troll.getSideAdventureWorlds(Number(getHHVars('Hero.infos.questing.id_world'))) === undefined;
+    }
+
+    /** The worlds of the side adventure that holds this world, or undefined. */
+    static getSideAdventureWorlds(world: number): number[] | undefined {
+        const adventures: number[][] = ConfigHelper.getHHScriptVars("sideAdventureWorlds", false) || [];
+        return adventures.find((worlds) => worlds.includes(world));
     }
 
     /**
@@ -182,6 +194,56 @@ export class Troll {
         return Object.prototype.hasOwnProperty.call(sideTrollz, trollId);
     }
 
+    /**
+     * The side trolls the current side adventure has reached: those of its
+     * worlds up to the current one. Another side adventure's trolls are not
+     * among them -- its worlds answer "You can't access this world yet." --
+     * and on the main adventure the list is empty.
+     */
+    static getReachedSideTrolls(): number[] {
+        if (Troll.isMainAdventure()) return [];
+        const world = Number(getHHVars('Hero.infos.questing.id_world'));
+        const mapping = ConfigHelper.getHHScriptVars("sideTrollIdMapping");
+        const worlds = Troll.getSideAdventureWorlds(world) ?? [world];
+        return worlds
+            .filter((w) => w <= world && Object.prototype.hasOwnProperty.call(mapping, w))
+            .map((w) => Number(mapping[w]));
+    }
+
+    /**
+     * The main trolls do not follow the adventure the player is on: troll 22
+     * stayed "Troll not available yet!" for a world-5 account inside
+     * "Monster Dames & Castles". On a side adventure the bound is therefore
+     * the main world stored the last time the script ran on the main
+     * adventure. Without one (it is a Temp key) lastTrollIdAvailable is the
+     * bound.
+     */
+    static isTrollAvailable(trollId: number, lastTrollIdAvailable = Troll.getLastTrollIdAvailable()): boolean {
+        if (trollId <= 0) return false;
+        if (Troll.isSideTroll(trollId)) return Troll.getReachedSideTrolls().includes(trollId);
+        if (!Troll.isMainAdventure()) {
+            const mainWorld = Number(getStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID)) || 0;
+            if (mainWorld > 0) return trollId <= Troll.getMainTrollIdForWorld(mainWorld);
+        }
+        return trollId <= lastTrollIdAvailable;
+    }
+
+    /** The last main troll a main-adventure world unlocks. */
+    static getMainTrollIdForWorld(id_world: number, logging = false): number {
+        const trollIdMapping = ConfigHelper.getHHScriptVars("trollIdMapping");
+        if (ConfigHelper.isPshEnvironnement() && id_world > 10) {
+            if (trollIdMapping.hasOwnProperty(id_world)) {
+                return trollIdMapping[id_world] // PSH parallel adventures
+            }
+            if (logging) logHHAuto(`Error Troll ID mapping need to be updated with world ${id_world}`);
+        }
+        if (Object.keys(trollIdMapping).length > 0 && trollIdMapping.hasOwnProperty(id_world)) {
+            if (logging) logHHAuto(`Troll ID mapping (${trollIdMapping[id_world]}) found for world ${id_world}`);
+            return trollIdMapping[id_world];
+        }
+        return id_world - 1;
+    }
+
     static getLastTrollIdAvailable(logging = false, id_world: number = undefined as any): number {
         const isMainAdventure = Troll.isMainAdventure();
         if (!id_world) {
@@ -190,21 +252,10 @@ export class Troll {
             logHHAuto(`id_world given ${id_world} must be wrong, default to current world`);
             id_world = Number(getHHVars('Hero.infos.questing.id_world'));
         }
-        let trollIdMapping: any = [];
+        if (isMainAdventure) return Troll.getMainTrollIdForWorld(id_world, logging);
 
-        if (isMainAdventure) {
-            trollIdMapping = ConfigHelper.getHHScriptVars("trollIdMapping");
-            if(ConfigHelper.isPshEnvironnement() && id_world > 10) {
-                if (trollIdMapping.hasOwnProperty(id_world)) {
-                    return trollIdMapping[id_world] // PSH parallel adventures
-                }
-                if (logging) logHHAuto(`Error Troll ID mapping need to be updated with world ${id_world}`);
-            }
-        } else {
-            if (logging) logHHAuto(`Side adventure detected with world ${id_world}`);
-            trollIdMapping = ConfigHelper.getHHScriptVars("sideTrollIdMapping");
-        }
-
+        if (logging) logHHAuto(`Side adventure detected with world ${id_world}`);
+        const trollIdMapping = ConfigHelper.getHHScriptVars("sideTrollIdMapping");
         if (Object.keys(trollIdMapping).length > 0 && trollIdMapping.hasOwnProperty(id_world)) {
             if (logging) logHHAuto(`Troll ID mapping (${trollIdMapping[id_world]}) found for world ${id_world}`);
             return trollIdMapping[id_world];
@@ -307,35 +358,18 @@ export class Troll {
             }
 
             if (trollWithGirls !== undefined && trollWithGirls.length > 0) {
+                // Only trolls the player can open count: on a side adventure
+                // that is not every troll up to lastTrollIdAvailable.
+                const withGirls = (troll: number, idx: number) => troll > 0 && Troll.isTrollAvailable(idx + 1, lastTrollIdAvailable);
                 if (autoTrollSelectedIndex === 98) {
                     if (debugEnabled && logging) logHHAuto("First troll with girls from storage");
-                    TTF = trollWithGirls.findIndex((troll: number) => troll > 0) + 1;
-                    if (TTF > lastTrollIdAvailable) {
-                        if (logging) logHHAuto(`First troll with girls (${TTF}) is beyond last available (${lastTrollIdAvailable}), no valid troll target.`);
-                        TTF = 0;
-                    }
+                    TTF = trollWithGirls.findIndex(withGirls) + 1;
                 }
                 else if (autoTrollSelectedIndex === 99) {
                     if (debugEnabled && logging) logHHAuto("Last troll with girls from storage");
-                    TTF = trollWithGirls.findLastIndex((troll: number) => troll > 0) + 1;
-                    if(TTF > lastTrollIdAvailable) {
-                        // Find the last troll with girls that is actually unlocked
-                        let found = false;
-                        for (let i = lastTrollIdAvailable - 1; i >= 0; i--) {
-                            if (trollWithGirls[i] > 0) {
-                                TTF = i + 1;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            if (logging) logHHAuto(`No unlocked troll has girls (last available: ${lastTrollIdAvailable}), no valid troll target.`);
-                            TTF = 0;
-                        } else {
-                            if (logging) logHHAuto(`Last troll with girls capped to ${TTF} (last available: ${lastTrollIdAvailable}).`);
-                        }
-                    }
+                    TTF = trollWithGirls.findLastIndex(withGirls) + 1;
                 }
+                if (TTF <= 0 && logging) logHHAuto(`No available troll has girls (last available: ${lastTrollIdAvailable}), no valid troll target.`);
             } else if (waifuGaveNoList) {
                 TTF = 0;
             } else if(getPage()!==ConfigHelper.getHHScriptVars("pagesIDHome")) {
@@ -391,19 +425,19 @@ export class Troll {
         const trollz = ConfigHelper.getHHScriptVars("trollzList");
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
 
+        // Events, love raids and a menu selection all reach this point, so the
+        // resolved target is checked instead of each source. A side troll is
+        // fought only inside its own side adventure, once its world is reached.
+        if (TTF > 0 && Troll.isSideTroll(TTF)) {
+            if (!Troll.isTrollAvailable(TTF, lastTrollIdAvailable)) {
+                if (logging) logHHAuto(`Troll ${TTF} (${sideTrollz[Number(TTF)]}) belongs to a side adventure the player is not in, or has not reached there.`);
+                TTF = 0;
+            }
+        }
         // Check if selected troll is actually unlocked (love raid girls can be on locked trolls)
-        if (TTF > 0 && TTF > lastTrollIdAvailable) {
+        else if (TTF > 0 && !Troll.isTrollAvailable(TTF, lastTrollIdAvailable)) {
             if (logging) logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
             if (allowSideEffects) setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
-            TTF = 0;
-        }
-
-        // A side troll passes the unlock check above -- it sits below the last
-        // available id -- but the main adventure still cannot fight it. Events,
-        // love raids and a menu selection all reach this point, so the resolved
-        // target is checked instead of each source.
-        if (TTF > 0 && Troll.isMainAdventure() && Troll.isSideTroll(TTF)) {
-            if (logging) logHHAuto(`Troll ${TTF} (${sideTrollz[Number(TTF)]}) belongs to a side adventure and cannot be fought from the main adventure.`);
             TTF = 0;
         }
 

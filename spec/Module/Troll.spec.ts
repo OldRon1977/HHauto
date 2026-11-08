@@ -468,6 +468,13 @@ describe("Troll module", function () {
             expect(counts[20]).toBe(3); // troll 21: three girls, none owned
         });
 
+        it("counts Stheno's girls in world 25", function () {
+            unsafeWindow.shared!.Hero!.infos.questing = { id_world: 25, choices_adventure: 0 };
+            jest.spyOn(Harem, 'getGirlsList').mockReturnValue(dictionaryOf(6));
+
+            expect(Troll.getTrollWithGirls()[22]).toBe(3); // troll 23, Stheno
+        });
+
         // A user log: the size was cached as 24 on /waifu.html, the list
         // getGirlsList() handed over held 22, and with no stored snapshot the
         // troll handler reloaded the waifu page every four seconds.
@@ -724,7 +731,8 @@ describe("Troll module", function () {
                 jest.spyOn(Troll, 'getTrollWithGirls').mockReturnValue(
                     [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 3, 0]);
 
-                expect(Troll.getTrollIdToFight(false)).toBe(0);
+                // The last troll with girls the main adventure can open: 18.
+                expect(Troll.getTrollIdToFight(false)).toBe(18);
             });
 
             it("falls back to the last available troll when a side troll is selected in the menu", function () {
@@ -741,6 +749,70 @@ describe("Troll module", function () {
                 localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '21');
 
                 expect(Troll.getTrollIdToFight(false)).toBe(21);
+            });
+        });
+
+        // Issue #1940: Stheno (troll 23) lives in "Monster Dames & Castles",
+        // world 25. Measured: questing there reads {id_world: 25,
+        // choices_adventure: 0}; /world/25 answers "You can't access this
+        // world yet." from the main adventure; troll 22 stays "Troll not
+        // available yet!" for a world-5 account inside world 25.
+        describe("Stheno and Monster Dames & Castles", function () {
+            const world25 = () => {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 25, choices_adventure: 0 };
+            };
+
+            it("tells world 25 from the main adventure although choices_adventure is 0", function () {
+                world25();
+                expect(Troll.isMainAdventure()).toBe(false);
+                expect(Troll.getLastTrollIdAvailable(false)).toBe(23);
+                expect(Troll.getReachedSideTrolls()).toEqual([23]);
+            });
+
+            it("fights Stheno as the latest troll in world 25", function () {
+                world25();
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(23);
+            });
+
+            it("does not fight Stheno from the main adventure", function () {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 24, choices_adventure: 0 };
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '23');
+
+                expect(Troll.isTrollAvailable(23, 22)).toBe(false);
+                expect(Troll.getTrollIdToFight(false)).toBe(22);
+            });
+
+            it("does not fight the trolls of Bunny Who? from world 25", function () {
+                world25();
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '21');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(23);
+            });
+
+            it("does not fight Stheno from Bunny Who?", function () {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 23, choices_adventure: 1 };
+                expect(Troll.getReachedSideTrolls()).toEqual([20, 21]);
+                expect(Troll.isTrollAvailable(23, 21)).toBe(false);
+            });
+
+            it("bounds the main trolls by the stored main world while in world 25", function () {
+                world25();
+                localStorage.setItem(HHStoredVarPrefixKey + TK.MainAdventureWorldID, '5');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '98');
+                // Troll 6 still has girls but world 5 unlocks only up to troll 4.
+                const snapshot = new Array(23).fill(0);
+                snapshot[5] = 3;
+                snapshot[22] = 3;
+                jest.spyOn(Troll, 'getTrollWithGirls').mockReturnValue(snapshot);
+
+                expect(Troll.isTrollAvailable(4)).toBe(true);
+                expect(Troll.isTrollAvailable(6)).toBe(false);
+                expect(Troll.getTrollIdToFight(false)).toBe(23);
             });
         });
 
