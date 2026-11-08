@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.24.0
+// @version      8.24.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3324,6 +3324,8 @@ const TK = {
     questEndSeen: "Temp_questEndSeen",
     // The first quest of a newly released world, before the game's id_quest reaches it (Quest.ts)
     questNextWorld: "Temp_questNextWorld",
+    // What each side troll's pre-battle page said: can it be fought (Troll.ts)
+    sideTrollsOpen: "Temp_sideTrollsOpen",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
     // Pipeline-block architecture
@@ -6427,6 +6429,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.questEndSeen] =
 // The quest a newly released world starts with, found on its world page
 // (Quest.ts); used until the game's own id_quest catches up.
 HHStoredVars[HHStoredVarPrefixKey + TK.questNextWorld] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// Per side troll: whether its pre-battle page offered a fight, and when it
+// was asked (Troll.ts).
+HHStoredVars[HHStoredVarPrefixKey + TK.sideTrollsOpen] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -18534,8 +18543,10 @@ class Troll {
         return adventures.find((worlds) => worlds.includes(world));
     }
     /**
-     * Side trolls exist only inside their side adventure. The main adventure
-     * cannot open them: the game answers with "Troll not available yet!" on a
+     * Side trolls belong to a side adventure, but once the game has opened
+     * one it can be fought from any adventure: Stheno was fought by hand from
+     * the main adventure on an account that had never played hers. A side
+     * troll the game has not opened answers "Troll not available yet!" on a
      * page the script does not even initialise on, so a target it keeps
      * choosing turns into an endless home -> pre-battle -> home loop
      * (issue #1875). sideTrollzList carries the ids; it is empty on every site
@@ -18545,11 +18556,14 @@ class Troll {
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
         return Object.prototype.hasOwnProperty.call(sideTrollz, trollId);
     }
+    static getTrollName(trollId) {
+        const trollz = ConfigHelper.getHHScriptVars("trollzList");
+        const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
+        return trollz[Number(trollId)] || sideTrollz[Number(trollId)];
+    }
     /**
      * The side trolls the current side adventure has reached: those of its
-     * worlds up to the current one. Another side adventure's trolls are not
-     * among them -- its worlds answer "You can't access this world yet." --
-     * and on the main adventure the list is empty.
+     * worlds up to the current one. On the main adventure the list is empty.
      */
     static getReachedSideTrolls() {
         var _a;
@@ -18562,19 +18576,61 @@ class Troll {
             .filter((w) => w <= world && Object.prototype.hasOwnProperty.call(mapping, w))
             .map((w) => Number(mapping[w]));
     }
+    /** What the pre-battle page said about this side troll, or undefined while it is to be asked. */
+    static getProbedSideTroll(trollId) {
+        const seen = getStoredJSON(HHStoredVarPrefixKey + TK.sideTrollsOpen, {});
+        const entry = seen[trollId];
+        if (!entry || entry.at > Date.now())
+            return entry ? false : undefined;
+        if (!entry.open && Date.now() - entry.at > Troll.SIDE_TROLL_RECHECK_MS)
+            return undefined;
+        return entry.open;
+    }
+    static probeSideTroll(trollId) {
+        if (Troll.sideTrollProbe || typeof fetch !== 'function')
+            return;
+        const remember = (open, at) => {
+            const seen = getStoredJSON(HHStoredVarPrefixKey + TK.sideTrollsOpen, {});
+            seen[trollId] = { open, at };
+            setStoredValue(HHStoredVarPrefixKey + TK.sideTrollsOpen, JSON.stringify(seen));
+        };
+        logHHAuto(`Asking the game whether side troll ${trollId} (${Troll.getTrollName(trollId)}) can be fought.`);
+        Troll.sideTrollProbe = fetch(`/troll-pre-battle.html?id_opponent=${trollId}`, { credentials: 'same-origin' })
+            .then((response) => response.ok ? response.text() : '')
+            .catch(() => '')
+            .then((html) => {
+            if (!html) {
+                // No answer: "no" for now, asked again after the retry delay.
+                remember(false, Date.now() - Troll.SIDE_TROLL_RECHECK_MS + Troll.SIDE_TROLL_RETRY_MS);
+                return;
+            }
+            const open = /var\s+opponent_fighter\s*=/.test(html);
+            logHHAuto(`Side troll ${trollId} (${Troll.getTrollName(trollId)}) ${open ? 'can' : 'cannot'} be fought.`);
+            remember(open, Date.now());
+        })
+            .finally(() => { Troll.sideTrollProbe = null; });
+    }
     /**
      * The main trolls do not follow the adventure the player is on: troll 22
      * stayed "Troll not available yet!" for a world-5 account inside
      * "Monster Dames & Castles". On a side adventure the bound is therefore
      * the main world stored the last time the script ran on the main
      * adventure. Without one (it is a Temp key) lastTrollIdAvailable is the
-     * bound.
+     * bound. A side troll is open when its adventure has reached it, or when
+     * its pre-battle page says so; while that is unknown the page is asked
+     * and the answer is "no".
      */
     static isTrollAvailable(trollId, lastTrollIdAvailable = Troll.getLastTrollIdAvailable()) {
         if (trollId <= 0)
             return false;
-        if (Troll.isSideTroll(trollId))
-            return Troll.getReachedSideTrolls().includes(trollId);
+        if (Troll.isSideTroll(trollId)) {
+            if (Troll.getReachedSideTrolls().includes(trollId))
+                return true;
+            const probed = Troll.getProbedSideTroll(trollId);
+            if (probed === undefined)
+                Troll.probeSideTroll(trollId);
+            return probed === true;
+        }
         if (!Troll.isMainAdventure()) {
             const mainWorld = Number(getStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID)) || 0;
             if (mainWorld > 0)
@@ -18805,15 +18861,19 @@ class Troll {
         // fought only inside its own side adventure, once its world is reached.
         if (TTF > 0 && Troll.isSideTroll(TTF)) {
             if (!Troll.isTrollAvailable(TTF, lastTrollIdAvailable)) {
+                // Still being asked: wait for the answer instead of fighting
+                // the fallback troll in the meantime.
+                if (Troll.getProbedSideTroll(TTF) === undefined)
+                    return -1;
                 if (logging)
-                    logHHAuto(`Troll ${TTF} (${sideTrollz[Number(TTF)]}) belongs to a side adventure the player is not in, or has not reached there.`);
+                    logHHAuto(`Troll ${TTF} (${sideTrollz[Number(TTF)]}) is not open yet.`);
                 TTF = 0;
             }
         }
         // Check if selected troll is actually unlocked (love raid girls can be on locked trolls)
         else if (TTF > 0 && !Troll.isTrollAvailable(TTF, lastTrollIdAvailable)) {
             if (logging)
-                logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
+                logHHAuto(`Troll ${TTF} (${Troll.getTrollName(TTF)}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
             if (allowSideEffects)
                 setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
             TTF = 0;
@@ -18860,9 +18920,7 @@ class Troll {
     }
     static debugNextTrollToFight() {
         const TTF = Troll.getTrollIdToFight(false, false);
-        const trollz = ConfigHelper.getHHScriptVars("trollzList");
-        const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
-        return `Next troll: ${trollz[Number(TTF)] ? trollz[Number(TTF)] : sideTrollz[Number(TTF)]} (${TTF})`;
+        return `Next troll: ${Troll.getTrollName(TTF)} (${TTF})`;
     }
     static doBossBattle() {
         return Troll_awaiter(this, void 0, void 0, function* () {
@@ -18886,7 +18944,6 @@ class Troll {
                 setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, "true");
             }
             let TTF = Troll.getTrollIdToFight();
-            const trollz = ConfigHelper.getHHScriptVars("trollzList");
             const currentPage = getPage();
             // -1: getTrollIdToFight is on its way to the waifu page for the girl
             // list. That is not "no target"; saying so in the log read like a
@@ -18942,7 +18999,7 @@ class Troll {
                     }
                 }
             }
-            logHHAuto(`Fighting troll N°${TTF}, ${trollz[Number(TTF)]}`);
+            logHHAuto(`Fighting troll N°${TTF}, ${Troll.getTrollName(TTF)}`);
             // Battles the latest boss.
             // Navigate to latest boss.
             if (currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle") && window.location.search.includes("id_opponent=" + TTF)) {
@@ -18964,7 +19021,6 @@ class Troll {
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
                 logHHAuto("On Pre battle page.");
                 const TTF = Number(queryStringGetParam(window.location.search, 'id_opponent'));
-                const trollz = ConfigHelper.getHHScriptVars("trollzList");
                 const battleButton = $('#pre-battle .battle-buttons .green_button_L.battle-action-button');
                 const battleButtonX10 = $('#pre-battle .battle-buttons button.autofight[data-battles="10"]');
                 const battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
@@ -18992,7 +19048,7 @@ class Troll {
                     if (eventMythicGirl.girl_id && TTF === eventMythicGirl.troll_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true") {
                         eventTrollGirl = eventMythicGirl;
                         if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventMythicGirl.girl_id)) {
-                            logHHAuto(`Seems ${eventMythicGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
+                            logHHAuto(`Seems ${eventMythicGirl.name} is no more available at troll ${Troll.getTrollName(TTF)}. Going to event page.`);
                             EventModule.parseEventPage(eventMythicGirl.event_id);
                             return true;
                         }
@@ -19000,13 +19056,13 @@ class Troll {
                     if (eventGirl.girl_id && TTF === eventGirl.troll_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true") {
                         eventTrollGirl = eventGirl;
                         if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventGirl.girl_id)) {
-                            logHHAuto(`Seems ${eventGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
+                            logHHAuto(`Seems ${eventGirl.name} is no more available at troll ${Troll.getTrollName(TTF)}. Going to event page.`);
                             EventModule.parseEventPage(eventGirl.event_id);
                             return true;
                         }
                     }
                     if (rewardGirlz.length === 0 && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99)) {
-                        logHHAuto(`Seems no more girls available at troll ${trollz[Number(TTF)]}, looking for next troll.`);
+                        logHHAuto(`Seems no more girls available at troll ${Troll.getTrollName(TTF)}, looking for next troll.`);
                         const trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
                         trollWithGirls[TTF - 1] = 0;
                         setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
@@ -19045,7 +19101,7 @@ class Troll {
                         const trollRaids = LoveRaidManager.getTrollRaids();
                         loveRaid = trollRaids.find(raid => raid.trollId === TTF);
                         if (loveRaid && (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + loveRaid.id_girl))) {
-                            logHHAuto(`Seems girl ${loveRaid.id_girl} is no more available at troll ${trollz[Number(TTF)]}. Going to love Raid.`);
+                            logHHAuto(`Seems girl ${loveRaid.id_girl} is no more available at troll ${Troll.getTrollName(TTF)}. Going to love Raid.`);
                             clearTimer('nextLoveRaidTime');
                             gotoPage(ConfigHelper.getHHScriptVars("pagesIDLoveRaid"));
                             return true;
@@ -19090,7 +19146,7 @@ class Troll {
                             && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 50)
                                 || bypassThreshold)
                             && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")) {
-                            logHHAuto("Going to crush 50 times: " + trollz[Number(TTF)] + ' for ' + battleButtonX50Price + ' kobans.');
+                            logHHAuto("Going to crush 50 times: " + Troll.getTrollName(TTF) + ' for ' + battleButtonX50Price + ' kobans.');
                             if (!acquirePostMutex('troll:battleX50')) {
                                 logHHAuto('Troll: another POST in flight, deferring x50 battle');
                                 return;
@@ -19100,7 +19156,7 @@ class Troll {
                             Booster.resetBattleResponseFlag();
                             battleButtonX50[0].click();
                             setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                            logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
+                            logHHAuto(`Crushed 50 times: ${Troll.getTrollName(TTF)} for ${battleButtonX50Price} kobans.`);
                             if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
                                 // Battle Done.
                                 setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
@@ -19129,7 +19185,7 @@ class Troll {
                             && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 10)
                                 || bypassThreshold)
                             && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")) {
-                            logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
+                            logHHAuto(`Going to crush 10 times: ${Troll.getTrollName(TTF)} for ${battleButtonX10Price} kobans.`);
                             if (!acquirePostMutex('troll:battleX10')) {
                                 logHHAuto('Troll: another POST in flight, deferring x10 battle');
                                 return;
@@ -19139,7 +19195,7 @@ class Troll {
                             Booster.resetBattleResponseFlag();
                             battleButtonX10[0].click();
                             setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                            logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
+                            logHHAuto(`Crushed 10 times: ${Troll.getTrollName(TTF)} for ${battleButtonX10Price} kobans.`);
                             if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
                                 // Battle Done.
                                 setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
@@ -19179,7 +19235,7 @@ class Troll {
                             }
                             return;
                         }
-                        logHHAuto("Crushing: " + trollz[Number(TTF)]);
+                        logHHAuto("Crushing: " + Troll.getTrollName(TTF));
                         checkPreviousFightDone();
                         setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
                         if (!acquirePostMutex('troll:battle')) {
@@ -19362,6 +19418,19 @@ class Troll {
  *  no other page sends the run back there for the list. */
 Troll.WAIFU_LIST_RETRY_TIMER = 'nextTrollWaifuListAttempt';
 Troll.WAIFU_LIST_RETRY_SECS = 600;
+/*
+ * Whether a side troll outside the reached ones is open is not in
+ * Hero.infos.questing, which only describes the current adventure. The
+ * game's pre-battle page answers it: an open troll's page carries
+ * `var opponent_fighter` and shared.Hero, a closed one is the 2 KB
+ * "Troll not available yet!" page without either (both measured). The
+ * page is fetched, never navigated to. A "no" is asked again after
+ * SIDE_TROLL_RECHECK_MS, since playing the side adventure opens the troll;
+ * a fetch without an answer after SIDE_TROLL_RETRY_MS.
+ */
+Troll.SIDE_TROLL_RECHECK_MS = 3600 * 1000;
+Troll.SIDE_TROLL_RETRY_MS = 60 * 1000;
+Troll.sideTrollProbe = null;
 
 ;// ./src/Helper/menu/MenuOrder.ts
 // MenuOrder.ts

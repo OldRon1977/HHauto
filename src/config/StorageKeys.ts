@@ -447,6 +447,8 @@ export const TK = {
     questEndSeen: "Temp_questEndSeen",
     // The first quest of a newly released world, before the game's id_quest reaches it (Quest.ts)
     questNextWorld: "Temp_questNextWorld",
+    // What each side troll's pre-battle page said: can it be fought (Troll.ts)
+    sideTrollsOpen: "Temp_sideTrollsOpen",
 
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
