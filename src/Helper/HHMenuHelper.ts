@@ -168,7 +168,7 @@ export class HHMenu {
 
             const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
             LoveRaidManager.getTrollRaids().forEach((raid:LoveRaid) => {
-                if (raid.trollId > lastTrollIdAvailable) {
+                if (!Troll.isTrollAvailable(raid.trollId, lastTrollIdAvailable)) {
                     return; // Skip raids on locked trolls
                 }
                 const option = this._createHtmlOption(raid.trollId + '_' + raid.id_girl, raid.event_name);

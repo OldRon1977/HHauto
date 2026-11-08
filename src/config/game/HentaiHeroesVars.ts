@@ -5,7 +5,12 @@
 export class HentaiHeroes {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
     static trollIdMapping = { 21: 19, 24: 22 };
-    static sideTrollIdMapping = { 22: 20, 23: 21 };
+    static sideTrollIdMapping = { 22: 20, 23: 21, 25: 23 };
+    // The worlds of each side adventure, one list per adventure: "Bunny Who?"
+    // (world 20 has no troll) and "Monster Dames & Castles". The second has no
+    // choices, so its Hero.infos.questing.choices_adventure is 0 like the main
+    // adventure's; only the world tells them apart.
+    static sideAdventureWorlds = [[20, 22, 23], [25]];
     static getEnv() {
         return {
             "www.hentaiheroes.com": { name: "HH_prod", id: "hh_hentai" },
@@ -78,7 +83,8 @@ export class HentaiHeroes {
     static getSideTrolls(_languageCode: string): {[key:number]: string} {
         const trollList = {
             20: "Arthur",
-            21: "Venam Kharney"
+            21: "Venam Kharney",
+            23: "Stheno"
         };
         return trollList;
     }
@@ -107,13 +113,15 @@ export class HentaiHeroes {
             [[0], [0], [0]], // slot 19: side troll Arthur (see sideTrollGirlsID)
             [[0], [0], [0]], // slot 20: side troll Venam Kharney (see sideTrollGirlsID)
             [['561720989', '548844324', '749138756'], [0], [0]],
+            [[0], [0], [0]], // slot 22: side troll Stheno (see sideTrollGirlsID)
         ];
     }
 
     static getSideTrollGirlsId(): { [key: number]: any } {
         return {
             20: [['666677364', '831625343', '848780132', '851831359'], [0], [0]],
-            21: [['124967437', '755350195', '855205805'], [0], [0]]
+            21: [['124967437', '755350195', '855205805'], [0], [0]],
+            23: [['626645441', '855933632', '999370388'], [0], [0]]
         };
     }
     static updateFeatures(_envVariables: any) {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.23.2
+// @version      8.24.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -361,7 +361,7 @@ HHAuto_ToolTips.en['autoTrollBattle'] = { version: "8.10.42", elementText: "Enab
 HHAuto_ToolTips.en['autoTrollSelector'] = { version: "5.6.24", elementText: "Troll selector", tooltip: "Select troll to be fought." };
 HHAuto_ToolTips.en['autoTrollThreshold'] = { version: "5.6.24", elementText: "Threshold", tooltip: "(Integer 0 to 19)<br>Minimum troll fight to keep" };
 HHAuto_ToolTips.en['autoTrollRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum troll fights before script start spending<br> 0 to spend as soon as energy above threshold" };
-HHAuto_ToolTips.en['eventTrollOrder'] = { version: "8.10.36", elementText: "Event Troll Order", tooltip: "<span class=\"tipHint\">Values separated by ; &mdash; the order is respected.</span><p>The order in which event trolls are automatically battled.</p><ul class=\"tipCodes\"><li><code>1</code> Dark Lord</li><li><code>2</code> Ninja Spy</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Silvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Roko Sensei</li><li><code>10</code> Karole</li><li><code>11</code> Jackson's Crew</li><li><code>12</code> Pandora witch</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> WereBunny Police</li><li><code>16</code> Auga</li><li><code>17</code> Gross</li><li><code>18</code> Harriet</li><li><code>19</code> Darth Excitor</li><li><code>22</code> Daddy</li></ul><p>Numbers 20 and 21 are side-adventure trolls and have no name.</p>" };
+HHAuto_ToolTips.en['eventTrollOrder'] = { version: "8.24.0", elementText: "Event Troll Order", tooltip: "<span class=\"tipHint\">Values separated by ; &mdash; the order is respected.</span><p>The order in which event trolls are automatically battled.</p><ul class=\"tipCodes\"><li><code>1</code> Dark Lord</li><li><code>2</code> Ninja Spy</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Silvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Roko Sensei</li><li><code>10</code> Karole</li><li><code>11</code> Jackson's Crew</li><li><code>12</code> Pandora witch</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> WereBunny Police</li><li><code>16</code> Auga</li><li><code>17</code> Gross</li><li><code>18</code> Harriet</li><li><code>19</code> Darth Excitor</li><li><code>22</code> Daddy</li><li><code>23</code> Stheno</li></ul><p>Numbers 20 and 21 are trolls of the side adventure Bunny Who? and have no name; 23 is fought in Monster Dames &amp; Castles.</p>" };
 HHAuto_ToolTips.en['autoBuyTrollNumber'] = { version: "6.1.0", elementText: "Troll auto buy", tooltip: "Number of combat points to be bought during an event" };
 HHAuto_ToolTips.en['autoBuyMythicTrollNumber'] = { version: "6.1.0", elementText: "Mythic auto buy", tooltip: "Number of combat points to be bought during a mythics event" };
 HHAuto_ToolTips.en['firstTrollWithGirls'] = { version: "5.32.0", elementText: "First troll with girl" };
@@ -940,7 +940,7 @@ HHAuto_ToolTips.fr['compactMissions'] = { version: "5.24.0", elementText: "Compa
 HHAuto_ToolTips.fr['autoTrollBattle'] = { version: "8.10.42", elementText: "Activé", tooltip: "Si activé : combat automatiquement le troll standard." };
 HHAuto_ToolTips.fr['autoTrollSelector'] = { version: "5.6.24", elementText: "Sélection troll", tooltip: "Sélection du troll à combattre" };
 HHAuto_ToolTips.fr['autoTrollThreshold'] = { version: "5.6.24", elementText: "Réserve", tooltip: "Points de combat de trolls (poings) minimum à conserver" };
-HHAuto_ToolTips.fr['eventTrollOrder'] = { version: "8.10.36", elementText: "Ordre des trolls d'événement", tooltip: "<span class=\"tipHint\">Valeurs séparées par ; &mdash; l'ordre est respecté.</span><p>L'ordre dans lequel les trolls d'événement sont automatiquement combattus.</p><ul class=\"tipCodes\"><li><code>1</code> Dark Lord</li><li><code>2</code> Ninja Spy</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Silvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Roko Sensei</li><li><code>10</code> Karole</li><li><code>11</code> Jackson's Crew</li><li><code>12</code> Pandora witch</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> WereBunny Police</li><li><code>16</code> Auga</li><li><code>17</code> Gross</li><li><code>18</code> Harriet</li><li><code>19</code> Darth Excitor</li><li><code>22</code> Daddy</li></ul><p>Les numéros 20 et 21 sont des trolls des aventures secondaires et n'ont pas de nom.</p>" };
+HHAuto_ToolTips.fr['eventTrollOrder'] = { version: "8.24.0", elementText: "Ordre des trolls d'événement", tooltip: "<span class=\"tipHint\">Valeurs séparées par ; &mdash; l'ordre est respecté.</span><p>L'ordre dans lequel les trolls d'événement sont automatiquement combattus.</p><ul class=\"tipCodes\"><li><code>1</code> Dark Lord</li><li><code>2</code> Ninja Spy</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Silvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Roko Sensei</li><li><code>10</code> Karole</li><li><code>11</code> Jackson's Crew</li><li><code>12</code> Pandora witch</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> WereBunny Police</li><li><code>16</code> Auga</li><li><code>17</code> Gross</li><li><code>18</code> Harriet</li><li><code>19</code> Darth Excitor</li><li><code>22</code> Daddy</li><li><code>23</code> Stheno</li></ul><p>Les numéros 20 et 21 sont des trolls de l'aventure secondaire Bunny qui ? et n'ont pas de nom ; 23 se combat dans Monstresses et châteaux.</p>" };
 HHAuto_ToolTips.fr['firstTrollWithGirls'] = { version: "5.32.0", elementText: "Premier troll avec une fille" };
 HHAuto_ToolTips.fr['lastTrollWithGirls'] = { version: "5.32.0", elementText: "Dernier troll avec une fille" };
 HHAuto_ToolTips.fr['plusEvent'] = { version: "8.10.42", elementText: "Activé", tooltip: "Combat les trolls d'événement normaux indépendamment d'Auto Troll.<br>Respecte le seuil d'énergie." };
@@ -1529,7 +1529,7 @@ HHAuto_ToolTips.de['autoMissionCollect'] = { version: "5.6.24", elementText: "Ei
 HHAuto_ToolTips.de['autoTrollBattle'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Wenn aktiv: Macht automatisch Kämpfe gegen den Standard-Troll" };
 HHAuto_ToolTips.de['autoTrollSelector'] = { version: "8.10.0", elementText: "Troll-Auswahl", tooltip: "Wähle den Troll, gegen den gekämpft werden soll." };
 HHAuto_ToolTips.de['autoTrollThreshold'] = { version: "5.6.24", elementText: "Schwellwert", tooltip: "Minimum an Trollpunkten die aufgehoben werden" };
-HHAuto_ToolTips.de['eventTrollOrder'] = { version: "8.10.36", elementText: "Reihenfolge der Event-Trolle", tooltip: "<span class=\"tipHint\">Werte durch ; getrennt &mdash; die Reihenfolge wird eingehalten.</span><p>Die Reihenfolge, in der Event-Trolle automatisch bekämpft werden.</p><ul class=\"tipCodes\"><li><code>1</code> Dark Lord</li><li><code>2</code> Ninja Spy</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Silvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Roko Sensei</li><li><code>10</code> Karole</li><li><code>11</code> Jackson's Crew</li><li><code>12</code> Pandora witch</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> WereBunny Police</li><li><code>16</code> Auga</li><li><code>17</code> Gross</li><li><code>18</code> Harriet</li><li><code>19</code> Darth Excitor</li><li><code>22</code> Daddy</li></ul><p>Die Nummern 20 und 21 sind Trolle der Nebenabenteuer und haben keinen Namen.</p>" };
+HHAuto_ToolTips.de['eventTrollOrder'] = { version: "8.24.0", elementText: "Reihenfolge der Event-Trolle", tooltip: "<span class=\"tipHint\">Werte durch ; getrennt &mdash; die Reihenfolge wird eingehalten.</span><p>Die Reihenfolge, in der Event-Trolle automatisch bekämpft werden.</p><ul class=\"tipCodes\"><li><code>1</code> Dark Lord</li><li><code>2</code> Ninja Spy</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Silvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Roko Sensei</li><li><code>10</code> Karole</li><li><code>11</code> Jackson's Crew</li><li><code>12</code> Pandora witch</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> WereBunny Police</li><li><code>16</code> Auga</li><li><code>17</code> Gross</li><li><code>18</code> Harriet</li><li><code>19</code> Darth Excitor</li><li><code>22</code> Daddy</li><li><code>23</code> Stheno</li></ul><p>Die Nummern 20 und 21 sind Trolle des Nebenabenteuers Bunny Who? und haben keinen Namen; 23 wird in Monster Dames &amp; Castles bekämpft.</p>" };
 HHAuto_ToolTips.de['plusEvent'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Kämpft gegen normale Event-Trolle unabhängig von Auto-Troll.<br>Die Energie-Schwelle wird beachtet." };
 HHAuto_ToolTips.de['plusEventMythic'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Kämpft gegen Mythic-Event-Trolle unabhängig von Auto-Troll.<br>Übergeht die Energie-Schwelle. Hat Vorrang vor normalen Events." };
 HHAuto_ToolTips.de['raidStarsSelector'] = { version: "8.10.0", elementText: "+Liebesüberfall-Sterne", tooltip: "<p>Kämpfe Liebesüberfälle nach Mädchen-Grad. Unabhängig von <b>+Liebesüberfall</b> und <b>Auto Troll</b>.</p><ul><li>Wählt automatisch den als nächstes endenden Liebesüberfall mit passendem Grad (ignoriert das Auswahl-Dropdown).</li><li>Passende Liebesüberfälle werden von <b>+Liebesüberfall-Sterne</b> beansprucht; übrige gehen an <b>+Liebesüberfall</b>, falls aktiv.</li><li>Die Energie-Schwelle steuert der Schalter <b>Reserve umgehen</b>.</li></ul>" };
@@ -2123,7 +2123,7 @@ HHAuto_ToolTips.es['autoMissionCollect'] = { version: "5.6.24", elementText: "Re
 HHAuto_ToolTips.es['autoTrollBattle'] = { version: "8.10.42", elementText: "Activado", tooltip: "Si habilitado: Combate automáticamente el villano estándar seleccionado" };
 HHAuto_ToolTips.es['autoTrollSelector'] = { version: "5.6.24", elementText: "Selector villano", tooltip: "Selecciona villano para luchar." };
 HHAuto_ToolTips.es['autoTrollThreshold'] = { version: "5.6.24", elementText: "Límite", tooltip: "(Entero 0 a 19)<br>Mínimo combates a guardar" };
-HHAuto_ToolTips.es['eventTrollOrder'] = { version: "8.10.36", elementText: "Orden de villanos de evento", tooltip: "<span class=\"tipHint\">Valores separados por ; &mdash; se respeta el orden.</span><p>Orden en el que se combate automáticamente contra los villanos de evento.</p><ul class=\"tipCodes\"><li><code>1</code> Señor Oscuro</li><li><code>2</code> Ninja espía</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Silvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Roko Sensei</li><li><code>10</code> Karole</li><li><code>11</code> La tripulación de Jackson</li><li><code>12</code> Pandora Bruja</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> Policía hombres-conejo</li><li><code>16</code> Auga</li><li><code>17</code> Bruto</li><li><code>18</code> Harriet</li><li><code>19</code> Darth Excitador</li><li><code>22</code> Daddy</li></ul><p>Los números 20 y 21 son villanos de las aventuras secundarias y no tienen nombre.</p>" };
+HHAuto_ToolTips.es['eventTrollOrder'] = { version: "8.24.0", elementText: "Orden de villanos de evento", tooltip: "<span class=\"tipHint\">Valores separados por ; &mdash; se respeta el orden.</span><p>Orden en el que se combate automáticamente contra los villanos de evento.</p><ul class=\"tipCodes\"><li><code>1</code> Señor Oscuro</li><li><code>2</code> Ninja espía</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Silvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Roko Sensei</li><li><code>10</code> Karole</li><li><code>11</code> La tripulación de Jackson</li><li><code>12</code> Pandora Bruja</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> Policía hombres-conejo</li><li><code>16</code> Auga</li><li><code>17</code> Bruto</li><li><code>18</code> Harriet</li><li><code>19</code> Darth Excitador</li><li><code>22</code> Daddy</li><li><code>23</code> Stheno</li></ul><p>Los números 20 y 21 son villanos de la aventura secundaria Bunny Who? y no tienen nombre; contra el 23 se combate en Monster Dames &amp; Castles.</p>" };
 HHAuto_ToolTips.es['plusEvent'] = { version: "8.10.42", elementText: "Activado", tooltip: "Combate contra los villanos de evento normales con independencia de Auto villano.<br>Respeta el umbral de energía." };
 HHAuto_ToolTips.es['plusEventMythic'] = { version: "8.10.42", elementText: "Activado", tooltip: "Combate contra los villanos de evento míticos con independencia de Auto villano.<br>Ignora el umbral de energía. Tiene prioridad sobre los eventos normales." };
 HHAuto_ToolTips.es['autoSeason'] = { version: "8.10.42", elementText: "Activado", tooltip: "Si habilitado: Combate en emporadas de manera automática (Oponente elegido según Calculadora de energía)" };
@@ -11891,7 +11891,8 @@ class HentaiHeroes {
     static getSideTrolls(_languageCode) {
         const trollList = {
             20: "Arthur",
-            21: "Venam Kharney"
+            21: "Venam Kharney",
+            23: "Stheno"
         };
         return trollList;
     }
@@ -11919,12 +11920,14 @@ class HentaiHeroes {
             [[0], [0], [0]], // slot 19: side troll Arthur (see sideTrollGirlsID)
             [[0], [0], [0]], // slot 20: side troll Venam Kharney (see sideTrollGirlsID)
             [['561720989', '548844324', '749138756'], [0], [0]],
+            [[0], [0], [0]], // slot 22: side troll Stheno (see sideTrollGirlsID)
         ];
     }
     static getSideTrollGirlsId() {
         return {
             20: [['666677364', '831625343', '848780132', '851831359'], [0], [0]],
-            21: [['124967437', '755350195', '855205805'], [0], [0]]
+            21: [['124967437', '755350195', '855205805'], [0], [0]],
+            23: [['626645441', '855933632', '999370388'], [0], [0]]
         };
     }
     static updateFeatures(_envVariables) {
@@ -11932,7 +11935,12 @@ class HentaiHeroes {
 }
 HentaiHeroes.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
 HentaiHeroes.trollIdMapping = { 21: 19, 24: 22 };
-HentaiHeroes.sideTrollIdMapping = { 22: 20, 23: 21 };
+HentaiHeroes.sideTrollIdMapping = { 22: 20, 23: 21, 25: 23 };
+// The worlds of each side adventure, one list per adventure: "Bunny Who?"
+// (world 20 has no troll) and "Monster Dames & Castles". The second has no
+// choices, so its Hero.infos.questing.choices_adventure is 0 like the main
+// adventure's; only the world tells them apart.
+HentaiHeroes.sideAdventureWorlds = [[20, 22, 23], [25]];
 
 ;// ./src/config/game/MangaRpgVars.ts
 // Game-variant configuration for Manga RPG.
@@ -12201,6 +12209,7 @@ HHEnvVariables["global"].trollzList = HentaiHeroes.getTrolls(getLanguageCode());
 HHEnvVariables["global"].sideTrollzList = [];
 HHEnvVariables["global"].trollIdMapping = []; // Empty means no specific mapping
 HHEnvVariables["global"].sideTrollIdMapping = []; // Empty means no specific mapping
+HHEnvVariables["global"].sideAdventureWorlds = [];
 HHEnvVariables["global"].trollGirlsID = HentaiHeroes.getTrollGirlsId();
 HHEnvVariables["global"].sideTrollGirlsID = [];
 HHEnvVariables["global"].leaguesList = ["Wanker I",
@@ -12483,6 +12492,7 @@ for (const key in HentaiHeroes.getEnv()) {
     HHEnvVariables[element].spreadsheet = HentaiHeroes.spreadsheet;
     HHEnvVariables[element].trollIdMapping = HentaiHeroes.trollIdMapping;
     HHEnvVariables[element].sideTrollIdMapping = HentaiHeroes.sideTrollIdMapping;
+    HHEnvVariables[element].sideAdventureWorlds = HentaiHeroes.sideAdventureWorlds;
     HHEnvVariables[element].sideTrollzList = HentaiHeroes.getSideTrolls(getLanguageCode());
     HHEnvVariables[element].sideTrollGirlsID = HentaiHeroes.getSideTrollGirlsId();
 }
@@ -18508,8 +18518,20 @@ class Troll {
                 || getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
                 || LoveRaidManager.isAnyActivated());
     }
+    /**
+     * `choices_adventure` alone does not say it: "Monster Dames & Castles"
+     * (world 25 on hentaiheroes) has no choices and reports 0 like the main
+     * adventure. Its worlds are listed in sideAdventureWorlds.
+     */
     static isMainAdventure() {
-        return Number(getHHVars('Hero.infos.questing.choices_adventure')) === 0;
+        if (Number(getHHVars('Hero.infos.questing.choices_adventure')) !== 0)
+            return false;
+        return Troll.getSideAdventureWorlds(Number(getHHVars('Hero.infos.questing.id_world'))) === undefined;
+    }
+    /** The worlds of the side adventure that holds this world, or undefined. */
+    static getSideAdventureWorlds(world) {
+        const adventures = ConfigHelper.getHHScriptVars("sideAdventureWorlds", false) || [];
+        return adventures.find((worlds) => worlds.includes(world));
     }
     /**
      * Side trolls exist only inside their side adventure. The main adventure
@@ -18523,6 +18545,60 @@ class Troll {
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
         return Object.prototype.hasOwnProperty.call(sideTrollz, trollId);
     }
+    /**
+     * The side trolls the current side adventure has reached: those of its
+     * worlds up to the current one. Another side adventure's trolls are not
+     * among them -- its worlds answer "You can't access this world yet." --
+     * and on the main adventure the list is empty.
+     */
+    static getReachedSideTrolls() {
+        var _a;
+        if (Troll.isMainAdventure())
+            return [];
+        const world = Number(getHHVars('Hero.infos.questing.id_world'));
+        const mapping = ConfigHelper.getHHScriptVars("sideTrollIdMapping");
+        const worlds = (_a = Troll.getSideAdventureWorlds(world)) !== null && _a !== void 0 ? _a : [world];
+        return worlds
+            .filter((w) => w <= world && Object.prototype.hasOwnProperty.call(mapping, w))
+            .map((w) => Number(mapping[w]));
+    }
+    /**
+     * The main trolls do not follow the adventure the player is on: troll 22
+     * stayed "Troll not available yet!" for a world-5 account inside
+     * "Monster Dames & Castles". On a side adventure the bound is therefore
+     * the main world stored the last time the script ran on the main
+     * adventure. Without one (it is a Temp key) lastTrollIdAvailable is the
+     * bound.
+     */
+    static isTrollAvailable(trollId, lastTrollIdAvailable = Troll.getLastTrollIdAvailable()) {
+        if (trollId <= 0)
+            return false;
+        if (Troll.isSideTroll(trollId))
+            return Troll.getReachedSideTrolls().includes(trollId);
+        if (!Troll.isMainAdventure()) {
+            const mainWorld = Number(getStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID)) || 0;
+            if (mainWorld > 0)
+                return trollId <= Troll.getMainTrollIdForWorld(mainWorld);
+        }
+        return trollId <= lastTrollIdAvailable;
+    }
+    /** The last main troll a main-adventure world unlocks. */
+    static getMainTrollIdForWorld(id_world, logging = false) {
+        const trollIdMapping = ConfigHelper.getHHScriptVars("trollIdMapping");
+        if (ConfigHelper.isPshEnvironnement() && id_world > 10) {
+            if (trollIdMapping.hasOwnProperty(id_world)) {
+                return trollIdMapping[id_world]; // PSH parallel adventures
+            }
+            if (logging)
+                logHHAuto(`Error Troll ID mapping need to be updated with world ${id_world}`);
+        }
+        if (Object.keys(trollIdMapping).length > 0 && trollIdMapping.hasOwnProperty(id_world)) {
+            if (logging)
+                logHHAuto(`Troll ID mapping (${trollIdMapping[id_world]}) found for world ${id_world}`);
+            return trollIdMapping[id_world];
+        }
+        return id_world - 1;
+    }
     static getLastTrollIdAvailable(logging = false, id_world = undefined) {
         const isMainAdventure = Troll.isMainAdventure();
         if (!id_world) {
@@ -18532,22 +18608,11 @@ class Troll {
             logHHAuto(`id_world given ${id_world} must be wrong, default to current world`);
             id_world = Number(getHHVars('Hero.infos.questing.id_world'));
         }
-        let trollIdMapping = [];
-        if (isMainAdventure) {
-            trollIdMapping = ConfigHelper.getHHScriptVars("trollIdMapping");
-            if (ConfigHelper.isPshEnvironnement() && id_world > 10) {
-                if (trollIdMapping.hasOwnProperty(id_world)) {
-                    return trollIdMapping[id_world]; // PSH parallel adventures
-                }
-                if (logging)
-                    logHHAuto(`Error Troll ID mapping need to be updated with world ${id_world}`);
-            }
-        }
-        else {
-            if (logging)
-                logHHAuto(`Side adventure detected with world ${id_world}`);
-            trollIdMapping = ConfigHelper.getHHScriptVars("sideTrollIdMapping");
-        }
+        if (isMainAdventure)
+            return Troll.getMainTrollIdForWorld(id_world, logging);
+        if (logging)
+            logHHAuto(`Side adventure detected with world ${id_world}`);
+        const trollIdMapping = ConfigHelper.getHHScriptVars("sideTrollIdMapping");
         if (Object.keys(trollIdMapping).length > 0 && trollIdMapping.hasOwnProperty(id_world)) {
             if (logging)
                 logHHAuto(`Troll ID mapping (${trollIdMapping[id_world]}) found for world ${id_world}`);
@@ -18659,41 +18724,21 @@ class Troll {
                 }
             }
             if (trollWithGirls !== undefined && trollWithGirls.length > 0) {
+                // Only trolls the player can open count: on a side adventure
+                // that is not every troll up to lastTrollIdAvailable.
+                const withGirls = (troll, idx) => troll > 0 && Troll.isTrollAvailable(idx + 1, lastTrollIdAvailable);
                 if (autoTrollSelectedIndex === 98) {
                     if (debugEnabled && logging)
                         logHHAuto("First troll with girls from storage");
-                    TTF = trollWithGirls.findIndex((troll) => troll > 0) + 1;
-                    if (TTF > lastTrollIdAvailable) {
-                        if (logging)
-                            logHHAuto(`First troll with girls (${TTF}) is beyond last available (${lastTrollIdAvailable}), no valid troll target.`);
-                        TTF = 0;
-                    }
+                    TTF = trollWithGirls.findIndex(withGirls) + 1;
                 }
                 else if (autoTrollSelectedIndex === 99) {
                     if (debugEnabled && logging)
                         logHHAuto("Last troll with girls from storage");
-                    TTF = trollWithGirls.findLastIndex((troll) => troll > 0) + 1;
-                    if (TTF > lastTrollIdAvailable) {
-                        // Find the last troll with girls that is actually unlocked
-                        let found = false;
-                        for (let i = lastTrollIdAvailable - 1; i >= 0; i--) {
-                            if (trollWithGirls[i] > 0) {
-                                TTF = i + 1;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            if (logging)
-                                logHHAuto(`No unlocked troll has girls (last available: ${lastTrollIdAvailable}), no valid troll target.`);
-                            TTF = 0;
-                        }
-                        else {
-                            if (logging)
-                                logHHAuto(`Last troll with girls capped to ${TTF} (last available: ${lastTrollIdAvailable}).`);
-                        }
-                    }
+                    TTF = trollWithGirls.findLastIndex(withGirls) + 1;
                 }
+                if (TTF <= 0 && logging)
+                    logHHAuto(`No available troll has girls (last available: ${lastTrollIdAvailable}), no valid troll target.`);
             }
             else if (waifuGaveNoList) {
                 TTF = 0;
@@ -18755,21 +18800,22 @@ class Troll {
         }
         const trollz = ConfigHelper.getHHScriptVars("trollzList");
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
+        // Events, love raids and a menu selection all reach this point, so the
+        // resolved target is checked instead of each source. A side troll is
+        // fought only inside its own side adventure, once its world is reached.
+        if (TTF > 0 && Troll.isSideTroll(TTF)) {
+            if (!Troll.isTrollAvailable(TTF, lastTrollIdAvailable)) {
+                if (logging)
+                    logHHAuto(`Troll ${TTF} (${sideTrollz[Number(TTF)]}) belongs to a side adventure the player is not in, or has not reached there.`);
+                TTF = 0;
+            }
+        }
         // Check if selected troll is actually unlocked (love raid girls can be on locked trolls)
-        if (TTF > 0 && TTF > lastTrollIdAvailable) {
+        else if (TTF > 0 && !Troll.isTrollAvailable(TTF, lastTrollIdAvailable)) {
             if (logging)
                 logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
             if (allowSideEffects)
                 setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
-            TTF = 0;
-        }
-        // A side troll passes the unlock check above -- it sits below the last
-        // available id -- but the main adventure still cannot fight it. Events,
-        // love raids and a menu selection all reach this point, so the resolved
-        // target is checked instead of each source.
-        if (TTF > 0 && Troll.isMainAdventure() && Troll.isSideTroll(TTF)) {
-            if (logging)
-                logHHAuto(`Troll ${TTF} (${sideTrollz[Number(TTF)]}) belongs to a side adventure and cannot be fought from the main adventure.`);
             TTF = 0;
         }
         if (TTF <= 0) {
@@ -20355,7 +20401,7 @@ class HHMenu {
             loveRaidOptions.add(this._createHtmlOption('first', getTextForUI("firstEndingRaid", "elementText")));
             const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
             LoveRaidManager.getTrollRaids().forEach((raid) => {
-                if (raid.trollId > lastTrollIdAvailable) {
+                if (!Troll.isTrollAvailable(raid.trollId, lastTrollIdAvailable)) {
                     return; // Skip raids on locked trolls
                 }
                 const option = this._createHtmlOption(raid.trollId + '_' + raid.id_girl, raid.event_name);
@@ -40861,7 +40907,7 @@ function start() {
     // that brings this version in -- carry it into the ring instead of
     // dropping the session the user was collecting (#1841 log volume).
     importLegacyLog();
-    const isMainAdventure = getHHVars('Hero.infos.questing.choices_adventure') == 0;
+    const isMainAdventure = Troll.isMainAdventure();
     const id_world = getHHVars('Hero.infos.questing.id_world');
     if (isMainAdventure)
         setStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID, id_world);
@@ -40978,7 +41024,10 @@ function start() {
         lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
     }
     else {
-        lastTrollIdAvailable = Troll.getLastTrollIdAvailable(false, Number(getStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID)));
+        // The main trolls follow the main world; the side trolls get their own
+        // section of the menu.
+        const mainWorld = Number(getStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID)) || 0;
+        lastTrollIdAvailable = mainWorld > 0 ? Troll.getMainTrollIdForWorld(mainWorld) : Troll.getLastTrollIdAvailable();
     }
     hhAutoMenu.fillTrollSelectMenu(lastTrollIdAvailable);
     hhAutoMenu.fillLoveRaidSelectMenu();

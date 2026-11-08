@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.24.0 - Stheno
+
+- **Troll battles**: Stheno (troll 23) is fought from Monster Dames & Castles once her world is reached; her girls count for "first/last troll with girls".
+- **Troll battles**: on a side adventure only that adventure's trolls and the main trolls up to the main progress are chosen.
+- **Troll battles**: "first/last troll with girls" picks the first/last troll the current adventure can fight that still has girls.
+- **Love raids**: the raid list leaves out raids on trolls the current adventure cannot fight.
+
 ### v8.23.2 - Team selection: better decision between equivalent positions
 
 - **Team optimization**: optimised decision between equivalent positions. Where several girls are exactly equal for the team calculation (same stats, element and Tier-3 trait), the rubrics "by stats and blessings" now pick the one Best gear can give the most resonance; the team score stays the same. A team already in the hexagons is kept unless a swap gives it more resonance.

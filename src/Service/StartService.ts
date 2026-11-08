@@ -353,7 +353,7 @@ function start() {
     // dropping the session the user was collecting (#1841 log volume).
     importLegacyLog();
     
-    const isMainAdventure = getHHVars('Hero.infos.questing.choices_adventure') == 0;
+    const isMainAdventure = Troll.isMainAdventure();
     const id_world = getHHVars('Hero.infos.questing.id_world');
     if (isMainAdventure) setStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID, id_world);
     else setStoredValue(HHStoredVarPrefixKey + TK.SideAdventureWorldID, id_world);
@@ -496,7 +496,10 @@ function start() {
     if (isMainAdventure) {
         lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
     } else {
-        lastTrollIdAvailable = Troll.getLastTrollIdAvailable(false, Number(getStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID)));
+        // The main trolls follow the main world; the side trolls get their own
+        // section of the menu.
+        const mainWorld = Number(getStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID)) || 0;
+        lastTrollIdAvailable = mainWorld > 0 ? Troll.getMainTrollIdForWorld(mainWorld) : Troll.getLastTrollIdAvailable();
     }
     hhAutoMenu.fillTrollSelectMenu(lastTrollIdAvailable);
     hhAutoMenu.fillLoveRaidSelectMenu();
