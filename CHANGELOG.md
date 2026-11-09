@@ -7,6 +7,11 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.25.0 - Traits in the team proposal
+
+- **Team optimization**: every girl of a proposed team shows her eye colour, hair colour, zodiac sign and favourite position.
+- **Team optimization**: colour and position names come from the game in the page language.
+
 ### v8.24.1 - Side trolls from any adventure
 
 - **Troll battles**: a side troll (Stheno, Arthur, Venam Kharney) is fought from any adventure once the game has opened it; the script reads that off the troll's page.

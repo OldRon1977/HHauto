@@ -6,16 +6,18 @@
 //   - position_img: numbered image like "1.png" .. "12.png"
 //   - zodiac: unicode glyph + name like "GLYPH Aries"
 //
-// At runtime, the game UI translates these via window.GT.design.colors
-// and window.GT.design.figures. We try the runtime lookup first
-// (covers patches that add new colors) and fall back to hardcoded
-// English values from Tom-208's userscript reference.
+// The game's names for them, in the page language, are window.GT.colors
+// (hex -> name) and window.GT.figures (array, index = position number);
+// measured on the edit-team page, where window.GT.design carries neither.
+// The runtime lookup comes first (covers patches that add new colors), the
+// hardcoded English values from Tom-208's userscript reference after it.
 //
-// Used by: TeamModule UI box (cluster name, blessing match indicator)
+// Used by: TeamModule.ts, TeamSelectionPopup.ts (the traits under each girl
+// of a proposed team)
 
 // Hardcoded English fallback. Mirrors the Tom-208 userscript (gist
 // a5c7065866fe1de5032aabbbd1ed9eff) which itself is reverse-engineered
-// from window.GT.design.colors.
+// from window.GT.colors.
 const COLOR_FALLBACK_EN: Record<string, string> = {
     'F99': 'Pink',
     'B06': 'Dark Pink',
@@ -40,7 +42,7 @@ const COLOR_FALLBACK_EN: Record<string, string> = {
 };
 
 // Position images don't have human-readable names server-side.
-// The game presents them via window.GT.design.figures[1..12], which
+// The game presents them via window.GT.figures[1..12], which
 // returns localized labels (e.g. "Doggy", "69", "Cowgirl"). When the
 // runtime lookup fails we keep the bare number which is always accurate.
 const POSITION_FALLBACK_PREFIX = 'Pose ';
@@ -55,14 +57,14 @@ export interface TraitMappingResult {
 export class TraitMappings {
 
     /**
-     * Look up the runtime color map from window.GT.design.colors.
+     * Look up the runtime color map from window.GT.colors.
      * Returns null if the structure is not available (e.g. spec tests).
      */
     private static getRuntimeColorMap(): Record<string, string> | null {
         try {
             const w: any = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (typeof window !== 'undefined' ? window : null);
             if (!w) return null;
-            const map = w.GT?.design?.colors;
+            const map = w.GT?.colors;
             return (map && typeof map === 'object') ? map : null;
         } catch {
             return null;
@@ -70,13 +72,13 @@ export class TraitMappings {
     }
 
     /**
-     * Look up the runtime figure map from window.GT.design.figures.
+     * Look up the runtime figure map from window.GT.figures.
      */
     private static getRuntimeFigureMap(): Record<string, string> | null {
         try {
             const w: any = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (typeof window !== 'undefined' ? window : null);
             if (!w) return null;
-            const map = w.GT?.design?.figures;
+            const map = w.GT?.figures;
             return (map && typeof map === 'object') ? map : null;
         } catch {
             return null;
@@ -85,7 +87,7 @@ export class TraitMappings {
 
     /**
      * Resolve a hex color code (eye or hair) to its readable name.
-     * Tries window.GT.design.colors first, falls back to English.
+     * Tries window.GT.colors first, falls back to English.
      */
     static resolveColor(hex: string | undefined | null): TraitMappingResult {
         if (!hex) return { label: '?', fromRuntime: false };
@@ -123,6 +125,23 @@ export class TraitMappings {
         // Strip leading non-letter characters (glyph + variation selector + space)
         const cleaned = String(value).replace(/^[^A-Za-z]+/, '').trim();
         return { label: cleaned || String(value), fromRuntime: false };
+    }
+
+    /**
+     * The four traits the team selection weighs, as one line under a
+     * proposed girl: eyes, hair, zodiac, position. A trait the girl does not
+     * carry is left out rather than shown as "?".
+     */
+    static traitLine(
+        girl: { eyeColor?: string; hairColor?: string; zodiac?: string; position?: string },
+        labels: { eyes: string; hair: string },
+    ): string {
+        const parts: string[] = [];
+        if (girl.eyeColor) parts.push(`${labels.eyes} ${TraitMappings.resolveColor(girl.eyeColor).label}`);
+        if (girl.hairColor) parts.push(`${labels.hair} ${TraitMappings.resolveColor(girl.hairColor).label}`);
+        if (girl.zodiac) parts.push(TraitMappings.resolveZodiac(girl.zodiac).label);
+        if (girl.position) parts.push(TraitMappings.resolvePosition(girl.position).label);
+        return parts.join(' &middot; ');
     }
 
     /**
