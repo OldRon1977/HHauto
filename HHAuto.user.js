@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.24.1
+// @version      8.25.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -864,6 +864,8 @@ HHAuto_ToolTips.en['teamSelChangeIn'] = { version: "8.14.0", elementText: "chang
 HHAuto_ToolTips.en['teamSelUnresolved'] = { version: "8.14.0", elementText: "Not recognised", tooltip: "" };
 HHAuto_ToolTips.en['teamSelDamage'] = { version: "8.14.0", elementText: "Damage", tooltip: "" };
 HHAuto_ToolTips.en['teamSelEgo'] = { version: "8.14.0", elementText: "Ego", tooltip: "" };
+HHAuto_ToolTips.en['teamSelTraitEyes'] = { version: "8.25.0", elementText: "Eyes", tooltip: "" };
+HHAuto_ToolTips.en['teamSelTraitHair'] = { version: "8.25.0", elementText: "Hair", tooltip: "" };
 HHAuto_ToolTips.en['teamSelDefense'] = { version: "8.14.0", elementText: "Defense", tooltip: "" };
 HHAuto_ToolTips.en['teamSelPoints'] = { version: "8.14.0", elementText: "Expected {points} points, win chance {win}", tooltip: "" };
 HHAuto_ToolTips.en['teamSelEff'] = { version: "8.14.0", elementText: "Effective power {eff}", tooltip: "" };
@@ -1457,6 +1459,8 @@ HHAuto_ToolTips.fr['teamSelChangeIn'] = { version: "8.14.0", elementText: "chang
 HHAuto_ToolTips.fr['teamSelUnresolved'] = { version: "8.14.0", elementText: "Non reconnu", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelDamage'] = { version: "8.14.0", elementText: "Dégâts", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelEgo'] = { version: "8.14.0", elementText: "Ego", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelTraitEyes'] = { version: "8.25.0", elementText: "Yeux", tooltip: "" };
+HHAuto_ToolTips.fr['teamSelTraitHair'] = { version: "8.25.0", elementText: "Cheveux", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelDefense'] = { version: "8.14.0", elementText: "Défense", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelPoints'] = { version: "8.14.0", elementText: "{points} points attendus, chance de victoire {win}", tooltip: "" };
 HHAuto_ToolTips.fr['teamSelEff'] = { version: "8.14.0", elementText: "Puissance effective {eff}", tooltip: "" };
@@ -2051,6 +2055,8 @@ HHAuto_ToolTips.de['teamSelChangeIn'] = { version: "8.14.0", elementText: "Wechs
 HHAuto_ToolTips.de['teamSelUnresolved'] = { version: "8.14.0", elementText: "Nicht erkannt", tooltip: "" };
 HHAuto_ToolTips.de['teamSelDamage'] = { version: "8.14.0", elementText: "Schaden", tooltip: "" };
 HHAuto_ToolTips.de['teamSelEgo'] = { version: "8.14.0", elementText: "Ego", tooltip: "" };
+HHAuto_ToolTips.de['teamSelTraitEyes'] = { version: "8.25.0", elementText: "Augen", tooltip: "" };
+HHAuto_ToolTips.de['teamSelTraitHair'] = { version: "8.25.0", elementText: "Haare", tooltip: "" };
 HHAuto_ToolTips.de['teamSelDefense'] = { version: "8.14.0", elementText: "Verteidigung", tooltip: "" };
 HHAuto_ToolTips.de['teamSelPoints'] = { version: "8.14.0", elementText: "Erwartet {points} Punkte, Siegchance {win}", tooltip: "" };
 HHAuto_ToolTips.de['teamSelEff'] = { version: "8.14.0", elementText: "Effektive Stärke {eff}", tooltip: "" };
@@ -2644,6 +2650,8 @@ HHAuto_ToolTips.es['teamSelChangeIn'] = { version: "8.14.0", elementText: "cambi
 HHAuto_ToolTips.es['teamSelUnresolved'] = { version: "8.14.0", elementText: "No reconocido", tooltip: "" };
 HHAuto_ToolTips.es['teamSelDamage'] = { version: "8.14.0", elementText: "Daño", tooltip: "" };
 HHAuto_ToolTips.es['teamSelEgo'] = { version: "8.14.0", elementText: "Ego", tooltip: "" };
+HHAuto_ToolTips.es['teamSelTraitEyes'] = { version: "8.25.0", elementText: "Ojos", tooltip: "" };
+HHAuto_ToolTips.es['teamSelTraitHair'] = { version: "8.25.0", elementText: "Pelo", tooltip: "" };
 HHAuto_ToolTips.es['teamSelDefense'] = { version: "8.14.0", elementText: "Defensa", tooltip: "" };
 HHAuto_ToolTips.es['teamSelPoints'] = { version: "8.14.0", elementText: "{points} puntos esperados, probabilidad de victoria {win}", tooltip: "" };
 HHAuto_ToolTips.es['teamSelEff'] = { version: "8.14.0", elementText: "Poder efectivo {eff}", tooltip: "" };
@@ -33689,6 +33697,162 @@ class SkillModelService {
     }
 }
 
+;// ./src/Service/TraitMappings.ts
+// TraitMappings.ts -- Maps internal hex / image / unicode codes to
+// human-readable trait names.
+//
+// The game stores girl traits as compact codes:
+//   - eye_color1 / hair_color1: 3-character hex like "00F", "888", "F90"
+//   - position_img: numbered image like "1.png" .. "12.png"
+//   - zodiac: unicode glyph + name like "GLYPH Aries"
+//
+// The game's names for them, in the page language, are window.GT.colors
+// (hex -> name) and window.GT.figures (array, index = position number);
+// measured on the edit-team page, where window.GT.design carries neither.
+// The runtime lookup comes first (covers patches that add new colors), the
+// hardcoded English values from Tom-208's userscript reference after it.
+//
+// Used by: TeamModule.ts, TeamSelectionPopup.ts (the traits under each girl
+// of a proposed team)
+// Hardcoded English fallback. Mirrors the Tom-208 userscript (gist
+// a5c7065866fe1de5032aabbbd1ed9eff) which itself is reverse-engineered
+// from window.GT.colors.
+const COLOR_FALLBACK_EN = {
+    'F99': 'Pink',
+    'B06': 'Dark Pink',
+    'F00': 'Red',
+    'B62': 'Dark blond',
+    'FFF': 'White',
+    '321': 'Dark',
+    '00F': 'Blue',
+    'FF0': 'Blond',
+    '0F0': 'Green',
+    'XXX': 'Unknown',
+    'A55': 'Brown',
+    '000': 'Black',
+    'CCC': 'Silver',
+    'F0F': 'Purple',
+    'F90': 'Orange',
+    'EB8': 'Strawberry blonde',
+    '888': 'Grey',
+    'FD0': 'Golden',
+    'D83': 'Bronze',
+    '765': 'Ash brown',
+};
+// Position images don't have human-readable names server-side.
+// The game presents them via window.GT.figures[1..12], which
+// returns localized labels (e.g. "Doggy", "69", "Cowgirl"). When the
+// runtime lookup fails we keep the bare number which is always accurate.
+const POSITION_FALLBACK_PREFIX = 'Pose ';
+class TraitMappings {
+    /**
+     * Look up the runtime color map from window.GT.colors.
+     * Returns null if the structure is not available (e.g. spec tests).
+     */
+    static getRuntimeColorMap() {
+        var _a;
+        try {
+            const w = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (typeof window !== 'undefined' ? window : null);
+            if (!w)
+                return null;
+            const map = (_a = w.GT) === null || _a === void 0 ? void 0 : _a.colors;
+            return (map && typeof map === 'object') ? map : null;
+        }
+        catch (_b) {
+            return null;
+        }
+    }
+    /**
+     * Look up the runtime figure map from window.GT.figures.
+     */
+    static getRuntimeFigureMap() {
+        var _a;
+        try {
+            const w = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (typeof window !== 'undefined' ? window : null);
+            if (!w)
+                return null;
+            const map = (_a = w.GT) === null || _a === void 0 ? void 0 : _a.figures;
+            return (map && typeof map === 'object') ? map : null;
+        }
+        catch (_b) {
+            return null;
+        }
+    }
+    /**
+     * Resolve a hex color code (eye or hair) to its readable name.
+     * Tries window.GT.colors first, falls back to English.
+     */
+    static resolveColor(hex) {
+        if (!hex)
+            return { label: '?', fromRuntime: false };
+        const upper = String(hex).toUpperCase();
+        const runtime = TraitMappings.getRuntimeColorMap();
+        if (runtime && typeof runtime[upper] === 'string') {
+            return { label: runtime[upper], fromRuntime: true };
+        }
+        if (COLOR_FALLBACK_EN[upper]) {
+            return { label: COLOR_FALLBACK_EN[upper], fromRuntime: false };
+        }
+        return { label: '#' + upper, fromRuntime: false };
+    }
+    /**
+     * Resolve a position image (e.g. "2.png" or "2") to a readable label.
+     * Falls back to "Pose N" when runtime map is unavailable.
+     */
+    static resolvePosition(value) {
+        if (!value)
+            return { label: '?', fromRuntime: false };
+        const num = String(value).replace(/\.png$/i, '').trim();
+        const runtime = TraitMappings.getRuntimeFigureMap();
+        if (runtime && typeof runtime[num] === 'string') {
+            return { label: runtime[num], fromRuntime: true };
+        }
+        return { label: POSITION_FALLBACK_PREFIX + num, fromRuntime: false };
+    }
+    /**
+     * Resolve a zodiac string (e.g. unicode-glyph + " Aries") to a readable name.
+     * Strips the unicode glyph prefix and returns just the English name.
+     */
+    static resolveZodiac(value) {
+        if (!value)
+            return { label: '?', fromRuntime: false };
+        // Strip leading non-letter characters (glyph + variation selector + space)
+        const cleaned = String(value).replace(/^[^A-Za-z]+/, '').trim();
+        return { label: cleaned || String(value), fromRuntime: false };
+    }
+    /**
+     * The four traits the team selection weighs, as one line under a
+     * proposed girl: eyes, hair, zodiac, position. A trait the girl does not
+     * carry is left out rather than shown as "?".
+     */
+    static traitLine(girl, labels) {
+        const parts = [];
+        if (girl.eyeColor)
+            parts.push(`${labels.eyes} ${TraitMappings.resolveColor(girl.eyeColor).label}`);
+        if (girl.hairColor)
+            parts.push(`${labels.hair} ${TraitMappings.resolveColor(girl.hairColor).label}`);
+        if (girl.zodiac)
+            parts.push(TraitMappings.resolveZodiac(girl.zodiac).label);
+        if (girl.position)
+            parts.push(TraitMappings.resolvePosition(girl.position).label);
+        return parts.join(' &middot; ');
+    }
+    /**
+     * Generic resolver: dispatch by trait category.
+     */
+    static resolve(category, value) {
+        switch (category) {
+            case 'eyeColor':
+            case 'hairColor':
+                return TraitMappings.resolveColor(value);
+            case 'zodiac':
+                return TraitMappings.resolveZodiac(value);
+            case 'position':
+                return TraitMappings.resolvePosition(value);
+        }
+    }
+}
+
 ;// ./src/Service/TeamGearService.ts
 // TeamGearService.ts -- Pure planning for "Best gear" and "Possibly best
 // gear": which item each team girl should wear in each of her six slots.
@@ -34136,7 +34300,8 @@ class TeamGearTieBreakService {
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
 //   BlessingForecast.ts, BlessingService.ts, SkillModelService.ts, BaseStatsService.ts,
-//   LeagueOpponentSnapshot.ts, TeamGearTieBreakService.ts, AutoLoopHold.ts, WorkPause.ts
+//   LeagueOpponentSnapshot.ts, TeamGearTieBreakService.ts, TraitMappings.ts, AutoLoopHold.ts,
+//   WorkPause.ts
 // Used by: TeamModule.ts
 var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -34147,6 +34312,7 @@ var TeamSelectionPopup_awaiter = (undefined && undefined.__awaiter) || function 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 
 
 
@@ -34214,6 +34380,7 @@ class TeamSelectionPopup {
             + '#hhTeamSel .tsHead{font-weight:bold;font-size:calc(13px + 1pt);flex:1;}'
             + '#hhTeamSel .tsRow .myButton{padding:3px 10px;font-size:calc(12px + 1pt);}'
             + '#hhTeamSel .tsSub{color:#555;font-size:calc(11px + 1pt);}'
+            + '#hhTeamSel .tsTraits{display:inline-block;margin:0 0 2px 1.2em;}'
             + '#hhTeamSel .tsOut{font-size:calc(12px + 1pt);line-height:1.45;}'
             + '#hhTeamSel .tsGood{color:#1b6e2a;} #hhTeamSel .tsBad{color:#b3261e;} #hhTeamSel .tsWarn{color:#9a5a00;}'
             + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #999;padding-left:10px;}'
@@ -34727,9 +34894,15 @@ class TeamSelectionPopup {
     // ---- Output ----------------------------------------------------------
     static describe(r, res, girls, current, candidates, info, tieLine = '') {
         const hex = new Set(TeamSelectionPopup.actions.getHexagonIds());
+        const traitLabels = {
+            eyes: getTextForUI('teamSelTraitEyes', 'elementText'),
+            hair: getTextForUI('teamSelTraitHair', 'elementText'),
+        };
         const names = TeamSelectionPopup.girlsById(girls, res.ids).map((g, i) => {
             const label = `${i === 0 ? '&#9733; ' : ''}${g.name} <span class="tsSub">(${g.element}, ${g.rarity})</span>`;
-            return hex.has(g.id_girl) ? label : `<b class="tsGood">${label}</b>`;
+            const traits = TraitMappings.traitLine(g, traitLabels);
+            const traitLine = traits ? `<br/><span class="tsSub tsTraits">${traits}</span>` : '';
+            return (hex.has(g.id_girl) ? label : `<b class="tsGood">${label}</b>`) + traitLine;
         }).join('<br/>');
         const caracs = `${getTextForUI('teamSelDamage', 'elementText')} ${Math.round(res.caracs.damage).toLocaleString()} &middot; `
             + `${getTextForUI('teamSelEgo', 'elementText')} ${Math.round(res.caracs.ego).toLocaleString()} &middot; `
@@ -35141,143 +35314,6 @@ TeamGear.busy = false;
 TeamGear.stylesAdded = false;
 function TeamGear_esc(value) {
     return String(value).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-}
-
-;// ./src/Service/TraitMappings.ts
-// TraitMappings.ts -- Maps internal hex / image / unicode codes to
-// human-readable trait names.
-//
-// The game stores girl traits as compact codes:
-//   - eye_color1 / hair_color1: 3-character hex like "00F", "888", "F90"
-//   - position_img: numbered image like "1.png" .. "12.png"
-//   - zodiac: unicode glyph + name like "GLYPH Aries"
-//
-// At runtime, the game UI translates these via window.GT.design.colors
-// and window.GT.design.figures. We try the runtime lookup first
-// (covers patches that add new colors) and fall back to hardcoded
-// English values from Tom-208's userscript reference.
-//
-// Used by: TeamModule UI box (cluster name, blessing match indicator)
-// Hardcoded English fallback. Mirrors the Tom-208 userscript (gist
-// a5c7065866fe1de5032aabbbd1ed9eff) which itself is reverse-engineered
-// from window.GT.design.colors.
-const COLOR_FALLBACK_EN = {
-    'F99': 'Pink',
-    'B06': 'Dark Pink',
-    'F00': 'Red',
-    'B62': 'Dark blond',
-    'FFF': 'White',
-    '321': 'Dark',
-    '00F': 'Blue',
-    'FF0': 'Blond',
-    '0F0': 'Green',
-    'XXX': 'Unknown',
-    'A55': 'Brown',
-    '000': 'Black',
-    'CCC': 'Silver',
-    'F0F': 'Purple',
-    'F90': 'Orange',
-    'EB8': 'Strawberry blonde',
-    '888': 'Grey',
-    'FD0': 'Golden',
-    'D83': 'Bronze',
-    '765': 'Ash brown',
-};
-// Position images don't have human-readable names server-side.
-// The game presents them via window.GT.design.figures[1..12], which
-// returns localized labels (e.g. "Doggy", "69", "Cowgirl"). When the
-// runtime lookup fails we keep the bare number which is always accurate.
-const POSITION_FALLBACK_PREFIX = 'Pose ';
-class TraitMappings {
-    /**
-     * Look up the runtime color map from window.GT.design.colors.
-     * Returns null if the structure is not available (e.g. spec tests).
-     */
-    static getRuntimeColorMap() {
-        var _a, _b;
-        try {
-            const w = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (typeof window !== 'undefined' ? window : null);
-            if (!w)
-                return null;
-            const map = (_b = (_a = w.GT) === null || _a === void 0 ? void 0 : _a.design) === null || _b === void 0 ? void 0 : _b.colors;
-            return (map && typeof map === 'object') ? map : null;
-        }
-        catch (_c) {
-            return null;
-        }
-    }
-    /**
-     * Look up the runtime figure map from window.GT.design.figures.
-     */
-    static getRuntimeFigureMap() {
-        var _a, _b;
-        try {
-            const w = typeof unsafeWindow !== 'undefined' ? unsafeWindow : (typeof window !== 'undefined' ? window : null);
-            if (!w)
-                return null;
-            const map = (_b = (_a = w.GT) === null || _a === void 0 ? void 0 : _a.design) === null || _b === void 0 ? void 0 : _b.figures;
-            return (map && typeof map === 'object') ? map : null;
-        }
-        catch (_c) {
-            return null;
-        }
-    }
-    /**
-     * Resolve a hex color code (eye or hair) to its readable name.
-     * Tries window.GT.design.colors first, falls back to English.
-     */
-    static resolveColor(hex) {
-        if (!hex)
-            return { label: '?', fromRuntime: false };
-        const upper = String(hex).toUpperCase();
-        const runtime = TraitMappings.getRuntimeColorMap();
-        if (runtime && typeof runtime[upper] === 'string') {
-            return { label: runtime[upper], fromRuntime: true };
-        }
-        if (COLOR_FALLBACK_EN[upper]) {
-            return { label: COLOR_FALLBACK_EN[upper], fromRuntime: false };
-        }
-        return { label: '#' + upper, fromRuntime: false };
-    }
-    /**
-     * Resolve a position image (e.g. "2.png" or "2") to a readable label.
-     * Falls back to "Pose N" when runtime map is unavailable.
-     */
-    static resolvePosition(value) {
-        if (!value)
-            return { label: '?', fromRuntime: false };
-        const num = String(value).replace(/\.png$/i, '').trim();
-        const runtime = TraitMappings.getRuntimeFigureMap();
-        if (runtime && typeof runtime[num] === 'string') {
-            return { label: runtime[num], fromRuntime: true };
-        }
-        return { label: POSITION_FALLBACK_PREFIX + num, fromRuntime: false };
-    }
-    /**
-     * Resolve a zodiac string (e.g. unicode-glyph + " Aries") to a readable name.
-     * Strips the unicode glyph prefix and returns just the English name.
-     */
-    static resolveZodiac(value) {
-        if (!value)
-            return { label: '?', fromRuntime: false };
-        // Strip leading non-letter characters (glyph + variation selector + space)
-        const cleaned = String(value).replace(/^[^A-Za-z]+/, '').trim();
-        return { label: cleaned || String(value), fromRuntime: false };
-    }
-    /**
-     * Generic resolver: dispatch by trait category.
-     */
-    static resolve(category, value) {
-        switch (category) {
-            case 'eyeColor':
-            case 'hairColor':
-                return TraitMappings.resolveColor(value);
-            case 'zodiac':
-                return TraitMappings.resolveZodiac(value);
-            case 'position':
-                return TraitMappings.resolvePosition(value);
-        }
-    }
 }
 
 ;// ./src/model/TeamData.ts

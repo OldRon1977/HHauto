@@ -65,7 +65,8 @@
 //
 // Depends on: TeamSelectionService.ts, TeamEvaluationService.ts, TeamBuilderService.ts,
 //   BlessingForecast.ts, BlessingService.ts, SkillModelService.ts, BaseStatsService.ts,
-//   LeagueOpponentSnapshot.ts, TeamGearTieBreakService.ts, AutoLoopHold.ts, WorkPause.ts
+//   LeagueOpponentSnapshot.ts, TeamGearTieBreakService.ts, TraitMappings.ts, AutoLoopHold.ts,
+//   WorkPause.ts
 // Used by: TeamModule.ts
 
 import { getHHVars } from '../Helper/HHHelper';
@@ -79,6 +80,7 @@ import { LeagueOpponentSnapshot, OpponentSnapshot } from '../Service/LeagueOppon
 import { TeamBuilderService } from '../Service/TeamBuilderService';
 import { TeamCaracs, TeamEvaluationService } from '../Service/TeamEvaluationService';
 import { GirlData, PlayerClass, TeamScoringService } from '../Service/TeamScoringService';
+import { TraitMappings } from '../Service/TraitMappings';
 import { CalibrationSample, TeamSelectionService, TeamStatModel } from '../Service/TeamSelectionService';
 import { GearWearerRaw, TeamGearTieBreakService, TieBreakResult } from '../Service/TeamGearTieBreakService';
 import type { GirlGearItem } from '../Service/TeamGearService';
@@ -208,6 +210,7 @@ export class TeamSelectionPopup {
             + '#hhTeamSel .tsHead{font-weight:bold;font-size:calc(13px + 1pt);flex:1;}'
             + '#hhTeamSel .tsRow .myButton{padding:3px 10px;font-size:calc(12px + 1pt);}'
             + '#hhTeamSel .tsSub{color:#555;font-size:calc(11px + 1pt);}'
+            + '#hhTeamSel .tsTraits{display:inline-block;margin:0 0 2px 1.2em;}'
             + '#hhTeamSel .tsOut{font-size:calc(12px + 1pt);line-height:1.45;}'
             + '#hhTeamSel .tsGood{color:#1b6e2a;} #hhTeamSel .tsBad{color:#b3261e;} #hhTeamSel .tsWarn{color:#9a5a00;}'
             + '#hhTeamSel .tsSide{display:flex;flex-direction:column;gap:14px;border-left:1px solid #999;padding-left:10px;}'
@@ -691,9 +694,15 @@ export class TeamSelectionPopup {
     private static describe(r: Rubric, res: RubricResult, girls: GirlData[], current: RubricResult | null,
         candidates: number, info: string, tieLine = ''): string {
         const hex = new Set(TeamSelectionPopup.actions!.getHexagonIds());
+        const traitLabels = {
+            eyes: getTextForUI('teamSelTraitEyes', 'elementText'),
+            hair: getTextForUI('teamSelTraitHair', 'elementText'),
+        };
         const names = TeamSelectionPopup.girlsById(girls, res.ids).map((g, i) => {
             const label = `${i === 0 ? '&#9733; ' : ''}${g.name} <span class="tsSub">(${g.element}, ${g.rarity})</span>`;
-            return hex.has(g.id_girl) ? label : `<b class="tsGood">${label}</b>`;
+            const traits = TraitMappings.traitLine(g, traitLabels);
+            const traitLine = traits ? `<br/><span class="tsSub tsTraits">${traits}</span>` : '';
+            return (hex.has(g.id_girl) ? label : `<b class="tsGood">${label}</b>`) + traitLine;
         }).join('<br/>');
         const caracs = `${getTextForUI('teamSelDamage', 'elementText')} ${Math.round(res.caracs.damage).toLocaleString()} &middot; `
             + `${getTextForUI('teamSelEgo', 'elementText')} ${Math.round(res.caracs.ego).toLocaleString()} &middot; `
