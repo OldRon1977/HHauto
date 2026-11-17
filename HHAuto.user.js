@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.25.0
+// @version      8.25.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -26772,6 +26772,17 @@ class TeamScoringService {
 // Tier-3 trait bonus; one round of single swaps around the stat-sum pick
 // finds girls who win on those.
 //
+// Why every element mix: the team model reads the girls only through the sum
+// of their caracs, the count per element and Tier 3. For one count per
+// element the strongest girls of each element give the largest sum, so the
+// leader plus every split of positions 2-7 over the elements, each filled
+// with its strongest girls, holds the best team of every mix
+// (buildElementMixes). Single swaps and the builder's one-element themes do
+// not reach a mix of two stacks: on an account whose doubly blessed
+// legendaries outsum single-blessed mythics, seven mythics with three
+// darkness and three fire scored 1.2 % above the proposal and were no
+// candidate.
+//
 // Why the opponents are weighed by open fights: a league opponent can be
 // fought exactly three times. One who has been fought three times no longer
 // matters for the team, one with a single fight left matters a third.
@@ -26810,6 +26821,8 @@ var TeamSelectionService_awaiter = (undefined && undefined.__awaiter) || functio
 
 
 
+/** Girls per team. */
+const TeamSelectionService_TEAM_SIZE = 7;
 /** Swap partners tried per position around the stat-sum pick. */
 const SWAP_ALTERNATIVES = 15;
 /** A league opponent can be fought this many times per league week. */
@@ -26828,6 +26841,49 @@ class TeamSelectionService {
     /** Order-independent identity of a team. */
     static teamKey(ids) {
         return [...ids].sort((a, b) => a - b).join(',');
+    }
+    /**
+     * The leader plus, for every split of positions 2-7 over the elements,
+     * the strongest girls of each element by caracs_sum. A split asking more
+     * girls of an element than the pool holds is left out. Within the team
+     * the girls stand strongest first.
+     */
+    static buildElementMixes(leaderId, pool) {
+        var _a;
+        const slots = TeamSelectionService_TEAM_SIZE - 1;
+        const byElement = new Map();
+        for (const g of pool) {
+            if (g.id_girl === leaderId)
+                continue;
+            const list = (_a = byElement.get(g.element)) !== null && _a !== void 0 ? _a : [];
+            list.push(g);
+            byElement.set(g.element, list);
+        }
+        const elements = [...byElement.keys()];
+        for (const list of byElement.values()) {
+            list.sort((a, b) => TeamScoringService.caracsSum(b) - TeamScoringService.caracsSum(a));
+        }
+        const out = [];
+        const counts = new Array(elements.length).fill(0);
+        const walk = (index, left) => {
+            if (index === elements.length - 1) {
+                if (left > byElement.get(elements[index]).length)
+                    return;
+                counts[index] = left;
+                const girls = elements.flatMap((e, i) => byElement.get(e).slice(0, counts[i]))
+                    .sort((a, b) => TeamScoringService.caracsSum(b) - TeamScoringService.caracsSum(a));
+                out.push([leaderId, ...girls.map(g => g.id_girl)]);
+                return;
+            }
+            const most = Math.min(left, byElement.get(elements[index]).length);
+            for (let n = 0; n <= most; n++) {
+                counts[index] = n;
+                walk(index + 1, left - n);
+            }
+        };
+        if (elements.length > 0)
+            walk(0, slots);
+        return out;
     }
     /**
      * Every team that differs from `base` in one of the positions 2-7, the
@@ -34254,10 +34310,10 @@ class TeamGearTieBreakService {
 // is open: players who keep more than one team set next week's or a
 // development team in a slot of its own.
 //
-// All rubrics start from the same kind of candidates: the builder's picks
-// plus one round of single swaps around the stat-sum pick
-// (TeamSelectionService). Position 1 stays with the builder's leader -- the
-// Mythic with the Tier-5 Shield -- in every candidate.
+// All rubrics start from the same kind of candidates: the builder's picks,
+// one round of single swaps around the stat-sum pick, and the strongest team
+// of every element mix (TeamSelectionService). Position 1 stays with the
+// builder's leader -- the Mythic with the Tier-5 Shield -- in every candidate.
 //
 // Every girl is scored without the gear and the skills she holds today, as
 // Unequip & Unskill would leave her (BaseStatsService, calculated -- nothing
@@ -34611,7 +34667,11 @@ class TeamSelectionPopup {
             return [];
         const base = built[0].girls.map(g => g.id_girl);
         const pool = TeamScoringService.filterEligible(girls, playerClass);
-        const all = [...built.map(r => r.girls.map(g => g.id_girl)), ...TeamSelectionService.buildSwapNeighbours(base, pool)];
+        const all = [
+            ...built.map(r => r.girls.map(g => g.id_girl)),
+            ...TeamSelectionService.buildSwapNeighbours(base, pool),
+            ...TeamSelectionService.buildElementMixes(base[0], pool),
+        ];
         const seen = new Set();
         return all.filter(t => {
             const key = TeamSelectionService.teamKey(t);

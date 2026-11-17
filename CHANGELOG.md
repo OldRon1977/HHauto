@@ -7,6 +7,10 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.25.1 - Team selection: every element mix
+
+- **Team optimization**: the rubrics also weigh the strongest team of every element mix, e.g. three darkness and three fire girls next to the leader; such a team was missing when stronger girls of another element filled the free positions.
+
 ### v8.25.0 - Traits in the team proposal
 
 - **Team optimization**: every girl of a proposed team shows her eye colour, hair colour, zodiac sign and favourite position.

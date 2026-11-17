@@ -19,10 +19,10 @@
 // is open: players who keep more than one team set next week's or a
 // development team in a slot of its own.
 //
-// All rubrics start from the same kind of candidates: the builder's picks
-// plus one round of single swaps around the stat-sum pick
-// (TeamSelectionService). Position 1 stays with the builder's leader -- the
-// Mythic with the Tier-5 Shield -- in every candidate.
+// All rubrics start from the same kind of candidates: the builder's picks,
+// one round of single swaps around the stat-sum pick, and the strongest team
+// of every element mix (TeamSelectionService). Position 1 stays with the
+// builder's leader -- the Mythic with the Tier-5 Shield -- in every candidate.
 //
 // Every girl is scored without the gear and the skills she holds today, as
 // Unequip & Unskill would leave her (BaseStatsService, calculated -- nothing
@@ -437,7 +437,11 @@ export class TeamSelectionPopup {
         if (built.length === 0) return [];
         const base = built[0].girls.map(g => g.id_girl);
         const pool = TeamScoringService.filterEligible(girls, playerClass);
-        const all = [...built.map(r => r.girls.map(g => g.id_girl)), ...TeamSelectionService.buildSwapNeighbours(base, pool)];
+        const all = [
+            ...built.map(r => r.girls.map(g => g.id_girl)),
+            ...TeamSelectionService.buildSwapNeighbours(base, pool),
+            ...TeamSelectionService.buildElementMixes(base[0], pool),
+        ];
         const seen = new Set<string>();
         return all.filter(t => {
             const key = TeamSelectionService.teamKey(t);
