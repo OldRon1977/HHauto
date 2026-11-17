@@ -32,6 +32,44 @@ describe('TeamSelectionService.buildSwapNeighbours', () => {
     });
 });
 
+describe('TeamSelectionService.buildElementMixes', () => {
+    it('holds every split of positions 2-7 the pool can fill, the leader first', () => {
+        const pool = [girl(1, 1000, 'stone'),
+            ...[2, 3, 4, 5, 6, 7].map(id => girl(id, 900, 'fire')),
+            ...[8, 9, 10, 11, 12, 13].map(id => girl(id, 900, 'darkness'))];
+        const teams = TeamSelectionService.buildElementMixes(1, pool);
+        // fire 0..6, darkness the rest
+        expect(teams).toHaveLength(7);
+        expect(teams.every(t => t[0] === 1 && t.length === 7)).toBe(true);
+    });
+
+    it('fills each element with its strongest girls', () => {
+        const pool = [girl(1, 1000, 'stone'), girl(2, 500, 'fire'), girl(3, 900, 'fire'), girl(4, 800, 'fire'), girl(5, 700, 'fire'),
+            girl(6, 900, 'darkness'), girl(7, 850, 'darkness'), girl(8, 600, 'darkness'), girl(9, 100, 'darkness')];
+        const keys = TeamSelectionService.buildElementMixes(1, pool).map(t => TeamSelectionService.teamKey(t));
+        expect(keys).toContain(TeamSelectionService.teamKey([1, 3, 4, 5, 6, 7, 8]));
+        expect(keys).not.toContain(TeamSelectionService.teamKey([1, 2, 4, 5, 6, 7, 8]));
+    });
+
+    it('reaches two element stacks that outsummed girls of a third element hide', () => {
+        // Doubly blessed legendaries outsum the mythics, as on the league
+        // account where seven mythics (3 darkness, 3 fire) were no candidate.
+        const leg = { rarity: 'legendary' } as Partial<GirlData>;
+        const pool = [girl(1, 31777, 'stone'),
+            girl(2, 36150, 'stone', leg), girl(3, 36150, 'water', leg), girl(4, 36150, 'psychic', leg),
+            girl(5, 31777, 'darkness'), girl(6, 31777, 'darkness'), girl(7, 31762, 'darkness'),
+            girl(8, 31777, 'fire'), girl(9, 31777, 'fire'), girl(10, 31777, 'fire')];
+        const keys = TeamSelectionService.buildElementMixes(1, pool).map(t => TeamSelectionService.teamKey(t));
+        expect(keys).toContain(TeamSelectionService.teamKey([1, 5, 6, 7, 8, 9, 10]));
+        expect(TeamSelectionService.buildSwapNeighbours([1, 2, 3, 4, 5, 6, 8], pool).map(t => TeamSelectionService.teamKey(t)))
+            .not.toContain(TeamSelectionService.teamKey([1, 5, 6, 7, 8, 9, 10]));
+    });
+
+    it('is empty when the pool cannot fill six positions', () => {
+        expect(TeamSelectionService.buildElementMixes(1, [girl(1, 1), girl(2, 1), girl(3, 1)])).toEqual([]);
+    });
+});
+
 describe('TeamSelectionService.openFights', () => {
     it('counts the null entries of match_history, three per opponent', () => {
         expect(TeamSelectionService.openFights([null, null, null])).toBe(3);
