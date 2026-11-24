@@ -13,13 +13,14 @@
 //
 // Measured exact to 0.01 on two games (1,681 and 1,826 girls without gear and
 // Tier-2 points). Only gear and Tier 2 sit in the caracs on top of that; Tier
-// 1, 3, 4 and 5 do not. A girl without either is therefore read back from her
-// caracs; only the others need their definition, which availableGirls does
-// not carry -- get_girls_list (the harem list, 24 girls per request) does.
+// 1, 3, 4 and 5 do not. A girl without gear is therefore read back from her
+// caracs, Tier 2 taken out by its formula; only girls with gear need their
+// definition, which availableGirls does not carry -- get_girls_list (the harem
+// list, 24 girls per request) does.
 // Definitions never change for a girl, so they are kept in storage and
 // fetched once.
 //
-// Depends on: BlessingService.ts (league multiplier), Utils.ts (callGame)
+// Depends on: BlessingService.ts (league multiplier), SkillModelService.ts (Tier 2), Utils.ts (callGame)
 // Used by: TeamSelectionPopup.ts
 
 import { getStoredJSON, setStoredValue } from '../Helper/StorageHelper';
@@ -28,6 +29,7 @@ import { TK } from '../config/StorageKeys';
 import { logHHAuto } from '../Utils/LogUtils';
 import { callGame } from '../Utils/Utils';
 import { BlessingService } from './BlessingService';
+import { SkillModelService } from './SkillModelService';
 
 export type Definition = [number, number, number];
 
@@ -73,6 +75,17 @@ export class BaseStatsService {
         return BaseStatsService.gearPieces(raw) === 0 && BaseStatsService.tierPoints(raw, 2) === 0;
     }
 
+    /**
+     * True when her definition can be read back from her caracs: no gear,
+     * and Tier 2 -- if she holds it -- is taken out by its formula, which
+     * needs her class.
+     */
+    static isReadable(raw: BaseRawGirl): boolean {
+        if (BaseStatsService.gearPieces(raw) > 0) return false;
+        const cls = Number(raw.class);
+        return BaseStatsService.tierPoints(raw, 2) === 0 || cls === 1 || cls === 2 || cls === 3;
+    }
+
     static levelFactor(level: number, grades: number): number {
         return level * (1 + 0.3 * grades) / 10;
     }
@@ -86,12 +99,18 @@ export class BaseStatsService {
         };
     }
 
-    /** A bare girl's definition, read back from her caracs. */
+    /**
+     * A girl's definition, read back from her caracs; Tier 2 is taken out
+     * first (SkillModelService.withoutTier2). Null for a girl with gear.
+     */
     static definitionFromCaracs(raw: BaseRawGirl): Definition | null {
-        const f = BaseStatsService.levelFactor(Number(raw.level) || 0, Number(raw.graded) || 0)
-            * BlessingService.getEffectiveMultiplier(raw, 'league');
+        if (!BaseStatsService.isReadable(raw)) return null;
+        const blessing = BlessingService.getEffectiveMultiplier(raw, 'league');
+        const f = BaseStatsService.levelFactor(Number(raw.level) || 0, Number(raw.graded) || 0) * blessing;
         if (!(f > 0)) return null;
-        const c = BaseStatsService.caracsOf(raw);
+        const c = SkillModelService.withoutTier2(BaseStatsService.caracsOf(raw), Number(raw.class),
+            BaseStatsService.tierPoints(raw, 2), blessing);
+        if (!c) return null;
         return [c.carac1 / f, c.carac2 / f, c.carac3 / f];
     }
 
@@ -109,7 +128,7 @@ export class BaseStatsService {
      * she is (and keeps what she holds).
      */
     static strip<T extends BaseRawGirl>(raw: T, definition: Definition | null | undefined, horizon: BaseHorizon): T {
-        const def = definition ?? (BaseStatsService.isBare(raw) ? BaseStatsService.definitionFromCaracs(raw) : null);
+        const def = definition ?? BaseStatsService.definitionFromCaracs(raw);
         if (!def) return raw;
         const caracs = BaseStatsService.baseCaracs(raw, def, horizon);
         const info = (raw.skill_tiers_info ?? {}) as Record<string, Record<string, unknown> | null>;
@@ -127,11 +146,12 @@ export class BaseStatsService {
 
     /** Girls whose definition cannot be read back from their caracs. */
     static needingDefinition(raws: BaseRawGirl[]): number[] {
-        return raws.filter(r => !BaseStatsService.isBare(r)).map(r => Number(r.id_girl));
+        return raws.filter(r => !BaseStatsService.isReadable(r)).map(r => Number(r.id_girl));
     }
 
-    static storedDefinitions(): Record<string, Definition> {
-        return getStoredJSON<Record<string, Definition>>(HHStoredVarPrefixKey + TK.girlDefinitions, {});
+    /** Stored definitions; null marks a girl a full read of the list did not carry. */
+    static storedDefinitions(): Record<string, Definition | null> {
+        return getStoredJSON<Record<string, Definition | null>>(HHStoredVarPrefixKey + TK.girlDefinitions, {});
     }
 
     /**
@@ -140,14 +160,18 @@ export class BaseStatsService {
      * every missing girl is found, or a page brings no girl not seen before --
      * with the owned filter the game reports one page too few, and a page past
      * the end repeats the last one (measured). Every girl a page carries is
-     * kept, so a later calculation needs no request.
+     * kept, so a later calculation needs no request. A girl a complete read
+     * did not carry is stored as not found and not searched for again: the
+     * list can miss an owned girl (measured: one of 2,567), and the search
+     * for her read the whole list again after every reload.
      */
     static async loadDefinitions(ids: number[], onPage?: (page: number) => void): Promise<Map<number, Definition>> {
         const stored = BaseStatsService.storedDefinitions();
-        const missing = new Set(ids.filter(id => !stored[String(id)]));
+        const missing = new Set(ids.filter(id => !(String(id) in stored)));
         if (missing.size > 0) {
             let page = 1;
             let staleInRow = 0;
+            let failed = false;
             const seen = new Set<string>();
             while (missing.size > 0 && page <= MAX_PAGES && staleInRow < 2) {
                 if (onPage) onPage(page);
@@ -165,10 +189,11 @@ export class BaseStatsService {
                     missing.delete(Number(id));
                 }
                 staleInRow = fresh === 0 ? staleInRow + 1 : 0;
-                if (!answer) break;
+                if (!answer) { failed = true; break; }
                 page++;
                 await new Promise(r => setTimeout(r, PAGE_DELAY_MS));
             }
+            if (!failed && page <= MAX_PAGES) for (const id of missing) stored[String(id)] = null;
             setStoredValue(HHStoredVarPrefixKey + TK.girlDefinitions, JSON.stringify(stored));
             if (missing.size > 0) logHHAuto(`BaseStatsService: no definition for ${missing.size} girls, they keep their gear and skills in the calculation`);
         }

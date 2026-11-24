@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.25.1
+// @version      8.25.2
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -26886,6 +26886,58 @@ class TeamSelectionService {
         return out;
     }
     /**
+     * Single swaps from `start` until none improves the score: each round
+     * tries every girl of `pool` in each of the positions 2-7 and every girl
+     * of `leaders` in position 1, and keeps the best swap of the round.
+     *
+     * Why: the candidates fix the leader by the leader rule and take, within
+     * an element, the strongest girls by caracs_sum -- among girls of equal
+     * stats in whatever order they come. Both ignore the Tier-3 trait. On a
+     * live account the leader rule took a red-eyed Mythic over a blue-eyed
+     * one 13 caracs weaker, which cost the blue-eyed fire and darkness girls
+     * their Tier-3 matches; the player's hand-built team stood 2.1 % above
+     * every one of 1,782 candidates. The search from the stat-sum pick and
+     * the one from the hand-built team ended on the same team, after one to
+     * four rounds, on two games.
+     *
+     * The thread is handed back to the page every `sliceMs`.
+     */
+    static improveBySwaps(start_1, pool_1, leaders_1, score_1) {
+        return TeamSelectionService_awaiter(this, arguments, void 0, function* (start, pool, leaders, score, maxRounds = 20, sliceMs = 25) {
+            let current = [...start];
+            let currentScore = score(current);
+            let rounds = 0;
+            let sliceStart = Date.now();
+            for (; rounds < maxRounds; rounds++) {
+                let bestIds = null;
+                let bestScore = currentScore;
+                const inTeam = new Set(current);
+                for (let pos = 0; pos < current.length; pos++) {
+                    for (const id of pos === 0 ? leaders : pool) {
+                        if (inTeam.has(id))
+                            continue;
+                        const team = [...current];
+                        team[pos] = id;
+                        const s = score(team);
+                        if (s > bestScore * (1 + 1e-9)) {
+                            bestScore = s;
+                            bestIds = team;
+                        }
+                        if (Date.now() - sliceStart >= sliceMs) {
+                            yield TeamSelectionService.yieldToPage();
+                            sliceStart = Date.now();
+                        }
+                    }
+                }
+                if (!bestIds)
+                    break;
+                current = bestIds;
+                currentScore = bestScore;
+            }
+            return { ids: current, score: currentScore, rounds };
+        });
+    }
+    /**
      * Every team that differs from `base` in one of the positions 2-7, the
      * swap partner taken from the `alternatives` strongest girls of the pool
      * by caracs_sum that are not in the team. Position 1 stays: the leader
@@ -33434,170 +33486,6 @@ class BlessingForecast {
     }
 }
 
-;// ./src/Service/BaseStatsService.ts
-// BaseStatsService.ts -- The girls as "Unequip & Unskill" would leave them,
-// calculated instead of reset.
-//
-// Why: the team calculation must not prefer a girl for the gear and the
-// skills she holds today. Stuff Team and Best gear move both onto whichever
-// team is picked; read from the game's caracs, the team that holds them wins
-// every calculation again. Measured on a live account: without this, the
-// calculation returned the equipped team itself.
-//
-// What a girl is worth without gear and skills follows from her definition:
-//
-//   carac = definition carac x level x (1 + 0.3 x grades) / 10 x league blessing
-//
-// Measured exact to 0.01 on two games (1,681 and 1,826 girls without gear and
-// Tier-2 points). Only gear and Tier 2 sit in the caracs on top of that; Tier
-// 1, 3, 4 and 5 do not. A girl without either is therefore read back from her
-// caracs; only the others need their definition, which availableGirls does
-// not carry -- get_girls_list (the harem list, 24 girls per request) does.
-// Definitions never change for a girl, so they are kept in storage and
-// fetched once.
-//
-// Depends on: BlessingService.ts (league multiplier), Utils.ts (callGame)
-// Used by: TeamSelectionPopup.ts
-var BaseStatsService_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-
-
-
-
-
-const FULL_LEVEL = 750;
-/** Pages of the harem list read at most in one go (24 girls each). */
-const MAX_PAGES = 150;
-const PAGE_DELAY_MS = 300;
-class BaseStatsService {
-    static gearPieces(raw) {
-        const armor = raw.armor;
-        if (Array.isArray(armor))
-            return armor.length;
-        return armor && typeof armor === 'object' ? Object.keys(armor).length : 0;
-    }
-    static tierPoints(raw, tier) {
-        var _a;
-        const info = raw.skill_tiers_info;
-        return Number((_a = info === null || info === void 0 ? void 0 : info[String(tier)]) === null || _a === void 0 ? void 0 : _a.skill_points_used) || 0;
-    }
-    /** True when her caracs hold nothing but definition, level, grades and blessing. */
-    static isBare(raw) {
-        return BaseStatsService.gearPieces(raw) === 0 && BaseStatsService.tierPoints(raw, 2) === 0;
-    }
-    static levelFactor(level, grades) {
-        return level * (1 + 0.3 * grades) / 10;
-    }
-    static caracsOf(raw) {
-        var _a, _b, _c, _d;
-        const c = (_a = raw.caracs) !== null && _a !== void 0 ? _a : {};
-        return {
-            carac1: Number((_b = c.carac1) !== null && _b !== void 0 ? _b : raw.carac1) || 0,
-            carac2: Number((_c = c.carac2) !== null && _c !== void 0 ? _c : raw.carac2) || 0,
-            carac3: Number((_d = c.carac3) !== null && _d !== void 0 ? _d : raw.carac3) || 0,
-        };
-    }
-    /** A bare girl's definition, read back from her caracs. */
-    static definitionFromCaracs(raw) {
-        const f = BaseStatsService.levelFactor(Number(raw.level) || 0, Number(raw.graded) || 0)
-            * BlessingService.getEffectiveMultiplier(raw, 'league');
-        if (!(f > 0))
-            return null;
-        const c = BaseStatsService.caracsOf(raw);
-        return [c.carac1 / f, c.carac2 / f, c.carac3 / f];
-    }
-    /** Her caracs without gear and skills, today or fully developed. */
-    static baseCaracs(raw, definition, horizon) {
-        const level = horizon === 'full' ? FULL_LEVEL : Number(raw.level) || 0;
-        const grades = horizon === 'full' ? Number(raw.nb_grades) || 0 : Number(raw.graded) || 0;
-        const f = BaseStatsService.levelFactor(level, grades) * BlessingService.getEffectiveMultiplier(raw, 'league');
-        return { carac1: definition[0] * f, carac2: definition[1] * f, carac3: definition[2] * f };
-    }
-    /**
-     * The girl as Unequip & Unskill would leave her: no gear, no skill
-     * points, caracs from the definition. Without a definition she stays as
-     * she is (and keeps what she holds).
-     */
-    static strip(raw, definition, horizon) {
-        var _a;
-        const def = definition !== null && definition !== void 0 ? definition : (BaseStatsService.isBare(raw) ? BaseStatsService.definitionFromCaracs(raw) : null);
-        if (!def)
-            return raw;
-        const caracs = BaseStatsService.baseCaracs(raw, def, horizon);
-        const info = ((_a = raw.skill_tiers_info) !== null && _a !== void 0 ? _a : {});
-        const zeroed = {};
-        for (const [tier, t] of Object.entries(info))
-            zeroed[tier] = t ? Object.assign(Object.assign({}, t), { skill_points_used: 0 }) : t;
-        return Object.assign(Object.assign({}, raw), { caracs, carac1: caracs.carac1, carac2: caracs.carac2, carac3: caracs.carac3, caracs_sum: caracs.carac1 + caracs.carac2 + caracs.carac3, armor: [], skill_tiers_info: zeroed });
-    }
-    /** Girls whose definition cannot be read back from their caracs. */
-    static needingDefinition(raws) {
-        return raws.filter(r => !BaseStatsService.isBare(r)).map(r => Number(r.id_girl));
-    }
-    static storedDefinitions() {
-        return getStoredJSON(HHStoredVarPrefixKey + TK.girlDefinitions, {});
-    }
-    /**
-     * Definitions for the given girls: from storage, the missing ones from
-     * the harem list. The list is read page by page (owned girls only) until
-     * every missing girl is found, or a page brings no girl not seen before --
-     * with the owned filter the game reports one page too few, and a page past
-     * the end repeats the last one (measured). Every girl a page carries is
-     * kept, so a later calculation needs no request.
-     */
-    static loadDefinitions(ids, onPage) {
-        return BaseStatsService_awaiter(this, void 0, void 0, function* () {
-            var _a;
-            const stored = BaseStatsService.storedDefinitions();
-            const missing = new Set(ids.filter(id => !stored[String(id)]));
-            if (missing.size > 0) {
-                let page = 1;
-                let staleInRow = 0;
-                const seen = new Set();
-                while (missing.size > 0 && page <= MAX_PAGES && staleInRow < 2) {
-                    if (onPage)
-                        onPage(page);
-                    const answer = yield callGame({ action: 'get_girls_list', page, 'filters[shards][]': 100 }, 15000, (err) => logHHAuto('BaseStatsService: get_girls_list failed: ' + err));
-                    const list = Array.isArray(answer === null || answer === void 0 ? void 0 : answer.girls_list) ? answer.girls_list : [];
-                    let fresh = 0;
-                    for (const g of list) {
-                        const id = String((_a = g.id_girl) !== null && _a !== void 0 ? _a : '');
-                        if (!id || seen.has(id))
-                            continue;
-                        seen.add(id);
-                        fresh++;
-                        stored[id] = [Number(g.carac1) || 0, Number(g.carac2) || 0, Number(g.carac3) || 0];
-                        missing.delete(Number(id));
-                    }
-                    staleInRow = fresh === 0 ? staleInRow + 1 : 0;
-                    if (!answer)
-                        break;
-                    page++;
-                    yield new Promise(r => setTimeout(r, PAGE_DELAY_MS));
-                }
-                setStoredValue(HHStoredVarPrefixKey + TK.girlDefinitions, JSON.stringify(stored));
-                if (missing.size > 0)
-                    logHHAuto(`BaseStatsService: no definition for ${missing.size} girls, they keep their gear and skills in the calculation`);
-            }
-            const out = new Map();
-            for (const id of ids) {
-                const def = stored[String(id)];
-                if (def)
-                    out.set(id, def);
-            }
-            return out;
-        });
-    }
-}
-
 ;// ./src/Service/SkillModelService.ts
 // SkillModelService.ts -- The girls' skill tiers as the team calculation
 // counts them: every candidate is scored as if Stuff Team had filled her
@@ -33637,7 +33525,7 @@ const MAX_POINTS = {
     legendary: { 1: 6, 2: 9, 3: 4, 4: 4, 5: 4 },
 };
 const TIER_LEVEL = { 1: 10, 2: 200, 3: 350, 4: 500, 5: 650 };
-const SkillModelService_FULL_LEVEL = 750;
+const FULL_LEVEL = 750;
 /** Tier 2: the flat node first (5 points, +70 per point), then the percent node. */
 const T2_FLAT_POINTS = 5;
 const T2_FLAT_PER_POINT = 70;
@@ -33670,7 +33558,7 @@ class SkillModelService {
     static isUnlocked(girl, tier, horizon) {
         if (SkillModelService.maxPoints(girl.rarity, tier) === 0)
             return false;
-        const level = horizon === 'full' ? SkillModelService_FULL_LEVEL : Number(girl.level) || 0;
+        const level = horizon === 'full' ? FULL_LEVEL : Number(girl.level) || 0;
         const grades = horizon === 'full' ? Number(girl.nb_grades) || 0 : Number(girl.graded) || 0;
         return level >= TIER_LEVEL[tier] && grades >= tier;
     }
@@ -33713,6 +33601,30 @@ class SkillModelService {
         }
         return Object.assign(Object.assign({}, girl), { caracs, carac1: caracs.carac1, carac2: caracs.carac2, carac3: caracs.carac3 });
     }
+    /**
+     * Caracs without the Tier-2 points a girl holds: the inverse of
+     * withTier2. `cls` is her class (1-3), `blessing` her league multiplier.
+     * Null without a known class -- then it is unknown which carac the
+     * percent node raised.
+     */
+    static withoutTier2(caracs, cls, points, blessing) {
+        if (points <= 0)
+            return Object.assign({}, caracs);
+        if (cls !== 1 && cls !== 2 && cls !== 3)
+            return null;
+        const flatPoints = Math.min(points, T2_FLAT_POINTS);
+        const percentPoints = Math.max(0, points - T2_FLAT_POINTS);
+        const mult = blessing > 0 ? blessing : 1;
+        const own = ('carac' + cls);
+        const out = Object.assign({}, caracs);
+        for (const key of ['carac1', 'carac2', 'carac3']) {
+            if (key === own)
+                out[key] /= 1 + percentPoints * T2_PERCENT_PER_POINT;
+            else
+                out[key] -= flatPoints * T2_FLAT_PER_POINT * mult;
+        }
+        return out;
+    }
     static traitValue(girl, category) {
         switch (category) {
             case 'eyeColor': return girl.eyeColor;
@@ -33749,6 +33661,200 @@ class SkillModelService {
                 info[tier] = Object.assign(Object.assign({}, ((_b = info[tier]) !== null && _b !== void 0 ? _b : {})), { skill_points_used: SkillModelService.targetPoints(g, tier, horizon) });
             }
             return info;
+        });
+    }
+}
+
+;// ./src/Service/BaseStatsService.ts
+// BaseStatsService.ts -- The girls as "Unequip & Unskill" would leave them,
+// calculated instead of reset.
+//
+// Why: the team calculation must not prefer a girl for the gear and the
+// skills she holds today. Stuff Team and Best gear move both onto whichever
+// team is picked; read from the game's caracs, the team that holds them wins
+// every calculation again. Measured on a live account: without this, the
+// calculation returned the equipped team itself.
+//
+// What a girl is worth without gear and skills follows from her definition:
+//
+//   carac = definition carac x level x (1 + 0.3 x grades) / 10 x league blessing
+//
+// Measured exact to 0.01 on two games (1,681 and 1,826 girls without gear and
+// Tier-2 points). Only gear and Tier 2 sit in the caracs on top of that; Tier
+// 1, 3, 4 and 5 do not. A girl without gear is therefore read back from her
+// caracs, Tier 2 taken out by its formula; only girls with gear need their
+// definition, which availableGirls does not carry -- get_girls_list (the harem
+// list, 24 girls per request) does.
+// Definitions never change for a girl, so they are kept in storage and
+// fetched once.
+//
+// Depends on: BlessingService.ts (league multiplier), SkillModelService.ts (Tier 2), Utils.ts (callGame)
+// Used by: TeamSelectionPopup.ts
+var BaseStatsService_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+
+const BaseStatsService_FULL_LEVEL = 750;
+/** Pages of the harem list read at most in one go (24 girls each). */
+const MAX_PAGES = 150;
+const PAGE_DELAY_MS = 300;
+class BaseStatsService {
+    static gearPieces(raw) {
+        const armor = raw.armor;
+        if (Array.isArray(armor))
+            return armor.length;
+        return armor && typeof armor === 'object' ? Object.keys(armor).length : 0;
+    }
+    static tierPoints(raw, tier) {
+        var _a;
+        const info = raw.skill_tiers_info;
+        return Number((_a = info === null || info === void 0 ? void 0 : info[String(tier)]) === null || _a === void 0 ? void 0 : _a.skill_points_used) || 0;
+    }
+    /** True when her caracs hold nothing but definition, level, grades and blessing. */
+    static isBare(raw) {
+        return BaseStatsService.gearPieces(raw) === 0 && BaseStatsService.tierPoints(raw, 2) === 0;
+    }
+    /**
+     * True when her definition can be read back from her caracs: no gear,
+     * and Tier 2 -- if she holds it -- is taken out by its formula, which
+     * needs her class.
+     */
+    static isReadable(raw) {
+        if (BaseStatsService.gearPieces(raw) > 0)
+            return false;
+        const cls = Number(raw.class);
+        return BaseStatsService.tierPoints(raw, 2) === 0 || cls === 1 || cls === 2 || cls === 3;
+    }
+    static levelFactor(level, grades) {
+        return level * (1 + 0.3 * grades) / 10;
+    }
+    static caracsOf(raw) {
+        var _a, _b, _c, _d;
+        const c = (_a = raw.caracs) !== null && _a !== void 0 ? _a : {};
+        return {
+            carac1: Number((_b = c.carac1) !== null && _b !== void 0 ? _b : raw.carac1) || 0,
+            carac2: Number((_c = c.carac2) !== null && _c !== void 0 ? _c : raw.carac2) || 0,
+            carac3: Number((_d = c.carac3) !== null && _d !== void 0 ? _d : raw.carac3) || 0,
+        };
+    }
+    /**
+     * A girl's definition, read back from her caracs; Tier 2 is taken out
+     * first (SkillModelService.withoutTier2). Null for a girl with gear.
+     */
+    static definitionFromCaracs(raw) {
+        if (!BaseStatsService.isReadable(raw))
+            return null;
+        const blessing = BlessingService.getEffectiveMultiplier(raw, 'league');
+        const f = BaseStatsService.levelFactor(Number(raw.level) || 0, Number(raw.graded) || 0) * blessing;
+        if (!(f > 0))
+            return null;
+        const c = SkillModelService.withoutTier2(BaseStatsService.caracsOf(raw), Number(raw.class), BaseStatsService.tierPoints(raw, 2), blessing);
+        if (!c)
+            return null;
+        return [c.carac1 / f, c.carac2 / f, c.carac3 / f];
+    }
+    /** Her caracs without gear and skills, today or fully developed. */
+    static baseCaracs(raw, definition, horizon) {
+        const level = horizon === 'full' ? BaseStatsService_FULL_LEVEL : Number(raw.level) || 0;
+        const grades = horizon === 'full' ? Number(raw.nb_grades) || 0 : Number(raw.graded) || 0;
+        const f = BaseStatsService.levelFactor(level, grades) * BlessingService.getEffectiveMultiplier(raw, 'league');
+        return { carac1: definition[0] * f, carac2: definition[1] * f, carac3: definition[2] * f };
+    }
+    /**
+     * The girl as Unequip & Unskill would leave her: no gear, no skill
+     * points, caracs from the definition. Without a definition she stays as
+     * she is (and keeps what she holds).
+     */
+    static strip(raw, definition, horizon) {
+        var _a;
+        const def = definition !== null && definition !== void 0 ? definition : BaseStatsService.definitionFromCaracs(raw);
+        if (!def)
+            return raw;
+        const caracs = BaseStatsService.baseCaracs(raw, def, horizon);
+        const info = ((_a = raw.skill_tiers_info) !== null && _a !== void 0 ? _a : {});
+        const zeroed = {};
+        for (const [tier, t] of Object.entries(info))
+            zeroed[tier] = t ? Object.assign(Object.assign({}, t), { skill_points_used: 0 }) : t;
+        return Object.assign(Object.assign({}, raw), { caracs, carac1: caracs.carac1, carac2: caracs.carac2, carac3: caracs.carac3, caracs_sum: caracs.carac1 + caracs.carac2 + caracs.carac3, armor: [], skill_tiers_info: zeroed });
+    }
+    /** Girls whose definition cannot be read back from their caracs. */
+    static needingDefinition(raws) {
+        return raws.filter(r => !BaseStatsService.isReadable(r)).map(r => Number(r.id_girl));
+    }
+    /** Stored definitions; null marks a girl a full read of the list did not carry. */
+    static storedDefinitions() {
+        return getStoredJSON(HHStoredVarPrefixKey + TK.girlDefinitions, {});
+    }
+    /**
+     * Definitions for the given girls: from storage, the missing ones from
+     * the harem list. The list is read page by page (owned girls only) until
+     * every missing girl is found, or a page brings no girl not seen before --
+     * with the owned filter the game reports one page too few, and a page past
+     * the end repeats the last one (measured). Every girl a page carries is
+     * kept, so a later calculation needs no request. A girl a complete read
+     * did not carry is stored as not found and not searched for again: the
+     * list can miss an owned girl (measured: one of 2,567), and the search
+     * for her read the whole list again after every reload.
+     */
+    static loadDefinitions(ids, onPage) {
+        return BaseStatsService_awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const stored = BaseStatsService.storedDefinitions();
+            const missing = new Set(ids.filter(id => !(String(id) in stored)));
+            if (missing.size > 0) {
+                let page = 1;
+                let staleInRow = 0;
+                let failed = false;
+                const seen = new Set();
+                while (missing.size > 0 && page <= MAX_PAGES && staleInRow < 2) {
+                    if (onPage)
+                        onPage(page);
+                    const answer = yield callGame({ action: 'get_girls_list', page, 'filters[shards][]': 100 }, 15000, (err) => logHHAuto('BaseStatsService: get_girls_list failed: ' + err));
+                    const list = Array.isArray(answer === null || answer === void 0 ? void 0 : answer.girls_list) ? answer.girls_list : [];
+                    let fresh = 0;
+                    for (const g of list) {
+                        const id = String((_a = g.id_girl) !== null && _a !== void 0 ? _a : '');
+                        if (!id || seen.has(id))
+                            continue;
+                        seen.add(id);
+                        fresh++;
+                        stored[id] = [Number(g.carac1) || 0, Number(g.carac2) || 0, Number(g.carac3) || 0];
+                        missing.delete(Number(id));
+                    }
+                    staleInRow = fresh === 0 ? staleInRow + 1 : 0;
+                    if (!answer) {
+                        failed = true;
+                        break;
+                    }
+                    page++;
+                    yield new Promise(r => setTimeout(r, PAGE_DELAY_MS));
+                }
+                if (!failed && page <= MAX_PAGES)
+                    for (const id of missing)
+                        stored[String(id)] = null;
+                setStoredValue(HHStoredVarPrefixKey + TK.girlDefinitions, JSON.stringify(stored));
+                if (missing.size > 0)
+                    logHHAuto(`BaseStatsService: no definition for ${missing.size} girls, they keep their gear and skills in the calculation`);
+            }
+            const out = new Map();
+            for (const id of ids) {
+                const def = stored[String(id)];
+                if (def)
+                    out.set(id, def);
+            }
+            return out;
         });
     }
 }
@@ -34312,8 +34418,11 @@ class TeamGearTieBreakService {
 //
 // All rubrics start from the same kind of candidates: the builder's picks,
 // one round of single swaps around the stat-sum pick, and the strongest team
-// of every element mix (TeamSelectionService). Position 1 stays with the
-// builder's leader -- the Mythic with the Tier-5 Shield -- in every candidate.
+// of every element mix (TeamSelectionService), each with the builder's leader
+// -- the Mythic with the Tier-5 Shield -- in position 1. A swap search then
+// goes on from the strongest candidate and from the hexagons until no single
+// swap helps; in position 1 it tries only girls of the leader's rarity and
+// Tier-5 skill (TeamSelectionService.improveBySwaps).
 //
 // Every girl is scored without the gear and the skills she holds today, as
 // Unequip & Unskill would leave her (BaseStatsService, calculated -- nothing
@@ -34681,6 +34790,42 @@ class TeamSelectionPopup {
             return true;
         });
     }
+    /** Append the teams the swap search ends on to `teams` (see evaluate). */
+    static addSwapSearch(r, teams, hexagons, girls, effective) {
+        return TeamSelectionPopup_awaiter(this, void 0, void 0, function* () {
+            const pool = TeamScoringService.filterEligible(girls);
+            const inPool = new Set(pool.map(g => g.id_girl));
+            let top = null;
+            let topScore = -Infinity;
+            for (const t of teams) {
+                const s = effective(t);
+                if (s > topScore) {
+                    topScore = s;
+                    top = t;
+                }
+            }
+            const starts = [top, hexagons.length === 7 && hexagons.every(id => inPool.has(id)) ? hexagons : null]
+                .filter((t) => !!t);
+            const seen = new Set(teams.map(t => TeamSelectionService.teamKey(t)));
+            const ids = pool.map(g => g.id_girl);
+            for (const start of starts) {
+                const head = pool.find(g => g.id_girl === start[0]);
+                if (!head)
+                    continue;
+                const tier5 = TeamScoringService.getTier5Skill(head.element).priority;
+                const leaders = pool.filter(g => g.rarity === head.rarity && TeamScoringService.getTier5Skill(g.element).priority === tier5)
+                    .map(g => g.id_girl);
+                const found = yield TeamSelectionService.improveBySwaps(start, ids, leaders, effective);
+                const key = TeamSelectionService.teamKey(found.ids);
+                logHHAuto(`Team selection ${r.id}: swap search from ${start === top ? 'the strongest candidate' : 'the hexagons'}, `
+                    + `${found.rounds} rounds, ${found.ids.join(',')} effective ${found.score}`);
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    teams.push(found.ids);
+                }
+            }
+        });
+    }
     static girlsById(girls, ids) {
         return ids.map(id => girls.find(g => g.id_girl === id)).filter((g) => !!g);
     }
@@ -34850,9 +34995,12 @@ class TeamSelectionPopup {
             const model = TeamSelectionPopup.model;
             const harem = TeamEvaluationService.getHaremSynergies();
             const horizon = TeamSelectionPopup.horizon(r);
+            const evaluatedById = new Map(pool.evaluated.map(g => [g.id_girl, g]));
+            const baseById = new Map(pool.base.map(g => [g.id_girl, g]));
+            const pick = (m, ids) => ids.map(id => m.get(id)).filter((g) => !!g);
             const statsOf = (ids) => {
-                const evaluated = TeamSelectionPopup.girlsById(pool.evaluated, ids);
-                const base = TeamSelectionPopup.girlsById(pool.base, ids);
+                const evaluated = pick(evaluatedById, ids);
+                const base = pick(baseById, ids);
                 const tier3 = SkillModelService.tier3Bonus(base, g => SkillModelService.targetPoints(g, 3, horizon));
                 return TeamSelectionService.modelCaracs(model, TeamSelectionService.caracSum(evaluated), TeamSelectionService.countElements(evaluated), tier3, harem);
             };
@@ -34867,6 +35015,17 @@ class TeamSelectionPopup {
                 const fighters = teamGirls.map((g, i) => (Object.assign(Object.assign({}, g), { skill_tiers_info: tiers[i] })));
                 const s = yield TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, fighters, harem), snap.opponents);
                 return { ids, caracs, score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
+            });
+            // The swap search (TeamSelectionService.improveBySwaps) adds the team
+            // it ends on, from the strongest candidate and from the hexagons. It
+            // runs on the effective power in every rubric -- the fight simulation
+            // is too slow for thousands of swaps --, and the league rubrics then
+            // simulate its result like any other candidate. Position 1 takes only
+            // girls of the leader's rarity and Tier-5 skill, so the leader rule
+            // still holds.
+            yield TeamSelectionPopup.addSwapSearch(r, teams, current, pool.evaluated, ids => {
+                const caracs = statsOf(ids);
+                return TeamEvaluationService.computeEffectivePower(caracs, TeamSelectionService.countElements(pick(evaluatedById, ids)), harem);
             });
             // Every candidate is scored, and in the league rubrics every candidate
             // against every opponent with an open fight.

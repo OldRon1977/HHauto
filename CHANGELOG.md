@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.25.2 - Swap search in the team selection
+
+- **Team optimization**: after the candidates, a swap search goes on from the strongest one and from the hexagons until no single swap improves the team; the leader stays a girl of the same rarity and Tier-5 skill.
+- **Team optimization**: a girl without gear but with Tier 2 is calculated from her own stats; the harem list is no longer read for her.
+- **Team optimization**: a girl the harem list does not carry is not searched for again after every reload.
+
 ### v8.25.1 - Team selection: every element mix
 
 - **Team optimization**: the rubrics also weigh the strongest team of every element mix, e.g. three darkness and three fire girls next to the leader; such a team was missing when stronger girls of another element filled the free positions.

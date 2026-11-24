@@ -184,3 +184,31 @@ describe('TeamSelectionService.scoreAgainstOpponentsSliced', () => {
         expect(sliced).toEqual(plain);
     });
 });
+
+describe('TeamSelectionService.improveBySwaps', () => {
+    // Girls 1-20 worth their id; a pair bonus for 15 and 16 together that no
+    // single-girl ranking sees.
+    const value = (ids: number[]) => ids.reduce((s, id) => s + id, 0) + (ids.includes(15) && ids.includes(16) ? 100 : 0);
+    const pool = Array.from({ length: 20 }, (_, i) => i + 1);
+
+    it('swaps until no single swap improves the team', async () => {
+        const out = await TeamSelectionService.improveBySwaps([1, 2, 3, 4, 5, 6, 7], pool, [1, 2, 3], value);
+        // Position 1 only from the leaders; 3 is the best of them.
+        expect(out.ids[0]).toBe(3);
+        expect(new Set(out.ids.slice(1))).toEqual(new Set([20, 19, 18, 17, 16, 15]));
+        expect(out.score).toBe(value(out.ids));
+        expect(out.rounds).toBeGreaterThan(0);
+    });
+
+    it('keeps a team no swap can improve', async () => {
+        const start = [3, 20, 19, 18, 17, 16, 15];
+        const out = await TeamSelectionService.improveBySwaps(start, pool, [1, 2, 3], value);
+        expect(out.ids).toEqual(start);
+        expect(out.rounds).toBe(0);
+    });
+
+    it('never puts a non-leader in position 1', async () => {
+        const out = await TeamSelectionService.improveBySwaps([1, 2, 3, 4, 5, 6, 7], pool, [1], value);
+        expect(out.ids[0]).toBe(1);
+    });
+});

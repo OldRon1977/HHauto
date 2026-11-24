@@ -132,6 +132,28 @@ export class SkillModelService {
         return { ...girl, caracs, carac1: caracs.carac1, carac2: caracs.carac2, carac3: caracs.carac3 };
     }
 
+    /**
+     * Caracs without the Tier-2 points a girl holds: the inverse of
+     * withTier2. `cls` is her class (1-3), `blessing` her league multiplier.
+     * Null without a known class -- then it is unknown which carac the
+     * percent node raised.
+     */
+    static withoutTier2(caracs: { carac1: number; carac2: number; carac3: number }, cls: number, points: number,
+        blessing: number): { carac1: number; carac2: number; carac3: number } | null {
+        if (points <= 0) return { ...caracs };
+        if (cls !== 1 && cls !== 2 && cls !== 3) return null;
+        const flatPoints = Math.min(points, T2_FLAT_POINTS);
+        const percentPoints = Math.max(0, points - T2_FLAT_POINTS);
+        const mult = blessing > 0 ? blessing : 1;
+        const own = ('carac' + cls) as 'carac1' | 'carac2' | 'carac3';
+        const out = { ...caracs };
+        for (const key of ['carac1', 'carac2', 'carac3'] as const) {
+            if (key === own) out[key] /= 1 + percentPoints * T2_PERCENT_PER_POINT;
+            else out[key] -= flatPoints * T2_FLAT_PER_POINT * mult;
+        }
+        return out;
+    }
+
     static traitValue(girl: GirlData, category: TraitCategory): string | undefined {
         switch (category) {
             case 'eyeColor':  return girl.eyeColor;

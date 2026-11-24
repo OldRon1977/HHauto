@@ -26,6 +26,8 @@ describe('BaseStatsService', () => {
         expect(BaseStatsService.isBare(raw({ skill_tiers_info: tiers(6, 9, 0, 0, 0) }))).toBe(false);
         expect(BaseStatsService.isBare(raw({ armor: [{}] }))).toBe(false);
         expect(BaseStatsService.needingDefinition([raw(), raw({ id_girl: 2, armor: [{}] })])).toEqual([2]);
+        expect(BaseStatsService.isReadable(raw({ class: 2, skill_tiers_info: tiers(6, 9, 0, 0, 0) }))).toBe(true);
+        expect(BaseStatsService.isReadable(raw({ armor: [{}] }))).toBe(false);
     });
 
     it('strips gear and skills: caracs from the definition, every skill point at 0', () => {
@@ -46,5 +48,31 @@ describe('BaseStatsService', () => {
     it('leaves a girl with gear and no definition as she is', () => {
         const worn = raw({ armor: [{}] });
         expect(BaseStatsService.strip(worn, undefined, 'now')).toBe(worn);
+    });
+});
+
+describe('BaseStatsService -- Tier 2 taken out of the caracs', () => {
+    // Class 1, nine Tier-2 points: +5 x 70 x blessing on carac2 and carac3,
+    // +4 % on carac1 (SkillModelService.withTier2).
+    const t2 = raw({ class: 1, skill_tiers_info: tiers(6, 9, 4, 4, 0),
+        caracs: { carac1: 55 * F * 1.04, carac2: 40 * F + 350 * 1.5625, carac3: 20 * F + 350 * 1.5625 } });
+
+    it('reads a girl without gear but with Tier 2 back to her definition', () => {
+        const def = BaseStatsService.definitionFromCaracs(t2)!;
+        expect(def[0]).toBeCloseTo(55, 9);
+        expect(def[1]).toBeCloseTo(40, 9);
+        expect(def[2]).toBeCloseTo(20, 9);
+        expect(BaseStatsService.needingDefinition([t2])).toEqual([]);
+    });
+
+    it('needs the list for a girl with Tier 2 but no known class', () => {
+        const noClass = { ...t2, class: undefined };
+        expect(BaseStatsService.definitionFromCaracs(noClass)).toBeNull();
+        expect(BaseStatsService.needingDefinition([noClass])).toEqual([1]);
+    });
+
+    it('strips such a girl without her definition from the list', () => {
+        const out = BaseStatsService.strip(t2, undefined, 'now');
+        expect(out.caracs.carac2).toBeCloseTo(40 * F, 6);
     });
 });
