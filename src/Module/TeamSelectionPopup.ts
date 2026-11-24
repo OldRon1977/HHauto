@@ -21,8 +21,11 @@
 //
 // All rubrics start from the same kind of candidates: the builder's picks,
 // one round of single swaps around the stat-sum pick, and the strongest team
-// of every element mix (TeamSelectionService). Position 1 stays with the
-// builder's leader -- the Mythic with the Tier-5 Shield -- in every candidate.
+// of every element mix (TeamSelectionService), each with the builder's leader
+// -- the Mythic with the Tier-5 Shield -- in position 1. A swap search then
+// goes on from the strongest candidate and from the hexagons until no single
+// swap helps; in position 1 it tries only girls of the leader's rarity and
+// Tier-5 skill (TeamSelectionService.improveBySwaps).
 //
 // Every girl is scored without the gear and the skills she holds today, as
 // Unequip & Unskill would leave her (BaseStatsService, calculated -- nothing
@@ -451,6 +454,35 @@ export class TeamSelectionPopup {
         });
     }
 
+    /** Append the teams the swap search ends on to `teams` (see evaluate). */
+    private static async addSwapSearch(r: Rubric, teams: number[][], hexagons: number[], girls: GirlData[],
+        effective: (ids: number[]) => number): Promise<void> {
+        const pool = TeamScoringService.filterEligible(girls);
+        const inPool = new Set(pool.map(g => g.id_girl));
+        let top: number[] | null = null;
+        let topScore = -Infinity;
+        for (const t of teams) {
+            const s = effective(t);
+            if (s > topScore) { topScore = s; top = t; }
+        }
+        const starts = [top, hexagons.length === 7 && hexagons.every(id => inPool.has(id)) ? hexagons : null]
+            .filter((t): t is number[] => !!t);
+        const seen = new Set(teams.map(t => TeamSelectionService.teamKey(t)));
+        const ids = pool.map(g => g.id_girl);
+        for (const start of starts) {
+            const head = pool.find(g => g.id_girl === start[0]);
+            if (!head) continue;
+            const tier5 = TeamScoringService.getTier5Skill(head.element).priority;
+            const leaders = pool.filter(g => g.rarity === head.rarity && TeamScoringService.getTier5Skill(g.element).priority === tier5)
+                .map(g => g.id_girl);
+            const found = await TeamSelectionService.improveBySwaps(start, ids, leaders, effective);
+            const key = TeamSelectionService.teamKey(found.ids);
+            logHHAuto(`Team selection ${r.id}: swap search from ${start === top ? 'the strongest candidate' : 'the hexagons'}, `
+                + `${found.rounds} rounds, ${found.ids.join(',')} effective ${found.score}`);
+            if (!seen.has(key)) { seen.add(key); teams.push(found.ids); }
+        }
+    }
+
     private static girlsById(girls: GirlData[], ids: number[]): GirlData[] {
         return ids.map(id => girls.find(g => g.id_girl === id)).filter((g): g is GirlData => !!g);
     }
@@ -594,9 +626,13 @@ export class TeamSelectionPopup {
         const model = TeamSelectionPopup.model!;
         const harem = TeamEvaluationService.getHaremSynergies();
         const horizon = TeamSelectionPopup.horizon(r);
+        const evaluatedById = new Map(pool.evaluated.map(g => [g.id_girl, g]));
+        const baseById = new Map(pool.base.map(g => [g.id_girl, g]));
+        const pick = (m: Map<number, GirlData>, ids: number[]): GirlData[] =>
+            ids.map(id => m.get(id)).filter((g): g is GirlData => !!g);
         const statsOf = (ids: number[]): TeamCaracs => {
-            const evaluated = TeamSelectionPopup.girlsById(pool.evaluated, ids);
-            const base = TeamSelectionPopup.girlsById(pool.base, ids);
+            const evaluated = pick(evaluatedById, ids);
+            const base = pick(baseById, ids);
             const tier3 = SkillModelService.tier3Bonus(base, g => SkillModelService.targetPoints(g, 3, horizon));
             return TeamSelectionService.modelCaracs(model, TeamSelectionService.caracSum(evaluated), TeamSelectionService.countElements(evaluated), tier3, harem);
         };
@@ -612,6 +648,18 @@ export class TeamSelectionPopup {
             const s = await TeamSelectionService.scoreAgainstOpponentsSliced(TeamSelectionService.buildHeroFighter(caracs, fighters, harem), snap!.opponents);
             return { ids, caracs, score: s.points, detail: `${(s.winChance * 100).toFixed(1)} %` };
         };
+        // The swap search (TeamSelectionService.improveBySwaps) adds the team
+        // it ends on, from the strongest candidate and from the hexagons. It
+        // runs on the effective power in every rubric -- the fight simulation
+        // is too slow for thousands of swaps --, and the league rubrics then
+        // simulate its result like any other candidate. Position 1 takes only
+        // girls of the leader's rarity and Tier-5 skill, so the leader rule
+        // still holds.
+        await TeamSelectionPopup.addSwapSearch(r, teams, current, pool.evaluated, ids => {
+            const caracs = statsOf(ids);
+            return TeamEvaluationService.computeEffectivePower(caracs, TeamSelectionService.countElements(pick(evaluatedById, ids)), harem);
+        });
+
         // Every candidate is scored, and in the league rubrics every candidate
         // against every opponent with an open fight.
         const scored = teams;

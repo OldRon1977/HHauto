@@ -171,6 +171,59 @@ export class TeamSelectionService {
     }
 
     /**
+     * Single swaps from `start` until none improves the score: each round
+     * tries every girl of `pool` in each of the positions 2-7 and every girl
+     * of `leaders` in position 1, and keeps the best swap of the round.
+     *
+     * Why: the candidates fix the leader by the leader rule and take, within
+     * an element, the strongest girls by caracs_sum -- among girls of equal
+     * stats in whatever order they come. Both ignore the Tier-3 trait. On a
+     * live account the leader rule took a red-eyed Mythic over a blue-eyed
+     * one 13 caracs weaker, which cost the blue-eyed fire and darkness girls
+     * their Tier-3 matches; the player's hand-built team stood 2.1 % above
+     * every one of 1,782 candidates. The search from the stat-sum pick and
+     * the one from the hand-built team ended on the same team, after one to
+     * four rounds, on two games.
+     *
+     * The thread is handed back to the page every `sliceMs`.
+     */
+    static async improveBySwaps(
+        start: number[],
+        pool: number[],
+        leaders: number[],
+        score: (ids: number[]) => number,
+        maxRounds: number = 20,
+        sliceMs: number = 25,
+    ): Promise<{ ids: number[]; score: number; rounds: number }> {
+        let current = [...start];
+        let currentScore = score(current);
+        let rounds = 0;
+        let sliceStart = Date.now();
+        for (; rounds < maxRounds; rounds++) {
+            let bestIds: number[] | null = null;
+            let bestScore = currentScore;
+            const inTeam = new Set(current);
+            for (let pos = 0; pos < current.length; pos++) {
+                for (const id of pos === 0 ? leaders : pool) {
+                    if (inTeam.has(id)) continue;
+                    const team = [...current];
+                    team[pos] = id;
+                    const s = score(team);
+                    if (s > bestScore * (1 + 1e-9)) { bestScore = s; bestIds = team; }
+                    if (Date.now() - sliceStart >= sliceMs) {
+                        await TeamSelectionService.yieldToPage();
+                        sliceStart = Date.now();
+                    }
+                }
+            }
+            if (!bestIds) break;
+            current = bestIds;
+            currentScore = bestScore;
+        }
+        return { ids: current, score: currentScore, rounds };
+    }
+
+    /**
      * Every team that differs from `base` in one of the positions 2-7, the
      * swap partner taken from the `alternatives` strongest girls of the pool
      * by caracs_sum that are not in the team. Position 1 stays: the leader
