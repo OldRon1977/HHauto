@@ -43,6 +43,10 @@ import { PassHelper } from "./PassHelper";
 const RELOADING_POPUP_POLL_MS = 250;
 const RELOADING_POPUP_POLLS = 60;
 const RELOADING_POPUP_RELOAD_WAIT_MS = 10000;
+// claimInTurn: how long to look for the reward popup once the claim has been
+// answered. Measured on the test account: the popup was up 14-38 ms after the
+// answer (Seasonal, Penta Drill); a refused claim brings none.
+const CLAIM_POPUP_WAIT_MS = 2000;
 
 export class RewardHelper {
     static getRewardTypeBySlot(inSlot: any): string
@@ -346,9 +350,13 @@ export class RewardHelper {
      * The game ignores a claim click while the previous claim is unanswered:
      * with the server answering after 3 s, one request went out for five
      * tiers and the rest stayed open (measured on Path of Valor). So each
-     * click waits for its answer before the next one. Path of Valor and Path
-     * of Glory claim this way; the other reward tracks pace their clicks with
-     * fixed pauses (docs/reference/mechanics-catalogue.md, section 6).
+     * click waits for its answer, then closes the reward popup the answer
+     * opens, and only then claims the next tier. A popup looked for at a
+     * fixed time after the click was missed on a slow server and stayed over
+     * the page after the last claim (#1931).
+     *
+     * Path of Valor, Path of Glory, the Seasonal event, Penta Drill and
+     * Double Penetration claim this way.
      */
     static async claimInTurn(buttons: HTMLElement[], onDone: () => void): Promise<void> {
         if (buttons.length > 0) {
@@ -356,6 +364,7 @@ export class RewardHelper {
             buttons[0].click();
             buttons.shift();
             await waitForGameAnswer();
+            await TimeHelper.waitFor(() => RewardHelper.closeRewardPopupIfAny(false), CLAIM_POPUP_WAIT_MS);
             setTimeout(() => { RewardHelper.claimInTurn(buttons, onDone); }, randomInterval(300, 500));
         } else {
             onDone();

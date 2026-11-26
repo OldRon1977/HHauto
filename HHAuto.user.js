@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.25.2
+// @version      8.25.3
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -13477,21 +13477,11 @@ class DoublePenetration {
                     }
                 }
                 if (buttonsToCollect.length > 0) {
-                    function collectDpEventRewards() {
-                        if (buttonsToCollect.length > 0) {
-                            logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(300, 500));
-                            setTimeout(collectDpEventRewards, randomInterval(500, 800));
-                        }
-                        else {
-                            logHHAuto("Double penetration collection finished.");
-                            setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            resumeAutoLoop();
-                        }
-                    }
-                    collectDpEventRewards();
+                    RewardHelper.claimInTurn(buttonsToCollect, () => {
+                        logHHAuto("Double penetration collection finished.");
+                        setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        resumeAutoLoop();
+                    });
                     return true;
                 }
                 else {
@@ -16503,6 +16493,10 @@ var RewardHelper_awaiter = (undefined && undefined.__awaiter) || function (thisA
 const RELOADING_POPUP_POLL_MS = 250;
 const RELOADING_POPUP_POLLS = 60;
 const RELOADING_POPUP_RELOAD_WAIT_MS = 10000;
+// claimInTurn: how long to look for the reward popup once the claim has been
+// answered. Measured on the test account: the popup was up 14-38 ms after the
+// answer (Seasonal, Penta Drill); a refused claim brings none.
+const CLAIM_POPUP_WAIT_MS = 2000;
 class RewardHelper {
     static getRewardTypeBySlot(inSlot) {
         var _a, _b;
@@ -16805,9 +16799,13 @@ class RewardHelper {
      * The game ignores a claim click while the previous claim is unanswered:
      * with the server answering after 3 s, one request went out for five
      * tiers and the rest stayed open (measured on Path of Valor). So each
-     * click waits for its answer before the next one. Path of Valor and Path
-     * of Glory claim this way; the other reward tracks pace their clicks with
-     * fixed pauses (docs/reference/mechanics-catalogue.md, section 6).
+     * click waits for its answer, then closes the reward popup the answer
+     * opens, and only then claims the next tier. A popup looked for at a
+     * fixed time after the click was missed on a slow server and stayed over
+     * the page after the last claim (#1931).
+     *
+     * Path of Valor, Path of Glory, the Seasonal event, Penta Drill and
+     * Double Penetration claim this way.
      */
     static claimInTurn(buttons, onDone) {
         return RewardHelper_awaiter(this, void 0, void 0, function* () {
@@ -16816,6 +16814,7 @@ class RewardHelper {
                 buttons[0].click();
                 buttons.shift();
                 yield waitForGameAnswer();
+                yield TimeHelper.waitFor(() => RewardHelper.closeRewardPopupIfAny(false), CLAIM_POPUP_WAIT_MS);
                 setTimeout(() => { RewardHelper.claimInTurn(buttons, onDone); }, randomInterval(300, 500));
             }
             else {
@@ -23790,34 +23789,11 @@ class PentaDrill {
                     }
                 }
                 if (buttonsToCollect.length > 0) {
-                    function collectPentaDrillRewards() {
-                        function collectionFinished() {
-                            logHHAuto("PentaDrill collection finished.");
-                            setTimer('nextPentaDrillCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        }
-                        if (buttonsToCollect.length > 0) {
-                            function closeRewardAndCollectagain() {
-                                RewardHelper.closeRewardPopupIfAny(false);
-                                setTimeout(collectNextTier, randomInterval(300, 500));
-                            }
-                            function collectNextTier() {
-                                if (buttonsToCollect.length > 0) {
-                                    logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                                    buttonsToCollect[0].click();
-                                    buttonsToCollect.shift();
-                                    setTimeout(closeRewardAndCollectagain, randomInterval(300, 500));
-                                }
-                                else
-                                    collectionFinished();
-                            }
-                            collectNextTier();
-                            return true;
-                        }
-                        else
-                            collectionFinished();
-                    }
-                    collectPentaDrillRewards();
+                    RewardHelper.claimInTurn(buttonsToCollect, () => {
+                        logHHAuto("PentaDrill collection finished.");
+                        setTimer('nextPentaDrillCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    });
                     return true;
                 }
                 else {
@@ -23988,27 +23964,14 @@ class SeasonalEvent {
                         }
                     }
                     if (buttonsToCollect.length > 0) {
-                        function closeRewardAndCollectagain() {
-                            RewardHelper.closeRewardPopupIfAny(false);
-                            setTimeout(collectSeasonalEventRewards, randomInterval(300, 500));
-                        }
-                        function collectSeasonalEventRewards() {
-                            if (buttonsToCollect.length > 0) {
-                                logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                                buttonsToCollect[0].click();
-                                buttonsToCollect.shift();
-                                setTimeout(closeRewardAndCollectagain, randomInterval(300, 500));
+                        RewardHelper.claimInTurn(buttonsToCollect, () => {
+                            logHHAuto("SeasonalEvent collection finished.");
+                            setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                            if (!manualCollectAll) {
+                                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                             }
-                            else {
-                                logHHAuto("SeasonalEvent collection finished.");
-                                setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                                if (!manualCollectAll) {
-                                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                                }
-                                SeasonalEvent.removeCollectAllButtonIfNeeded();
-                            }
-                        }
-                        collectSeasonalEventRewards();
+                            SeasonalEvent.removeCollectAllButtonIfNeeded();
+                        });
                         return true;
                     }
                     else {
