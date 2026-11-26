@@ -7,6 +7,11 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.26.0 - Troll of MILF Mafia
+
+- **Troll battle**: Cunt City Police (troll 25, world 27 of the side adventure MILF Mafia) is in the troll list under the side adventure and is fought as the latest troll inside world 27.
+- **Troll battle**: inside world 27 the script no longer takes the account for being on the main adventure.
+
 ### v8.25.3 - Reward popups closed after each claim
 
 - **Seasonal event, Penta Drill, Double Penetration**: each claim waits for the game's answer and closes its reward popup before the next claim; the popup of the last claim no longer stays open after Collect all.
