@@ -466,6 +466,11 @@ export class Shop {
         let menuSellStop = false;
         var allLoaded = false;
         let menuSellMaxItems = Number.POSITIVE_INFINITY;
+        // Answers to market_get_armor so far, and whether the last request
+        // for a page got none (see fetchAllArmorItems).
+        let armorPagesAnswered = 0;
+        let loadStalled = false;
+        let loadRun = 0;
         let fetchStarted = false;
         //ugly hack
         const loadingAnimationStart = unsafeWindow.shared?.animations?.loadingAnimation?.start;
@@ -547,6 +552,7 @@ export class Shop {
             initMenuSell();
             initMenuSellLock();
             initMenuSellMaskLocked();
+            applyStoredLocks();
             GM_registerMenuCommand(getTextForUI("menuSell","elementText"), displayMenuSell);
             GM_registerMenuCommand(getTextForUI("menuSellLock","elementText"), launchMenuSellLock);
             GM_registerMenuCommand(getTextForUI("menuSellMaskLocked","elementText"), launchMenuSellMaskLocked);
@@ -642,6 +648,8 @@ export class Shop {
                 $("#menuSellHide").css("display","none");
 
                 menuSellStop = false;
+                loadStalled = false;
+                loadRun++;
                 fetchStarted = true;
                 unsafeWindow.shared!.animations!.loadingAnimation!.start = function () { };
                 unsafeWindow.shared!.animations!.loadingAnimation!.stop = function () { };
@@ -688,6 +696,7 @@ export class Shop {
             const match = sentData.match(/action=market_get_armor&id_member_armor=(\d+)/);
             if (match === null) return;
             allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
+            armorPagesAnswered++;
             applyStoredLocks();
             if (fetchStarted)
             {
@@ -698,16 +707,21 @@ export class Shop {
         function fetchAllArmorItems()
         {
           try {
-            const oldCount = $(itemsQuery).length;
-            $("#menuSellCurrentCount").html(oldCount +'');
+            // The amount to load counts every item on the page, locked ones
+            // included: it is the size of the inventory to load, not the
+            // number of items left to sell.
+            const oldCount = $(armorSlots).length;
+            $("#menuSellCurrentCount").html($(itemsQuery).length +'');
             if (allLoaded) {
                 logHHAuto(`No more items to load, currently: ${oldCount}/${menuSellMaxItems}`);
+            }else if (loadStalled) {
+                logHHAuto(`The market loaded no more items, currently: ${oldCount}/${menuSellMaxItems}`);
             }else{
                 logHHAuto(`Loading items, currently: ${oldCount}/${menuSellMaxItems}`);
             }
             const scroll = $("#player-inventory.armor")[0];
             const SellDialog = <HTMLDialogElement>document.getElementById("SellDialog");
-            if (menuSellStop || allLoaded || oldCount >= Number(menuSellMaxItems) || !SellDialog.open)
+            if (menuSellStop || allLoaded || loadStalled || oldCount >= menuSellMaxItems || !SellDialog.open)
             {
                 $("#menuSellStop").css("display","none");
                 unsafeWindow.shared!.animations!.loadingAnimation!.start = loadingAnimationStart as () => void;
@@ -739,7 +753,34 @@ export class Shop {
                 }
                 return;
             }
-            scroll.scrollTop = scroll.scrollHeight-scroll.offsetHeight;
+            // The market loads the next page from its own scroll handler,
+            // and only when the list is scrolled to the bottom. Setting
+            // scrollTop fires that event only when the value changes: a list
+            // too short to scroll -- few items left after a sale, or the
+            // locked ones masked -- or one already at the bottom gets no
+            // event, and loading stopped there. Then the event is sent here;
+            // when scrollTop does change, the browser sends it, and sending it
+            // as well would load the same page twice.
+            const bottom = scroll.scrollHeight-scroll.offsetHeight;
+            if (Math.round(scroll.scrollTop) === Math.round(bottom))
+            {
+                $(scroll).trigger('scroll');
+            }
+            else
+            {
+                scroll.scrollTop = bottom;
+            }
+            // No answer from the market at all: end the loading with what is
+            // on the page instead of waiting with the Stop button forever.
+            const answeredBefore = armorPagesAnswered;
+            const run = loadRun;
+            setTimeout(function(){
+                if (fetchStarted && run === loadRun && armorPagesAnswered === answeredBefore)
+                {
+                    loadStalled = true;
+                    fetchAllArmorItems();
+                }
+            }, 8000);
           } catch (err) {
                 logHHAuto('Error during armor item fetch, restoring animations: ' + err);
                 unsafeWindow.shared!.animations!.loadingAnimation!.start = loadingAnimationStart as () => void;

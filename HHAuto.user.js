@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.27.0
+// @version      8.27.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -32319,6 +32319,11 @@ class Shop {
         let menuSellStop = false;
         var allLoaded = false;
         let menuSellMaxItems = Number.POSITIVE_INFINITY;
+        // Answers to market_get_armor so far, and whether the last request
+        // for a page got none (see fetchAllArmorItems).
+        let armorPagesAnswered = 0;
+        let loadStalled = false;
+        let loadRun = 0;
         let fetchStarted = false;
         //ugly hack
         const loadingAnimationStart = (_c = (_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.animations) === null || _b === void 0 ? void 0 : _b.loadingAnimation) === null || _c === void 0 ? void 0 : _c.start;
@@ -32388,6 +32393,7 @@ class Shop {
             initMenuSell();
             initMenuSellLock();
             initMenuSellMaskLocked();
+            applyStoredLocks();
             GM_registerMenuCommand(getTextForUI("menuSell", "elementText"), displayMenuSell);
             GM_registerMenuCommand(getTextForUI("menuSellLock", "elementText"), launchMenuSellLock);
             GM_registerMenuCommand(getTextForUI("menuSellMaskLocked", "elementText"), launchMenuSellMaskLocked);
@@ -32480,6 +32486,8 @@ class Shop {
                 $("#menuSellStop").css("display", "block");
                 $("#menuSellHide").css("display", "none");
                 menuSellStop = false;
+                loadStalled = false;
+                loadRun++;
                 fetchStarted = true;
                 unsafeWindow.shared.animations.loadingAnimation.start = function () { };
                 unsafeWindow.shared.animations.loadingAnimation.stop = function () { };
@@ -32520,6 +32528,7 @@ class Shop {
             if (match === null)
                 return;
             allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
+            armorPagesAnswered++;
             applyStoredLocks();
             if (fetchStarted) {
                 setTimeout(fetchAllArmorItems, randomInterval(800, 1600));
@@ -32527,17 +32536,23 @@ class Shop {
         }
         function fetchAllArmorItems() {
             try {
-                const oldCount = $(itemsQuery).length;
-                $("#menuSellCurrentCount").html(oldCount + '');
+                // The amount to load counts every item on the page, locked ones
+                // included: it is the size of the inventory to load, not the
+                // number of items left to sell.
+                const oldCount = $(armorSlots).length;
+                $("#menuSellCurrentCount").html($(itemsQuery).length + '');
                 if (allLoaded) {
                     logHHAuto(`No more items to load, currently: ${oldCount}/${menuSellMaxItems}`);
+                }
+                else if (loadStalled) {
+                    logHHAuto(`The market loaded no more items, currently: ${oldCount}/${menuSellMaxItems}`);
                 }
                 else {
                     logHHAuto(`Loading items, currently: ${oldCount}/${menuSellMaxItems}`);
                 }
                 const scroll = $("#player-inventory.armor")[0];
                 const SellDialog = document.getElementById("SellDialog");
-                if (menuSellStop || allLoaded || oldCount >= Number(menuSellMaxItems) || !SellDialog.open) {
+                if (menuSellStop || allLoaded || loadStalled || oldCount >= menuSellMaxItems || !SellDialog.open) {
                     $("#menuSellStop").css("display", "none");
                     unsafeWindow.shared.animations.loadingAnimation.start = loadingAnimationStart;
                     unsafeWindow.shared.animations.loadingAnimation.stop = loadingAnimationStop;
@@ -32565,7 +32580,31 @@ class Shop {
                     }
                     return;
                 }
-                scroll.scrollTop = scroll.scrollHeight - scroll.offsetHeight;
+                // The market loads the next page from its own scroll handler,
+                // and only when the list is scrolled to the bottom. Setting
+                // scrollTop fires that event only when the value changes: a list
+                // too short to scroll -- few items left after a sale, or the
+                // locked ones masked -- or one already at the bottom gets no
+                // event, and loading stopped there. Then the event is sent here;
+                // when scrollTop does change, the browser sends it, and sending it
+                // as well would load the same page twice.
+                const bottom = scroll.scrollHeight - scroll.offsetHeight;
+                if (Math.round(scroll.scrollTop) === Math.round(bottom)) {
+                    $(scroll).trigger('scroll');
+                }
+                else {
+                    scroll.scrollTop = bottom;
+                }
+                // No answer from the market at all: end the loading with what is
+                // on the page instead of waiting with the Stop button forever.
+                const answeredBefore = armorPagesAnswered;
+                const run = loadRun;
+                setTimeout(function () {
+                    if (fetchStarted && run === loadRun && armorPagesAnswered === answeredBefore) {
+                        loadStalled = true;
+                        fetchAllArmorItems();
+                    }
+                }, 8000);
             }
             catch (err) {
                 logHHAuto('Error during armor item fetch, restoring animations: ' + err);

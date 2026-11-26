@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.27.1 - Sell dialog loads with locked items
+
+- **Market, sell equipment**: loading also works when the item list cannot be scrolled, e.g. after a sale or with the locked items masked; before, loading stopped without loading anything.
+- **Market, sell equipment**: the amount to load counts every item, locked ones included.
+- **Market, sell equipment**: if the market answers nothing, loading ends after a few seconds with the items on the page.
+- **Market, sell equipment**: stored locks are shown as soon as the equipment tab is open.
+
 ### v8.27.0 - Sell dialog remembers its settings
 
 - **Market, sell equipment**: the amount to load, the amount to sell and the locks are kept for the next visit and filled in when the dialog opens.
