@@ -506,6 +506,7 @@ shown in the info panel as "Auto-Mystery").
 | `gearUpgradeQueue` | `Temp_gearUpgradeQueue` | `localStorage` | `Temp` | the items "Upgrade Gear" still has to level; worked through across the navigations to the upgrade page |
 | `girlGearUpgradeQueue` | `Temp_girlGearUpgradeQueue` | `localStorage` | `Temp` | the team girls' items "Level-up gear" still has to level, with the money floor; handed on from the girl page the game returns to after each item reaches level 10 |
 | `gearKeepKeys` | `Temp_gearKeepKeys` | `localStorage` | `Setting` | the pieces chosen by "Mark Keepers" as level-independent identity keys; a `Setting` despite the `Temp_` prefix, because it is a user decision (from 8.10.22) |
+| `menuSellPrefs` | `Temp_menuSellPrefs` | `localStorage` | `Setting` | what the sell dialog on the market remembers: the amount to load, the amount to sell, the lock rules per table cell and the per-item lock exceptions (`SellMenuPrefs` in `Module/Shop.pure.ts`); a `Setting` despite the `Temp_` prefix, because it is a user decision |
 
 ### Resources
 

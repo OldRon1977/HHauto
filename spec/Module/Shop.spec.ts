@@ -248,6 +248,13 @@ describe("Shop sell filter against the measured data-d", function () {
         expect(build('*', '2', '*').length).toBe(1);
     });
 
+    it("selects the mythic row by rarity, not by a stat", function () {
+        $('#player-inventory').append(slot(5, 3, 'mythic'));
+        expect(build('mythic', '*', '*').length).toBe(1);
+        expect(build('mythic', '3', '*').length).toBe(1);
+        expect(build('mythic', '6', '*').length).toBe(0);
+    });
+
     it("combines stat, type and rarity", function () {
         expect(build('16', '6', 'legendary').length).toBe(1);
         expect(build('1', '2', '*').length).toBe(0);

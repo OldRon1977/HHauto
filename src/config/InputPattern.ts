@@ -4,6 +4,7 @@
 
 import { MYTHIC_LIST_PATTERN } from "../Module/Booster.pure";
 import { BUY_LIST_PATTERN } from "../Module/Market.pure";
+import { SELL_MAX_ITEMS_PATTERN } from "../Module/Shop.pure";
 
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
 
@@ -45,6 +46,7 @@ export const HHAuto_inputPattern = {
     autoChampsFilter:"[1-6](;[1-6])*",
     autoChampsTeamLoop:"[1-9][0-9]|[1-9]",
     menuSellNumber:"[0-9]+",
+    menuSellMaxItems:SELL_MAX_ITEMS_PATTERN,
     autoClubChampMax:"[0-9]+",
     menuExpLevel:"[1-4]?[0-9]?[0-9]",
     minShardsX:"(100|[1-9][0-9]|[0-9])",

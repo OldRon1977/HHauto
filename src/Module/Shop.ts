@@ -23,7 +23,10 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { HHAuto_inputPattern } from "../config/InputPattern";
 import { SK, TK } from "../config/StorageKeys";
 import { Booster } from "./Booster";
-import { decideCheckShop } from "./Shop.pure";
+import {
+    armorIdFromSlotData, decideCheckShop, isSlotLocked, parseSellMaxItems, pruneLockOverrides, readSellMenuPrefs,
+    ruleKeyFromCellFilter, ruleKeyFromSlotData, SellMenuPrefs, setLockOverride, setLockRules,
+} from "./Shop.pure";
 
 // Shapes of the JSON the game puts into a slot's data-d attribute. Only the
 // fields this module reads are declared; the game ships more.
@@ -146,7 +149,13 @@ export class Shop {
     private static buildSlotFilter(inCaracsValue: string, inTypeValue: string, inRarityValue: string, inLockedValue: string | boolean): string
     {
         let filter='#player-inventory.armor .slot:not(.empty)';
-        if (inCaracsValue !== "*" )
+        if (inCaracsValue === "mythic")
+        {
+            // The mythic row of the table is not a stat: mythics are counted
+            // there by their rarity, so they are selected by it as well.
+            filter+='[data-d*=\'"rarity":"mythic"\']';
+        }
+        else if (inCaracsValue !== "*" )
         {
             filter+='[data-d*=\'"name_add":'+inCaracsValue+',\']';
         }
@@ -196,7 +205,50 @@ export class Shop {
     static moduleShopActions()
     {
         const itemsQuery = '#player-inventory.armor .slot:not(.empty):not([menuSellLocked]):not(.mythic)';
+        const armorSlots = '#player-inventory.armor .slot:not(.empty)';
+        const loadPrefs = (): SellMenuPrefs => readSellMenuPrefs(getStoredJSON(HHStoredVarPrefixKey+TK.menuSellPrefs, {}));
+        const savePrefs = (prefs: SellMenuPrefs) => setStoredValue(HHStoredVarPrefixKey+TK.menuSellPrefs, JSON.stringify(prefs));
         appendMenuSell();
+
+        function setSlotLock(slot: HTMLElement, lock: boolean)
+        {
+            const isLocked = slot.hasAttribute("menuSellLocked");
+            if (lock && !isLocked)
+            {
+                slot.setAttribute("menuSellLocked", "");
+                $(slot).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="' + POWER_CALC_IMAGES.minus + '">');
+            }
+            else if (!lock && isLocked)
+            {
+                slot.removeAttribute("menuSellLocked");
+                slot.querySelector("img.menuSellLocked")?.remove();
+            }
+        }
+
+        /**
+         * Lock every loaded slot the stored rules and exceptions lock, and
+         * unlock the others. Runs whenever slots may have appeared: on the
+         * page, after each inventory page the market loads, after a change.
+         */
+        function applyStoredLocks()
+        {
+            const prefs = loadPrefs();
+            $(armorSlots).each(function(){
+                const d = this.getAttribute('data-d') || '';
+                setSlotLock(this, isSlotLocked(prefs, ruleKeyFromSlotData(d), armorIdFromSlotData(d)));
+            });
+        }
+
+        /** The data cells a table cell, row or column header covers, as rule keys. */
+        function coveredRuleKeys(c: string, t: string, r: string): string[]
+        {
+            const keys: string[] = [];
+            $(Shop.buildCellsFilter(c,t,r)).filter('td.tItemsTdItems').each(function(){
+                const key = ruleKeyFromCellFilter(this.getAttribute("menuSellFilter") || '');
+                if (key !== null) keys.push(key);
+            });
+            return keys;
+        }
     
         /**
          * @return "potion" / "gift" / player-stats / armor / booster / null
@@ -277,6 +329,7 @@ export class Shop {
                 }
             }
     
+            const prefs = loadPrefs();
             let itemsListMenu = '<table class="tItems">'
             +' <colgroup class="tItemsColGroup">'
             +'  <col class="tItemsColRarity">'
@@ -343,9 +396,11 @@ export class Shop {
                         let itemsLockStatus;
                         if (total === 0)
                         {
+                            // Nothing to count: the stored rule says what the cell is.
                             displayNb = "";
+                            itemsLockStatus = prefs.lockRules.includes(c+';'+t+';'+r) ? "allLocked" : "noneLocked";
                         }
-                        if (allItems[itemsLockedStatus[1]] === 0)
+                        else if (allItems[itemsLockedStatus[1]] === 0)
                         {
                             //no lock
                             itemsLockStatus="noneLocked";
@@ -372,44 +427,45 @@ export class Shop {
             itemsListMenu +=' </tbody>'
                 +'</table>';
             $("#menuSellList").html(itemsListMenu);
-    
+
+            const splitFilter = (el: Element) => {
+                const f = (el.getAttribute("menuSellFilter") || '').split(";");
+                return { c: f[0].split(":")[1], t: f[1].split(":")[1], r: f[2].split(":")[1] };
+            };
+            // A row or column header is locked when every cell it covers is.
+            $('table.tItems [menuSellFilter]:not(td.tItemsTdItems)').each(function(){
+                const { c, t, r } = splitFilter(this);
+                const keys = coveredRuleKeys(c, t, r);
+                const allLocked = keys.length > 0 && keys.every(k => prefs.lockRules.includes(k));
+                this.setAttribute("itemsLockStatus", allLocked ? "allLocked" : "noneLocked");
+            });
+
             $('table.tItems [menuSellFilter] ').each(function(){
                 this.addEventListener("click", function(){
-                    const menuSellFilter = (this.getAttribute("menuSellFilter") || '').split(";");
+                    const { c, t, r } = splitFilter(this);
                     const toLock = !(this.getAttribute("itemsLockStatus") === "allLocked");
-                    const c=menuSellFilter[0].split(":")[1];
-                    const t=menuSellFilter[1].split(":")[1];
-                    const r=menuSellFilter[2].split(":")[1];
-                    AllLockUnlock(Shop.buildSlotFilter(c,t,r,!toLock),toLock);
-                    const newLockStatus = toLock?"allLocked":"noneLocked";
-                    $(Shop.buildCellsFilter(c,t,r)).each(function(){
-                        this.setAttribute("itemsLockStatus",newLockStatus);
+                    const keys = coveredRuleKeys(c, t, r);
+                    const next = loadPrefs();
+                    next.lockRules = setLockRules(next.lockRules, keys, toLock);
+                    // A click on a cell decides for every item in it, the
+                    // exceptions of its loaded items included.
+                    $(armorSlots).each(function(){
+                        const d = this.getAttribute('data-d') || '';
+                        const key = ruleKeyFromSlotData(d);
+                        const id = armorIdFromSlotData(d);
+                        if (key !== null && id !== null && keys.includes(key)) delete next.lockOverrides[id];
                     });
+                    savePrefs(next);
+                    applyStoredLocks();
+                    menuSellListItems();
+                    (<HTMLElement>document.getElementById("menuSellCurrentCount")).innerHTML = $(itemsQuery).length+'';
                 });
             });
         }
     
-        function AllLockUnlock(inFilter: string, lock: boolean)
-        {
-            if (lock)
-            {
-                $(inFilter).each(function(){
-                    this.setAttribute("menuSellLocked", "");
-                    $(this).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="' + POWER_CALC_IMAGES.minus + '">');
-                });
-            }
-            else
-            {
-                $(inFilter).each(function(){
-                    this.removeAttribute("menuSellLocked");
-                    this.querySelector("img.menuSellLocked")!.remove();
-                });
-            }
-        }
-    
         let menuSellStop = false;
         var allLoaded = false;
-        var menuSellMaxItems:string | number = "all";
+        let menuSellMaxItems = Number.POSITIVE_INFINITY;
         let fetchStarted = false;
         //ugly hack
         const loadingAnimationStart = unsafeWindow.shared?.animations?.loadingAnimation?.start;
@@ -441,6 +497,7 @@ export class Shop {
             }
             else if (document.getElementById(menuID) !== null)
             {
+                applyStoredLocks();
                 (<HTMLElement>document.getElementById("menuSellCurrentCount")).innerHTML = $(itemsQuery).length+'';
                 return;
             }
@@ -464,7 +521,12 @@ export class Shop {
             +    '<p>'+getTextForUI("menuSellCurrentCount","elementText")+'</p>'
             +    '<p id="menuSellCurrentCount">0</p>'
             +   '</div>'
-            + '<div id="menuSellStop"><label style="width:80px" class="myButton" id="menuSellStop">'+getTextForUI("OptionStop","elementText")+'</label></div>'
+            +   '<div class="HHMenuRow" id="menuSellLoadRow" style="align-items:center;">'
+            +    '<p id="menuSellMaxLabel">'+getTextForUI("menuSellMaxItems","elementText")+'</p>'
+            +    '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("menuSellMaxItems","tooltip")+'</span><input id="menuSellMaxItems" style="width:8em;height:20px" required pattern="'+HHAuto_inputPattern.menuSellMaxItems+'" type="text" value="all"></div>'
+            +    '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("menuSellLoad","tooltip")+'</span><label class="myButton" id="menuSellLoad">'+getTextForUI("menuSellLoad","elementText")+'</label></div>'
+            +   '</div>'
+            + '<div id="menuSellStop" style="display:none"><label style="width:80px" class="myButton" id="menuSellStopButton">'+getTextForUI("OptionStop","elementText")+'</label></div>'
             +   '<div id="menuSellHide" style="display:none">'
             +    '<p id="menuSellList" style="margin:0;"></p>'
             +    '<div class="HHMenuRow">'
@@ -513,8 +575,22 @@ export class Shop {
                     menuSellStop = true;
                 });
     
+                $("#menuSellLoad").on("click", startLoading);
+                $("#menuSellMaxItems").on("keydown", function(e){
+                    if (e.key === "Enter") { e.preventDefault(); startLoading(); }
+                });
+                $("#menuSellNumber").on("keydown", function(e){
+                    if (e.key === "Enter") e.preventDefault();
+                });
+                $("#menuSellNumber").on("change", function(){
+                    const n = Number((<HTMLInputElement>this).value);
+                    if (Number.isInteger(n) && n >= 0) { const prefs = loadPrefs(); prefs.sellNumber = n; savePrefs(prefs); }
+                });
+
                 $("#menuSellButton").on("click", function(){
-                    if (Number((<HTMLInputElement>document.getElementById("menuSellNumber")).value) > 0)
+                    const n = Number((<HTMLInputElement>document.getElementById("menuSellNumber")).value);
+                    if (Number.isInteger(n) && n >= 0) { const prefs = loadPrefs(); prefs.sellNumber = n; savePrefs(prefs); }
+                    if (n > 0)
                     {
                         logHHAuto("Starting selling "+Number((<HTMLInputElement>document.getElementById("menuSellNumber")).value)+" items.");
                         sellArmorItems();
@@ -530,26 +606,46 @@ export class Shop {
                     logHHAuto("The <dialog> API is not supported by this browser");
                     return;
                 }
-                menuSellMaxItems = Number(window.prompt("Max amount of inventory to load (all for no limit)",menuSellMaxItems+''));
-                if (menuSellMaxItems !== null)
+                // The presets of the last visit; the player can still change
+                // both before loading and before selling.
+                const prefs = loadPrefs();
+                (<HTMLInputElement>document.getElementById("menuSellMaxItems")).value = prefs.maxItems;
+                (<HTMLInputElement>document.getElementById("menuSellNumber")).value = prefs.sellNumber+'';
+                applyStoredLocks();
+                (<HTMLElement>document.getElementById("menuSellCurrentCount")).innerHTML = $(itemsQuery).length+'';
+                if ($('#menuSellList>.tItems').length === 0)
                 {
-                    menuSellMaxItems = isNaN(menuSellMaxItems)?Number.MAX_VALUE:menuSellMaxItems;
-                    logHHAuto(`Going to load ${menuSellMaxItems} items`);
-                    $("menuSellStop").css("display","block");
-
-                    menuSellStop = false;
-                    fetchStarted = true;
-                    unsafeWindow.shared!.animations!.loadingAnimation!.start = function () { };
-                    unsafeWindow.shared!.animations!.loadingAnimation!.stop = function () { };
-                    if ($('#menuSellList>.tItems').length === 0)
-                    {
-                        menuSellListItems();
-                    }
-                    $("#menuSellHide").css("display","block");
-                    SellDialog.showModal();
-                    $("#menuSellHide").css("display","none");
-                    fetchAllArmorItems();
+                    menuSellListItems();
                 }
+                $("#menuSellHide").css("display","block");
+                SellDialog.showModal();
+                $("#menuSellHide").css("display","none");
+                $("#menuSoldHide").css("display","none");
+                (<HTMLInputElement>document.getElementById("menuSellMaxItems")).focus();
+            }
+
+            function startLoading()
+            {
+                const field = <HTMLInputElement>document.getElementById("menuSellMaxItems");
+                const max = parseSellMaxItems(field.value);
+                if (max === null || fetchStarted)
+                {
+                    field.focus();
+                    return;
+                }
+                const prefs = loadPrefs();
+                prefs.maxItems = field.value.trim();
+                savePrefs(prefs);
+                menuSellMaxItems = max;
+                logHHAuto(`Going to load ${menuSellMaxItems} items`);
+                $("#menuSellStop").css("display","block");
+                $("#menuSellHide").css("display","none");
+
+                menuSellStop = false;
+                fetchStarted = true;
+                unsafeWindow.shared!.animations!.loadingAnimation!.start = function () { };
+                unsafeWindow.shared!.animations!.loadingAnimation!.stop = function () { };
+                fetchAllArmorItems();
             }
     
             function initMenuSellMaskLocked()
@@ -575,7 +671,14 @@ export class Shop {
                 if ($(filterText).length >0)
                 {
                     const toLock=$(filterText)[0].getAttribute("menuSellLocked") === null;
-                    AllLockUnlock(filterText,toLock);
+                    const prefs = loadPrefs();
+                    $(filterText).each(function(){
+                        const d = this.getAttribute('data-d') || '';
+                        const id = armorIdFromSlotData(d);
+                        if (id !== null) prefs.lockOverrides = setLockOverride(prefs, ruleKeyFromSlotData(d), id, toLock);
+                        setSlotLock(this, toLock);
+                    });
+                    savePrefs(prefs);
                 }
             }
         }
@@ -585,6 +688,7 @@ export class Shop {
             const match = sentData.match(/action=market_get_armor&id_member_armor=(\d+)/);
             if (match === null) return;
             allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
+            applyStoredLocks();
             if (fetchStarted)
             {
                 setTimeout(fetchAllArmorItems, randomInterval(800,1600));
@@ -610,6 +714,20 @@ export class Shop {
                 unsafeWindow.shared!.animations!.loadingAnimation!.stop = loadingAnimationStop as () => void;
                 fetchStarted = false;
                 scroll.scrollTop = 0;
+                if (allLoaded)
+                {
+                    // The whole inventory is on the page: exceptions of sold
+                    // items can go.
+                    const prefs = loadPrefs();
+                    const ids: string[] = [];
+                    $(armorSlots).each(function(){ const id = armorIdFromSlotData(this.getAttribute('data-d') || ''); if (id !== null) ids.push(id); });
+                    const pruned = pruneLockOverrides(prefs.lockOverrides, ids);
+                    if (Object.keys(pruned).length !== Object.keys(prefs.lockOverrides).length)
+                    {
+                        prefs.lockOverrides = pruned;
+                        savePrefs(prefs);
+                    }
+                }
                 if (SellDialog.open)
                 {
                     $("#menuSellHide").css("display","block");
