@@ -2463,6 +2463,16 @@ HHStoredVars[HHStoredVarPrefixKey + TK.gearKeepKeys] =
     storage:"localStorage",
     HHType:"Setting"
 };
+// What the sell dialog on the market remembers for the next visit: the
+// amount to load, the amount to sell and the locks (Shop.pure.ts,
+// SellMenuPrefs). A user decision like gearKeepKeys, hence localStorage and
+// HHType Setting: it survives "clear temp storage" and is in the export.
+HHStoredVars[HHStoredVarPrefixKey + TK.menuSellPrefs] =
+    {
+    default:"{}",
+    storage:"localStorage",
+    HHType:"Setting"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =
     {
     storage:"sessionStorage",

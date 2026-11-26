@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.26.0
+// @version      8.27.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -507,7 +507,9 @@ HHAuto_ToolTips.en['timerResetButton'] = { version: "5.6.24", elementText: "Rese
 HHAuto_ToolTips.en['timerLeftTime'] = { version: "5.6.24", elementText: "", tooltip: "Time remaining" };
 HHAuto_ToolTips.en['timerResetNoTimer'] = { version: "5.6.24", elementText: "No selected timer", tooltip: "" };
 HHAuto_ToolTips.en['menuSell'] = { version: "5.6.24", elementText: "Sell", tooltip: "Allow to sell items." };
-HHAuto_ToolTips.en['menuSellText'] = { version: "5.6.126", elementText: "This will sell the number of items asked starting in display order (first all non legendary then legendary)<br> It will sell all Common, Rare, Epic stuff and keep : <br> - 1 set of rainbow legendary (choosen on highest player class stat)<br> - 1 set of legendary mono player class (choosen on highest stats)<br> - 1 set of legendary harmony (choosen on highest stats)<br> - 1 set of legendary endurance (choosen on highest stats)<br> - All mythics<br>You can lock/Unlock batch by clicking on the corresponding cell/row/column (notlocked/total), red means all locked, orange some locked.", tooltip: "" };
+HHAuto_ToolTips.en['menuSellText'] = { version: "8.27.0", elementText: "This will sell the number of items asked starting in display order (first all non legendary then legendary)<br> It will sell all Common, Rare, Epic stuff and keep : <br> - 1 set of rainbow legendary (choosen on highest player class stat)<br> - 1 set of legendary mono player class (choosen on highest stats)<br> - 1 set of legendary harmony (choosen on highest stats)<br> - 1 set of legendary endurance (choosen on highest stats)<br> - All mythics<br>You can lock/Unlock batch by clicking on the corresponding cell/row/column (notlocked/total), red means all locked, orange some locked.<br>Locks, the amount to load and the amount to sell are remembered for the next visit; locks also apply to items loaded later.", tooltip: "" };
+HHAuto_ToolTips.en['menuSellMaxItems'] = { version: "8.27.0", elementText: "Max amount of inventory to load (all for no limit)", tooltip: "How many items are loaded before the table is shown. <code>all</code> loads the whole inventory. Remembered for the next visit." };
+HHAuto_ToolTips.en['menuSellLoad'] = { version: "8.27.0", elementText: "Load", tooltip: "Loads the inventory up to the amount on the left." };
 HHAuto_ToolTips.en['menuSellNumber'] = { version: "5.6.24", elementText: "", tooltip: "Enter the number of items you want to sell : " };
 HHAuto_ToolTips.en['menuSellButton'] = { version: "5.6.24", elementText: "Sell", tooltip: "Launch selling funtion." };
 HHAuto_ToolTips.en['menuSellCurrentCount'] = { version: "5.6.24", elementText: "Number of sellable items you currently have : ", tooltip: "" };
@@ -1154,7 +1156,9 @@ HHAuto_ToolTips.fr['timerResetButton'] = { version: "5.6.24", elementText: "Réi
 HHAuto_ToolTips.fr['timerLeftTime'] = { version: "5.6.24", elementText: "", tooltip: "Temps restant" };
 HHAuto_ToolTips.fr['timerResetNoTimer'] = { version: "5.6.24", elementText: "Aucun minuteur sélectionné", tooltip: "" };
 HHAuto_ToolTips.fr['menuSell'] = { version: "5.6.24", elementText: "Vendre", tooltip: "Permet de vendre des objets." };
-HHAuto_ToolTips.fr['menuSellText'] = { version: "5.6.126", elementText: "Ceci vendra le nombre d'objets demandé en suivant l'ordre d'affichage (d'abord tout le non-légendaire, puis le légendaire).<br> Tout le commun, rare et épique sera vendu, et seront conservés : <br> - 1 set légendaire arc-en-ciel (choisi sur la meilleure statistique de votre classe)<br> - 1 set légendaire mono de votre classe (choisi sur les meilleures statistiques)<br> - 1 set légendaire harmonie (choisi sur les meilleures statistiques)<br> - 1 set légendaire endurance (choisi sur les meilleures statistiques)<br> - Tous les mythiques<br>Vous pouvez verrouiller ou déverrouiller par lot en cliquant sur la cellule, la ligne ou la colonne correspondante (non verrouillés/total) ; rouge signifie tout verrouillé, orange une partie.", tooltip: "" };
+HHAuto_ToolTips.fr['menuSellText'] = { version: "8.27.0", elementText: "Ceci vendra le nombre d'objets demandé en suivant l'ordre d'affichage (d'abord tout le non-légendaire, puis le légendaire).<br> Tout le commun, rare et épique sera vendu, et seront conservés : <br> - 1 set légendaire arc-en-ciel (choisi sur la meilleure statistique de votre classe)<br> - 1 set légendaire mono de votre classe (choisi sur les meilleures statistiques)<br> - 1 set légendaire harmonie (choisi sur les meilleures statistiques)<br> - 1 set légendaire endurance (choisi sur les meilleures statistiques)<br> - Tous les mythiques<br>Vous pouvez verrouiller ou déverrouiller par lot en cliquant sur la cellule, la ligne ou la colonne correspondante (non verrouillés/total) ; rouge signifie tout verrouillé, orange une partie.<br>Les verrous, la quantité à charger et le nombre d'objets à vendre sont mémorisés pour la prochaine visite ; les verrous s'appliquent aussi aux objets chargés ensuite.", tooltip: "" };
+HHAuto_ToolTips.fr['menuSellMaxItems'] = { version: "8.27.0", elementText: "Quantité maximale d'inventaire à charger (all pour aucune limite)", tooltip: "Nombre d'objets chargés avant l'affichage du tableau. <code>all</code> charge tout l'inventaire. Mémorisé pour la prochaine visite." };
+HHAuto_ToolTips.fr['menuSellLoad'] = { version: "8.27.0", elementText: "Charger", tooltip: "Charge l'inventaire jusqu'à la quantité indiquée à gauche." };
 HHAuto_ToolTips.fr['menuSellNumber'] = { version: "5.6.24", elementText: "", tooltip: "Saisissez le nombre d'objets que vous voulez vendre : " };
 HHAuto_ToolTips.fr['menuSellButton'] = { version: "5.6.24", elementText: "Vendre", tooltip: "Lance la fonction de vente." };
 HHAuto_ToolTips.fr['menuSellCurrentCount'] = { version: "5.6.24", elementText: "Nombre d'objets vendables actuellement : ", tooltip: "" };
@@ -1702,7 +1706,9 @@ HHAuto_ToolTips.de['timerResetButton'] = { version: "5.6.24", elementText: "Zur�
 HHAuto_ToolTips.de['timerLeftTime'] = { version: "5.6.24", elementText: "", tooltip: "Restzeit" };
 HHAuto_ToolTips.de['timerResetNoTimer'] = { version: "5.6.24", elementText: "Kein Timer gewählt", tooltip: "" };
 HHAuto_ToolTips.de['menuSell'] = { version: "5.6.24", elementText: "Verkaufen", tooltip: "Erlaubt das Verkaufen von Gegenständen." };
-HHAuto_ToolTips.de['menuSellText'] = { version: "8.10.0", elementText: "Verkauft die angegebene Anzahl Gegenstände in der angezeigten Reihenfolge (erst alles Nicht-Legendäre, dann Legendäres).<br> Verkauft werden alle gewöhnlichen, seltenen und epischen Gegenstände. Behalten werden:<br> - 1 Satz Regenbogen-Legendär (nach dem höchsten Klassenwert gewählt)<br> - 1 Satz Legendär einer einzelnen Spielerklasse (nach den höchsten Werten gewählt)<br> - 1 Satz Legendär Harmonie (nach den höchsten Werten gewählt)<br> - 1 Satz Legendär Ausdauer (nach den höchsten Werten gewählt)<br> - alle mythischen Gegenstände<br>Mit einem Klick auf Zelle, Zeile oder Spalte (nicht gesperrt/gesamt) sperrst und entsperrst du ganze Gruppen. Rot heißt alles gesperrt, Orange teilweise gesperrt.", tooltip: "" };
+HHAuto_ToolTips.de['menuSellText'] = { version: "8.27.0", elementText: "Verkauft die angegebene Anzahl Gegenstände in der angezeigten Reihenfolge (erst alles Nicht-Legendäre, dann Legendäres).<br> Verkauft werden alle gewöhnlichen, seltenen und epischen Gegenstände. Behalten werden:<br> - 1 Satz Regenbogen-Legendär (nach dem höchsten Klassenwert gewählt)<br> - 1 Satz Legendär einer einzelnen Spielerklasse (nach den höchsten Werten gewählt)<br> - 1 Satz Legendär Harmonie (nach den höchsten Werten gewählt)<br> - 1 Satz Legendär Ausdauer (nach den höchsten Werten gewählt)<br> - alle mythischen Gegenstände<br>Mit einem Klick auf Zelle, Zeile oder Spalte (nicht gesperrt/gesamt) sperrst und entsperrst du ganze Gruppen. Rot heißt alles gesperrt, Orange teilweise gesperrt.<br>Sperren, Lademenge und Verkaufsanzahl werden für den nächsten Besuch gespeichert; die Sperren gelten auch für später geladene Gegenstände.", tooltip: "" };
+HHAuto_ToolTips.de['menuSellMaxItems'] = { version: "8.27.0", elementText: "Höchstens so viele Gegenstände laden (all = ohne Grenze)", tooltip: "Wie viele Gegenstände geladen werden, bevor die Tabelle erscheint. <code>all</code> lädt das ganze Inventar. Wird für den nächsten Besuch gespeichert." };
+HHAuto_ToolTips.de['menuSellLoad'] = { version: "8.27.0", elementText: "Laden", tooltip: "Lädt das Inventar bis zur links eingetragenen Menge." };
 HHAuto_ToolTips.de['menuSellNumber'] = { version: "5.6.24", elementText: "", tooltip: "Gib die Anzahl der Gegenstände ein, die verkauft werden sollen: " };
 HHAuto_ToolTips.de['menuSellButton'] = { version: "5.6.24", elementText: "Verkaufen", tooltip: "Startet den Verkauf." };
 HHAuto_ToolTips.de['menuSellCurrentCount'] = { version: "5.6.24", elementText: "Aktuell verkaufbare Gegenstände: ", tooltip: "" };
@@ -2244,7 +2250,9 @@ HHAuto_ToolTips.es['OptionStop'] = { version: "5.6.24", elementText: "Parar", to
 HHAuto_ToolTips.es['showClubButtonInPoa'] = { version: "8.10.42", elementText: "«Ir a» en eventos", tooltip: "Si habilitado: añade un botón «ir a» en los objetivos relacionados con eventos." };
 HHAuto_ToolTips.es['autoClubForceStart'] = { version: "5.6.24", elementText: "Forzar inicio", tooltip: "Si habilitado: combatirá contra el campeón del club aunque no se haya empezado." };
 HHAuto_ToolTips.es['menuSell'] = { version: "5.6.24", elementText: "Vender", tooltip: "Permite vender objetos." };
-HHAuto_ToolTips.es['menuSellText'] = { version: "5.6.126", elementText: "Esto venderá el número de objetos indicado siguiendo el orden de presentación (primero todo lo no legendario y después lo legendario).<br> Venderá todo lo común, raro y épico, y conservará: <br> - 1 conjunto legendario arcoíris (elegido por la estadística más alta de tu clase)<br> - 1 conjunto legendario mono de tu clase (elegido por las estadísticas más altas)<br> - 1 conjunto legendario de armonía (elegido por las estadísticas más altas)<br> - 1 conjunto legendario de resistencia (elegido por las estadísticas más altas)<br> - Todos los míticos<br>Puedes bloquear o desbloquear en bloque pulsando la celda, fila o columna correspondiente (no bloqueados/total); rojo significa todos bloqueados, naranja algunos bloqueados.", tooltip: "" };
+HHAuto_ToolTips.es['menuSellText'] = { version: "8.27.0", elementText: "Esto venderá el número de objetos indicado siguiendo el orden de presentación (primero todo lo no legendario y después lo legendario).<br> Venderá todo lo común, raro y épico, y conservará: <br> - 1 conjunto legendario arcoíris (elegido por la estadística más alta de tu clase)<br> - 1 conjunto legendario mono de tu clase (elegido por las estadísticas más altas)<br> - 1 conjunto legendario de armonía (elegido por las estadísticas más altas)<br> - 1 conjunto legendario de resistencia (elegido por las estadísticas más altas)<br> - Todos los míticos<br>Puedes bloquear o desbloquear en bloque pulsando la celda, fila o columna correspondiente (no bloqueados/total); rojo significa todos bloqueados, naranja algunos bloqueados.<br>Los bloqueos, la cantidad a cargar y el número de objetos a vender se recuerdan para la próxima visita; los bloqueos también se aplican a los objetos cargados después.", tooltip: "" };
+HHAuto_ToolTips.es['menuSellMaxItems'] = { version: "8.27.0", elementText: "Cantidad máxima de inventario a cargar (all para sin límite)", tooltip: "Cuántos objetos se cargan antes de mostrar la tabla. <code>all</code> carga todo el inventario. Se recuerda para la próxima visita." };
+HHAuto_ToolTips.es['menuSellLoad'] = { version: "8.27.0", elementText: "Cargar", tooltip: "Carga el inventario hasta la cantidad indicada a la izquierda." };
 HHAuto_ToolTips.es['menuSellNumber'] = { version: "5.6.24", elementText: "", tooltip: "Introduce el número de objetos que quieres vender: " };
 HHAuto_ToolTips.es['menuSellButton'] = { version: "5.6.24", elementText: "Vender", tooltip: "Inicia la función de venta." };
 HHAuto_ToolTips.es['menuSellCurrentCount'] = { version: "5.6.24", elementText: "Número de objetos vendibles que tienes ahora: ", tooltip: "" };
@@ -3234,6 +3242,8 @@ const TK = {
     // the girl page the game returns to after each capped item.
     girlGearUpgradeQueue: "Temp_girlGearUpgradeQueue",
     gearKeepKeys: "Temp_gearKeepKeys",
+    // What the sell dialog remembers: amount to load, amount to sell, locks (Shop.ts)
+    menuSellPrefs: "Temp_menuSellPrefs",
     // Resources
     haveAff: "Temp_haveAff",
     haveBooster: "Temp_haveBooster",
@@ -6065,6 +6075,16 @@ HHStoredVars[HHStoredVarPrefixKey + TK.girlGearUpgradeQueue] =
 HHStoredVars[HHStoredVarPrefixKey + TK.gearKeepKeys] =
     {
         default: "[]",
+        storage: "localStorage",
+        HHType: "Setting"
+    };
+// What the sell dialog on the market remembers for the next visit: the
+// amount to load, the amount to sell and the locks (Shop.pure.ts,
+// SellMenuPrefs). A user decision like gearKeepKeys, hence localStorage and
+// HHType Setting: it survives "clear temp storage" and is in the export.
+HHStoredVars[HHStoredVarPrefixKey + TK.menuSellPrefs] =
+    {
+        default: "{}",
         storage: "localStorage",
         HHType: "Setting"
     };
@@ -9638,10 +9658,149 @@ function migrateSavedDefaults(defaults, filterKey, maxKey) {
     return updated;
 }
 
+;// ./src/Module/Shop.pure.ts
+// Shop.pure.ts -- Pure decision logic for the market (shop) visit trigger,
+// and the presets of the sell dialog.
+//
+// Extracted from Shop.isTimeToCheckShop so the "do we need to walk to
+// /shop.html?" decision can be unit-tested without storage or timers.
+//
+// The gate has three reasons, not two: the reader opt-ins (updateMarket and
+// the booster-status readers behind needBoosterStatusFromStore) plus the buyer
+// opt-in autoBuyBoosters. Without the third, a user who enables only that
+// switch never navigates to the market, storeContents stays undefined and
+// Market.doShopping bails out on its first guard.
+
+/**
+ * True when the buy-boosters automation has something to shop for, i.e.
+ * the opt-in is on AND the filter names at least one booster code. An
+ * empty filter would make Market.doShopping loop over nothing, so there
+ * is no point walking to the market for it.
+ */
+function needsStoreContentsForBuying(state) {
+    if (!state.autoBuyBoosters)
+        return false;
+    // An empty list has nothing to shop for, and an unreadable one buys
+    // nothing either (#1844) -- walking to the market for either would be a
+    // navigation per cycle with no purchase at the end of it.
+    return hasBuyableBoosters(state.autoBuyBoostersFilter);
+}
+/**
+ * The visit decision behind Shop.isTimeToCheckShop:
+ *
+ *     (updateMarket || needBoosterStatus || needsStoreContentsForBuying)
+ *     && (!paranoia || !paranoiaSwitchReady)
+ *
+ * The paranoia leg: while paranoia mode is on, the market
+ * is only visited inside a burst window (a pending paranoiaSwitch timer).
+ */
+function decideCheckShop(state) {
+    const needsMarketData = state.updateMarket
+        || state.needBoosterStatus
+        || needsStoreContentsForBuying(state);
+    return needsMarketData && (!state.paranoia || !state.paranoiaSwitchReady);
+}
+/** "all" (any case) or digits; the same rule the input field shows red against. */
+const SELL_MAX_ITEMS_PATTERN = "[Aa][Ll][Ll]|[0-9]+";
+/** Amount of inventory to load: Infinity for "all", null when unreadable. */
+function parseSellMaxItems(raw) {
+    const v = String(raw !== null && raw !== void 0 ? raw : '').trim();
+    if (/^all$/i.test(v))
+        return Number.POSITIVE_INFINITY;
+    if (/^[0-9]+$/.test(v))
+        return Number(v);
+    return null;
+}
+/** Whatever the store holds, turned into a complete SellMenuPrefs. */
+function readSellMenuPrefs(stored) {
+    const o = (stored && typeof stored === 'object' && !Array.isArray(stored)) ? stored : {};
+    const maxItems = typeof o.maxItems === 'string' && parseSellMaxItems(o.maxItems) !== null ? o.maxItems.trim() : 'all';
+    const sellNumber = typeof o.sellNumber === 'number' && Number.isInteger(o.sellNumber) && o.sellNumber >= 0 ? o.sellNumber : 0;
+    const lockRules = Array.isArray(o.lockRules) ? [...new Set(o.lockRules.filter((r) => typeof r === 'string'))] : [];
+    const lockOverrides = {};
+    if (o.lockOverrides && typeof o.lockOverrides === 'object' && !Array.isArray(o.lockOverrides)) {
+        for (const [id, v] of Object.entries(o.lockOverrides)) {
+            if (typeof v === 'boolean')
+                lockOverrides[id] = v;
+        }
+    }
+    return { maxItems, sellNumber, lockRules, lockOverrides };
+}
+/** The rule key of a table cell, from its menuSellFilter "c:8;t:3;r:rare". */
+function ruleKeyFromCellFilter(filter) {
+    const m = /^c:([^;]+);t:([^;]+);r:([^;]+)$/.exec(filter);
+    if (!m || m[1] === '*' || m[2] === '*' || m[3] === '*')
+        return null;
+    return m[1] + ';' + m[2] + ';' + m[3];
+}
+/**
+ * The rule key of an inventory slot, from its data-d. Read with the same
+ * substrings the table counts with (Shop.menuSellListItems), so a slot is
+ * locked by exactly the cell it is counted in. Mythics have their own row.
+ */
+function ruleKeyFromSlotData(dataD) {
+    var _a, _b, _c;
+    const rarity = (_a = /"rarity":"(\w+)"/.exec(dataD)) === null || _a === void 0 ? void 0 : _a[1];
+    const subtype = (_b = /"subtype":(\d+),/.exec(dataD)) === null || _b === void 0 ? void 0 : _b[1];
+    if (!rarity || !subtype)
+        return null;
+    if (rarity === 'mythic')
+        return 'mythic;' + subtype + ';mythic';
+    const stat = (_c = /"name_add":(\d+),/.exec(dataD)) === null || _c === void 0 ? void 0 : _c[1];
+    return stat ? stat + ';' + subtype + ';' + rarity : null;
+}
+function armorIdFromSlotData(dataD) {
+    var _a, _b;
+    return (_b = (_a = /"id_member_armor":(\d+)/.exec(dataD)) === null || _a === void 0 ? void 0 : _a[1]) !== null && _b !== void 0 ? _b : null;
+}
+/** Rules after locking (lock=true) or unlocking the given cells. */
+function setLockRules(rules, keys, lock) {
+    const set = new Set(rules);
+    for (const k of keys) {
+        if (lock)
+            set.add(k);
+        else
+            set.delete(k);
+    }
+    return [...set];
+}
+/** Whether a slot is locked: its own exception first, then the rule of its cell. */
+function isSlotLocked(prefs, ruleKey, id) {
+    if (id !== null && Object.prototype.hasOwnProperty.call(prefs.lockOverrides, id)) {
+        return prefs.lockOverrides[id];
+    }
+    return ruleKey !== null && prefs.lockRules.includes(ruleKey);
+}
+/**
+ * The exception for one item after the Lock button set it to `locked`. An
+ * exception that only repeats its cell's rule is dropped, so the list holds
+ * the items that really differ from their cell.
+ */
+function setLockOverride(prefs, ruleKey, id, locked) {
+    const next = Object.assign({}, prefs.lockOverrides);
+    const byRule = ruleKey !== null && prefs.lockRules.includes(ruleKey);
+    if (locked === byRule)
+        delete next[id];
+    else
+        next[id] = locked;
+    return next;
+}
+/** Exceptions of items that are no longer in the (fully loaded) inventory are dropped. */
+function pruneLockOverrides(overrides, presentIds) {
+    const present = new Set(presentIds);
+    const next = {};
+    for (const [id, v] of Object.entries(overrides)) {
+        if (present.has(id))
+            next[id] = v;
+    }
+    return next;
+}
+
 ;// ./src/config/InputPattern.ts
 // Regex patterns used for input validation in the HHAuto settings menu.
 // Each pattern constrains what the user can enter in a specific settings field
 // (e.g., timers, thresholds, booster filters).
+
 
 
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
@@ -9682,6 +9841,7 @@ const HHAuto_inputPattern = {
     autoChampsFilter: "[1-6](;[1-6])*",
     autoChampsTeamLoop: "[1-9][0-9]|[1-9]",
     menuSellNumber: "[0-9]+",
+    menuSellMaxItems: SELL_MAX_ITEMS_PATTERN,
     autoClubChampMax: "[0-9]+",
     menuExpLevel: "[1-4]?[0-9]?[0-9]",
     minShardsX: "(100|[1-9][0-9]|[0-9])",
@@ -31753,48 +31913,6 @@ Pachinko.serverOrbsLeft = undefined;
 /** The one pachinko that never offers girls; its prizes are girl_armor. */
 Pachinko.PANEL_WITHOUT_GIRLS = 'equipment';
 
-;// ./src/Module/Shop.pure.ts
-// Shop.pure.ts -- Pure decision logic for the market (shop) visit trigger.
-//
-// Extracted from Shop.isTimeToCheckShop so the "do we need to walk to
-// /shop.html?" decision can be unit-tested without storage or timers.
-//
-// The gate has three reasons, not two: the reader opt-ins (updateMarket and
-// the booster-status readers behind needBoosterStatusFromStore) plus the buyer
-// opt-in autoBuyBoosters. Without the third, a user who enables only that
-// switch never navigates to the market, storeContents stays undefined and
-// Market.doShopping bails out on its first guard.
-
-/**
- * True when the buy-boosters automation has something to shop for, i.e.
- * the opt-in is on AND the filter names at least one booster code. An
- * empty filter would make Market.doShopping loop over nothing, so there
- * is no point walking to the market for it.
- */
-function needsStoreContentsForBuying(state) {
-    if (!state.autoBuyBoosters)
-        return false;
-    // An empty list has nothing to shop for, and an unreadable one buys
-    // nothing either (#1844) -- walking to the market for either would be a
-    // navigation per cycle with no purchase at the end of it.
-    return hasBuyableBoosters(state.autoBuyBoostersFilter);
-}
-/**
- * The visit decision behind Shop.isTimeToCheckShop:
- *
- *     (updateMarket || needBoosterStatus || needsStoreContentsForBuying)
- *     && (!paranoia || !paranoiaSwitchReady)
- *
- * The paranoia leg: while paranoia mode is on, the market
- * is only visited inside a burst window (a pending paranoiaSwitch timer).
- */
-function decideCheckShop(state) {
-    const needsMarketData = state.updateMarket
-        || state.needBoosterStatus
-        || needsStoreContentsForBuying(state);
-    return needsMarketData && (!state.paranoia || !state.paranoiaSwitchReady);
-}
-
 ;// ./src/Module/Shop.ts
 // Shop.ts -- The market page: when to visit it, what to read there, and the
 // manual sell tools.
@@ -31938,7 +32056,12 @@ class Shop {
      */
     static buildSlotFilter(inCaracsValue, inTypeValue, inRarityValue, inLockedValue) {
         let filter = '#player-inventory.armor .slot:not(.empty)';
-        if (inCaracsValue !== "*") {
+        if (inCaracsValue === "mythic") {
+            // The mythic row of the table is not a stat: mythics are counted
+            // there by their rarity, so they are selected by it as well.
+            filter += '[data-d*=\'"rarity":"mythic"\']';
+        }
+        else if (inCaracsValue !== "*") {
             filter += '[data-d*=\'"name_add":' + inCaracsValue + ',\']';
         }
         if (inTypeValue !== "*") {
@@ -31977,7 +32100,44 @@ class Shop {
     static moduleShopActions() {
         var _a, _b, _c, _d, _e, _f;
         const itemsQuery = '#player-inventory.armor .slot:not(.empty):not([menuSellLocked]):not(.mythic)';
+        const armorSlots = '#player-inventory.armor .slot:not(.empty)';
+        const loadPrefs = () => readSellMenuPrefs(getStoredJSON(HHStoredVarPrefixKey + TK.menuSellPrefs, {}));
+        const savePrefs = (prefs) => setStoredValue(HHStoredVarPrefixKey + TK.menuSellPrefs, JSON.stringify(prefs));
         appendMenuSell();
+        function setSlotLock(slot, lock) {
+            var _a;
+            const isLocked = slot.hasAttribute("menuSellLocked");
+            if (lock && !isLocked) {
+                slot.setAttribute("menuSellLocked", "");
+                $(slot).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="' + POWER_CALC_IMAGES.minus + '">');
+            }
+            else if (!lock && isLocked) {
+                slot.removeAttribute("menuSellLocked");
+                (_a = slot.querySelector("img.menuSellLocked")) === null || _a === void 0 ? void 0 : _a.remove();
+            }
+        }
+        /**
+         * Lock every loaded slot the stored rules and exceptions lock, and
+         * unlock the others. Runs whenever slots may have appeared: on the
+         * page, after each inventory page the market loads, after a change.
+         */
+        function applyStoredLocks() {
+            const prefs = loadPrefs();
+            $(armorSlots).each(function () {
+                const d = this.getAttribute('data-d') || '';
+                setSlotLock(this, isSlotLocked(prefs, ruleKeyFromSlotData(d), armorIdFromSlotData(d)));
+            });
+        }
+        /** The data cells a table cell, row or column header covers, as rule keys. */
+        function coveredRuleKeys(c, t, r) {
+            const keys = [];
+            $(Shop.buildCellsFilter(c, t, r)).filter('td.tItemsTdItems').each(function () {
+                const key = ruleKeyFromCellFilter(this.getAttribute("menuSellFilter") || '');
+                if (key !== null)
+                    keys.push(key);
+            });
+            return keys;
+        }
         /**
          * @return "potion" / "gift" / player-stats / armor / booster / null
          */
@@ -32040,6 +32200,7 @@ class Shop {
                     }
                 }
             }
+            const prefs = loadPrefs();
             let itemsListMenu = '<table class="tItems">'
                 + ' <colgroup class="tItemsColGroup">'
                 + '  <col class="tItemsColRarity">'
@@ -32098,9 +32259,11 @@ class Shop {
                         let displayNb = allItems[itemsLockedStatus[0]] + '/' + total;
                         let itemsLockStatus;
                         if (total === 0) {
+                            // Nothing to count: the stored rule says what the cell is.
                             displayNb = "";
+                            itemsLockStatus = prefs.lockRules.includes(c + ';' + t + ';' + r) ? "allLocked" : "noneLocked";
                         }
-                        if (allItems[itemsLockedStatus[1]] === 0) {
+                        else if (allItems[itemsLockedStatus[1]] === 0) {
                             //no lock
                             itemsLockStatus = "noneLocked";
                         }
@@ -32119,38 +32282,43 @@ class Shop {
             itemsListMenu += ' </tbody>'
                 + '</table>';
             $("#menuSellList").html(itemsListMenu);
+            const splitFilter = (el) => {
+                const f = (el.getAttribute("menuSellFilter") || '').split(";");
+                return { c: f[0].split(":")[1], t: f[1].split(":")[1], r: f[2].split(":")[1] };
+            };
+            // A row or column header is locked when every cell it covers is.
+            $('table.tItems [menuSellFilter]:not(td.tItemsTdItems)').each(function () {
+                const { c, t, r } = splitFilter(this);
+                const keys = coveredRuleKeys(c, t, r);
+                const allLocked = keys.length > 0 && keys.every(k => prefs.lockRules.includes(k));
+                this.setAttribute("itemsLockStatus", allLocked ? "allLocked" : "noneLocked");
+            });
             $('table.tItems [menuSellFilter] ').each(function () {
                 this.addEventListener("click", function () {
-                    const menuSellFilter = (this.getAttribute("menuSellFilter") || '').split(";");
+                    const { c, t, r } = splitFilter(this);
                     const toLock = !(this.getAttribute("itemsLockStatus") === "allLocked");
-                    const c = menuSellFilter[0].split(":")[1];
-                    const t = menuSellFilter[1].split(":")[1];
-                    const r = menuSellFilter[2].split(":")[1];
-                    AllLockUnlock(Shop.buildSlotFilter(c, t, r, !toLock), toLock);
-                    const newLockStatus = toLock ? "allLocked" : "noneLocked";
-                    $(Shop.buildCellsFilter(c, t, r)).each(function () {
-                        this.setAttribute("itemsLockStatus", newLockStatus);
+                    const keys = coveredRuleKeys(c, t, r);
+                    const next = loadPrefs();
+                    next.lockRules = setLockRules(next.lockRules, keys, toLock);
+                    // A click on a cell decides for every item in it, the
+                    // exceptions of its loaded items included.
+                    $(armorSlots).each(function () {
+                        const d = this.getAttribute('data-d') || '';
+                        const key = ruleKeyFromSlotData(d);
+                        const id = armorIdFromSlotData(d);
+                        if (key !== null && id !== null && keys.includes(key))
+                            delete next.lockOverrides[id];
                     });
+                    savePrefs(next);
+                    applyStoredLocks();
+                    menuSellListItems();
+                    document.getElementById("menuSellCurrentCount").innerHTML = $(itemsQuery).length + '';
                 });
             });
         }
-        function AllLockUnlock(inFilter, lock) {
-            if (lock) {
-                $(inFilter).each(function () {
-                    this.setAttribute("menuSellLocked", "");
-                    $(this).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="' + POWER_CALC_IMAGES.minus + '">');
-                });
-            }
-            else {
-                $(inFilter).each(function () {
-                    this.removeAttribute("menuSellLocked");
-                    this.querySelector("img.menuSellLocked").remove();
-                });
-            }
-        }
         let menuSellStop = false;
         var allLoaded = false;
-        var menuSellMaxItems = "all";
+        let menuSellMaxItems = Number.POSITIVE_INFINITY;
         let fetchStarted = false;
         //ugly hack
         const loadingAnimationStart = (_c = (_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.animations) === null || _b === void 0 ? void 0 : _b.loadingAnimation) === null || _c === void 0 ? void 0 : _c.start;
@@ -32175,6 +32343,7 @@ class Shop {
                 return;
             }
             else if (document.getElementById(menuID) !== null) {
+                applyStoredLocks();
                 document.getElementById("menuSellCurrentCount").innerHTML = $(itemsQuery).length + '';
                 return;
             }
@@ -32194,7 +32363,12 @@ class Shop {
                 + '<p>' + getTextForUI("menuSellCurrentCount", "elementText") + '</p>'
                 + '<p id="menuSellCurrentCount">0</p>'
                 + '</div>'
-                + '<div id="menuSellStop"><label style="width:80px" class="myButton" id="menuSellStop">' + getTextForUI("OptionStop", "elementText") + '</label></div>'
+                + '<div class="HHMenuRow" id="menuSellLoadRow" style="align-items:center;">'
+                + '<p id="menuSellMaxLabel">' + getTextForUI("menuSellMaxItems", "elementText") + '</p>'
+                + '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellMaxItems", "tooltip") + '</span><input id="menuSellMaxItems" style="width:8em;height:20px" required pattern="' + HHAuto_inputPattern.menuSellMaxItems + '" type="text" value="all"></div>'
+                + '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellLoad", "tooltip") + '</span><label class="myButton" id="menuSellLoad">' + getTextForUI("menuSellLoad", "elementText") + '</label></div>'
+                + '</div>'
+                + '<div id="menuSellStop" style="display:none"><label style="width:80px" class="myButton" id="menuSellStopButton">' + getTextForUI("OptionStop", "elementText") + '</label></div>'
                 + '<div id="menuSellHide" style="display:none">'
                 + '<p id="menuSellList" style="margin:0;"></p>'
                 + '<div class="HHMenuRow">'
@@ -32236,8 +32410,33 @@ class Shop {
                     this.style.display = "none";
                     menuSellStop = true;
                 });
+                $("#menuSellLoad").on("click", startLoading);
+                $("#menuSellMaxItems").on("keydown", function (e) {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        startLoading();
+                    }
+                });
+                $("#menuSellNumber").on("keydown", function (e) {
+                    if (e.key === "Enter")
+                        e.preventDefault();
+                });
+                $("#menuSellNumber").on("change", function () {
+                    const n = Number(this.value);
+                    if (Number.isInteger(n) && n >= 0) {
+                        const prefs = loadPrefs();
+                        prefs.sellNumber = n;
+                        savePrefs(prefs);
+                    }
+                });
                 $("#menuSellButton").on("click", function () {
-                    if (Number(document.getElementById("menuSellNumber").value) > 0) {
+                    const n = Number(document.getElementById("menuSellNumber").value);
+                    if (Number.isInteger(n) && n >= 0) {
+                        const prefs = loadPrefs();
+                        prefs.sellNumber = n;
+                        savePrefs(prefs);
+                    }
+                    if (n > 0) {
                         logHHAuto("Starting selling " + Number(document.getElementById("menuSellNumber").value) + " items.");
                         sellArmorItems();
                     }
@@ -32250,23 +32449,41 @@ class Shop {
                     logHHAuto("The <dialog> API is not supported by this browser");
                     return;
                 }
-                menuSellMaxItems = Number(window.prompt("Max amount of inventory to load (all for no limit)", menuSellMaxItems + ''));
-                if (menuSellMaxItems !== null) {
-                    menuSellMaxItems = isNaN(menuSellMaxItems) ? Number.MAX_VALUE : menuSellMaxItems;
-                    logHHAuto(`Going to load ${menuSellMaxItems} items`);
-                    $("menuSellStop").css("display", "block");
-                    menuSellStop = false;
-                    fetchStarted = true;
-                    unsafeWindow.shared.animations.loadingAnimation.start = function () { };
-                    unsafeWindow.shared.animations.loadingAnimation.stop = function () { };
-                    if ($('#menuSellList>.tItems').length === 0) {
-                        menuSellListItems();
-                    }
-                    $("#menuSellHide").css("display", "block");
-                    SellDialog.showModal();
-                    $("#menuSellHide").css("display", "none");
-                    fetchAllArmorItems();
+                // The presets of the last visit; the player can still change
+                // both before loading and before selling.
+                const prefs = loadPrefs();
+                document.getElementById("menuSellMaxItems").value = prefs.maxItems;
+                document.getElementById("menuSellNumber").value = prefs.sellNumber + '';
+                applyStoredLocks();
+                document.getElementById("menuSellCurrentCount").innerHTML = $(itemsQuery).length + '';
+                if ($('#menuSellList>.tItems').length === 0) {
+                    menuSellListItems();
                 }
+                $("#menuSellHide").css("display", "block");
+                SellDialog.showModal();
+                $("#menuSellHide").css("display", "none");
+                $("#menuSoldHide").css("display", "none");
+                document.getElementById("menuSellMaxItems").focus();
+            }
+            function startLoading() {
+                const field = document.getElementById("menuSellMaxItems");
+                const max = parseSellMaxItems(field.value);
+                if (max === null || fetchStarted) {
+                    field.focus();
+                    return;
+                }
+                const prefs = loadPrefs();
+                prefs.maxItems = field.value.trim();
+                savePrefs(prefs);
+                menuSellMaxItems = max;
+                logHHAuto(`Going to load ${menuSellMaxItems} items`);
+                $("#menuSellStop").css("display", "block");
+                $("#menuSellHide").css("display", "none");
+                menuSellStop = false;
+                fetchStarted = true;
+                unsafeWindow.shared.animations.loadingAnimation.start = function () { };
+                unsafeWindow.shared.animations.loadingAnimation.stop = function () { };
+                fetchAllArmorItems();
             }
             function initMenuSellMaskLocked() {
                 $('#player-inventory.armor').append(menuSellMaskLocked);
@@ -32285,7 +32502,15 @@ class Shop {
                 const filterText = "#player-inventory.armor .slot.selected";
                 if ($(filterText).length > 0) {
                     const toLock = $(filterText)[0].getAttribute("menuSellLocked") === null;
-                    AllLockUnlock(filterText, toLock);
+                    const prefs = loadPrefs();
+                    $(filterText).each(function () {
+                        const d = this.getAttribute('data-d') || '';
+                        const id = armorIdFromSlotData(d);
+                        if (id !== null)
+                            prefs.lockOverrides = setLockOverride(prefs, ruleKeyFromSlotData(d), id, toLock);
+                        setSlotLock(this, toLock);
+                    });
+                    savePrefs(prefs);
                 }
             }
         }
@@ -32295,6 +32520,7 @@ class Shop {
             if (match === null)
                 return;
             allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
+            applyStoredLocks();
             if (fetchStarted) {
                 setTimeout(fetchAllArmorItems, randomInterval(800, 1600));
             }
@@ -32317,6 +32543,19 @@ class Shop {
                     unsafeWindow.shared.animations.loadingAnimation.stop = loadingAnimationStop;
                     fetchStarted = false;
                     scroll.scrollTop = 0;
+                    if (allLoaded) {
+                        // The whole inventory is on the page: exceptions of sold
+                        // items can go.
+                        const prefs = loadPrefs();
+                        const ids = [];
+                        $(armorSlots).each(function () { const id = armorIdFromSlotData(this.getAttribute('data-d') || ''); if (id !== null)
+                            ids.push(id); });
+                        const pruned = pruneLockOverrides(prefs.lockOverrides, ids);
+                        if (Object.keys(pruned).length !== Object.keys(prefs.lockOverrides).length) {
+                            prefs.lockOverrides = pruned;
+                            savePrefs(prefs);
+                        }
+                    }
                     if (SellDialog.open) {
                         $("#menuSellHide").css("display", "block");
                         menuSellListItems();

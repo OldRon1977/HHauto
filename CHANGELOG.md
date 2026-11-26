@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.27.0 - Sell dialog remembers its settings
+
+- **Market, sell equipment**: the amount to load, the amount to sell and the locks are kept for the next visit and filled in when the dialog opens.
+- **Market, sell equipment**: locks also apply to items the market loads later; the Lock button on a single item is kept as well.
+- **Market, sell equipment**: the amount to load is a field in the dialog instead of a browser prompt, translated and in the script's typeface; "all" no longer turns into 1.79e+308 and closing the dialog loads nothing.
+- **Market, sell equipment**: the counts of a cell are updated right after it is locked or unlocked.
+- **Market, sell equipment**: the Mythic row locks the mythic items.
+
 ### v8.26.0 - Troll of MILF Mafia
 
 - **Troll battle**: Cunt City Police (troll 25, world 27 of the side adventure MILF Mafia) is in the troll list under the side adventure and is fought as the latest troll inside world 27.

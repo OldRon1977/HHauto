@@ -332,6 +332,8 @@ export const TK = {
     // the girl page the game returns to after each capped item.
     girlGearUpgradeQueue: "Temp_girlGearUpgradeQueue",
     gearKeepKeys: "Temp_gearKeepKeys",
+    // What the sell dialog remembers: amount to load, amount to sell, locks (Shop.ts)
+    menuSellPrefs: "Temp_menuSellPrefs",
 
     // Resources
     haveAff: "Temp_haveAff",
