@@ -272,36 +272,11 @@ export class PentaDrill {
 
                 if (buttonsToCollect.length >0)
                 {
-                    function collectPentaDrillRewards(): any
-                    {
-                        function collectionFinished() {
-                            logHHAuto("PentaDrill collection finished.");
-                            setTimer('nextPentaDrillCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        }
-
-                        if (buttonsToCollect.length >0)
-                        {
-                            function closeRewardAndCollectagain() {
-                                RewardHelper.closeRewardPopupIfAny(false);
-                                setTimeout(collectNextTier, randomInterval(300, 500));
-                            }
-
-                            function collectNextTier() {
-                                if (buttonsToCollect.length > 0) {
-                                    logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                                    buttonsToCollect[0].click();
-                                    buttonsToCollect.shift();
-                                    setTimeout(closeRewardAndCollectagain, randomInterval(300, 500));
-                                }
-                                else collectionFinished();
-                            }
-                            collectNextTier();
-                            return true;
-                        }
-                        else collectionFinished();
-                    }
-                    collectPentaDrillRewards();
+                    RewardHelper.claimInTurn(buttonsToCollect, () => {
+                        logHHAuto("PentaDrill collection finished.");
+                        setTimer('nextPentaDrillCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    });
                     return true;
                 }
                 else

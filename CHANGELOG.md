@@ -7,6 +7,11 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.25.3 - Reward popups closed after each claim
+
+- **Seasonal event, Penta Drill, Double Penetration**: each claim waits for the game's answer and closes its reward popup before the next claim; the popup of the last claim no longer stays open after Collect all.
+- **Path of Valor, Path of Glory**: the reward popup is closed after each claim as well.
+
 ### v8.25.2 - Swap search in the team selection
 
 - **Team optimization**: after the candidates, a swap search goes on from the strongest one and from the hexagons until no single swap improves the team; the leader stays a girl of the same rarity and Tier-5 skill.

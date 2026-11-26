@@ -137,32 +137,14 @@ export class SeasonalEvent {
 
                 if (buttonsToCollect.length >0)
                 {
-
-                    function closeRewardAndCollectagain(){
-                        RewardHelper.closeRewardPopupIfAny(false);
-                        setTimeout(collectSeasonalEventRewards, randomInterval(300, 500));
-                    }
-
-                    function collectSeasonalEventRewards()
-                    {
-                        if (buttonsToCollect.length >0)
-                        {
-                            logHHAuto("Collecting tier : "+buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            setTimeout(closeRewardAndCollectagain, randomInterval(300, 500));
+                    RewardHelper.claimInTurn(buttonsToCollect, () => {
+                        logHHAuto("SeasonalEvent collection finished.");
+                        setTimer('nextSeasonalEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                        if (!manualCollectAll) {
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                         }
-                        else
-                        {
-                            logHHAuto("SeasonalEvent collection finished.");
-                            setTimer('nextSeasonalEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                            if (!manualCollectAll) {
-                                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            }
-                            SeasonalEvent.removeCollectAllButtonIfNeeded();
-                        }
-                    }
-                    collectSeasonalEventRewards();
+                        SeasonalEvent.removeCollectAllButtonIfNeeded();
+                    });
                     return true;
                 }
                 else

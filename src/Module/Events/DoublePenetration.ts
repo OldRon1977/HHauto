@@ -87,24 +87,11 @@ export class DoublePenetration {
 
                 if (buttonsToCollect.length >0)
                 {
-                    function collectDpEventRewards()
-                    {
-                        if (buttonsToCollect.length >0)
-                        {
-                            logHHAuto("Collecting tier : "+buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(300, 500));
-                            setTimeout(collectDpEventRewards, randomInterval(500,800));
-                        }
-                        else
-                        {
-                            logHHAuto("Double penetration collection finished.");
-                            setTimer('nextDpEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                            resumeAutoLoop();
-                        }
-                    }
-                    collectDpEventRewards();
+                    RewardHelper.claimInTurn(buttonsToCollect, () => {
+                        logHHAuto("Double penetration collection finished.");
+                        setTimer('nextDpEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
+                        resumeAutoLoop();
+                    });
                     return true;
                 }
                 else
