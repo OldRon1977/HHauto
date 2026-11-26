@@ -475,6 +475,13 @@ describe("Troll module", function () {
             expect(Troll.getTrollWithGirls()[22]).toBe(3); // troll 23, Stheno
         });
 
+        it("counts troll 25's girls in world 27", function () {
+            unsafeWindow.shared!.Hero!.infos.questing = { id_world: 27, choices_adventure: 0 };
+            jest.spyOn(Harem, 'getGirlsList').mockReturnValue(dictionaryOf(6));
+
+            expect(Troll.getTrollWithGirls()[24]).toBe(3); // troll 25, Cunt City Police
+        });
+
         // A user log: the size was cached as 24 on /waifu.html, the list
         // getGirlsList() handed over held 22, and with no stored snapshot the
         // troll handler reloaded the waifu page every four seconds.
@@ -883,6 +890,44 @@ describe("Troll module", function () {
                 expect(Troll.isTrollAvailable(4)).toBe(true);
                 expect(Troll.isTrollAvailable(6)).toBe(false);
                 expect(Troll.getTrollIdToFight(false)).toBe(23);
+            });
+        });
+
+        // Issue #1947: troll 25 lives in "MILF Mafia", world 27, the only world
+        // of that adventure. Measured: questing there reads {id_world: 27,
+        // choices_adventure: 0}; world 26 belongs to no adventure, troll 24 has
+        // no pre-battle page and troll 26 is "Troll not available yet!".
+        describe("Troll 25 and MILF Mafia", function () {
+            const world27 = () => {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 27, choices_adventure: 0 };
+            };
+
+            it("tells world 27 from the main adventure although choices_adventure is 0", function () {
+                world27();
+                expect(Troll.isMainAdventure()).toBe(false);
+                expect(Troll.getLastTrollIdAvailable(false)).toBe(25);
+                expect(Troll.getReachedSideTrolls()).toEqual([25]);
+            });
+
+            it("fights troll 25 as the latest troll in world 27", function () {
+                world27();
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(25);
+            });
+
+            it("lists troll 25 as a side troll with a name", function () {
+                expect(Troll.isSideTroll(25)).toBe(true);
+                expect(Troll.getTrollName(25)).toBe("Cunt City Police");
+            });
+
+            it("asks the game before fighting troll 25 from the main adventure", function () {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 24, choices_adventure: 0 };
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '25');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(-1);
+                expect(fetchMock.mock.calls[0][0]).toBe('/troll-pre-battle.html?id_opponent=25');
             });
         });
 
