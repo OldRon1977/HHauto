@@ -2031,15 +2031,16 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder] =
     menuType:"checked",
     kobanUsing: false
 };
+// Retired "Hard mode" switch, replaced by the "Most red" path. Registered
+// only so that the migration in StartService can read and delete the stored
+// value (getStoredValue and deleteStoredValue ignore unregistered keys).
+// Without a default and a menu entry, setDefaults does not recreate it -- the
+// same pattern as maxBooster.
 HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyHard] =
     {
-    default:"false",
     storage:"Storage()",
     HHType:"Setting",
     valueType:"Boolean",
-    getMenu:true,
-    setMenu:true,
-    menuType:"checked",
     kobanUsing: false
 };
 HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyPath] =

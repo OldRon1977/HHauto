@@ -722,9 +722,8 @@ HHAuto_ToolTips.en['blockOrder'] = { version: "7.36.13", elementText: "Block Ord
 HHAuto_ToolTips.en['pipelineDiagnose'] = { version: "7.36.15", elementText: "Pipeline Diagnostics", tooltip: "Log extra per-step [PIPE] detail to the console for debugging. Off by default; the basic pipeline trace is always logged." };
 HHAuto_ToolTips.en['autoPantheonTitle'] = { version: "5.6.24", elementText: "Pantheon", tooltip: "" };
 HHAuto_ToolTips.en['autoLabyrinth'] = { version: "8.10.42", elementText: "Enabled", tooltip: "if enabled : Automatically do Labyrinth simple mode.<br/>Will select easiest opponent not looking for later step." };
-HHAuto_ToolTips.en['autoLabyHard'] = { version: "7.25.3", elementText: "Hard mode", tooltip: "if enabled : Automatically do Labyrinth hard mode.<br/>Will select hardest opponent group and low power." };
 HHAuto_ToolTips.en['autoLabySweep'] = { version: "7.25.3", elementText: "Sweep", tooltip: "if enabled : Automatically sweep labyrinth floor when available." };
-HHAuto_ToolTips.en['autoLabyPath'] = { version: "8.28.0", elementText: "Path", tooltip: "<p>Plans the whole floor ahead instead of choosing the next hex only. Works the same on every floor; only the number of floors depends on the difficulty.</p><p>Opponent power is known for the next step only, so the plan weighs the hex types.</p><ul><li><b>Step by step</b> &mdash; as before; the Hard mode switch applies.</li><li><b>Treasures first</b> &mdash; every treasure the floor allows, then the hardest opponents.</li><li><b>Most red</b> &mdash; as many hard opponents as possible.</li><li><b>Avoid red</b> &mdash; around hard opponents, treasures and shrines on the way.</li><li><b>XP</b> / <b>Kisses</b> &mdash; opponents weighed by that reward.</li></ul><p>With a plan the Hard mode switch does not change the path.</p>" };
+HHAuto_ToolTips.en['autoLabyPath'] = { version: "8.28.0", elementText: "Path", tooltip: "<p>Plans the whole floor ahead instead of choosing the next hex only. Works the same on every floor; only the number of floors depends on the difficulty.</p><p>Opponent power is known for the next step only, so the plan weighs the hex types.</p><ul><li><b>Step by step</b> &mdash; as before: treasures first, from floor 3 a shrine when a girl is hurt, otherwise the weaker opponent.</li><li><b>Treasures first</b> &mdash; every treasure the floor allows, then the hardest opponents.</li><li><b>Most red</b> &mdash; as many hard opponents as possible.</li><li><b>Avoid red</b> &mdash; around hard opponents, treasures and shrines on the way.</li><li><b>XP</b> / <b>Kisses</b> &mdash; opponents weighed by that reward.</li></ul>" };
 HHAuto_ToolTips.en['autoLabyPathOff'] = { version: "8.28.0", elementText: "Step by step" };
 HHAuto_ToolTips.en['autoLabyPathTreasure'] = { version: "8.28.0", elementText: "Treasures first" };
 HHAuto_ToolTips.en['autoLabyPathRed'] = { version: "8.28.0", elementText: "Most red" };
@@ -1347,9 +1346,8 @@ HHAuto_ToolTips.fr['blockOrder'] = { version: "7.36.13", elementText: "Ordre des
 HHAuto_ToolTips.fr['pipelineDiagnose'] = { version: "7.36.15", elementText: "Diagnostic de la chaîne", tooltip: "Journalise dans la console le détail [PIPE] de chaque étape, pour le débogage. Désactivé par défaut ; la trace de base est toujours journalisée." };
 HHAuto_ToolTips.fr['autoPantheonTitle'] = { version: "5.6.24", elementText: "Panthéon", tooltip: "" };
 HHAuto_ToolTips.fr['autoLabyrinth'] = { version: "8.10.42", elementText: "Activé", tooltip: "Si activé : effectue automatiquement le Labyrinthe en mode simple.<br/>Choisira l'adversaire le plus facile sans anticiper les étapes suivantes." };
-HHAuto_ToolTips.fr['autoLabyHard'] = { version: "7.25.3", elementText: "Mode difficile", tooltip: "Si activé : effectue automatiquement le Labyrinthe en mode difficile.<br/>Choisira le groupe d'adversaires le plus difficile et de faible puissance." };
 HHAuto_ToolTips.fr['autoLabySweep'] = { version: "7.25.3", elementText: "Balayage", tooltip: "Si activé : balaie automatiquement l'étage du labyrinthe lorsque c'est possible." };
-HHAuto_ToolTips.fr['autoLabyPath'] = { version: "8.28.0", elementText: "Chemin", tooltip: "<p>Planifie tout l'étage à l'avance au lieu de ne choisir que la case suivante. Identique à chaque étage ; seul le nombre d'étages dépend de la difficulté.</p><p>La puissance des adversaires n'est connue que pour l'étape suivante, le plan pèse donc les types de cases.</p><ul><li><b>Pas à pas</b> &mdash; comme avant ; l'option Mode difficile s'applique.</li><li><b>Trésors d'abord</b> &mdash; chaque trésor que l'étage permet, puis les adversaires les plus durs.</li><li><b>Max de rouges</b> &mdash; autant d'adversaires difficiles que possible.</li><li><b>Éviter les rouges</b> &mdash; contourne les adversaires difficiles, trésors et sanctuaires en chemin.</li><li><b>XP</b> / <b>Bisous</b> &mdash; adversaires pondérés selon cette récompense.</li></ul><p>Avec un plan, l'option Mode difficile ne change pas le chemin.</p>" };
+HHAuto_ToolTips.fr['autoLabyPath'] = { version: "8.28.0", elementText: "Chemin", tooltip: "<p>Planifie tout l'étage à l'avance au lieu de ne choisir que la case suivante. Identique à chaque étage ; seul le nombre d'étages dépend de la difficulté.</p><p>La puissance des adversaires n'est connue que pour l'étape suivante, le plan pèse donc les types de cases.</p><ul><li><b>Pas à pas</b> &mdash; comme avant : les trésors d'abord, à partir de l'étage 3 un sanctuaire si une fille est blessée, sinon l'adversaire le plus faible.</li><li><b>Trésors d'abord</b> &mdash; chaque trésor que l'étage permet, puis les adversaires les plus durs.</li><li><b>Max de rouges</b> &mdash; autant d'adversaires difficiles que possible.</li><li><b>Éviter les rouges</b> &mdash; contourne les adversaires difficiles, trésors et sanctuaires en chemin.</li><li><b>XP</b> / <b>Bisous</b> &mdash; adversaires pondérés selon cette récompense.</li></ul>" };
 HHAuto_ToolTips.fr['autoLabyPathOff'] = { version: "8.28.0", elementText: "Pas à pas" };
 HHAuto_ToolTips.fr['autoLabyPathTreasure'] = { version: "8.28.0", elementText: "Trésors d'abord" };
 HHAuto_ToolTips.fr['autoLabyPathRed'] = { version: "8.28.0", elementText: "Max de rouges" };
@@ -1932,9 +1930,8 @@ HHAuto_ToolTips.de['blockOrder'] = { version: "7.36.13", elementText: "Block-Rei
 HHAuto_ToolTips.de['pipelineDiagnose'] = { version: "7.36.15", elementText: "Pipeline-Diagnose", tooltip: "Schreibt zusätzliche [PIPE]-Details je Schritt in die Konsole. Standardmäßig aus." };
 HHAuto_ToolTips.de['autoPantheonTitle'] = { version: "8.10.0", elementText: "Aufstieg zum Pantheon", tooltip: "" };
 HHAuto_ToolTips.de['autoLabyrinth'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Wenn aktiv: Spielt das Labyrinth im einfachen Modus.<br/>Wählt den leichtesten Gegner, ohne nach Belohnung zu schauen." };
-HHAuto_ToolTips.de['autoLabyHard'] = { version: "7.25.3", elementText: "Harter Modus", tooltip: "Wenn aktiv: Spielt das Labyrinth im harten Modus.<br/>Wählt die schwerste Gegnergruppe und damit die größere Belohnung." };
 HHAuto_ToolTips.de['autoLabySweep'] = { version: "7.25.3", elementText: "Sweep", tooltip: "Wenn aktiv: Nutzt den Sweep für die Labyrinth-Ebene, sobald er verfügbar ist." };
-HHAuto_ToolTips.de['autoLabyPath'] = { version: "8.28.0", elementText: "Weg", tooltip: "<p>Plant die ganze Etage voraus, statt nur das nächste Feld zu wählen. Läuft auf jeder Etage gleich; nur die Zahl der Etagen hängt von der Schwierigkeit ab.</p><p>Die Gegnerstärke ist nur für den nächsten Schritt bekannt, deshalb wertet der Plan die Feldtypen.</p><ul><li><b>Schritt für Schritt</b> &mdash; wie bisher; der Schalter Harter Modus gilt.</li><li><b>Schätze zuerst</b> &mdash; jeder Schatz, den die Etage erlaubt, dann die schwersten Gegner.</li><li><b>Viele rote</b> &mdash; so viele schwere Gegner wie möglich.</li><li><b>Rote meiden</b> &mdash; um schwere Gegner herum, Schätze und Schreine unterwegs.</li><li><b>XP</b> / <b>Küsse</b> &mdash; Gegner nach dieser Belohnung gewichtet.</li></ul><p>Mit Plan ändert der Schalter Harter Modus den Weg nicht.</p>" };
+HHAuto_ToolTips.de['autoLabyPath'] = { version: "8.28.0", elementText: "Weg", tooltip: "<p>Plant die ganze Etage voraus, statt nur das nächste Feld zu wählen. Läuft auf jeder Etage gleich; nur die Zahl der Etagen hängt von der Schwierigkeit ab.</p><p>Die Gegnerstärke ist nur für den nächsten Schritt bekannt, deshalb wertet der Plan die Feldtypen.</p><ul><li><b>Schritt für Schritt</b> &mdash; wie bisher: Schätze zuerst, ab Etage 3 ein Schrein, wenn ein Mädchen verletzt ist, sonst der schwächere Gegner.</li><li><b>Schätze zuerst</b> &mdash; jeder Schatz, den die Etage erlaubt, dann die schwersten Gegner.</li><li><b>Viele rote</b> &mdash; so viele schwere Gegner wie möglich.</li><li><b>Rote meiden</b> &mdash; um schwere Gegner herum, Schätze und Schreine unterwegs.</li><li><b>XP</b> / <b>Küsse</b> &mdash; Gegner nach dieser Belohnung gewichtet.</li></ul>" };
 HHAuto_ToolTips.de['autoLabyPathOff'] = { version: "8.28.0", elementText: "Schritt für Schritt" };
 HHAuto_ToolTips.de['autoLabyPathTreasure'] = { version: "8.28.0", elementText: "Schätze zuerst" };
 HHAuto_ToolTips.de['autoLabyPathRed'] = { version: "8.28.0", elementText: "Viele rote" };
@@ -2588,9 +2585,8 @@ HHAuto_ToolTips.es['RefreshOppoList'] = { version: "5.6.24", elementText: "Refre
 HHAuto_ToolTips.es['HideBeatenOppo'] = { version: "5.7.1", elementText: "Ocultar", tooltip: "Permite ocultar de la lista a los rivales ya vencidos." };
 HHAuto_ToolTips.es['display'] = { version: "5.7.1", elementText: "Pantalla", tooltip: "" };
 HHAuto_ToolTips.es['PachinkoSelectorNoButtons'] = { version: "5.6.24", elementText: "No hay orbes disponibles.", tooltip: "" };
-HHAuto_ToolTips.es['autoLabyHard'] = { version: "7.25.3", elementText: "Modo difícil", tooltip: "Si habilitado: hace automáticamente el Laberinto en modo difícil.<br/>Elegirá el grupo de rivales más difícil y de menor poder." };
 HHAuto_ToolTips.es['autoLabySweep'] = { version: "7.25.3", elementText: "Barrido", tooltip: "Si habilitado: barre automáticamente la planta del laberinto cuando está disponible." };
-HHAuto_ToolTips.es['autoLabyPath'] = { version: "8.28.0", elementText: "Camino", tooltip: "<p>Planifica todo el piso de antemano en lugar de elegir solo la casilla siguiente. Igual en cada piso; solo el número de pisos depende de la dificultad.</p><p>El poder de los rivales solo se conoce para el paso siguiente, así que el plan pondera los tipos de casilla.</p><ul><li><b>Paso a paso</b> &mdash; como antes; se aplica el interruptor Modo difícil.</li><li><b>Tesoros primero</b> &mdash; cada tesoro que permita el piso, luego los rivales más duros.</li><li><b>Máx. rojos</b> &mdash; tantos rivales difíciles como sea posible.</li><li><b>Evitar rojos</b> &mdash; rodea a los rivales difíciles, tesoros y santuarios por el camino.</li><li><b>XP</b> / <b>Besos</b> &mdash; rivales ponderados según esa recompensa.</li></ul><p>Con un plan, el interruptor Modo difícil no cambia el camino.</p>" };
+HHAuto_ToolTips.es['autoLabyPath'] = { version: "8.28.0", elementText: "Camino", tooltip: "<p>Planifica todo el piso de antemano en lugar de elegir solo la casilla siguiente. Igual en cada piso; solo el número de pisos depende de la dificultad.</p><p>El poder de los rivales solo se conoce para el paso siguiente, así que el plan pondera los tipos de casilla.</p><ul><li><b>Paso a paso</b> &mdash; como antes: primero los tesoros, desde el piso 3 un santuario si una chica está herida, si no el rival más débil.</li><li><b>Tesoros primero</b> &mdash; cada tesoro que permita el piso, luego los rivales más duros.</li><li><b>Máx. rojos</b> &mdash; tantos rivales difíciles como sea posible.</li><li><b>Evitar rojos</b> &mdash; rodea a los rivales difíciles, tesoros y santuarios por el camino.</li><li><b>XP</b> / <b>Besos</b> &mdash; rivales ponderados según esa recompensa.</li></ul>" };
 HHAuto_ToolTips.es['autoLabyPathOff'] = { version: "8.28.0", elementText: "Paso a paso" };
 HHAuto_ToolTips.es['autoLabyPathTreasure'] = { version: "8.28.0", elementText: "Tesoros primero" };
 HHAuto_ToolTips.es['autoLabyPathRed'] = { version: "8.28.0", elementText: "Máx. rojos" };
@@ -3091,9 +3087,9 @@ const SK = {
     autoMissionKFirst: "Setting_autoMissionKFirst",
     // Labyrinth
     autoLabyrinth: "Setting_autoLabyrinth",
-    autoLabyHard: "Setting_autoLabyHard",
     autoLabySweep: "Setting_autoLabySweep",
     autoLabyPath: "Setting_autoLabyPath",
+    autoLabyHard: "Setting_autoLabyHard",
     autoLabyDifficultyIndex: "Setting_autoLabyDifficultyIndex",
     autoLabyCustomTeamBuilder: "Setting_autoLabyCustomTeamBuilder",
     // Place of Power
@@ -5685,15 +5681,16 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder] =
         menuType: "checked",
         kobanUsing: false
     };
+// Retired "Hard mode" switch, replaced by the "Most red" path. Registered
+// only so that the migration in StartService can read and delete the stored
+// value (getStoredValue and deleteStoredValue ignore unregistered keys).
+// Without a default and a menu entry, setDefaults does not recreate it -- the
+// same pattern as maxBooster.
 HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyHard] =
     {
-        default: "false",
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Boolean",
-        getMenu: true,
-        setMenu: true,
-        menuType: "checked",
         kobanUsing: false
     };
 HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyPath] =
@@ -12957,17 +12954,14 @@ function sortPathsByDifficulty(paths) {
  *   1. shrines: drop unless (haveGirlWounded AND floor >= 3)
  *      else if floor >= 3 AND any shrine present: keep only shrines
  *   2. treasures: if any treasure present, keep only treasures
- *   3. easy bias: !chooseMoreReward AND floor < 3 AND any
- *      opponentDifficulty == 1 present: keep only those
+ *   3. easy bias: floor < 3 AND any opponentDifficulty == 1
+ *      present: keep only those
  *
  * Then iterate the filtered list and pick the best:
  *
  *   - Only options with hasButton AND isNext are eligible.
  *   - First eligible option becomes the seed.
- *   - chooseMoreReward branch:
- *       * higher opponentDifficulty wins
- *       * tied difficulty: lower power wins
- *   - else (default) branch:
+ *   - then:
  *       * non-opponent beats opponent
  *       * two opponents: lower power wins
  *
@@ -12976,7 +12970,7 @@ function sortPathsByDifficulty(paths) {
  */
 function decideBetterOption(state) {
     let { options } = state;
-    const { chooseMoreReward, haveGirlWounded, floor } = state;
+    const { haveGirlWounded, floor } = state;
     let firstOption = null;
     if (options.length > 0) {
         firstOption = options[0];
@@ -12990,8 +12984,7 @@ function decideBetterOption(state) {
     if (options.filter((option) => option.isTreasure).length > 0) {
         options = options.filter((option) => option.isTreasure);
     }
-    if (!chooseMoreReward
-        && floor < 3
+    if (floor < 3
         && options.filter((option) => option.opponentDifficulty === 1).length > 0) {
         options = options.filter((option) => option.opponentDifficulty === 1);
     }
@@ -13002,24 +12995,13 @@ function decideBetterOption(state) {
             if (chosenOption == null) {
                 isBetter = true;
             }
-            else if (chooseMoreReward) {
-                if (chosenOption.opponentDifficulty < option.opponentDifficulty) {
-                    isBetter = true;
-                }
-                else if (chosenOption.opponentDifficulty === option.opponentDifficulty
-                    && chosenOption.power > option.power) {
-                    isBetter = true;
-                }
+            else if (chosenOption.isOpponent && !option.isOpponent) {
+                isBetter = true;
             }
-            else {
-                if (chosenOption.isOpponent && !option.isOpponent) {
-                    isBetter = true;
-                }
-                else if (chosenOption.isOpponent
-                    && option.isOpponent
-                    && chosenOption.power > option.power) {
-                    isBetter = true;
-                }
+            else if (chosenOption.isOpponent
+                && option.isOpponent
+                && chosenOption.power > option.power) {
+                isBetter = true;
             }
         }
         if (isBetter) {
@@ -13132,6 +13114,19 @@ const LABY_PATH_VALUES = {
     xp: { opponent_super_easy: 10, opponent_easy: 15, opponent_medium: 20, opponent_hard: 25, treasure: 1, shrine: 0 },
     kisses: { opponent_super_easy: 1, opponent_easy: 1, opponent_medium: 10, opponent_hard: 12, treasure: 3, shrine: 0 },
 };
+/**
+ * The path a user of the retired "Hard mode" switch gets: "red" when the
+ * switch was on and no path was chosen yet, otherwise null (nothing to
+ * change). Hard mode picked the hardest opponent of the next row; "Most red"
+ * does the same over the whole floor.
+ */
+function migratedLabyPath(hardMode, path) {
+    if (hardMode !== "true")
+        return null;
+    if (path !== undefined && path !== null && path !== "off")
+        return null;
+    return "red";
+}
 function isLabyPathStrategy(value) {
     return typeof value === 'string' && LABY_PATH_STRATEGIES.includes(value);
 }
@@ -20503,9 +20498,8 @@ function tabs(debugEnabled) {
             groups: group('autoLabyrinthTitle', hhMenuSwitch('autoLabyrinth')
                 + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
                 + hhMenuSelect('autoLabyPath', 'max-width:130px;')
-                + hhMenuSwitch('autoLabyHard')
                 + hhMenuSwitch('autoLabySweep')
-                + hhMenuSwitch('autoLabyCustomTeamBuilder'), 'isEnabledLabyrinth', true, block(['autoLabyrinth'], [], ['autoLabyHard', 'autoLabySweep', 'autoLabyCustomTeamBuilder'])),
+                + hhMenuSwitch('autoLabyCustomTeamBuilder'), 'isEnabledLabyrinth', true, block(['autoLabyrinth'], [], ['autoLabySweep', 'autoLabyCustomTeamBuilder'])),
         },
         {
             id: 'shop', icon: '🛒', nameKey: 'menuTabShop', titleKey: 'autoBuy',
@@ -25672,15 +25666,12 @@ class Labyrinth {
         return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
     }
     static findBetter(options) {
-        const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) === "true";
         const haveGirlWounded = (unsafeWindow.girl_squad || []).filter((girl) => girl.remaining_ego_percent < 100).length > 0;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled)
             logHHAuto("Options " + JSON.stringify(options));
         if (debugEnabled)
             logHHAuto("haveGirlWounded " + haveGirlWounded);
-        if (debugEnabled)
-            logHHAuto("chooseMoreReward " + chooseMoreReward);
         const liteOptions = options.map(option => ({
             opponentDifficulty: option.opponentDifficulty,
             isTreasure: option.isTreasure,
@@ -25693,7 +25684,6 @@ class Labyrinth {
         }));
         const chosen = decideBetterOption({
             options: liteOptions,
-            chooseMoreReward,
             haveGirlWounded,
             floor: Labyrinth.getCurrentFloorNumber(),
         });
@@ -40050,11 +40040,11 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
 // ===, so a mismatch means the popup silently never appears, and adding a
 // paragraph without moving this number changes nothing on screen. If the
 // release number changes, change it here and in the title too.
-const FEATURE_POPUP_VERSION = "8.19.0";
+const FEATURE_POPUP_VERSION = "8.28.0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.19.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.28.0";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -40062,16 +40052,24 @@ const FEATURE_POPUP_TITLE = "HHAuto v8.19.0";
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">Season target: fight until a number of wins is reached</p>
-    <p style="margin:0 0 10px 0;">On the season page, a new <b>Season target</b> button sits beside <b>Find Opponents</b>. Choose a number of <b>wins</b>, or of <b>fights won or lost</b>, and press <b>Start</b>. The script fights in the season until that number is reached, whatever your season settings say, and nothing else runs in between.</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#c60;">Labyrinth: plan the whole floor</p>
+    <p style="margin:0 0 10px 0;">In the <b>Labyrinth</b> tab, a new <b>Path</b> setting sits below the difficulty. Choose what the floor should give you, and the script plans the way from your hero to the boss instead of looking at the next hex only.</p>
+
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">The strategies</p>
+    <ul style="margin:0 0 10px 18px; padding:0;">
+      <li style="margin-bottom:6px;"><b>Treasures first</b> &mdash; every treasure the floor allows, then the hardest opponents.</li>
+      <li style="margin-bottom:6px;"><b>Most red</b> &mdash; as many hard opponents as possible.</li>
+      <li style="margin-bottom:6px;"><b>Avoid red</b> &mdash; around hard opponents, picking up treasures and shrines on the way.</li>
+      <li style="margin-bottom:6px;"><b>XP</b> / <b>Kisses</b> &mdash; opponents weighed by that reward.</li>
+      <li><b>Step by step</b> &mdash; the previous behaviour, and the default.</li>
+    </ul>
 
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">How it works</p>
     <ul style="margin:0 0 10px 18px; padding:0;">
-      <li style="margin-bottom:6px;">It picks the opponent with the best chance to win, and among equal chances the one worth the most mojo. <b>Pass 3 reds</b> still applies if it is on.</li>
-      <li style="margin-bottom:6px;">After <b>Start</b>, the first fight waits until your <b>Mouse Pause</b> has run out &mdash; your click counts as mouse activity.</li>
-      <li style="margin-bottom:6px;">When no kiss is left it stops. Tick <b>Buy kisses with kobans</b> and it buys one kiss at a time instead, as long as your koban reserve stays untouched (<b>Spend Kobans</b> must be on).</li>
-      <li style="margin-bottom:6px;">A blue notice at the top shows the count, with a <b>Cancel target</b> button. If you leave the season pages or start a fight yourself, the target ends &mdash; once the Mouse Pause is over. Come back before that and it carries on, so use <b>Cancel target</b> to be sure.</li>
-      <li>When it is done, a green notice shows the result until you press <b>OK</b>.</li>
+      <li style="margin-bottom:6px;">After every step the script plans again from where the hero stands. The planned way is drawn in green on the board.</li>
+      <li style="margin-bottom:6px;">Opponent power is shown for the next step only, so the plan weighs the hex types; between two equal next steps it takes the weaker opponent.</li>
+      <li style="margin-bottom:6px;">It works the same on every floor; only the number of floors depends on the difficulty.</li>
+      <li>The <b>Hard mode</b> switch is gone. If it was on, <b>Path</b> is now <b>Most red</b>.</li>
     </ul>
 
     <p style="margin-bottom:0; font-size:11px; color:#888;">Full details in the <a href="https://github.com/OldRon1977/HHauto/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG</a>.</p>
@@ -41428,6 +41426,7 @@ function nextHeroGiveupReloadCount(prevReloadCount) {
 
 
 
+
 var started = false;
 var heroRetryTimer = null;
 var heroRetryCount = 0;
@@ -41771,6 +41770,18 @@ function start() {
             logHHAuto("Migrated boosters to buy in the saved defaults too.");
         }
         deleteStoredValue(HHStoredVarPrefixKey + SK.maxBooster);
+    }
+    // Retire the Labyrinth "Hard mode" switch (#1581): on, with no path
+    // chosen, becomes the "Most red" path. The key is deleted either way, so
+    // this runs once per user.
+    const labyHardMode = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard);
+    if (labyHardMode !== undefined && labyHardMode !== null) {
+        const labyPath = migratedLabyPath(labyHardMode, getStoredValue(HHStoredVarPrefixKey + SK.autoLabyPath));
+        if (labyPath !== null) {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoLabyPath, labyPath);
+            logHHAuto("Migrated Labyrinth Hard mode -> path '" + labyPath + "'");
+        }
+        deleteStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard);
     }
     StartService_setDefaults();
     if (getStoredValue(HHStoredVarPrefixKey + SK.mousePause) === "true") {

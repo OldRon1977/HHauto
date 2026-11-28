@@ -262,8 +262,8 @@ The "Storage" column shows the value from the registry. `--` means: not register
 | Constant | Storage key | Storage | HHType | Description |
 |-----------|-------------|---------|--------|--------------|
 | `autoLabyrinth` | `Setting_autoLabyrinth` | `Storage()` | `Setting` | labyrinth enabled |
-| `autoLabyHard` | `Setting_autoLabyHard` | `Storage()` | `Setting` | hard mode |
 | `autoLabySweep` | `Setting_autoLabySweep` | `Storage()` | `Setting` | sweep |
+| `autoLabyHard` | `Setting_autoLabyHard` | `Storage()` | `Setting` | **Retired in 8.28.0** (#1581). Registered without a default and without a menu entry, so that the migration in `StartService` can read and delete the stored value. If it was `true` and the path was `off`, the path becomes `red`. |
 | `autoLabyPath` | `Setting_autoLabyPath` | `Storage()` | `Setting` | the path strategy (off/treasure/red/safe/xp/kisses) |
 | `autoLabyDifficultyIndex` | `Setting_autoLabyDifficultyIndex` | `Storage()` | `Setting` | the difficulty index |
 | `autoLabyCustomTeamBuilder` | `Setting_autoLabyCustomTeamBuilder` | `Storage()` | `Setting` | the custom team builder |

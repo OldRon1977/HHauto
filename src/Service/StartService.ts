@@ -74,6 +74,7 @@ import {
     shouldReloadAfterHeroGiveup,
 } from './HeroBootRecovery';
 import { buyListValidationMessage, migrateBuyList, migrateSavedDefaults } from "../Module/Market.pure";
+import { migratedLabyPath } from "../Module/Labyrinth.pure";
 
 var started=false;
 var heroRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -441,6 +442,19 @@ function start() {
             logHHAuto("Migrated boosters to buy in the saved defaults too.");
         }
         deleteStoredValue(HHStoredVarPrefixKey + SK.maxBooster);
+    }
+
+    // Retire the Labyrinth "Hard mode" switch (#1581): on, with no path
+    // chosen, becomes the "Most red" path. The key is deleted either way, so
+    // this runs once per user.
+    const labyHardMode = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard);
+    if (labyHardMode !== undefined && labyHardMode !== null) {
+        const labyPath = migratedLabyPath(labyHardMode, getStoredValue(HHStoredVarPrefixKey + SK.autoLabyPath));
+        if (labyPath !== null) {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoLabyPath, labyPath);
+            logHHAuto("Migrated Labyrinth Hard mode -> path '" + labyPath + "'");
+        }
+        deleteStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard);
     }
 
     setDefaults();

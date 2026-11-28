@@ -427,12 +427,10 @@ export class Labyrinth {
     }
 
     static findBetter(options: LabyrinthOpponent[]): LabyrinthOpponent{
-        const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) === "true";
         const haveGirlWounded = (unsafeWindow.girl_squad || []).filter((girl: any) => girl.remaining_ego_percent < 100).length > 0;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled) logHHAuto("Options " + JSON.stringify(options));
         if (debugEnabled) logHHAuto("haveGirlWounded " + haveGirlWounded);
-        if (debugEnabled) logHHAuto("chooseMoreReward " + chooseMoreReward);
 
         const liteOptions = options.map(option => ({
             opponentDifficulty: option.opponentDifficulty,
@@ -446,7 +444,6 @@ export class Labyrinth {
         }));
         const chosen = decideBetterOption({
             options: liteOptions,
-            chooseMoreReward,
             haveGirlWounded,
             floor: Labyrinth.getCurrentFloorNumber(),
         });

@@ -44,19 +44,19 @@ describe("MenuBadge", function () {
         });
 
         it("reports a conflict when only the steering options were set", function () {
-            // Labyrinth off, but hard mode and sweep are on: the user set this
+            // Labyrinth off, but sweep is on: the user set this
             // up and then never armed it.
             const state = blockState(
-                { masters: ['autoLabyrinth'], options: ['autoLabyHard', 'autoLabySweep'] },
-                reader({ autoLabyrinth: false, autoLabyHard: false, autoLabySweep: true }),
+                { masters: ['autoLabyrinth'], options: ['autoLabyCustomTeamBuilder', 'autoLabySweep'] },
+                reader({ autoLabyrinth: false, autoLabyCustomTeamBuilder: false, autoLabySweep: true }),
             );
             expect(state).toBe('conflict');
         });
 
         it("stays off when a steering option is off too", function () {
             const state = blockState(
-                { masters: ['autoLabyrinth'], options: ['autoLabyHard'] },
-                reader({ autoLabyrinth: false, autoLabyHard: false }),
+                { masters: ['autoLabyrinth'], options: ['autoLabyCustomTeamBuilder'] },
+                reader({ autoLabyrinth: false, autoLabyCustomTeamBuilder: false }),
             );
             expect(state).toBe('off');
         });

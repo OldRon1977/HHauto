@@ -163,11 +163,6 @@ export function sortPathsByDifficulty<T extends LabyrinthPathOpponent>(
 export type FindBetterState<T extends LabyrinthOpponentLite> = {
     options: T[];
     /**
-     * Setting_autoLabyHard. When true, prefer harder opponents and
-     * lower-power within the same difficulty band.
-     */
-    chooseMoreReward: boolean;
-    /**
      * `unsafeWindow.girl_squad.filter(g => g.remaining_ego_percent < 100)`
      * has at least one entry. Wounded squad members trigger the
      * shrine-keeping branch from floor 3 onwards.
@@ -175,7 +170,7 @@ export type FindBetterState<T extends LabyrinthOpponentLite> = {
     haveGirlWounded: boolean;
     /**
      * Labyrinth.getCurrentFloorNumber(). Floor < 3 forbids shrines and
-     * (without chooseMoreReward) prefers easy opponents.
+     * prefers easy opponents.
      */
     floor: number;
 };
@@ -186,17 +181,14 @@ export type FindBetterState<T extends LabyrinthOpponentLite> = {
  *   1. shrines: drop unless (haveGirlWounded AND floor >= 3)
  *      else if floor >= 3 AND any shrine present: keep only shrines
  *   2. treasures: if any treasure present, keep only treasures
- *   3. easy bias: !chooseMoreReward AND floor < 3 AND any
- *      opponentDifficulty == 1 present: keep only those
+ *   3. easy bias: floor < 3 AND any opponentDifficulty == 1
+ *      present: keep only those
  *
  * Then iterate the filtered list and pick the best:
  *
  *   - Only options with hasButton AND isNext are eligible.
  *   - First eligible option becomes the seed.
- *   - chooseMoreReward branch:
- *       * higher opponentDifficulty wins
- *       * tied difficulty: lower power wins
- *   - else (default) branch:
+ *   - then:
  *       * non-opponent beats opponent
  *       * two opponents: lower power wins
  *
@@ -207,7 +199,7 @@ export function decideBetterOption<T extends LabyrinthOpponentLite>(
     state: FindBetterState<T>,
 ): T | null {
     let { options } = state;
-    const { chooseMoreReward, haveGirlWounded, floor } = state;
+    const { haveGirlWounded, floor } = state;
 
     let firstOption: T | null = null;
     if (options.length > 0) {
@@ -225,8 +217,7 @@ export function decideBetterOption<T extends LabyrinthOpponentLite>(
     }
 
     if (
-        !chooseMoreReward
-        && floor < 3
+        floor < 3
         && options.filter((option) => option.opponentDifficulty === 1).length > 0
     ) {
         options = options.filter((option) => option.opponentDifficulty === 1);
@@ -238,25 +229,14 @@ export function decideBetterOption<T extends LabyrinthOpponentLite>(
         if (option.hasButton && option.isNext) {
             if (chosenOption == null) {
                 isBetter = true;
-            } else if (chooseMoreReward) {
-                if (chosenOption.opponentDifficulty < option.opponentDifficulty) {
-                    isBetter = true;
-                } else if (
-                    chosenOption.opponentDifficulty === option.opponentDifficulty
-                    && chosenOption.power > option.power
-                ) {
-                    isBetter = true;
-                }
-            } else {
-                if (chosenOption.isOpponent && !option.isOpponent) {
-                    isBetter = true;
-                } else if (
-                    chosenOption.isOpponent
-                    && option.isOpponent
-                    && chosenOption.power > option.power
-                ) {
-                    isBetter = true;
-                }
+            } else if (chosenOption.isOpponent && !option.isOpponent) {
+                isBetter = true;
+            } else if (
+                chosenOption.isOpponent
+                && option.isOpponent
+                && chosenOption.power > option.power
+            ) {
+                isBetter = true;
             }
         }
 
@@ -397,6 +377,18 @@ export const LABY_PATH_VALUES: Record<Exclude<LabyPathStrategy, 'off'>, Record<s
     xp: { opponent_super_easy: 10, opponent_easy: 15, opponent_medium: 20, opponent_hard: 25, treasure: 1, shrine: 0 },
     kisses: { opponent_super_easy: 1, opponent_easy: 1, opponent_medium: 10, opponent_hard: 12, treasure: 3, shrine: 0 },
 };
+
+/**
+ * The path a user of the retired "Hard mode" switch gets: "red" when the
+ * switch was on and no path was chosen yet, otherwise null (nothing to
+ * change). Hard mode picked the hardest opponent of the next row; "Most red"
+ * does the same over the whole floor.
+ */
+export function migratedLabyPath(hardMode: unknown, path: unknown): LabyPathStrategy | null {
+    if (hardMode !== "true") return null;
+    if (path !== undefined && path !== null && path !== "off") return null;
+    return "red";
+}
 
 export function isLabyPathStrategy(value: unknown): value is LabyPathStrategy {
     return typeof value === 'string' && (LABY_PATH_STRATEGIES as readonly string[]).includes(value);

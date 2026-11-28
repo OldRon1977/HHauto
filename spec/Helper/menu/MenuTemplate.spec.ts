@@ -17,7 +17,7 @@ const CONTROL_IDS_BEFORE_8_10 = [
     'autoClubChampMax', 'autoClubForceStart', 'autoContest', 'autoDailyGoals',
     'autoDailyGoalsCollect', 'autoEquipBoosters', 'autoEquipBoostersSlots', 'autoEquipMythicBooster',
     'autoExp', 'autoExpW', 'autoFreeBundlesCollect', 'autoFreePachinko',
-    'autoLabyCustomTeamBuilder', 'autoLabyDifficulty', 'autoLabyHard', 'autoLabySweep',
+    'autoLabyCustomTeamBuilder', 'autoLabyDifficulty', 'autoLabySweep',
     'autoLabyrinth', 'autoLeagues', 'autoLeaguesAllowWinCurrent', 'autoLeaguesBoostedOnly',
     'autoLeaguesCollect', 'autoLeaguesForceOneFight', 'autoLeaguesRunThreshold', 'autoLeaguesSecurityThreshold',
     'autoLeaguesSelector', 'autoLeaguesSortMode', 'autoLeaguesThreshold', 'autoLivelySceneEventCollect',

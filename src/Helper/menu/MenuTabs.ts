@@ -313,11 +313,10 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 hhMenuSwitch('autoLabyrinth')
                 + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
                 + hhMenuSelect('autoLabyPath', 'max-width:130px;')
-                + hhMenuSwitch('autoLabyHard')
                 + hhMenuSwitch('autoLabySweep')
                 + hhMenuSwitch('autoLabyCustomTeamBuilder'),
                 'isEnabledLabyrinth', true, block(['autoLabyrinth'], [],
-                    ['autoLabyHard', 'autoLabySweep', 'autoLabyCustomTeamBuilder'])),
+                    ['autoLabySweep', 'autoLabyCustomTeamBuilder'])),
     },
     {
         id: 'shop', icon: '🛒', nameKey: 'menuTabShop', titleKey: 'autoBuy',
