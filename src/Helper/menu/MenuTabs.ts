@@ -312,6 +312,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
             group('autoLabyrinthTitle',
                 hhMenuSwitch('autoLabyrinth')
                 + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
+                + hhMenuSelect('autoLabyPath', 'max-width:130px;')
                 + hhMenuSwitch('autoLabyHard')
                 + hhMenuSwitch('autoLabySweep')
                 + hhMenuSwitch('autoLabyCustomTeamBuilder'),

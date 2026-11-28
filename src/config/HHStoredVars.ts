@@ -2042,6 +2042,19 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyHard] =
     menuType:"checked",
     kobanUsing: false
 };
+HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyPath] =
+{
+    default: "off",
+    storage: "Storage()",
+    HHType: "Setting",
+    valueType: "String",
+    getMenu: true,
+    setMenu: true,
+    menuType: "value",
+    kobanUsing: false,
+    customMenuID: "autoLabyPath",
+    isValid: /^(off|treasure|red|safe|xp|kisses)$/
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyDifficultyIndex] =
 {
     default: "0",

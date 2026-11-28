@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.27.1
+// @version      8.28.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -724,6 +724,13 @@ HHAuto_ToolTips.en['autoPantheonTitle'] = { version: "5.6.24", elementText: "Pan
 HHAuto_ToolTips.en['autoLabyrinth'] = { version: "8.10.42", elementText: "Enabled", tooltip: "if enabled : Automatically do Labyrinth simple mode.<br/>Will select easiest opponent not looking for later step." };
 HHAuto_ToolTips.en['autoLabyHard'] = { version: "7.25.3", elementText: "Hard mode", tooltip: "if enabled : Automatically do Labyrinth hard mode.<br/>Will select hardest opponent group and low power." };
 HHAuto_ToolTips.en['autoLabySweep'] = { version: "7.25.3", elementText: "Sweep", tooltip: "if enabled : Automatically sweep labyrinth floor when available." };
+HHAuto_ToolTips.en['autoLabyPath'] = { version: "8.28.0", elementText: "Path", tooltip: "<p>Plans the whole floor ahead instead of choosing the next hex only. Works the same on every floor; only the number of floors depends on the difficulty.</p><p>Opponent power is known for the next step only, so the plan weighs the hex types.</p><ul><li><b>Step by step</b> &mdash; as before; the Hard mode switch applies.</li><li><b>Treasures first</b> &mdash; every treasure the floor allows, then the hardest opponents.</li><li><b>Most red</b> &mdash; as many hard opponents as possible.</li><li><b>Avoid red</b> &mdash; around hard opponents, treasures and shrines on the way.</li><li><b>XP</b> / <b>Kisses</b> &mdash; opponents weighed by that reward.</li></ul><p>With a plan the Hard mode switch does not change the path.</p>" };
+HHAuto_ToolTips.en['autoLabyPathOff'] = { version: "8.28.0", elementText: "Step by step" };
+HHAuto_ToolTips.en['autoLabyPathTreasure'] = { version: "8.28.0", elementText: "Treasures first" };
+HHAuto_ToolTips.en['autoLabyPathRed'] = { version: "8.28.0", elementText: "Most red" };
+HHAuto_ToolTips.en['autoLabyPathSafe'] = { version: "8.28.0", elementText: "Avoid red" };
+HHAuto_ToolTips.en['autoLabyPathXp'] = { version: "8.28.0", elementText: "XP" };
+HHAuto_ToolTips.en['autoLabyPathKisses'] = { version: "8.28.0", elementText: "Kisses" };
 HHAuto_ToolTips.en['autoLabyDifficulty'] = { version: "7.25.2", elementText: "Difficulty", tooltip: "Labyrinth difficulty to select before starting." };
 HHAuto_ToolTips.en['autoLabyDifficultyEasy'] = { version: "7.25.2", elementText: "Easy" };
 HHAuto_ToolTips.en['autoLabyDifficultyNormal'] = { version: "7.25.2", elementText: "Normal" };
@@ -1342,6 +1349,13 @@ HHAuto_ToolTips.fr['autoPantheonTitle'] = { version: "5.6.24", elementText: "Pan
 HHAuto_ToolTips.fr['autoLabyrinth'] = { version: "8.10.42", elementText: "Activé", tooltip: "Si activé : effectue automatiquement le Labyrinthe en mode simple.<br/>Choisira l'adversaire le plus facile sans anticiper les étapes suivantes." };
 HHAuto_ToolTips.fr['autoLabyHard'] = { version: "7.25.3", elementText: "Mode difficile", tooltip: "Si activé : effectue automatiquement le Labyrinthe en mode difficile.<br/>Choisira le groupe d'adversaires le plus difficile et de faible puissance." };
 HHAuto_ToolTips.fr['autoLabySweep'] = { version: "7.25.3", elementText: "Balayage", tooltip: "Si activé : balaie automatiquement l'étage du labyrinthe lorsque c'est possible." };
+HHAuto_ToolTips.fr['autoLabyPath'] = { version: "8.28.0", elementText: "Chemin", tooltip: "<p>Planifie tout l'étage à l'avance au lieu de ne choisir que la case suivante. Identique à chaque étage ; seul le nombre d'étages dépend de la difficulté.</p><p>La puissance des adversaires n'est connue que pour l'étape suivante, le plan pèse donc les types de cases.</p><ul><li><b>Pas à pas</b> &mdash; comme avant ; l'option Mode difficile s'applique.</li><li><b>Trésors d'abord</b> &mdash; chaque trésor que l'étage permet, puis les adversaires les plus durs.</li><li><b>Max de rouges</b> &mdash; autant d'adversaires difficiles que possible.</li><li><b>Éviter les rouges</b> &mdash; contourne les adversaires difficiles, trésors et sanctuaires en chemin.</li><li><b>XP</b> / <b>Bisous</b> &mdash; adversaires pondérés selon cette récompense.</li></ul><p>Avec un plan, l'option Mode difficile ne change pas le chemin.</p>" };
+HHAuto_ToolTips.fr['autoLabyPathOff'] = { version: "8.28.0", elementText: "Pas à pas" };
+HHAuto_ToolTips.fr['autoLabyPathTreasure'] = { version: "8.28.0", elementText: "Trésors d'abord" };
+HHAuto_ToolTips.fr['autoLabyPathRed'] = { version: "8.28.0", elementText: "Max de rouges" };
+HHAuto_ToolTips.fr['autoLabyPathSafe'] = { version: "8.28.0", elementText: "Éviter les rouges" };
+HHAuto_ToolTips.fr['autoLabyPathXp'] = { version: "8.28.0", elementText: "XP" };
+HHAuto_ToolTips.fr['autoLabyPathKisses'] = { version: "8.28.0", elementText: "Bisous" };
 HHAuto_ToolTips.fr['autoLabyDifficulty'] = { version: "7.25.2", elementText: "Difficulté", tooltip: "Difficulté du labyrinthe à choisir avant de commencer." };
 HHAuto_ToolTips.fr['autoLabyDifficultyEasy'] = { version: "7.25.2", elementText: "Facile", tooltip: "" };
 HHAuto_ToolTips.fr['autoLabyDifficultyNormal'] = { version: "7.25.2", elementText: "Normale", tooltip: "" };
@@ -1920,6 +1934,13 @@ HHAuto_ToolTips.de['autoPantheonTitle'] = { version: "8.10.0", elementText: "Auf
 HHAuto_ToolTips.de['autoLabyrinth'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Wenn aktiv: Spielt das Labyrinth im einfachen Modus.<br/>Wählt den leichtesten Gegner, ohne nach Belohnung zu schauen." };
 HHAuto_ToolTips.de['autoLabyHard'] = { version: "7.25.3", elementText: "Harter Modus", tooltip: "Wenn aktiv: Spielt das Labyrinth im harten Modus.<br/>Wählt die schwerste Gegnergruppe und damit die größere Belohnung." };
 HHAuto_ToolTips.de['autoLabySweep'] = { version: "7.25.3", elementText: "Sweep", tooltip: "Wenn aktiv: Nutzt den Sweep für die Labyrinth-Ebene, sobald er verfügbar ist." };
+HHAuto_ToolTips.de['autoLabyPath'] = { version: "8.28.0", elementText: "Weg", tooltip: "<p>Plant die ganze Etage voraus, statt nur das nächste Feld zu wählen. Läuft auf jeder Etage gleich; nur die Zahl der Etagen hängt von der Schwierigkeit ab.</p><p>Die Gegnerstärke ist nur für den nächsten Schritt bekannt, deshalb wertet der Plan die Feldtypen.</p><ul><li><b>Schritt für Schritt</b> &mdash; wie bisher; der Schalter Harter Modus gilt.</li><li><b>Schätze zuerst</b> &mdash; jeder Schatz, den die Etage erlaubt, dann die schwersten Gegner.</li><li><b>Viele rote</b> &mdash; so viele schwere Gegner wie möglich.</li><li><b>Rote meiden</b> &mdash; um schwere Gegner herum, Schätze und Schreine unterwegs.</li><li><b>XP</b> / <b>Küsse</b> &mdash; Gegner nach dieser Belohnung gewichtet.</li></ul><p>Mit Plan ändert der Schalter Harter Modus den Weg nicht.</p>" };
+HHAuto_ToolTips.de['autoLabyPathOff'] = { version: "8.28.0", elementText: "Schritt für Schritt" };
+HHAuto_ToolTips.de['autoLabyPathTreasure'] = { version: "8.28.0", elementText: "Schätze zuerst" };
+HHAuto_ToolTips.de['autoLabyPathRed'] = { version: "8.28.0", elementText: "Viele rote" };
+HHAuto_ToolTips.de['autoLabyPathSafe'] = { version: "8.28.0", elementText: "Rote meiden" };
+HHAuto_ToolTips.de['autoLabyPathXp'] = { version: "8.28.0", elementText: "XP" };
+HHAuto_ToolTips.de['autoLabyPathKisses'] = { version: "8.28.0", elementText: "Küsse" };
 HHAuto_ToolTips.de['autoLabyDifficulty'] = { version: "7.25.2", elementText: "Schwierigkeit", tooltip: "Labyrinth-Schwierigkeit, die vor dem Start gewählt wird." };
 HHAuto_ToolTips.de['autoLabyDifficultyEasy'] = { version: "7.25.2", elementText: "Leicht" };
 HHAuto_ToolTips.de['autoLabyDifficultyNormal'] = { version: "7.25.2", elementText: "Normal" };
@@ -2569,6 +2590,13 @@ HHAuto_ToolTips.es['display'] = { version: "5.7.1", elementText: "Pantalla", too
 HHAuto_ToolTips.es['PachinkoSelectorNoButtons'] = { version: "5.6.24", elementText: "No hay orbes disponibles.", tooltip: "" };
 HHAuto_ToolTips.es['autoLabyHard'] = { version: "7.25.3", elementText: "Modo difícil", tooltip: "Si habilitado: hace automáticamente el Laberinto en modo difícil.<br/>Elegirá el grupo de rivales más difícil y de menor poder." };
 HHAuto_ToolTips.es['autoLabySweep'] = { version: "7.25.3", elementText: "Barrido", tooltip: "Si habilitado: barre automáticamente la planta del laberinto cuando está disponible." };
+HHAuto_ToolTips.es['autoLabyPath'] = { version: "8.28.0", elementText: "Camino", tooltip: "<p>Planifica todo el piso de antemano en lugar de elegir solo la casilla siguiente. Igual en cada piso; solo el número de pisos depende de la dificultad.</p><p>El poder de los rivales solo se conoce para el paso siguiente, así que el plan pondera los tipos de casilla.</p><ul><li><b>Paso a paso</b> &mdash; como antes; se aplica el interruptor Modo difícil.</li><li><b>Tesoros primero</b> &mdash; cada tesoro que permita el piso, luego los rivales más duros.</li><li><b>Máx. rojos</b> &mdash; tantos rivales difíciles como sea posible.</li><li><b>Evitar rojos</b> &mdash; rodea a los rivales difíciles, tesoros y santuarios por el camino.</li><li><b>XP</b> / <b>Besos</b> &mdash; rivales ponderados según esa recompensa.</li></ul><p>Con un plan, el interruptor Modo difícil no cambia el camino.</p>" };
+HHAuto_ToolTips.es['autoLabyPathOff'] = { version: "8.28.0", elementText: "Paso a paso" };
+HHAuto_ToolTips.es['autoLabyPathTreasure'] = { version: "8.28.0", elementText: "Tesoros primero" };
+HHAuto_ToolTips.es['autoLabyPathRed'] = { version: "8.28.0", elementText: "Máx. rojos" };
+HHAuto_ToolTips.es['autoLabyPathSafe'] = { version: "8.28.0", elementText: "Evitar rojos" };
+HHAuto_ToolTips.es['autoLabyPathXp'] = { version: "8.28.0", elementText: "XP" };
+HHAuto_ToolTips.es['autoLabyPathKisses'] = { version: "8.28.0", elementText: "Besos" };
 HHAuto_ToolTips.es['autoLabyDifficulty'] = { version: "7.25.2", elementText: "Dificultad", tooltip: "Dificultad del laberinto a elegir antes de empezar." };
 HHAuto_ToolTips.es['autoLabyDifficultyEasy'] = { version: "7.25.2", elementText: "Fácil", tooltip: "" };
 HHAuto_ToolTips.es['autoLabyDifficultyNormal'] = { version: "7.25.2", elementText: "Normal", tooltip: "" };
@@ -3065,6 +3093,7 @@ const SK = {
     autoLabyrinth: "Setting_autoLabyrinth",
     autoLabyHard: "Setting_autoLabyHard",
     autoLabySweep: "Setting_autoLabySweep",
+    autoLabyPath: "Setting_autoLabyPath",
     autoLabyDifficultyIndex: "Setting_autoLabyDifficultyIndex",
     autoLabyCustomTeamBuilder: "Setting_autoLabyCustomTeamBuilder",
     // Place of Power
@@ -5666,6 +5695,19 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyHard] =
         setMenu: true,
         menuType: "checked",
         kobanUsing: false
+    };
+HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyPath] =
+    {
+        default: "off",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "String",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false,
+        customMenuID: "autoLabyPath",
+        isValid: /^(off|treasure|red|safe|xp|kisses)$/
     };
 HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyDifficultyIndex] =
     {
@@ -12795,6 +12837,377 @@ const LABY_DIFFICULTY = {
     NORMAL: "1",
     HARD: "2",
 };
+
+;// ./src/Module/Labyrinth.pure.ts
+// Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline,
+// the "find better option" selector and the count of repeated draws.
+//
+// Behind Labyrinth.createPathFromMatrix, Labyrinth.keepPathsWithTreasure,
+// Labyrinth.sortPathsByDifficulty and Labyrinth.findBetter, so the
+// path-building DFS, the treasure filter, the difficulty sort and the
+// option ranker can be unit-tested without DOM access, jQuery, globals or
+// storage.
+//
+// The functions are generic over the opponent record so the impure
+// adapter can keep its DOM-bound `LabyrinthOpponent` shape (with
+// jQuery `button` / `cell` handles) while the pure layer only needs
+// the deterministic decision fields.
+/**
+ * The indices in the next row that the cell at (currIdx, currLen) can
+ * reach.
+ *
+ * Adjacency rules:
+ *   - nextLen === 1 (boss row): every cell maps to [0]
+ *   - currLen 1 -> nextLen 2: 0 -> [0, 1]
+ *   - currLen 2 -> nextLen 3: 0 -> [0, 1], 1 -> [1, 2]
+ *   - currLen 3 -> nextLen 2: 0 -> [0], 1 -> [0, 1], 2 -> [1]
+ *   - any other shape returns undefined
+ */
+function getNextIndices(currIdx, currLen, nextLen) {
+    if (nextLen === 1)
+        return [0];
+    if (currLen === 1 && nextLen === 2)
+        return [0, 1];
+    if (currLen === 2 && nextLen === 3)
+        return currIdx === 0 ? [0, 1] : [1, 2];
+    if (currLen === 3 && nextLen === 2) {
+        if (currIdx === 0)
+            return [0];
+        if (currIdx === 1)
+            return [0, 1];
+        return [1];
+    }
+    return undefined;
+}
+/**
+ * Every path through the labyrinth: DFS over a row-of-cells matrix using
+ * the adjacency rules in getNextIndices.
+ *
+ * Empty leading rows are skipped (`while !matrix[startRow] ||
+ * length === 0`): the matrix may carry empty rows ahead of the first real
+ * row.
+ */
+function buildPathsFromMatrix(matrix) {
+    const rows = matrix.length;
+    const paths = [];
+    if (rows === 0)
+        return paths;
+    const lastRow = rows - 1;
+    const dfs = (row, idx, acc) => {
+        acc.push(matrix[row][idx]);
+        if (row === lastRow) {
+            paths.push(acc.slice());
+            acc.pop();
+            return;
+        }
+        const nextRow = row + 1;
+        const currLen = matrix[row].length;
+        const nextLen = matrix[nextRow].length;
+        const nextIndices = getNextIndices(idx, currLen, nextLen);
+        if (nextIndices === undefined) {
+            // An unrecognised row pair: no further descent from here,
+            // instead of iterating an undefined list below.
+            acc.pop();
+            return;
+        }
+        for (const ni of nextIndices) {
+            if (ni >= 0 && ni < nextLen)
+                dfs(nextRow, ni, acc);
+        }
+        acc.pop();
+    };
+    let startRow = 0;
+    while (startRow < rows && (!matrix[startRow] || matrix[startRow].length === 0)) {
+        startRow++;
+    }
+    if (startRow >= rows)
+        return paths;
+    for (let i = 0; i < matrix[startRow].length; i++) {
+        dfs(startRow, i, []);
+    }
+    return paths;
+}
+/**
+ * Keep only paths that contain at least one treasure cell (behind
+ * Labyrinth.keepPathsWithTreasure).
+ */
+function filterPathsWithTreasure(paths) {
+    return paths.filter((path) => path.filter((opponent) => opponent.isTreasure).length > 0);
+}
+/**
+ * Sort paths ascending by the sum of their opponent difficulties. The
+ * sort mutates: the input array is sorted in place and returned.
+ */
+function sortPathsByDifficulty(paths) {
+    return paths.sort((pathA, pathB) => {
+        let difficultyA = 0;
+        let difficultyB = 0;
+        pathA.forEach((opponent) => {
+            difficultyA += opponent.opponentDifficulty;
+        });
+        pathB.forEach((opponent) => {
+            difficultyB += opponent.opponentDifficulty;
+        });
+        return difficultyA - difficultyB;
+    });
+}
+/**
+ * The option ranker behind Labyrinth.findBetter. Filter cascade:
+ *
+ *   1. shrines: drop unless (haveGirlWounded AND floor >= 3)
+ *      else if floor >= 3 AND any shrine present: keep only shrines
+ *   2. treasures: if any treasure present, keep only treasures
+ *   3. easy bias: !chooseMoreReward AND floor < 3 AND any
+ *      opponentDifficulty == 1 present: keep only those
+ *
+ * Then iterate the filtered list and pick the best:
+ *
+ *   - Only options with hasButton AND isNext are eligible.
+ *   - First eligible option becomes the seed.
+ *   - chooseMoreReward branch:
+ *       * higher opponentDifficulty wins
+ *       * tied difficulty: lower power wins
+ *   - else (default) branch:
+ *       * non-opponent beats opponent
+ *       * two opponents: lower power wins
+ *
+ * If no eligible option survives, fall back to the FIRST element of
+ * the ORIGINAL options array (before any filter ran).
+ */
+function decideBetterOption(state) {
+    let { options } = state;
+    const { chooseMoreReward, haveGirlWounded, floor } = state;
+    let firstOption = null;
+    if (options.length > 0) {
+        firstOption = options[0];
+    }
+    if (!haveGirlWounded || floor < 3) {
+        options = options.filter((option) => !option.isShrine);
+    }
+    else if (floor >= 3 && options.filter((option) => option.isShrine).length > 0) {
+        options = options.filter((option) => option.isShrine);
+    }
+    if (options.filter((option) => option.isTreasure).length > 0) {
+        options = options.filter((option) => option.isTreasure);
+    }
+    if (!chooseMoreReward
+        && floor < 3
+        && options.filter((option) => option.opponentDifficulty === 1).length > 0) {
+        options = options.filter((option) => option.opponentDifficulty === 1);
+    }
+    let chosenOption = null;
+    options.forEach((option) => {
+        let isBetter = false;
+        if (option.hasButton && option.isNext) {
+            if (chosenOption == null) {
+                isBetter = true;
+            }
+            else if (chooseMoreReward) {
+                if (chosenOption.opponentDifficulty < option.opponentDifficulty) {
+                    isBetter = true;
+                }
+                else if (chosenOption.opponentDifficulty === option.opponentDifficulty
+                    && chosenOption.power > option.power) {
+                    isBetter = true;
+                }
+            }
+            else {
+                if (chosenOption.isOpponent && !option.isOpponent) {
+                    isBetter = true;
+                }
+                else if (chosenOption.isOpponent
+                    && option.isOpponent
+                    && chosenOption.power > option.power) {
+                    isBetter = true;
+                }
+            }
+        }
+        if (isBetter) {
+            chosenOption = option;
+        }
+    });
+    if (chosenOption == null && firstOption != null) {
+        chosenOption = firstOption;
+    }
+    return chosenOption;
+}
+// ---------------------------------------------------------------------------
+//  Repeated draws (#1904)
+//
+// A fight the server calls a draw changes nothing the labyrinth page shows:
+// the same opponent hex stays next with the same power, and the squad keeps
+// its health. The block then picks that hex again on every tick and never
+// releases the pipeline. What a draw does to the squad's health is not
+// measured; one that lowers it reads as a loss here, and the next fights
+// against the weakened squad end the loop anyway.
+//
+// A loss shows in the squad's health, a win in the opponent's power or in the
+// hex being gone, so "nothing changed" is read as a draw. The page shows the
+// opponent's power only, not its health: measured on labyrinth.html, a hex
+// carries `opponent_data.power_display` and nothing else. A fight that only
+// wounds the opponent without knocking out a girl may therefore leave the power
+// unchanged; that costs at most one pause too many and is accepted.
+//
+// Only a fight the script launched itself counts (`fought`), so a revisit of
+// the labyrinth page without a fight in between -- a reload, the Forbidden
+// recovery, a trip to the team editor -- is not taken for a draw.
+// ---------------------------------------------------------------------------
+/** Draws in a row before the labyrinth pauses. */
+const LABY_DRAW_LIMIT = 3;
+/** The pause after LABY_DRAW_LIMIT draws, in seconds. */
+const LABY_DRAW_PAUSE_SECONDS = 60 * 60;
+const EMPTY_LABY_DRAW_STATE = { last: null, fought: false, draws: 0, pausedUntil: 0 };
+/**
+ * Draws in a row once `next` is about to be fought. A fight against the same
+ * hex that left its power and the squad's health as they were is one more
+ * draw; any change, or another hex, starts again at 0. Without a fight since
+ * the last pick the count stays as it is for the same hex.
+ */
+function countDraws(state, next) {
+    const last = state.last;
+    if (last === null || last.target !== next.target)
+        return 0;
+    if (!state.fought)
+        return state.draws;
+    const unchanged = last.power === next.power && last.squadEgo === next.squadEgo;
+    return unchanged ? state.draws + 1 : 0;
+}
+/** Reads a stored draw state, tolerating a missing or damaged value. */
+function parseLabyDrawState(raw) {
+    if (raw === null || typeof raw !== 'object')
+        return Object.assign({}, EMPTY_LABY_DRAW_STATE);
+    const o = raw;
+    const last = o.last && typeof o.last === 'object'
+        && typeof o.last.target === 'string'
+        && typeof o.last.power === 'number'
+        && typeof o.last.squadEgo === 'number'
+        ? { target: o.last.target, power: o.last.power, squadEgo: o.last.squadEgo }
+        : null;
+    return {
+        last,
+        fought: o.fought === true,
+        draws: typeof o.draws === 'number' && o.draws >= 0 ? o.draws : 0,
+        pausedUntil: typeof o.pausedUntil === 'number' ? o.pausedUntil : 0,
+    };
+}
+// ---------------------------------------------------------------------------
+//  Planned path (#1581)
+//
+// Every floor has the same board, whatever the difficulty: 11 rows of widths
+// 1-2-3-2-3-2-3-2-3-2-1, the start in row 1, the boss in row 11. Only the
+// number of floors differs (Easy 3, Normal 4, Hard 5). The plan therefore
+// runs per floor and knows nothing of the difficulty.
+//
+// The board is read from the page, not from `labyrinth_grid`: after a treasure
+// or a shrine the game redraws the board from the answer's `grid_model`
+// without assigning `labyrinth_grid` again, so the JSON is a step behind
+// until the page reloads.
+//
+// What the page shows (measured on labyrinth.html): every hex type of the
+// current floor from the start; the power only on the selectable hexes; a
+// walked or skipped hex carries `completed-hex`, a walked one turns into type
+// `hero`. So the plan can only weigh types. Power breaks a tie on the next
+// step, the only one where it is known.
+//
+// The plan is a backward sum from the boss over the hexes still ahead of the
+// hero, the same as HH-suckless (xnh0x, GPL-3.0); the value tables of xp,
+// kisses and fists, and the one behind `treasure`, are its own. Recomputed on
+// every visit, nothing is stored, so a reload or a detour changes nothing.
+// ---------------------------------------------------------------------------
+/** The menu choices; 'off' keeps the step-by-step choice of decideBetterOption. */
+const LABY_PATH_STRATEGIES = ['off', 'treasure', 'red', 'safe', 'xp', 'kisses'];
+/**
+ * Value of a hex per strategy; a type that is missing counts 0 (the boss, the
+ * hero). The numbers only matter relative to each other inside one table:
+ *   treasure  every treasure the floor allows, then the hardest fights
+ *   red       the most hard opponents, a treasure worth less than one of them
+ *   safe      around hard opponents, treasures and shrines taken on the way
+ *   xp        harder opponents give more experience, treasures nearly nothing
+ *   kisses    medium and hard opponents
+ */
+const LABY_PATH_VALUES = {
+    treasure: { opponent_super_easy: 1, opponent_easy: 2, opponent_medium: 3, opponent_hard: 4, treasure: 100, shrine: 0 },
+    red: { opponent_super_easy: 1, opponent_easy: 1, opponent_medium: 5, opponent_hard: 25, treasure: 10, shrine: 0 },
+    safe: { opponent_super_easy: 4, opponent_easy: 3, opponent_medium: 1, opponent_hard: -20, treasure: 10, shrine: 2 },
+    xp: { opponent_super_easy: 10, opponent_easy: 15, opponent_medium: 20, opponent_hard: 25, treasure: 1, shrine: 0 },
+    kisses: { opponent_super_easy: 1, opponent_easy: 1, opponent_medium: 10, opponent_hard: 12, treasure: 3, shrine: 0 },
+};
+function isLabyPathStrategy(value) {
+    return typeof value === 'string' && LABY_PATH_STRATEGIES.includes(value);
+}
+/** Type and state from the class list of a hex's `.hex-type` image. */
+function readHexTypeClasses(classList) {
+    const tokens = classList.split(/\s+/).filter((t) => t.length > 0);
+    const type = tokens.find((t) => t !== 'hex-type' && t !== 'completed-hex' && t !== 'upcoming-hex') || '';
+    return { type, done: tokens.includes('completed-hex') };
+}
+/** Row index and hex index of the hero: the hex of type hero that is not completed. */
+function findHeroPosition(board) {
+    for (let r = board.length - 1; r >= 0; r--) {
+        const index = board[r].findIndex((h) => h.type === 'hero' && !h.done);
+        if (index >= 0)
+            return { row: r, index };
+    }
+    return null;
+}
+/**
+ * The best path from the hero to the boss, hero excluded. Empty when there is
+ * none to follow: no hero on the board, the hero on the last row, a row shape
+ * getNextIndices does not know, or a first step the page does not offer.
+ *
+ * Ties: on the first step the opponent with the lower power, then the left
+ * hex; further down the left hex.
+ */
+function planLabyrinthPath(board, values) {
+    const hero = findHeroPosition(board);
+    if (hero === null || hero.row >= board.length - 1)
+        return [];
+    const last = board.length - 1;
+    const best = board.map((row) => row.map(() => -Infinity));
+    const next = board.map((row) => row.map(() => -1));
+    const worth = (h) => { var _a; return (h.done ? -Infinity : ((_a = values[h.type]) !== null && _a !== void 0 ? _a : 0)); };
+    board[last].forEach((h, j) => { best[last][j] = worth(h); });
+    for (let r = last - 1; r > hero.row; r--) {
+        for (let j = 0; j < board[r].length; j++) {
+            const reach = getNextIndices(j, board[r].length, board[r + 1].length);
+            if (reach === undefined)
+                return [];
+            let ahead = -Infinity;
+            for (const k of reach) {
+                // Strictly greater: on a tie the left hex stays.
+                if (k < board[r + 1].length && best[r + 1][k] > ahead) {
+                    ahead = best[r + 1][k];
+                    next[r][j] = k;
+                }
+            }
+            best[r][j] = worth(board[r][j]) + ahead;
+        }
+    }
+    const first = getNextIndices(hero.index, board[hero.row].length, board[hero.row + 1].length);
+    if (first === undefined)
+        return [];
+    const candidates = first.filter((k) => k < board[hero.row + 1].length && best[hero.row + 1][k] > -Infinity);
+    if (candidates.length === 0)
+        return [];
+    candidates.sort((a, b) => {
+        const diff = best[hero.row + 1][b] - best[hero.row + 1][a];
+        if (diff !== 0)
+            return diff;
+        const pa = board[hero.row + 1][a].power, pb = board[hero.row + 1][b].power;
+        if (pa > 0 && pb > 0 && pa !== pb)
+            return pa - pb;
+        return a - b;
+    });
+    const path = [];
+    let k = candidates[0];
+    for (let r = hero.row + 1; r <= last && k >= 0; r++) {
+        path.push(board[r][k]);
+        k = next[r][k];
+    }
+    if (!path[0].selectable)
+        return [];
+    return path;
+}
 
 ;// ./src/Module/LeagueSortModes.ts
 // League opponent-list sort mode values shared between the menu (sort-mode
@@ -20089,6 +20502,7 @@ function tabs(debugEnabled) {
             id: 'labyrinth', icon: '🌀', nameKey: 'menuTabLabyrinth', titleKey: 'autoLabyrinthTitle',
             groups: group('autoLabyrinthTitle', hhMenuSwitch('autoLabyrinth')
                 + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
+                + hhMenuSelect('autoLabyPath', 'max-width:130px;')
                 + hhMenuSwitch('autoLabyHard')
                 + hhMenuSwitch('autoLabySweep')
                 + hhMenuSwitch('autoLabyCustomTeamBuilder'), 'isEnabledLabyrinth', true, block(['autoLabyrinth'], [], ['autoLabyHard', 'autoLabySweep', 'autoLabyCustomTeamBuilder'])),
@@ -20536,6 +20950,7 @@ function getMenu() {
 
 
 
+
 class HHMenu {
     createMenuButton() {
         if ($('#' + HHMenu.BUTTON_MENU_ID).length > 0)
@@ -20694,6 +21109,13 @@ class HHMenu {
         sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.EASY, getTextForUI("autoLabyDifficultyEasy", "elementText")));
         sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.NORMAL, getTextForUI("autoLabyDifficultyNormal", "elementText")));
         sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.HARD, getTextForUI("autoLabyDifficultyHard", "elementText")));
+    }
+    fillLabyPathMenu() {
+        const pathOptions = document.getElementById("autoLabyPath");
+        for (const strategy of LABY_PATH_STRATEGIES) {
+            const key = "autoLabyPath" + strategy.charAt(0).toUpperCase() + strategy.slice(1);
+            pathOptions.add(this._createHtmlOption(strategy, getTextForUI(key, "elementText")));
+        }
     }
 }
 HHMenu.BUTTON_MENU_ID = 'sMenuButton';
@@ -24715,259 +25137,6 @@ function esc(value) {
     return String(value).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
-;// ./src/Module/Labyrinth.pure.ts
-// Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline,
-// the "find better option" selector and the count of repeated draws.
-//
-// Behind Labyrinth.createPathFromMatrix, Labyrinth.keepPathsWithTreasure,
-// Labyrinth.sortPathsByDifficulty and Labyrinth.findBetter, so the
-// path-building DFS, the treasure filter, the difficulty sort and the
-// option ranker can be unit-tested without DOM access, jQuery, globals or
-// storage.
-//
-// The functions are generic over the opponent record so the impure
-// adapter can keep its DOM-bound `LabyrinthOpponent` shape (with
-// jQuery `button` / `cell` handles) while the pure layer only needs
-// the deterministic decision fields.
-/**
- * The indices in the next row that the cell at (currIdx, currLen) can
- * reach.
- *
- * Adjacency rules:
- *   - nextLen === 1 (boss row): every cell maps to [0]
- *   - currLen 1 -> nextLen 2: 0 -> [0, 1]
- *   - currLen 2 -> nextLen 3: 0 -> [0, 1], 1 -> [1, 2]
- *   - currLen 3 -> nextLen 2: 0 -> [0], 1 -> [0, 1], 2 -> [1]
- *   - any other shape returns undefined
- */
-function getNextIndices(currIdx, currLen, nextLen) {
-    if (nextLen === 1)
-        return [0];
-    if (currLen === 1 && nextLen === 2)
-        return [0, 1];
-    if (currLen === 2 && nextLen === 3)
-        return currIdx === 0 ? [0, 1] : [1, 2];
-    if (currLen === 3 && nextLen === 2) {
-        if (currIdx === 0)
-            return [0];
-        if (currIdx === 1)
-            return [0, 1];
-        return [1];
-    }
-    return undefined;
-}
-/**
- * Every path through the labyrinth: DFS over a row-of-cells matrix using
- * the adjacency rules in getNextIndices.
- *
- * Empty leading rows are skipped (`while !matrix[startRow] ||
- * length === 0`): the matrix may carry empty rows ahead of the first real
- * row.
- */
-function buildPathsFromMatrix(matrix) {
-    const rows = matrix.length;
-    const paths = [];
-    if (rows === 0)
-        return paths;
-    const lastRow = rows - 1;
-    const dfs = (row, idx, acc) => {
-        acc.push(matrix[row][idx]);
-        if (row === lastRow) {
-            paths.push(acc.slice());
-            acc.pop();
-            return;
-        }
-        const nextRow = row + 1;
-        const currLen = matrix[row].length;
-        const nextLen = matrix[nextRow].length;
-        const nextIndices = getNextIndices(idx, currLen, nextLen);
-        if (nextIndices === undefined) {
-            // An unrecognised row pair: no further descent from here,
-            // instead of iterating an undefined list below.
-            acc.pop();
-            return;
-        }
-        for (const ni of nextIndices) {
-            if (ni >= 0 && ni < nextLen)
-                dfs(nextRow, ni, acc);
-        }
-        acc.pop();
-    };
-    let startRow = 0;
-    while (startRow < rows && (!matrix[startRow] || matrix[startRow].length === 0)) {
-        startRow++;
-    }
-    if (startRow >= rows)
-        return paths;
-    for (let i = 0; i < matrix[startRow].length; i++) {
-        dfs(startRow, i, []);
-    }
-    return paths;
-}
-/**
- * Keep only paths that contain at least one treasure cell (behind
- * Labyrinth.keepPathsWithTreasure).
- */
-function filterPathsWithTreasure(paths) {
-    return paths.filter((path) => path.filter((opponent) => opponent.isTreasure).length > 0);
-}
-/**
- * Sort paths ascending by the sum of their opponent difficulties. The
- * sort mutates: the input array is sorted in place and returned.
- */
-function sortPathsByDifficulty(paths) {
-    return paths.sort((pathA, pathB) => {
-        let difficultyA = 0;
-        let difficultyB = 0;
-        pathA.forEach((opponent) => {
-            difficultyA += opponent.opponentDifficulty;
-        });
-        pathB.forEach((opponent) => {
-            difficultyB += opponent.opponentDifficulty;
-        });
-        return difficultyA - difficultyB;
-    });
-}
-/**
- * The option ranker behind Labyrinth.findBetter. Filter cascade:
- *
- *   1. shrines: drop unless (haveGirlWounded AND floor >= 3)
- *      else if floor >= 3 AND any shrine present: keep only shrines
- *   2. treasures: if any treasure present, keep only treasures
- *   3. easy bias: !chooseMoreReward AND floor < 3 AND any
- *      opponentDifficulty == 1 present: keep only those
- *
- * Then iterate the filtered list and pick the best:
- *
- *   - Only options with hasButton AND isNext are eligible.
- *   - First eligible option becomes the seed.
- *   - chooseMoreReward branch:
- *       * higher opponentDifficulty wins
- *       * tied difficulty: lower power wins
- *   - else (default) branch:
- *       * non-opponent beats opponent
- *       * two opponents: lower power wins
- *
- * If no eligible option survives, fall back to the FIRST element of
- * the ORIGINAL options array (before any filter ran).
- */
-function decideBetterOption(state) {
-    let { options } = state;
-    const { chooseMoreReward, haveGirlWounded, floor } = state;
-    let firstOption = null;
-    if (options.length > 0) {
-        firstOption = options[0];
-    }
-    if (!haveGirlWounded || floor < 3) {
-        options = options.filter((option) => !option.isShrine);
-    }
-    else if (floor >= 3 && options.filter((option) => option.isShrine).length > 0) {
-        options = options.filter((option) => option.isShrine);
-    }
-    if (options.filter((option) => option.isTreasure).length > 0) {
-        options = options.filter((option) => option.isTreasure);
-    }
-    if (!chooseMoreReward
-        && floor < 3
-        && options.filter((option) => option.opponentDifficulty === 1).length > 0) {
-        options = options.filter((option) => option.opponentDifficulty === 1);
-    }
-    let chosenOption = null;
-    options.forEach((option) => {
-        let isBetter = false;
-        if (option.hasButton && option.isNext) {
-            if (chosenOption == null) {
-                isBetter = true;
-            }
-            else if (chooseMoreReward) {
-                if (chosenOption.opponentDifficulty < option.opponentDifficulty) {
-                    isBetter = true;
-                }
-                else if (chosenOption.opponentDifficulty === option.opponentDifficulty
-                    && chosenOption.power > option.power) {
-                    isBetter = true;
-                }
-            }
-            else {
-                if (chosenOption.isOpponent && !option.isOpponent) {
-                    isBetter = true;
-                }
-                else if (chosenOption.isOpponent
-                    && option.isOpponent
-                    && chosenOption.power > option.power) {
-                    isBetter = true;
-                }
-            }
-        }
-        if (isBetter) {
-            chosenOption = option;
-        }
-    });
-    if (chosenOption == null && firstOption != null) {
-        chosenOption = firstOption;
-    }
-    return chosenOption;
-}
-// ---------------------------------------------------------------------------
-//  Repeated draws (#1904)
-//
-// A fight the server calls a draw changes nothing the labyrinth page shows:
-// the same opponent hex stays next with the same power, and the squad keeps
-// its health. The block then picks that hex again on every tick and never
-// releases the pipeline. What a draw does to the squad's health is not
-// measured; one that lowers it reads as a loss here, and the next fights
-// against the weakened squad end the loop anyway.
-//
-// A loss shows in the squad's health, a win in the opponent's power or in the
-// hex being gone, so "nothing changed" is read as a draw. The page shows the
-// opponent's power only, not its health: measured on labyrinth.html, a hex
-// carries `opponent_data.power_display` and nothing else. A fight that only
-// wounds the opponent without knocking out a girl may therefore leave the power
-// unchanged; that costs at most one pause too many and is accepted.
-//
-// Only a fight the script launched itself counts (`fought`), so a revisit of
-// the labyrinth page without a fight in between -- a reload, the Forbidden
-// recovery, a trip to the team editor -- is not taken for a draw.
-// ---------------------------------------------------------------------------
-/** Draws in a row before the labyrinth pauses. */
-const LABY_DRAW_LIMIT = 3;
-/** The pause after LABY_DRAW_LIMIT draws, in seconds. */
-const LABY_DRAW_PAUSE_SECONDS = 60 * 60;
-const EMPTY_LABY_DRAW_STATE = { last: null, fought: false, draws: 0, pausedUntil: 0 };
-/**
- * Draws in a row once `next` is about to be fought. A fight against the same
- * hex that left its power and the squad's health as they were is one more
- * draw; any change, or another hex, starts again at 0. Without a fight since
- * the last pick the count stays as it is for the same hex.
- */
-function countDraws(state, next) {
-    const last = state.last;
-    if (last === null || last.target !== next.target)
-        return 0;
-    if (!state.fought)
-        return state.draws;
-    const unchanged = last.power === next.power && last.squadEgo === next.squadEgo;
-    return unchanged ? state.draws + 1 : 0;
-}
-/** Reads a stored draw state, tolerating a missing or damaged value. */
-function parseLabyDrawState(raw) {
-    if (raw === null || typeof raw !== 'object')
-        return Object.assign({}, EMPTY_LABY_DRAW_STATE);
-    const o = raw;
-    const last = o.last && typeof o.last === 'object'
-        && typeof o.last.target === 'string'
-        && typeof o.last.power === 'number'
-        && typeof o.last.squadEgo === 'number'
-        ? { target: o.last.target, power: o.last.power, squadEgo: o.last.squadEgo }
-        : null;
-    return {
-        last,
-        fought: o.fought === true,
-        draws: typeof o.draws === 'number' && o.draws >= 0 ? o.draws : 0,
-        pausedUntil: typeof o.pausedUntil === 'number' ? o.pausedUntil : 0,
-    };
-}
-
 ;// ./src/Module/RelicManager.ts
 var RelicManager_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -25146,7 +25315,7 @@ var Labyrinth_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 // remaining attempts and cooldowns, and coordinating with LabyrinthAuto.ts
 // for the actual fight logic and RelicManager.ts for relic selection.
 //
-// Depends on: RelicManager.ts (relic selection), Labyrinth.pure.ts (paths and choice)
+// Depends on: RelicManager.ts (relic selection), Labyrinth.pure.ts (paths, planned path and choice)
 // Used by: Module/LabyrinthAuto.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts
 //
 
@@ -25382,6 +25551,8 @@ class Labyrinth {
             logHHAuto("On Labyrinth page.");
             GM_addStyle('.labChosen {width: 25px; top: 55px; position: relative; left: 35px;}');
             GM_addStyle('.pathChosen {border: 1px solid green; border-radius: 40px;}');
+            if (Labyrinth.followPlannedPath())
+                return;
             const NB_ROW = 11;
             for (let rowIndex = 1; rowIndex <= NB_ROW; rowIndex++) {
                 const row = $('#row_' + rowIndex + '.row-hex-container');
@@ -25405,6 +25576,50 @@ class Labyrinth {
             const bestPath = allPaths.length > 0 ? allPaths[0] : [];
             Labyrinth.showPath(bestPath);
         }
+    }
+    /**
+     * With a path strategy chosen in the menu: mark the first step of the
+     * planned path and draw the path (#1581, the reasoning is in
+     * Labyrinth.pure.ts). False when the strategy is off or no plan comes out
+     * of the board; the step-by-step choice runs then, as without a strategy.
+     */
+    static followPlannedPath() {
+        const strategy = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyPath);
+        if (!isLabyPathStrategy(strategy) || strategy === 'off')
+            return false;
+        const path = planLabyrinthPath(Labyrinth.readBoard(), LABY_PATH_VALUES[strategy]);
+        if (path.length === 0) {
+            logHHAuto(`Labyrinth: no ${strategy} path on this board, choosing step by step.`);
+            return false;
+        }
+        const step = path[0];
+        const button = $(`#row_${step.row} #hex_${step.id} .clickable-hex`).first();
+        if (button.length === 0) {
+            logHHAuto(`Labyrinth: planned hex ${step.row}/${step.id} not clickable, choosing step by step.`);
+            return false;
+        }
+        logHHAuto(`Labyrinth ${strategy} path: ` + path.map((h) => `${h.row}/${h.id} ${h.type}`).join(', '));
+        Labyrinth.appendChoosenTag({ button });
+        path.forEach((h) => $(`#row_${h.row} #hex_${h.id} .hex-type`).first().addClass('pathChosen'));
+        return true;
+    }
+    /** The current floor's board, row 1 (start) first. */
+    static readBoard() {
+        const rows = $('.floor-container .row-hex-container').toArray()
+            .map((row) => ({ row, key: Number($(row).attr('key')) }))
+            .filter((r) => r.key > 0)
+            .sort((a, b) => a.key - b.key);
+        return rows.map(({ row, key }) => $('.hex-container', row).toArray().map((hex) => {
+            const { type, done } = readHexTypeClasses($('.hex-type', hex).first().attr('class') || '');
+            return {
+                row: key,
+                id: Number((hex.id || '').replace('hex_', '')) || 0,
+                type,
+                done,
+                selectable: $('.clickable-hex', hex).length > 0,
+                power: Number($('.opponent-power .opponent-power-text', hex).attr('data-power')) || 0,
+            };
+        }));
     }
     static showPath(path) {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinth")) {
@@ -41609,6 +41824,7 @@ function start() {
     hhAutoMenu.fillLeagueSelectMenu();
     hhAutoMenu.fillLeaguSortMenu();
     hhAutoMenu.fillLabyDifficultyMenu();
+    hhAutoMenu.fillLabyPathMenu();
     setMenuValues();
     getMenuValues();
     // Only now do the checkboxes carry their stored state, so this is the

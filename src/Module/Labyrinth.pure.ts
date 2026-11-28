@@ -351,3 +351,141 @@ export function parseLabyDrawState(raw: unknown): LabyDrawState {
         pausedUntil: typeof o.pausedUntil === 'number' ? o.pausedUntil : 0,
     };
 }
+
+// ---------------------------------------------------------------------------
+//  Planned path (#1581)
+//
+// Every floor has the same board, whatever the difficulty: 11 rows of widths
+// 1-2-3-2-3-2-3-2-3-2-1, the start in row 1, the boss in row 11. Only the
+// number of floors differs (Easy 3, Normal 4, Hard 5). The plan therefore
+// runs per floor and knows nothing of the difficulty.
+//
+// The board is read from the page, not from `labyrinth_grid`: after a treasure
+// or a shrine the game redraws the board from the answer's `grid_model`
+// without assigning `labyrinth_grid` again, so the JSON is a step behind
+// until the page reloads.
+//
+// What the page shows (measured on labyrinth.html): every hex type of the
+// current floor from the start; the power only on the selectable hexes; a
+// walked or skipped hex carries `completed-hex`, a walked one turns into type
+// `hero`. So the plan can only weigh types. Power breaks a tie on the next
+// step, the only one where it is known.
+//
+// The plan is a backward sum from the boss over the hexes still ahead of the
+// hero, the same as HH-suckless (xnh0x, GPL-3.0); the value tables of xp,
+// kisses and fists, and the one behind `treasure`, are its own. Recomputed on
+// every visit, nothing is stored, so a reload or a detour changes nothing.
+// ---------------------------------------------------------------------------
+
+/** The menu choices; 'off' keeps the step-by-step choice of decideBetterOption. */
+export const LABY_PATH_STRATEGIES = ['off', 'treasure', 'red', 'safe', 'xp', 'kisses'] as const;
+export type LabyPathStrategy = typeof LABY_PATH_STRATEGIES[number];
+
+/**
+ * Value of a hex per strategy; a type that is missing counts 0 (the boss, the
+ * hero). The numbers only matter relative to each other inside one table:
+ *   treasure  every treasure the floor allows, then the hardest fights
+ *   red       the most hard opponents, a treasure worth less than one of them
+ *   safe      around hard opponents, treasures and shrines taken on the way
+ *   xp        harder opponents give more experience, treasures nearly nothing
+ *   kisses    medium and hard opponents
+ */
+export const LABY_PATH_VALUES: Record<Exclude<LabyPathStrategy, 'off'>, Record<string, number>> = {
+    treasure: { opponent_super_easy: 1, opponent_easy: 2, opponent_medium: 3, opponent_hard: 4, treasure: 100, shrine: 0 },
+    red: { opponent_super_easy: 1, opponent_easy: 1, opponent_medium: 5, opponent_hard: 25, treasure: 10, shrine: 0 },
+    safe: { opponent_super_easy: 4, opponent_easy: 3, opponent_medium: 1, opponent_hard: -20, treasure: 10, shrine: 2 },
+    xp: { opponent_super_easy: 10, opponent_easy: 15, opponent_medium: 20, opponent_hard: 25, treasure: 1, shrine: 0 },
+    kisses: { opponent_super_easy: 1, opponent_easy: 1, opponent_medium: 10, opponent_hard: 12, treasure: 3, shrine: 0 },
+};
+
+export function isLabyPathStrategy(value: unknown): value is LabyPathStrategy {
+    return typeof value === 'string' && (LABY_PATH_STRATEGIES as readonly string[]).includes(value);
+}
+
+/** One hex as the page shows it. */
+export interface LabyBoardHex {
+    /** The `key` of its row (1 = start, 11 = boss). */
+    row: number;
+    /** The number in `hex_<id>`, 1 = leftmost. */
+    id: number;
+    /** `opponent_*`, `treasure`, `shrine` or `hero`. */
+    type: string;
+    /** `completed-hex`: walked or skipped. */
+    done: boolean;
+    /** Carries `.clickable-hex`. */
+    selectable: boolean;
+    /** `data-power`, 0 where the page shows none. */
+    power: number;
+}
+
+/** Type and state from the class list of a hex's `.hex-type` image. */
+export function readHexTypeClasses(classList: string): { type: string; done: boolean } {
+    const tokens = classList.split(/\s+/).filter((t) => t.length > 0);
+    const type = tokens.find((t) => t !== 'hex-type' && t !== 'completed-hex' && t !== 'upcoming-hex') || '';
+    return { type, done: tokens.includes('completed-hex') };
+}
+
+/** Row index and hex index of the hero: the hex of type hero that is not completed. */
+export function findHeroPosition(board: LabyBoardHex[][]): { row: number; index: number } | null {
+    for (let r = board.length - 1; r >= 0; r--) {
+        const index = board[r].findIndex((h) => h.type === 'hero' && !h.done);
+        if (index >= 0) return { row: r, index };
+    }
+    return null;
+}
+
+/**
+ * The best path from the hero to the boss, hero excluded. Empty when there is
+ * none to follow: no hero on the board, the hero on the last row, a row shape
+ * getNextIndices does not know, or a first step the page does not offer.
+ *
+ * Ties: on the first step the opponent with the lower power, then the left
+ * hex; further down the left hex.
+ */
+export function planLabyrinthPath(board: LabyBoardHex[][], values: Record<string, number>): LabyBoardHex[] {
+    const hero = findHeroPosition(board);
+    if (hero === null || hero.row >= board.length - 1) return [];
+
+    const last = board.length - 1;
+    const best: number[][] = board.map((row) => row.map(() => -Infinity));
+    const next: number[][] = board.map((row) => row.map(() => -1));
+    const worth = (h: LabyBoardHex) => (h.done ? -Infinity : (values[h.type] ?? 0));
+
+    board[last].forEach((h, j) => { best[last][j] = worth(h); });
+    for (let r = last - 1; r > hero.row; r--) {
+        for (let j = 0; j < board[r].length; j++) {
+            const reach = getNextIndices(j, board[r].length, board[r + 1].length);
+            if (reach === undefined) return [];
+            let ahead = -Infinity;
+            for (const k of reach) {
+                // Strictly greater: on a tie the left hex stays.
+                if (k < board[r + 1].length && best[r + 1][k] > ahead) {
+                    ahead = best[r + 1][k];
+                    next[r][j] = k;
+                }
+            }
+            best[r][j] = worth(board[r][j]) + ahead;
+        }
+    }
+
+    const first = getNextIndices(hero.index, board[hero.row].length, board[hero.row + 1].length);
+    if (first === undefined) return [];
+    const candidates = first.filter((k) => k < board[hero.row + 1].length && best[hero.row + 1][k] > -Infinity);
+    if (candidates.length === 0) return [];
+    candidates.sort((a, b) => {
+        const diff = best[hero.row + 1][b] - best[hero.row + 1][a];
+        if (diff !== 0) return diff;
+        const pa = board[hero.row + 1][a].power, pb = board[hero.row + 1][b].power;
+        if (pa > 0 && pb > 0 && pa !== pb) return pa - pb;
+        return a - b;
+    });
+
+    const path: LabyBoardHex[] = [];
+    let k = candidates[0];
+    for (let r = hero.row + 1; r <= last && k >= 0; r++) {
+        path.push(board[r][k]);
+        k = next[r][k];
+    }
+    if (!path[0].selectable) return [];
+    return path;
+}
