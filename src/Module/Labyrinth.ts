@@ -6,7 +6,7 @@
 // remaining attempts and cooldowns, and coordinating with LabyrinthAuto.ts
 // for the actual fight logic and RelicManager.ts for relic selection.
 //
-// Depends on: RelicManager.ts (relic selection), Labyrinth.pure.ts (paths and choice)
+// Depends on: RelicManager.ts (relic selection), Labyrinth.pure.ts (paths, planned path and choice)
 // Used by: Module/LabyrinthAuto.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
@@ -25,8 +25,13 @@ import {
     buildPathsFromMatrix,
     decideBetterOption,
     filterPathsWithTreasure,
+    isLabyPathStrategy,
+    LABY_PATH_VALUES,
+    LabyBoardHex,
     LabyDrawState,
     parseLabyDrawState,
+    planLabyrinthPath,
+    readHexTypeClasses,
     sortPathsByDifficulty as sortPathsByDifficultyPure,
 } from './Labyrinth.pure';
 import { RelicManager } from './RelicManager';
@@ -282,6 +287,8 @@ export class Labyrinth {
 
             GM_addStyle('.labChosen {width: 25px; top: 55px; position: relative; left: 35px;}');
             GM_addStyle('.pathChosen {border: 1px solid green; border-radius: 40px;}');
+
+            if (Labyrinth.followPlannedPath()) return;
     
             const NB_ROW = 11;
             for(let rowIndex = 1; rowIndex <= NB_ROW; rowIndex++) {
@@ -311,6 +318,51 @@ export class Labyrinth {
             Labyrinth.showPath(bestPath);
 
         }
+    }
+
+    /**
+     * With a path strategy chosen in the menu: mark the first step of the
+     * planned path and draw the path (#1581, the reasoning is in
+     * Labyrinth.pure.ts). False when the strategy is off or no plan comes out
+     * of the board; the step-by-step choice runs then, as without a strategy.
+     */
+    static followPlannedPath(): boolean {
+        const strategy = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyPath);
+        if (!isLabyPathStrategy(strategy) || strategy === 'off') return false;
+        const path = planLabyrinthPath(Labyrinth.readBoard(), LABY_PATH_VALUES[strategy]);
+        if (path.length === 0) {
+            logHHAuto(`Labyrinth: no ${strategy} path on this board, choosing step by step.`);
+            return false;
+        }
+        const step = path[0];
+        const button = $(`#row_${step.row} #hex_${step.id} .clickable-hex`).first();
+        if (button.length === 0) {
+            logHHAuto(`Labyrinth: planned hex ${step.row}/${step.id} not clickable, choosing step by step.`);
+            return false;
+        }
+        logHHAuto(`Labyrinth ${strategy} path: ` + path.map((h) => `${h.row}/${h.id} ${h.type}`).join(', '));
+        Labyrinth.appendChoosenTag({ button });
+        path.forEach((h) => $(`#row_${h.row} #hex_${h.id} .hex-type`).first().addClass('pathChosen'));
+        return true;
+    }
+
+    /** The current floor's board, row 1 (start) first. */
+    static readBoard(): LabyBoardHex[][] {
+        const rows = $('.floor-container .row-hex-container').toArray()
+            .map((row) => ({ row, key: Number($(row).attr('key')) }))
+            .filter((r) => r.key > 0)
+            .sort((a, b) => a.key - b.key);
+        return rows.map(({ row, key }) => $('.hex-container', row).toArray().map((hex) => {
+            const { type, done } = readHexTypeClasses($('.hex-type', hex).first().attr('class') || '');
+            return {
+                row: key,
+                id: Number((hex.id || '').replace('hex_', '')) || 0,
+                type,
+                done,
+                selectable: $('.clickable-hex', hex).length > 0,
+                power: Number($('.opponent-power .opponent-power-text', hex).attr('data-power')) || 0,
+            };
+        }));
     }
 
     static showPath(path: LabyrinthOpponent[]){

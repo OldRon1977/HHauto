@@ -219,3 +219,62 @@ describe("LabyrinthAuto sweep under a slow server (#1915)", () => {
         expect($("#labyrinth_reward_popup").length).toBe(0);
     });
 });
+
+describe("Labyrinth.followPlannedPath (issue #1581)", () => {
+    // A board in the shape labyrinth.html renders it: one .floor-container,
+    // rows by `key`, the type in the class list of .hex-type, completed-hex on
+    // walked and skipped hexes, .clickable-hex and the power on the next step.
+    const hex = (id: number, type: string, opts: { done?: boolean; power?: number } = {}) =>
+        `<div id="hex_${id}" class="hex-container">`
+        + (opts.power ? `<div class="clickable-hex" rel="labyrinth_hex_enter" hex_id="${id}" hex_type="${type}"></div>` : '')
+        + `<img class="hex-type ${type} ${opts.done ? 'completed-hex' : ''} ${opts.power || type === 'hero' ? '' : 'upcoming-hex'}" hex_id="${id}">`
+        + (opts.power ? `<div class="opponent-power"><div class="opponent-power-text" data-power="${opts.power}"></div></div>` : '')
+        + '</div>';
+    const row = (key: number, hexes: string) => `<div id="row_${key}" key="${key}" class="row-hex-container">${hexes}</div>`;
+    const page = () => {
+        // Rendered boss first, as the floor is drawn top-down.
+        document.body.innerHTML = '<div class="floor-container" floor_number="1">'
+            + row(4, hex(1, 'opponent_boss'))
+            + row(3, hex(1, 'opponent_easy') + hex(2, 'treasure') + hex(3, 'opponent_hard'))
+            + row(2, hex(1, 'opponent_easy', { power: 500 }) + hex(2, 'opponent_easy', { power: 400 }))
+            + row(1, hex(1, 'hero'))
+            + '</div>';
+    };
+
+    beforeEach(() => {
+        MockHelper.mockDomain();
+        jest.spyOn(ConfigHelper, "getHHScriptVars").mockReturnValue({ chosen: "x.png" } as never);
+    });
+    afterEach(() => {
+        jest.restoreAllMocks();
+        localStorage.clear();
+        document.body.innerHTML = "";
+    });
+
+    it("reads the board start row first", () => {
+        page();
+        const board = Labyrinth.readBoard();
+        expect(board.map((r) => r.map((h) => h.type))).toEqual([
+            ['hero'], ['opponent_easy', 'opponent_easy'], ['opponent_easy', 'treasure', 'opponent_hard'], ['opponent_boss']]);
+        expect(board[1][1]).toEqual({ row: 2, id: 2, type: 'opponent_easy', done: false, selectable: true, power: 400 });
+    });
+
+    it("does nothing while the strategy is off", () => {
+        page();
+        expect(Labyrinth.followPlannedPath()).toBe(false);
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoLabyPath, "off");
+        expect(Labyrinth.followPlannedPath()).toBe(false);
+        expect($('.labChosen')).toHaveLength(0);
+    });
+
+    it("marks the first step of the planned path and draws the path", () => {
+        page();
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoLabyPath, "treasure");
+        expect(Labyrinth.followPlannedPath()).toBe(true);
+        // Both first steps reach the treasure; the lower power wins.
+        expect($('#row_2 #hex_2 .clickable-hex .labChosen')).toHaveLength(1);
+        expect($('.labChosen')).toHaveLength(1);
+        expect($('.pathChosen').map((_i, e) => $(e).closest('.row-hex-container').attr('key') + '/' + $(e).attr('hex_id')).get())
+            .toEqual(['4/1', '3/2', '2/2']);
+    });
+});

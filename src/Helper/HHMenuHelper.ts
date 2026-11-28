@@ -25,6 +25,7 @@
 
 import { SCRIPT_MENU_ICON } from "../config/Images";
 import { LABY_DIFFICULTY } from '../Module/LabyrinthDifficulty';
+import { LABY_PATH_STRATEGIES } from '../Module/Labyrinth.pure';
 import { LEAGUE_SORT } from '../Module/LeagueSortModes';
 import { Troll } from '../Module/Troll';
 import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
@@ -222,6 +223,14 @@ export class HHMenu {
         sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.EASY, getTextForUI("autoLabyDifficultyEasy", "elementText")));
         sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.NORMAL, getTextForUI("autoLabyDifficultyNormal", "elementText")));
         sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.HARD, getTextForUI("autoLabyDifficultyHard", "elementText")));
+    }
+
+    fillLabyPathMenu() {
+        const pathOptions = <HTMLSelectElement>document.getElementById("autoLabyPath");
+        for (const strategy of LABY_PATH_STRATEGIES) {
+            const key = "autoLabyPath" + strategy.charAt(0).toUpperCase() + strategy.slice(1);
+            pathOptions.add(this._createHtmlOption(strategy, getTextForUI(key, "elementText")));
+        }
     }
 }
 

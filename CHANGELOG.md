@@ -7,6 +7,11 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.28.0 - Labyrinth path
+
+- **Labyrinth**: new setting "Path" plans the whole floor from the hero to the boss instead of choosing the next hex only: Treasures first, Most red, Avoid red, XP or Kisses. "Step by step" keeps the previous choice and is the default.
+- **Labyrinth**: with a path chosen, the green path on the board is the planned one and starts at the hero.
+
 ### v8.27.1 - Sell dialog loads with locked items
 
 - **Market, sell equipment**: loading also works when the item list cannot be scrolled, e.g. after a sale or with the locked items masked; before, loading stopped without loading anything.

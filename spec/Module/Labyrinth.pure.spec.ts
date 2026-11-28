@@ -12,6 +12,12 @@ import {
     filterPathsWithTreasure,
     getNextIndices,
     sortPathsByDifficulty,
+    findHeroPosition,
+    isLabyPathStrategy,
+    LABY_PATH_VALUES,
+    LabyBoardHex,
+    planLabyrinthPath,
+    readHexTypeClasses,
 } from "../../src/Module/Labyrinth.pure";
 
 /**
@@ -387,5 +393,136 @@ describe("parseLabyDrawState", () => {
     it("keeps a valid state", () => {
         const s = { last: { target: "1/row_2/1", power: 5, squadEgo: 700 }, fought: true, draws: 2, pausedUntil: 9 };
         expect(parseLabyDrawState(JSON.parse(JSON.stringify(s)))).toEqual(s);
+    });
+});
+
+// ---------------------------------------------------------------------------
+//  Planned path (#1581). Boards as labyrinth.html showed them: `type`,
+//  `/done` for completed-hex, `/<power>` for a selectable hex.
+// ---------------------------------------------------------------------------
+
+/** A fresh Easy floor 1, nothing walked yet. */
+const FRESH_FLOOR = [
+    ['hero'],
+    ['o:super_easy/468338', 'o:super_easy/602046'],
+    ['o:hard', 'treasure', 'o:easy'],
+    ['o:easy', 'o:medium'],
+    ['o:easy', 'shrine', 'o:hard'],
+    ['shrine', 'o:medium'],
+    ['o:easy', 'treasure', 'o:easy'],
+    ['o:medium', 'o:easy'],
+    ['o:easy', 'o:medium', 'shrine'],
+    ['o:medium', 'treasure'],
+    ['o:boss'],
+];
+
+/** A Hard floor 5 with only the boss left. */
+const BOSS_LEFT = [
+    ['hero/done'],
+    ['o:hard/done', 'hero/done'],
+    ['o:hard/done', 'o:medium/done', 'hero/done'],
+    ['o:medium/done', 'hero/done'],
+    ['shrine/done', 'hero/done', 'o:hard/done'],
+    ['hero/done', 'o:hard/done'],
+    ['o:hard/done', 'hero/done', 'o:hard/done'],
+    ['hero/done', 'o:hard/done'],
+    ['o:hard/done', 'hero/done', 'o:hard/done'],
+    ['hero', 'o:hard/done'],
+    ['o:boss/18851003'],
+];
+
+const board = (rows: string[][]): LabyBoardHex[][] => rows.map((row, r) => row.map((spec, i) => {
+    const [name, ...flags] = spec.split('/');
+    const power = Number(flags.find((f) => /^\d+$/.test(f)) || 0);
+    return {
+        row: r + 1,
+        id: i + 1,
+        type: name.replace('o:', 'opponent_'),
+        done: flags.includes('done'),
+        selectable: power > 0,
+        power,
+    };
+}));
+
+const ids = (path: LabyBoardHex[]) => path.map((h) => `${h.row}/${h.id}`);
+
+describe("readHexTypeClasses", () => {
+    it("reads the type and completed-hex from the class list", () => {
+        expect(readHexTypeClasses('hex-type opponent_easy  upcoming-hex')).toEqual({ type: 'opponent_easy', done: false });
+        expect(readHexTypeClasses('hex-type opponent_hard completed-hex upcoming-hex')).toEqual({ type: 'opponent_hard', done: true });
+        expect(readHexTypeClasses('hex-type hero completed-hex ')).toEqual({ type: 'hero', done: true });
+        expect(readHexTypeClasses('')).toEqual({ type: '', done: false });
+    });
+});
+
+describe("findHeroPosition", () => {
+    it("is the hero hex without completed-hex", () => {
+        expect(findHeroPosition(board(FRESH_FLOOR))).toEqual({ row: 0, index: 0 });
+        expect(findHeroPosition(board(BOSS_LEFT))).toEqual({ row: 9, index: 0 });
+    });
+
+    it("is null without a hero", () => {
+        expect(findHeroPosition(board([['o:easy'], ['o:boss']]))).toBeNull();
+    });
+});
+
+describe("planLabyrinthPath", () => {
+    it("takes all three treasures of the fresh floor with the treasure table", () => {
+        const path = planLabyrinthPath(board(FRESH_FLOOR), LABY_PATH_VALUES.treasure);
+        expect(ids(path)).toEqual(['2/1', '3/2', '4/2', '5/3', '6/2', '7/2', '8/1', '9/2', '10/2', '11/1']);
+        expect(path.filter((h) => h.type === 'treasure')).toHaveLength(3);
+    });
+
+    it("breaks a tie on the first step by the lower power", () => {
+        const swapped = FRESH_FLOOR.map((r) => r.slice());
+        swapped[1] = ['o:super_easy/602046', 'o:super_easy/468338'];
+        expect(ids(planLabyrinthPath(board(swapped), LABY_PATH_VALUES.treasure))[0]).toBe('2/2');
+    });
+
+    it("goes around hard opponents with the safe table", () => {
+        const path = planLabyrinthPath(board(FRESH_FLOOR), LABY_PATH_VALUES.safe);
+        expect(path.some((h) => h.type === 'opponent_hard')).toBe(false);
+        expect(path[path.length - 1].type).toBe('opponent_boss');
+    });
+
+    it("takes a hard opponent with the red table", () => {
+        const path = planLabyrinthPath(board(FRESH_FLOOR), LABY_PATH_VALUES.red);
+        expect(path.some((h) => h.type === 'opponent_hard')).toBe(true);
+    });
+
+    it("plans from the hero, never over walked or skipped hexes", () => {
+        // Hero went 2/2 -> 3/3 -> 4/2 and left the treasure of row 3 behind.
+        const rows = FRESH_FLOOR.map((r) => r.map((c) => c.replace(/\/\d+$/, '')));
+        rows[0] = ['hero/done'];
+        rows[1] = ['o:super_easy/done', 'hero/done'];
+        rows[2] = ['o:hard/done', 'treasure/done', 'hero/done'];
+        rows[3] = ['o:easy/done', 'hero'];
+        rows[4] = ['o:easy', 'shrine/1', 'o:hard/2'];
+        const path = planLabyrinthPath(board(rows), LABY_PATH_VALUES.treasure);
+        expect(path[0].row).toBe(5);
+        expect(['5/2', '5/3']).toContain(ids(path)[0]);
+        expect(path.some((h) => h.done)).toBe(false);
+        expect(path.filter((h) => h.type === 'treasure')).toHaveLength(2);
+    });
+
+    it("leaves only the boss when the boss is next", () => {
+        expect(ids(planLabyrinthPath(board(BOSS_LEFT), LABY_PATH_VALUES.xp))).toEqual(['11/1']);
+    });
+
+    it("plans nothing the page does not offer", () => {
+        const notClickable = FRESH_FLOOR.map((r) => r.map((c) => c.replace(/\/\d+$/, '')));
+        expect(planLabyrinthPath(board(notClickable), LABY_PATH_VALUES.treasure)).toEqual([]);
+        expect(planLabyrinthPath(board([['o:easy/done'], ['hero']]), LABY_PATH_VALUES.treasure)).toEqual([]);
+        expect(planLabyrinthPath(board([['hero'], ['o:easy/5', 'o:easy/6', 'o:easy/7', 'o:easy/8'], ['o:boss']]),
+            LABY_PATH_VALUES.treasure)).toEqual([]);
+    });
+});
+
+describe("isLabyPathStrategy", () => {
+    it("accepts the menu values only", () => {
+        expect(isLabyPathStrategy('off')).toBe(true);
+        expect(isLabyPathStrategy('treasure')).toBe(true);
+        expect(isLabyPathStrategy('Treasure')).toBe(false);
+        expect(isLabyPathStrategy(null)).toBe(false);
     });
 });

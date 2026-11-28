@@ -510,6 +510,7 @@ function start() {
     hhAutoMenu.fillLeagueSelectMenu();
     hhAutoMenu.fillLeaguSortMenu();
     hhAutoMenu.fillLabyDifficultyMenu();
+    hhAutoMenu.fillLabyPathMenu();
 
     setMenuValues();
     getMenuValues();
