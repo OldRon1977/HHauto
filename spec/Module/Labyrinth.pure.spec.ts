@@ -14,6 +14,7 @@ import {
     sortPathsByDifficulty,
     findHeroPosition,
     isLabyPathStrategy,
+    migratedLabyPath,
     LABY_PATH_VALUES,
     LabyBoardHex,
     planLabyrinthPath,
@@ -198,7 +199,6 @@ describe("decideBetterOption", () => {
         overrides: Partial<FindBetterState<LabyrinthOpponentLite>> = {},
     ): FindBetterState<LabyrinthOpponentLite> => ({
         options: [],
-        chooseMoreReward: false,
         haveGirlWounded: false,
         floor: 1,
         ...overrides,
@@ -275,13 +275,12 @@ describe("decideBetterOption", () => {
         expect(chosen).toBe(treasure);
     });
 
-    it("keeps only easy opponents on floor < 3 without chooseMoreReward", () => {
+    it("keeps only easy opponents on floor < 3", () => {
         const easy = opt({ opponentDifficulty: 1, power: 100 });
         const medium = opt({ opponentDifficulty: 2, power: 50 });
         const chosen = decideBetterOption(
             buildState({
                 options: [medium, easy],
-                chooseMoreReward: false,
                 floor: 1,
             }),
         );
@@ -289,52 +288,33 @@ describe("decideBetterOption", () => {
         expect(chosen).toBe(easy);
     });
 
-    it("chooseMoreReward picks higher difficulty over lower", () => {
-        const easy = opt({ opponentDifficulty: 1, power: 50 });
+    it("picks the weaker opponent on floor >= 3 whatever its difficulty", () => {
         const hard = opt({ opponentDifficulty: 3, power: 100 });
+        const easy = opt({ opponentDifficulty: 1, power: 150 });
         const chosen = decideBetterOption(
-            buildState({
-                options: [easy, hard],
-                chooseMoreReward: true,
-                floor: 5,
-            }),
+            buildState({ options: [easy, hard], floor: 5 }),
         );
         expect(chosen).toBe(hard);
     });
 
-    it("chooseMoreReward picks lower power within tied difficulty", () => {
-        const tougher = opt({ opponentDifficulty: 2, power: 200 });
-        const weaker = opt({ opponentDifficulty: 2, power: 100 });
-        const chosen = decideBetterOption(
-            buildState({
-                options: [tougher, weaker],
-                chooseMoreReward: true,
-                floor: 5,
-            }),
-        );
-        expect(chosen).toBe(weaker);
-    });
-
-    it("default branch picks non-opponent over opponent", () => {
+    it("picks non-opponent over opponent", () => {
         const enemy = opt({ isOpponent: true, power: 50 });
         const npc = opt({ isOpponent: false, power: 200 });
         const chosen = decideBetterOption(
             buildState({
                 options: [enemy, npc],
-                chooseMoreReward: false,
                 floor: 5,
             }),
         );
         expect(chosen).toBe(npc);
     });
 
-    it("default branch picks lower power between two opponents", () => {
+    it("picks lower power between two opponents", () => {
         const tougher = opt({ isOpponent: true, power: 200 });
         const weaker = opt({ isOpponent: true, power: 50 });
         const chosen = decideBetterOption(
             buildState({
                 options: [tougher, weaker],
-                chooseMoreReward: false,
                 floor: 5,
             }),
         );
@@ -524,5 +504,19 @@ describe("isLabyPathStrategy", () => {
         expect(isLabyPathStrategy('treasure')).toBe(true);
         expect(isLabyPathStrategy('Treasure')).toBe(false);
         expect(isLabyPathStrategy(null)).toBe(false);
+    });
+});
+
+describe("migratedLabyPath (retired Hard mode, #1581)", () => {
+    it("turns Hard mode on without a path into Most red", () => {
+        expect(migratedLabyPath("true", "off")).toBe("red");
+        expect(migratedLabyPath("true", undefined)).toBe("red");
+    });
+    it("keeps a path the user already chose", () => {
+        expect(migratedLabyPath("true", "treasure")).toBeNull();
+    });
+    it("changes nothing when Hard mode was off", () => {
+        expect(migratedLabyPath("false", "off")).toBeNull();
+        expect(migratedLabyPath(undefined, "off")).toBeNull();
     });
 });

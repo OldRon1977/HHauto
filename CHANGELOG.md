@@ -11,6 +11,7 @@ Older entries below were migrated 1:1 from `README.md`.
 
 - **Labyrinth**: new setting "Path" plans the whole floor from the hero to the boss instead of choosing the next hex only: Treasures first, Most red, Avoid red, XP or Kisses. "Step by step" keeps the previous choice and is the default.
 - **Labyrinth**: with a path chosen, the green path on the board is the planned one and starts at the hero.
+- **Labyrinth**: the "Hard mode" switch is gone. If it was on, "Path" is set to "Most red" once; "Step by step" now always chooses as Hard mode off did.
 
 ### v8.27.1 - Sell dialog loads with locked items
 

@@ -106,9 +106,9 @@ describe('refreshMenuState', () => {
     });
 
     it('marks a block that is set up but cannot run as a conflict', () => {
-        // Hard mode and sweep chosen, Labyrinth itself never switched on.
+        // Sweep chosen, Labyrinth itself never switched on.
         set('autoLabyrinth', false);
-        set('autoLabyHard', true);
+        set('autoLabySweep', true);
         refreshMenuState();
         expect(blockOf('autoLabyrinth').getAttribute('data-state')).toBe('conflict');
     });

@@ -133,9 +133,9 @@ export const SK = {
 
     // Labyrinth
     autoLabyrinth: "Setting_autoLabyrinth",
-    autoLabyHard: "Setting_autoLabyHard",
     autoLabySweep: "Setting_autoLabySweep",
     autoLabyPath: "Setting_autoLabyPath",
+    autoLabyHard: "Setting_autoLabyHard",
     autoLabyDifficultyIndex: "Setting_autoLabyDifficultyIndex",
     autoLabyCustomTeamBuilder: "Setting_autoLabyCustomTeamBuilder",
 
